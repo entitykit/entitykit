@@ -1,0 +1,44 @@
+{
+  "name": "entitykit",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --ignore-pattern temp/ --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/",
+    "test:coverage": "jest --config jest.coverage.config.cjs --runInBand && node scripts/check-runtime-coverage.js",
+    "test:mutation": "stryker run",
+    "test:mutation:dry": "stryker run --dryRunOnly",
+    "verify": "npm run lint && npm run typecheck && npm test",
+    "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
+    "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/jest-runner": "^9.6.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.0",
+    "eslint": "^10.8.0",
+    "eslint-config-rubric": "^0.1.0-alpha.0",
+    "fast-check": "^4.9.0",
+    "jest": "^30.4.2",
+    "mysql2": "^3.23.2",
+    "pg": "^8.21.0",
+    "ts-jest": "^29.4.12"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "type": "module",
+  "overrides": {
+    "brace-expansion": "5.0.8",
+    "glob": "13.0.6",
+    "minimatch": "10.2.6",
+    "qs": "6.15.3"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "sourceRoot": "src",
+  "excludedPathPrefixes": [
+    "src/examples/"
+  ],
+  "thresholds": {
+    "statements": 92,
+    "branches": 87,
+    "functions": 89,
+    "lines": 92
+  }
+}
