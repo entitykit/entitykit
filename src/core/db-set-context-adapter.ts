@@ -1,0 +1,49 @@
+import type { Model } from '../model/model';
+import type { EntityMetadata } from '../model/entity-metadata';
+import type { QueryModel } from '../query/query-model';
+import type { DatabaseConnection } from '../storage/database-connection';
+import type { EntityEntry } from '../tracking/entity-entry';
+import type { ChangeTracker } from '../tracking/change-tracker';
+import type { DbContextOptions } from './context-options/db-context-option-types';
+import type { DbSetContext } from './db-set-context';
+
+interface DbSetContextAdapterOptions {
+    readonly options: () => DbContextOptions;
+    readonly database: () => DatabaseConnection;
+    readonly model: () => Model;
+    readonly changeTracker: ChangeTracker;
+    readonly applyQueryFilters: <TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        query: QueryModel<TEntity>,
+    ) => QueryModel<TEntity>;
+    readonly currentTenantIdForWrites: () => unknown;
+    readonly loadNavigation: <TEntity extends object>(
+        entry: EntityEntry<TEntity>,
+        navigationProperty: string,
+    ) => Promise<unknown>;
+}
+
+/** Adapt context-owned runtime services to the narrow contract consumed by DbSet. */
+export function createDbSetContextAdapter(options: DbSetContextAdapterOptions): DbSetContext {
+    return {
+        get options() {
+            return options.options();
+        },
+        get database() {
+            return options.database();
+        },
+        get dialect() {
+            return options.options().dialect;
+        },
+        get valueReader() {
+            return options.options().valueReader;
+        },
+        get modelMetadata() {
+            return options.model();
+        },
+        changeTracker: options.changeTracker,
+        applyQueryFilters: options.applyQueryFilters,
+        currentTenantIdForWrites: options.currentTenantIdForWrites,
+        loadNavigation: options.loadNavigation,
+    };
+}
