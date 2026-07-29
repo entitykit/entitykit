@@ -1,0 +1,256 @@
+import type { DbContextOptionsBuilder } from '../src';
+import { DbContext, type ModelBuilder } from '../src';
+import type { SqlDialect } from '../src/adapter';
+import { sqliteDialect } from '../src/providers/sqlite/sqlite-dialect';
+import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
+import { RecordingDatabaseConnection } from './support/recording-database-connection';
+
+class Tag {
+    public id!: string;
+    public workspaceId!: string;
+    public name!: string;
+    public deletedAt?: Date | null;
+    public posts: Post[] = [];
+    constructor(data?: Partial<Tag>) {
+        Object.assign(this, data);
+    }
+}
+
+class Post {
+    public id!: string;
+    public title!: string;
+    public tags: Tag[] = [];
+    constructor(data?: Partial<Post>) {
+        Object.assign(this, data);
+    }
+}
+
+class IncludeManyToManyContext extends DbContext {
+    public posts = this.set(Post);
+    public tags = this.set(Tag);
+
+    constructor(private readonly connection: RecordingDatabaseConnection, private readonly injectedDialect?: SqlDialect) {
+        super();
+    }
+
+    protected override configure(options: DbContextOptionsBuilder): void {
+        if (this.injectedDialect) {
+            options.useConnection(this.connection, {
+                provider: this.injectedDialect.name,
+                dialect: this.injectedDialect,
+            });
+        } else {
+            options.useConnection(this.connection);
+        }
+        options.useTenantScope(() => 'wrk_1');
+    }
+
+    protected override model(model: ModelBuilder): void {
+        model.entity(Post, entity => {
+            entity.toTable('posts');
+            entity.hasKey(post => post.id);
+            entity.property(post => post.id).hasColumnName('id').hasColumnType('text').isRequired();
+            entity.property(post => post.title).hasColumnName('title').hasColumnType('text').isRequired();
+            entity.hasManyToMany(Tag, post => post.tags)
+                .withMany(tag => tag.posts)
+                .usingJoinTable('post_tags', join => {
+                    join.sourceForeignKey('post_id');
+                    join.targetForeignKey('tag_id');
+                });
+        });
+
+        model.entity(Tag, entity => {
+            entity.toTable('tags');
+            entity.hasKey(tag => tag.id);
+            entity.tenantKey(tag => tag.workspaceId);
+            entity.softDelete(tag => tag.deletedAt);
+            entity.property(tag => tag.id).hasColumnName('id').hasColumnType('text').isRequired();
+            entity.property(tag => tag.workspaceId).hasColumnName('workspace_id').hasColumnType('text').isRequired();
+            entity.property(tag => tag.name).hasColumnName('name').hasColumnType('text').isRequired();
+            entity.property(tag => tag.deletedAt).hasColumnName('deleted_at').hasColumnType('timestamptz');
+        });
+    }
+
+    public static createWith(connection: RecordingDatabaseConnection, dialect?: SqlDialect): IncludeManyToManyContext {
+        const context = IncludeManyToManyContext.create(connection, dialect);
+        return context;
+    }
+}
+
+describe('many-to-many include loading', () => {
+    it('loads direct many-to-many collections with split queries', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1 });
+        connection.queueResult({ rows: [{ __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'TypeScript', deleted_at: null }], rowCount: 1 });
+        const db =  IncludeManyToManyContext.createWith(connection);
+
+        const posts = await db.posts.include(post => post.tags).toArray();
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0]).toBeInstanceOf(Post);
+        expect(posts[0]?.tags).toHaveLength(1);
+        expect(posts[0]?.tags[0]).toBeInstanceOf(Tag);
+        expect(posts[0]?.tags[0]?.posts).toEqual([posts[0]]);
+        expect(db.entry(posts[0])?.isNavigationLoaded('tags')).toBe(true);
+        expect(connection.statements[1]?.text).toContain('from "post_tags" "j" join "tags" "t"');
+        expect(connection.statements[1]?.text).toContain('"t"."deleted_at" is null');
+        expect(connection.statements[1]?.text).toContain('"t"."workspace_id" = $2');
+        expect(connection.statements[1]?.values).toEqual(['post_1', 'wrk_1']);
+    });
+
+    it('loads inverse many-to-many collections with split queries', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rows: [{ id: 'tag_1', workspace_id: 'wrk_1', name: 'TypeScript', deleted_at: null }], rowCount: 1 });
+        connection.queueResult({ rows: [{ __entitykit_parent_key: 'tag_1', id: 'post_1', title: 'Hello' }], rowCount: 1 });
+        const db =  IncludeManyToManyContext.createWith(connection);
+
+        const tags = await db.tags.include(tag => tag.posts).toArray();
+
+        expect(tags[0]?.posts).toHaveLength(1);
+        expect(tags[0]?.posts[0]).toBeInstanceOf(Post);
+        expect(tags[0]?.posts[0]?.tags).toEqual([tags[0]]);
+        expect(db.entry(tags[0])?.isNavigationLoaded('posts')).toBe(true);
+        expect(connection.statements[1]?.text).toContain('from "post_tags" "j" join "posts" "t"');
+        expect(connection.statements[1]?.values).toEqual(['tag_1']);
+    });
+
+    it('aliases filtered many-to-many include predicates against the related table', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1 });
+        connection.queueResult({ rows: [{ __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'TypeScript', deleted_at: null }], rowCount: 1 });
+        const db =  IncludeManyToManyContext.createWith(connection);
+
+        await db.posts
+            .include(post => post.tags.where(tag => tag.name.startsWith('Type')).orderBy(tag => tag.name).take(5))
+            .toArray();
+
+        expect(connection.statements[1]?.text).toContain('"t"."name" like $2');
+        expect(connection.statements[1]?.text).toContain('"t"."deleted_at" is null');
+        expect(connection.statements[1]?.text).toContain('"t"."workspace_id" = $3');
+        expect(connection.statements[1]?.text).toContain('order by "t"."name" asc');
+        expect(connection.statements[1]?.text).toContain('limit $4');
+        expect(connection.statements[1]?.values).toEqual(['post_1', 'Type%', 'wrk_1', 5]);
+    });
+
+    it('places nulls SQL-standard in the batch order-by for SQLite', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1 });
+        connection.queueResult({ rows: [{ __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'TypeScript', deleted_at: null }], rowCount: 1 });
+        const db =  IncludeManyToManyContext.createWith(connection, sqliteDialect);
+
+        // A plain ordered include (no take/skip) takes the batch path. SQLite sorts
+        // nulls low by default, so the include must state `nulls last` to match a
+        // top-level `orderBy` and the other providers.
+        await db.posts.include(post => post.tags.orderBy(tag => tag.name)).toArray();
+
+        expect(connection.statements[1]?.text).toContain('order by "t"."name" asc nulls last');
+    });
+
+    it('places nulls SQL-standard in the batch order-by for MySQL', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1 });
+        connection.queueResult({ rows: [{ __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'TypeScript', deleted_at: null }], rowCount: 1 });
+        const db =  IncludeManyToManyContext.createWith(connection, mySqlDialect);
+
+        await db.posts.include(post => post.tags.orderByDescending(tag => tag.name)).toArray();
+
+        // MySQL has no `NULLS` keyword; the leading `(col is null)` term is how the
+        // batch order-by keeps descending nulls first (SQL-standard).
+        expect(connection.statements[1]?.text).toContain('order by `t`.`name` is null desc, `t`.`name` desc');
+    });
+
+    it('uses a windowed split query when many-to-many filtered includes use take', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({
+            rows: [
+                { id: 'post_1', title: 'First' },
+                { id: 'post_2', title: 'Second' },
+            ],
+            rowCount: 2,
+        });
+        connection.queueResult({
+            rows: [
+                { __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'Alpha', deleted_at: null },
+                { __entitykit_parent_key: 'post_2', id: 'tag_2', workspace_id: 'wrk_1', name: 'Beta', deleted_at: null },
+            ],
+            rowCount: 2,
+        });
+        const db =  IncludeManyToManyContext.createWith(connection);
+
+        const posts = await db.posts
+            .include(post => post.tags.orderBy(tag => tag.name).take(1))
+            .toArray();
+
+        expect(connection.statements).toHaveLength(2);
+        expect(connection.statements[1]?.text).toContain('row_number() over (partition by "j"."post_id" order by "t"."name" asc)');
+        expect(connection.statements[1]?.text).toContain('where "j"."post_id" in ($1, $2)');
+        expect(connection.statements[1]?.text).toContain('"t"."deleted_at" is null');
+        expect(connection.statements[1]?.text).toContain('"t"."workspace_id" = $3');
+        expect(connection.statements[1]?.text).toContain('where "__entitykit_include"."__entitykit_include_row_number" <= $4');
+        expect(connection.statements[1]?.values).toEqual(['post_1', 'post_2', 'wrk_1', 1]);
+        expect(posts[0]?.tags.map(tag => tag.id)).toEqual(['tag_1']);
+        expect(posts[1]?.tags.map(tag => tag.id)).toEqual(['tag_2']);
+    });
+
+    it('keeps many-to-many skip and take per parent in a windowed split query', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({
+            rows: [
+                { id: 'post_1', title: 'First' },
+                { id: 'post_2', title: 'Second' },
+            ],
+            rowCount: 2,
+        });
+        connection.queueResult({
+            rows: [
+                { __entitykit_parent_key: 'post_1', id: 'tag_2', workspace_id: 'wrk_1', name: 'Beta', deleted_at: null },
+                { __entitykit_parent_key: 'post_2', id: 'tag_4', workspace_id: 'wrk_1', name: 'Delta', deleted_at: null },
+            ],
+            rowCount: 2,
+        });
+        const db =  IncludeManyToManyContext.createWith(connection);
+
+        const posts = await db.posts
+            .include(post => post.tags.orderBy(tag => tag.name).skip(1).take(1))
+            .toArray();
+
+        expect(connection.statements).toHaveLength(2);
+        expect(connection.statements[1]?.text).toContain('row_number() over (partition by "j"."post_id" order by "t"."name" asc)');
+        expect(connection.statements[1]?.text).toContain('where "j"."post_id" in ($1, $2)');
+        expect(connection.statements[1]?.text).toContain('"t"."deleted_at" is null');
+        expect(connection.statements[1]?.text).toContain('"t"."workspace_id" = $3');
+        expect(connection.statements[1]?.text).toContain('where "__entitykit_include"."__entitykit_include_row_number" > $4 and "__entitykit_include"."__entitykit_include_row_number" <= $5');
+        expect(connection.statements[1]?.values).toEqual(['post_1', 'post_2', 'wrk_1', 1, 2]);
+        expect(posts[0]?.tags.map(tag => tag.id)).toEqual(['tag_2']);
+        expect(posts[1]?.tags.map(tag => tag.id)).toEqual(['tag_4']);
+    });
+
+    it('deduplicates windowed many-to-many include rows during parent and inverse fix-up', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({
+            rows: [
+                { id: 'post_1', title: 'First' },
+                { id: 'post_2', title: 'Second' },
+            ],
+            rowCount: 2,
+        });
+        connection.queueResult({
+            rows: [
+                { __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'Shared', deleted_at: null },
+                { __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'Shared', deleted_at: null },
+                { __entitykit_parent_key: 'post_2', id: 'tag_1', workspace_id: 'wrk_1', name: 'Shared', deleted_at: null },
+            ],
+            rowCount: 3,
+        });
+        const db =  IncludeManyToManyContext.createWith(connection);
+
+        const posts = await db.posts
+            .include(post => post.tags.orderBy(tag => tag.name).take(2))
+            .toArray();
+
+        const sharedTag = posts[0]?.tags[0];
+        expect(posts[0]?.tags).toEqual([sharedTag]);
+        expect(posts[1]?.tags).toEqual([sharedTag]);
+        expect(sharedTag.posts).toEqual([posts[0], posts[1]]);
+    });
+});
