@@ -3,27 +3,15 @@ import type { PropertySelector } from '../model/model-property-selector';
 import type { EntityDatabaseValues } from './entity-database-values';
 import { entityEntryConcurrency } from './entity-entry-concurrency';
 import type { ConcurrencyResolutionStrategy } from './entity-entry-concurrency-types';
+import { EntityEntryState } from './entity-entry-state';
 import { EntityState } from './entity-state';
-import {
-    cloneEntityValues,
-    hasEntityModifications,
-    modifiedEntityProperties,
-    readEntityValues,
-} from './entity-entry-snapshot';
 import { collectionEntry, referenceEntry, type CollectionNavigationEntry, type EntityNavigationLoader, type ReferenceNavigationEntry } from './navigation-entry';
-import {
-    acceptNavigationSnapshotValues,
-    captureNavigation,
-    forgetNavigation,
-    refreshNavigationSnapshots,
-    type NavigationSnapshotValues,
-} from './navigation-snapshot';
+import type { NavigationSnapshotValues } from './navigation-snapshot';
 
 export { cloneSnapshotValue } from './entity-entry-snapshot';
 
 export class EntityEntry<TEntity extends object> {
-    private snapshot: Record<string, unknown>;
-    private readonly loadedNavigationProperties: Set<string> = new Set();
+    private readonly trackedState: EntityEntryState<TEntity>;
     private navigationLoader?: EntityNavigationLoader;
 
     constructor(
@@ -32,20 +20,13 @@ export class EntityEntry<TEntity extends object> {
         public state: EntityState,
         originalValues?: Record<string, unknown>,
     ) {
-        this.snapshot = originalValues
-            ? cloneEntityValues(this.metadata, originalValues)
-            : readEntityValues(this.metadata, this.entity);
+        this.trackedState = new EntityEntryState(metadata, entity, originalValues);
     }
 
     public get originalValues(): Readonly<Record<string, unknown>> {
-        return this.snapshot;
+        return this.trackedState.originalValues;
     }
 
-    /**
-   * The entity's key value, used for reporting and save ordering.
-   *
-   * A composite key reports the tuple of values in declaration order.
-   */
     public get keyValue(): unknown {
         return this.metadata.hasCompositeKey
             ? this.metadata.getKeyValues(this.entity)
@@ -53,61 +34,46 @@ export class EntityEntry<TEntity extends object> {
     }
 
     public currentValues(): Record<string, unknown> {
-        return readEntityValues(this.metadata, this.entity);
+        return this.trackedState.currentValues();
     }
 
     public modifiedProperties(): string[] {
-        return modifiedEntityProperties(this.metadata, this.entity, this.snapshot);
+        return this.trackedState.modifiedProperties();
     }
 
     public detectChanges(): void {
-        if (this.state !== EntityState.Unchanged && this.state !== EntityState.Modified) {
-            return;
-        }
-
-        this.state = hasEntityModifications(
-            this.metadata,
-            this.entity,
-            this.snapshot,
-        )
-            ? EntityState.Modified
-            : EntityState.Unchanged;
+        this.state = this.trackedState.detectChanges(this.state);
     }
 
     public refreshOriginalValues(values?: Record<string, unknown>): void {
-        this.snapshot = values
-            ? cloneEntityValues(this.metadata, values)
-            : readEntityValues(this.metadata, this.entity);
+        this.trackedState.refresh(values);
     }
 
     public acceptChanges(): void {
-        this.snapshot = readEntityValues(this.metadata, this.entity);
-        refreshNavigationSnapshots(this as unknown as EntityEntry<object>);
+        this.trackedState.accept(this as unknown as EntityEntry<object>);
         this.state = EntityState.Unchanged;
     }
 
-    /** Accept only the mapped and relationship values an executed plan wrote. */
     public acceptPersistedValues(
         values: Record<string, unknown>,
         navigations: NavigationSnapshotValues,
     ): void {
-        this.snapshot = cloneEntityValues(this.metadata, values);
-        acceptNavigationSnapshotValues(
+        this.trackedState.acceptPersisted(
             this as unknown as EntityEntry<object>,
+            values,
             navigations,
         );
         this.state = EntityState.Unchanged;
     }
 
-    /** Restore the tracker baseline recorded before a transactional save. */
     public restoreTrackedValues(
         values: Record<string, unknown>,
         navigations: NavigationSnapshotValues,
         state: EntityState,
     ): void {
-        this.snapshot = cloneEntityValues(this.metadata, values);
-        acceptNavigationSnapshotValues(
+        this.trackedState.acceptPersisted(
             this as unknown as EntityEntry<object>,
+            values,
             navigations,
         );
         this.state = state;
@@ -118,19 +84,23 @@ export class EntityEntry<TEntity extends object> {
     }
 
     public markNavigationLoaded(navigationProperty: string): void {
-        this.loadedNavigationProperties.add(navigationProperty);
-        captureNavigation(this as unknown as EntityEntry<object>, navigationProperty);
+        this.trackedState.markNavigationLoaded(
+            this as unknown as EntityEntry<object>,
+            navigationProperty,
+        );
     }
 
     public markNavigationNotLoaded(navigationProperty: string): void {
-        this.loadedNavigationProperties.delete(navigationProperty);
-        forgetNavigation(this as unknown as EntityEntry<object>, navigationProperty);
+        this.trackedState.markNavigationNotLoaded(
+            this as unknown as EntityEntry<object>,
+            navigationProperty,
+        );
     }
     public isNavigationLoaded(navigationProperty: string): boolean {
-        return this.loadedNavigationProperties.has(navigationProperty);
+        return this.trackedState.isNavigationLoaded(navigationProperty);
     }
     public loadedNavigations(): readonly string[] {
-        return Array.from(this.loadedNavigationProperties).sort();
+        return this.trackedState.loadedNavigationProperties();
     }
 
     public useNavigationLoader(loader: EntityNavigationLoader): this {
@@ -165,7 +135,6 @@ export class EntityEntry<TEntity extends object> {
     public collection<TCollection>(selector: PropertySelector<TEntity, TCollection>): CollectionNavigationEntry<TEntity, NonNullable<TCollection> extends ReadonlyArray<infer TElement> ? NonNullable<TElement> : never> {
         return collectionEntry(this, selector, this.requireNavigationLoader());
     }
-
     public markDetached(): void {
         this.state = EntityState.Detached;
     }
