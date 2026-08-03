@@ -1,4 +1,4 @@
-import { DbContext } from '../src';
+import { DbContext, type OutboxOptions } from '../src';
 import type { DatabaseProviderServices } from '../src/adapter';
 import { DbContextOptionsBuilder } from '../src/core/context-options/db-context-options-builder';
 import type { ConnectionOwnership } from '../src/core/context-options/db-context-option-types';
@@ -40,6 +40,15 @@ describe('DbContextOptionsBuilder', () => {
 
     it('throws for an empty Postgres connection string', () => {
         expect(() => new DbContextOptionsBuilder().usePostgres(' ')).toThrow('must not be empty');
+    });
+
+    it('requires outbox configurations to clear committed events', () => {
+        const invalid = {
+            collectEvents: () => [],
+        } as unknown as OutboxOptions;
+
+        expect(() => new DbContextOptionsBuilder().useOutbox(invalid))
+            .toThrow('useOutbox requires a clearEvents callback');
     });
 
     it('accepts named non-Postgres provider options for provider experiments', () => {

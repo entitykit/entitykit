@@ -8,6 +8,7 @@ import { Project } from './project';
 import { TaskComment } from './task-comment';
 import { TaskItem, type TaskStatus } from './task-item';
 import { Workspace } from './workspace';
+import type { OutboxMessage } from '../../core/outbox-options';
 
 export class CrudAppDbContext extends DbContext {
     public workspaces = this.set(Workspace);
@@ -28,7 +29,8 @@ export class CrudAppDbContext extends DbContext {
             .useAuditing()
             .useTenantScope(() => process.env.WORKSPACE_ID)
             .useOutbox({
-                collectEvents: entity => 'domainEvents' in entity ? (entity as { domainEvents?: never[] }).domainEvents ?? [] : [],
+                collectEvents: collectDomainEvents,
+                clearEvents: clearDomainEvents,
             });
     }
 
@@ -118,4 +120,28 @@ export class CrudAppDbContext extends DbContext {
                 .onDelete(DeleteBehavior.NoAction);
         });
     }
+}
+
+function collectDomainEvents(entity: object): readonly OutboxMessage[] {
+    const events = 'domainEvents' in entity
+        ? (entity as { domainEvents?: unknown }).domainEvents
+        : undefined;
+    return Array.isArray(events) ? events as OutboxMessage[] : [];
+}
+
+function clearDomainEvents(
+    entity: object,
+    persistedEvents: readonly OutboxMessage[],
+): void {
+    if (!('domainEvents' in entity)) {
+        return;
+    }
+    const aggregate = entity as { domainEvents?: unknown };
+    if (!Array.isArray(aggregate.domainEvents)) {
+        return;
+    }
+    const persisted = new Set(persistedEvents);
+    aggregate.domainEvents = aggregate.domainEvents.filter(
+        event => !persisted.has(event as OutboxMessage),
+    );
 }

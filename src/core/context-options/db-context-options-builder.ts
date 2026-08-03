@@ -106,6 +106,12 @@ export class DbContextOptionsBuilder {
     }
 
     public useOutbox(options: OutboxOptions): this {
+        if (typeof options.collectEvents !== 'function') {
+            throw new Error('useOutbox requires a collectEvents callback.');
+        }
+        if (typeof options.clearEvents !== 'function') {
+            throw new Error('useOutbox requires a clearEvents callback.');
+        }
         this.outbox = options;
         return this;
     }

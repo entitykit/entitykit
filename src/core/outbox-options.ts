@@ -25,7 +25,7 @@ export interface OutboxOptions {
    * An entity can raise another event before an explicit transaction commits;
    * clearing the whole collection there would silently lose that later event.
    */
-    readonly clearEvents?: (
+    readonly clearEvents: (
         entity: object,
         persistedEvents: readonly OutboxMessage[],
     ) => void;

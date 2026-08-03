@@ -99,15 +99,14 @@ export class SaveLifecycle {
     }
 
     private clearOutboxEvents(batches: readonly OutboxEventBatch[]): void {
-        const clearEvents = this.options.outbox?.clearEvents;
-        if (!clearEvents) {
-            this.outboxEvents.release(batches);
+        const outbox = this.options.outbox;
+        if (!outbox) {
             return;
         }
 
         for (const batch of batches) {
             try {
-                clearEvents(batch.entity, batch.events);
+                outbox.clearEvents(batch.entity, batch.events);
                 this.outboxEvents.release([batch]);
             } catch {
                 // Clearing an in-memory event list is post-commit observation.
