@@ -1,22 +1,19 @@
 import type { SqlStatement } from '../../sql/sql-statement';
 import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionOptions } from '../../storage/database-connection';
-import { DatabaseProviderError, DatabaseTransactionCleanupError } from '../../storage/database-errors';
 import { EnclosingTransactionState } from '../../storage/enclosing-transaction-state';
 import { validateTransactionOptions } from '../../storage/transaction-options';
 import type { Pool, PoolClient } from './postgres-driver';
-import { runPostgresSavepoint, runPostgresTransaction } from './postgres-transaction';
+import { runPostgresTransaction } from './postgres-transaction';
 import { streamPostgresConnectionRows } from './postgres-stream-lease';
 import { executePostgresBufferedQuery } from './postgres-buffered-query';
 import { throwIfOperationAborted } from '../../storage/operation-cancellation';
 import { createPostgresProviderError } from './postgres-provider-error';
-import {
-    findTransactionOutcomeUnknown,
-} from '../../storage/transaction-outcome';
-import type { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
+import { runPostgresPooledSavepoint } from './postgres-pooled-savepoint';
+import { TransactionUsability } from '../../storage/transaction-usability';
 export class PostgresPooledConnection implements DatabaseConnection {
     private activeClient?: PoolClient;
     private transactionDepth = 0;
-    private outcomeUnknown?: TransactionOutcomeUnknownError;
+    private readonly usability = new TransactionUsability();
     private readonly transactionState = new EnclosingTransactionState();
 
     constructor(private readonly pool: Pool) {}
@@ -29,7 +26,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
         statement: SqlStatement,
         options: DatabaseOperationOptions = {},
     ): Promise<DatabaseQueryResult<TRow>> {
-        this.assertUsable();
+        this.usability.assertUsable();
         return executePostgresBufferedQuery(
             this.pool,
             this.activeClient,
@@ -43,7 +40,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
         statement: SqlStatement,
         options: QueryStreamOptions = {},
     ): AsyncIterable<TRow> {
-        this.assertUsable();
+        this.usability.assertUsable();
         return streamPostgresConnectionRows(
             statement,
             options,
@@ -57,7 +54,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
         work: () => TResult | Promise<TResult>,
         options?: TransactionOptions,
     ): Promise<TResult> {
-        this.assertUsable();
+        this.usability.assertUsable();
         validateTransactionOptions(options);
         if (this.isInTransaction) {
             if (options && (options.isolationLevel !== undefined || options.readOnly !== undefined)) {
@@ -78,13 +75,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
                 options,
             );
         } catch (error) {
-            this.outcomeUnknown = findTransactionOutcomeUnknown(error);
-            clientUnsafe =
-                this.outcomeUnknown !== undefined ||
-                error instanceof DatabaseTransactionCleanupError
-                && error.operation === 'rollback'
-                || error instanceof DatabaseProviderError
-                && error.operation === 'begin';
+            clientUnsafe = this.usability.observeFailure(error);
             throw error;
         } finally {
             this.transactionDepth -= 1;
@@ -100,7 +91,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
         work: () => TResult | Promise<TResult>,
         options?: DatabaseOperationOptions,
     ): Promise<TResult> {
-        this.assertUsable();
+        this.usability.assertUsable();
         throwIfOperationAborted(options?.signal);
         if (this.activeClient) {
             return work();
@@ -129,20 +120,13 @@ export class PostgresPooledConnection implements DatabaseConnection {
         const depth = this.transactionDepth;
         this.transactionDepth += 1;
         try {
-            try {
-                return await runPostgresSavepoint(
-                    this.activeClient,
-                    depth,
-                    work,
-                    options,
-                    error => {
-                        this.transactionState.markRecovered(error);
-                    },
-                );
-            } catch (error) {
-                this.transactionState.observeNestedFailure(error);
-                throw error;
-            }
+            return await runPostgresPooledSavepoint(
+                this.activeClient,
+                depth,
+                this.transactionState,
+                work,
+                options,
+            );
         } finally {
             this.transactionDepth -= 1;
         }
@@ -156,9 +140,4 @@ export class PostgresPooledConnection implements DatabaseConnection {
         }
     }
 
-    private assertUsable(): void {
-        if (this.outcomeUnknown) {
-            throw this.outcomeUnknown;
-        }
-    }
 }

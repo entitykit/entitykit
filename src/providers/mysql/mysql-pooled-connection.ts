@@ -1,21 +1,20 @@
 import type { SqlStatement } from '../../sql/sql-statement';
 import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionOptions } from '../../storage/database-connection';
-import { DatabaseProviderError, DatabaseTransactionCleanupError } from '../../storage/database-errors';
 import { EnclosingTransactionState } from '../../storage/enclosing-transaction-state';
 import { validateTransactionOptions } from '../../storage/transaction-options';
 import type { MySqlConnection, MySqlPool } from './mysql-driver';
 import { createMysqlProviderError } from './mysql-provider-error';
-import { runMysqlSavepoint, runMysqlTransaction } from './mysql-transaction';
+import { runMysqlTransaction } from './mysql-transaction';
 import { streamMysqlConnectionRows } from './mysql-stream-lease';
 import { executeMysqlBufferedQuery } from './mysql-buffered-query';
 import { throwIfOperationAborted } from '../../storage/operation-cancellation';
-import { findTransactionOutcomeUnknown } from '../../storage/transaction-outcome';
-import type { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
+import { runMysqlPooledSavepoint } from './mysql-pooled-savepoint';
+import { TransactionUsability } from '../../storage/transaction-usability';
 
 export class MySqlPooledConnection implements DatabaseConnection {
     private activeConnection?: MySqlConnection;
     private transactionDepth = 0;
-    private outcomeUnknown?: TransactionOutcomeUnknownError;
+    private readonly usability = new TransactionUsability();
     private readonly transactionState = new EnclosingTransactionState();
 
     constructor(
@@ -31,7 +30,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
         statement: SqlStatement,
         options: DatabaseOperationOptions = {},
     ): Promise<DatabaseQueryResult<TRow>> {
-        this.assertUsable();
+        this.usability.assertUsable();
         return executeMysqlBufferedQuery(
             this.pool,
             this.activeConnection,
@@ -46,7 +45,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
         statement: SqlStatement,
         options: QueryStreamOptions = {},
     ): AsyncIterable<TRow> {
-        this.assertUsable();
+        this.usability.assertUsable();
         return streamMysqlConnectionRows(
             statement,
             options,
@@ -60,7 +59,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
         work: () => TResult | Promise<TResult>,
         options?: TransactionOptions,
     ): Promise<TResult> {
-        this.assertUsable();
+        this.usability.assertUsable();
         validateTransactionOptions(options);
         if (this.isInTransaction) {
             if (options && (options.isolationLevel !== undefined || options.readOnly !== undefined)) {
@@ -82,13 +81,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
                 this.commandTimeoutMs,
             );
         } catch (error) {
-            this.outcomeUnknown = findTransactionOutcomeUnknown(error);
-            connectionUnsafe =
-                this.outcomeUnknown !== undefined ||
-                error instanceof DatabaseTransactionCleanupError
-                && error.operation === 'rollback'
-                || error instanceof DatabaseProviderError
-                && error.operation === 'begin';
+            connectionUnsafe = this.usability.observeFailure(error);
             throw error;
         } finally {
             this.transactionDepth = 0;
@@ -102,7 +95,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
     }
 
     public async session<TResult>(work: () => TResult | Promise<TResult>, options?: DatabaseOperationOptions): Promise<TResult> {
-        this.assertUsable();
+        this.usability.assertUsable();
         throwIfOperationAborted(options?.signal);
         if (this.activeConnection) {
             return work();
@@ -129,21 +122,14 @@ export class MySqlPooledConnection implements DatabaseConnection {
         }
         const depth = this.transactionDepth++;
         try {
-            try {
-                return await runMysqlSavepoint(
-                    connection,
-                    depth,
-                    work,
-                    options,
-                    this.commandTimeoutMs,
-                    error => {
-                        this.transactionState.markRecovered(error);
-                    },
-                );
-            } catch (error) {
-                this.transactionState.observeNestedFailure(error);
-                throw error;
-            }
+            return await runMysqlPooledSavepoint(
+                connection,
+                depth,
+                this.transactionState,
+                work,
+                options,
+                this.commandTimeoutMs,
+            );
         } finally {
             this.transactionDepth -= 1;
         }
@@ -153,11 +139,6 @@ export class MySqlPooledConnection implements DatabaseConnection {
             return await this.pool.getConnection();
         } catch (error) {
             throw createMysqlProviderError('connect', error);
-        }
-    }
-    private assertUsable(): void {
-        if (this.outcomeUnknown) {
-            throw this.outcomeUnknown;
         }
     }
 }
