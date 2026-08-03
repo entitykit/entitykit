@@ -2,14 +2,13 @@ import type { EntityConstructor } from '../types';
 import type { DbSetContext } from './db-set-context';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { SqlStatement } from '../sql/sql-statement';
-import { DbValidationError } from '../errors/entity-kit-error';
 import { mapDatabaseProviderError } from '../errors/db-update-error';
 import { ModificationSqlBuilder, type UpsertSqlOptions } from '../sql/modification-sql-builder';
 import { createQueryModel } from '../query/query-model';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
-import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
+import { applyBulkWriteTenant } from './bulk-write-tenant';
 
 /**
  * The batched `upsert` write for a `DbSet`.
@@ -60,7 +59,8 @@ export class DbSetBulkWriter<TEntity extends object> {
             ? this.context.currentTenantIdForWrites()
             : undefined;
         for (const entity of entities) {
-            this.assertEntityInTenantScope(
+            applyBulkWriteTenant(
+                this.metadata,
                 entity,
                 tenantId,
                 this.context.allowsCrossTenantAccess(),
@@ -111,46 +111,6 @@ export class DbSetBulkWriter<TEntity extends object> {
         return this.context.database.transaction(run, {
             signal: options.signal,
         });
-    }
-
-    /**
-   * Refuse an entity belonging to another tenant.
-   *
-   * The same rule `saveChanges()` applies. A set-based write must not be the
-   * way around an isolation boundary the tracked path enforces.
-   */
-    private assertEntityInTenantScope(
-        entity: TEntity,
-        tenantId: unknown,
-        allowsCrossTenantAccess: boolean,
-    ): void {
-        const tenantProperty = this.metadata.tenantKeyProperty;
-        if (!tenantProperty) {
-            return;
-        }
-        if (allowsCrossTenantAccess) {
-            return;
-        }
-
-        if (tenantId === undefined || tenantId === null) {
-            throw new TenantScopeUnavailableError(this.metadata.entityName);
-        }
-
-        const values = entity as Record<string, unknown>;
-        const current = values[tenantProperty];
-        if (current === undefined || current === null || current === '') {
-            values[tenantProperty] = tenantId;
-            return;
-        }
-
-        const tenantMatches = current instanceof Date && tenantId instanceof Date
-            ? current.getTime() === tenantId.getTime()
-            : current === tenantId;
-        if (!tenantMatches) {
-            throw new DbValidationError(
-                `Entity '${this.metadata.entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
-            );
-        }
     }
 
     private modificationSql(): ModificationSqlBuilder {
