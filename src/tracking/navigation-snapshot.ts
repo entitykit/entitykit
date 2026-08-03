@@ -7,6 +7,8 @@ export interface NavigationSnapshot {
     readonly value: unknown;
 }
 
+export type NavigationSnapshotValues = ReadonlyMap<string, unknown>;
+
 const snapshots: WeakMap<
     EntityEntry<object>,
     Map<string, unknown>
@@ -75,6 +77,35 @@ export function refreshNavigationSnapshots(entry: EntityEntry<object>): void {
         const current = (entry.entity as Record<string, unknown>)[property];
         values.set(property, cloneNavigationValue(current));
     }
+}
+
+/** Copy the relationship baseline represented by a pending save plan. */
+export function captureNavigationSnapshotValues(
+    entry: EntityEntry<object>,
+): NavigationSnapshotValues {
+    const values = snapshots.get(entry);
+    return new Map(
+        Array.from(values?.entries() ?? []).map(([property, value]) => [
+            property,
+            cloneNavigationValue(value),
+        ]),
+    );
+}
+
+/** Accept an exact relationship baseline without observing later mutations. */
+export function acceptNavigationSnapshotValues(
+    entry: EntityEntry<object>,
+    accepted: NavigationSnapshotValues,
+): void {
+    snapshots.set(
+        entry,
+        new Map(
+            [...accepted.entries()].map(([property, value]) => [
+                property,
+                cloneNavigationValue(value),
+            ]),
+        ),
+    );
 }
 
 export function navigationValueChanged(

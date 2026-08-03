@@ -3,6 +3,7 @@ import type { ManyToManyChange } from './many-to-many-change';
 import { ManyToManyChangeValidator } from './many-to-many-change-validator';
 import { buildManyToManySavePlan } from './many-to-many-save-plan';
 import type { SavePlanEntry } from './save-plan';
+import { registerSavePlanExecution } from './save-plan-execution';
 
 export type { ManyToManyChange } from './many-to-many-change';
 
@@ -33,6 +34,16 @@ export class ManyToManyChangeSet {
         this.changes.length = 0;
     }
 
+    /** Remove only relationship changes represented by a committed plan. */
+    public accept(accepted: readonly ManyToManyChange[]): void {
+        const acceptedSet = new Set(accepted);
+        for (let index = this.changes.length - 1; index >= 0; index -= 1) {
+            if (acceptedSet.has(this.changes[index])) {
+                this.changes.splice(index, 1);
+            }
+        }
+    }
+
     /** Drop queued join work whose source or target was a canceled addition. */
     public cancelFor(entity: object): void {
         for (let index = this.changes.length - 1; index >= 0; index -= 1) {
@@ -44,10 +55,16 @@ export class ManyToManyChangeSet {
     }
 
     public buildSavePlan(sql: ModificationSqlBuilder): SavePlanEntry[] {
-        return buildManyToManySavePlan(
+        const plan = buildManyToManySavePlan(
             this.changes,
             this.validator,
             sql,
         );
+        if (plan[0]) {
+            registerSavePlanExecution(plan[0], {
+                manyToManyChanges: [...this.changes],
+            });
+        }
+        return plan;
     }
 }

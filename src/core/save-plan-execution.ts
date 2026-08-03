@@ -2,6 +2,8 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import { isGeneratedOnUpdate } from '../model/value-generated';
 import type { EntityEntry } from '../tracking/entity-entry';
 import type { SavePlanEntry } from './save-plan';
+import type { ManyToManyChange } from './many-to-many-change';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 export interface GeneratedValuesPlan<TEntity extends object = object> {
     readonly metadata: EntityMetadata<TEntity>;
@@ -20,6 +22,8 @@ interface SavePlanExecutionMetadata {
     readonly metadata?: EntityMetadata;
     readonly generatedValues?: GeneratedValuesPlan;
     readonly generatedKeyPropagations?: readonly GeneratedKeyPropagation[];
+    readonly persistedEntries?: readonly PersistedEntrySnapshot[];
+    readonly manyToManyChanges?: readonly ManyToManyChange[];
 }
 
 const executionByEntry: WeakMap<
@@ -32,7 +36,10 @@ export function registerSavePlanExecution(
     entry: SavePlanEntry,
     metadata: SavePlanExecutionMetadata,
 ): void {
-    executionByEntry.set(entry, metadata);
+    executionByEntry.set(entry, {
+        ...executionByEntry.get(entry),
+        ...metadata,
+    });
 }
 
 export function savePlanExecution(

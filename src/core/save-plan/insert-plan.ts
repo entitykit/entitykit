@@ -10,6 +10,7 @@ import {
     type GeneratedValuesPlan,
     registerSavePlanExecution,
 } from '../save-plan-execution';
+import { capturePersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 
 /** Maximum rows that fit in one provider-legal multi-row insert statement. */
 export function maxInsertBatchSize(
@@ -64,12 +65,13 @@ export function buildInsertSavePlanEntry(
             metadata: entry.metadata,
             generatedValues: generatedValuesForInsert(entry.metadata),
             generatedKeyPropagations,
+            persistedEntries: [capturePersistedEntrySnapshot(entry)],
         });
         return planEntry;
     }
 
     const first = entries[0];
-    return {
+    const planEntry: SavePlanEntry = {
         entity: first.entity,
         entityName: first.metadata.entityName,
         keyValue: `${String(entries.length)} entities`,
@@ -78,6 +80,10 @@ export function buildInsertSavePlanEntry(
         affectedEntityCount: entries.length,
         expectedAffectedRows: entries.length,
     };
+    registerSavePlanExecution(planEntry, {
+        persistedEntries: entries.map(capturePersistedEntrySnapshot),
+    });
+    return planEntry;
 }
 
 function generatedValuesForInsert(

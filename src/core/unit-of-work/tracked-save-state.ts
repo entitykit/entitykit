@@ -8,6 +8,8 @@ import {
     writePropertyValue,
 } from '../../model/property-value-access';
 import type { PropertyMetadata } from '../../model/property-metadata';
+import { savePlanExecution } from '../save-plan-execution';
+import { readEntityValues } from '../../tracking/entity-entry-snapshot';
 
 export class TrackedSaveState {
     constructor(
@@ -17,10 +19,15 @@ export class TrackedSaveState {
     ) {}
 
     public accept(plan: readonly SavePlanEntry[]): void {
+        this.acceptGeneratedValues(plan);
         this.acceptVersionIncrements(plan);
-        this.changeTracker.acceptAllChanges();
+        this.changeTracker.acceptPersistedChanges(
+            plan.flatMap(item => savePlanExecution(item)?.persistedEntries ?? []),
+        );
         this.saveTimeWrites.accept();
-        this.manyToMany.clear();
+        this.manyToMany.accept(
+            plan.flatMap(item => savePlanExecution(item)?.manyToManyChanges ?? []),
+        );
     }
 
     public validateVersionValues(plan: readonly SavePlanEntry[]): void {
@@ -34,13 +41,37 @@ export class TrackedSaveState {
     }
 
     private acceptVersionIncrements(plan: readonly SavePlanEntry[]): void {
-        this.forEachVersionValue(plan, (entity, property, value, path) => {
-            writePropertyValue(
-                entity,
-                property,
-                incrementVersionValue(value, path),
-            );
+        this.forEachVersionValue(plan, (entity, property, value, path, values) => {
+            const incremented = incrementVersionValue(value, path);
+            values[property.propertyName] = incremented;
+            if (readPropertyValue(entity, property) === value) {
+                writePropertyValue(entity, property, incremented);
+            }
         });
+    }
+
+    private acceptGeneratedValues(plan: readonly SavePlanEntry[]): void {
+        for (const item of plan) {
+            const execution = savePlanExecution(item);
+            const generated = execution?.generatedValues;
+            const persisted = execution?.persistedEntries?.find(snapshot =>
+                snapshot.entry.entity === item.entity);
+            if (generated && persisted) {
+                const current = readEntityValues(generated.metadata, item.entity);
+                for (const propertyName of generated.propertyNames) {
+                    persisted.values[propertyName] = current[propertyName];
+                }
+            }
+            for (const propagation of execution?.generatedKeyPropagations ?? []) {
+                if (!persisted) {
+                    continue;
+                }
+                const current = readEntityValues(persisted.entry.metadata, item.entity);
+                for (const propertyName of propagation.foreignKeyProperties) {
+                    persisted.values[propertyName] = current[propertyName];
+                }
+            }
+        }
     }
 
     private forEachVersionValue(
@@ -50,6 +81,7 @@ export class TrackedSaveState {
             property: PropertyMetadata,
             value: unknown,
             propertyPath: string,
+            persistedValues: Record<string, unknown>,
         ) => void,
     ): void {
         for (const item of plan) {
@@ -57,23 +89,25 @@ export class TrackedSaveState {
                 continue;
             }
 
-            const entry = this.changeTracker.entry(item.entity);
-            for (const property of entry?.metadata.properties ?? []) {
-                if (!property.isVersion) {
-                    continue;
-                }
+            for (const persisted of savePlanExecution(item)?.persistedEntries ?? []) {
+                for (const property of persisted.entry.metadata.properties) {
+                    if (!property.isVersion) {
+                        continue;
+                    }
 
-                const value = readPropertyValue(item.entity, property);
-                if (value === null || value === undefined) {
-                    continue;
-                }
+                    const value = persisted.values[property.propertyName];
+                    if (value === null || value === undefined) {
+                        continue;
+                    }
 
-                visit(
-                    item.entity,
-                    property,
-                    value,
-                    `${entry?.metadata.entityName ?? 'entity'}.${property.propertyName}`,
-                );
+                    visit(
+                        persisted.entry.entity,
+                        property,
+                        value,
+                        `${persisted.entry.metadata.entityName}.${property.propertyName}`,
+                        persisted.values,
+                    );
+                }
             }
         }
     }

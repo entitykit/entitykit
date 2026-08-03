@@ -11,7 +11,13 @@ import {
     readEntityValues,
 } from './entity-entry-snapshot';
 import { collectionEntry, referenceEntry, type CollectionNavigationEntry, type EntityNavigationLoader, type ReferenceNavigationEntry } from './navigation-entry';
-import { captureNavigation, forgetNavigation, refreshNavigationSnapshots } from './navigation-snapshot';
+import {
+    acceptNavigationSnapshotValues,
+    captureNavigation,
+    forgetNavigation,
+    refreshNavigationSnapshots,
+    type NavigationSnapshotValues,
+} from './navigation-snapshot';
 
 export { cloneSnapshotValue } from './entity-entry-snapshot';
 
@@ -77,6 +83,19 @@ export class EntityEntry<TEntity extends object> {
     public acceptChanges(): void {
         this.snapshot = readEntityValues(this.metadata, this.entity);
         refreshNavigationSnapshots(this as unknown as EntityEntry<object>);
+        this.state = EntityState.Unchanged;
+    }
+
+    /** Accept only the mapped and relationship values an executed plan wrote. */
+    public acceptPersistedValues(
+        values: Record<string, unknown>,
+        navigations: NavigationSnapshotValues,
+    ): void {
+        this.snapshot = cloneEntityValues(this.metadata, values);
+        acceptNavigationSnapshotValues(
+            this as unknown as EntityEntry<object>,
+            navigations,
+        );
         this.state = EntityState.Unchanged;
     }
 

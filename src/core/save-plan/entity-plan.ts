@@ -13,6 +13,7 @@ import {
 } from '../save-plan-execution';
 import { relationshipPrincipalKeyProperties } from '../../model/relationship-key';
 import { assertNoKeyModifications } from './immutable-key-change';
+import { capturePersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 
 export function buildEntitySavePlan(
     sql: ModificationSqlBuilder,
@@ -70,6 +71,7 @@ export function buildEntitySavePlan(
             registerSavePlanExecution(planEntry, {
                 metadata: entry.metadata,
                 generatedValues: generatedValuesForUpdate(entry),
+                persistedEntries: [capturePersistedEntrySnapshot(entry)],
             });
             plan.push(planEntry);
         }

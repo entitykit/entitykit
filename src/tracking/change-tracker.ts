@@ -7,6 +7,7 @@ import { TrackingIdentityFactory } from './tracking-identity-factory';
 import { changeTrackerModel, configureTrackedEntry } from './change-tracker-model';
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { detectRelationshipChanges } from './relationship-change-detector';
+import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 
 export class ChangeTracker {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -125,6 +126,41 @@ export class ChangeTracker {
             }
 
             entry.acceptChanges();
+        }
+    }
+
+    /** Accept only the entries and values represented by an executed plan. */
+    public acceptPersistedChanges(
+        snapshots: readonly PersistedEntrySnapshot[],
+    ): void {
+        const tracked = snapshots.filter(snapshot =>
+            this.entriesByEntity.get(snapshot.entry.entity) === snapshot.entry);
+        this.identities.prepareAccept(
+            tracked
+                .filter(snapshot => snapshot.state !== EntityState.Deleted)
+                .map(snapshot => snapshot.entry),
+        );
+
+        for (const snapshot of tracked) {
+            const entry = snapshot.entry;
+            const pendingState = entry.state;
+            if (
+                snapshot.state === EntityState.Deleted &&
+                pendingState === EntityState.Deleted
+            ) {
+                this.detach(entry.entity);
+                continue;
+            }
+            if (snapshot.state === EntityState.Deleted) {
+                continue;
+            }
+
+            entry.acceptPersistedValues(snapshot.values, snapshot.navigations);
+            if (pendingState !== snapshot.state) {
+                entry.state = pendingState;
+            } else {
+                entry.detectChanges();
+            }
         }
     }
     public clear(): void {

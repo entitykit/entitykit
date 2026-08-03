@@ -30,6 +30,7 @@ export class TrackedIdentityMap {
     }
 
     public prepareAccept(entries: ReadonlyArray<EntityEntry<object>>): void {
+        const acceptedEntries = new Set(entries);
         const finalKeys: Map<string, EntityEntry<object>> = new Map();
         const rekeys: Array<{
             readonly entry: EntityEntry<object>;
@@ -55,6 +56,16 @@ export class TrackedIdentityMap {
 
             const collision = finalKeys.get(next);
             if (collision && collision !== entry) {
+                throw new Error(
+                    `An instance of '${entry.metadata.entityName}' with key '${String(entry.keyValue)}' is already tracked.`,
+                );
+            }
+            const trackedCollision = this.entries.get(next);
+            if (
+                trackedCollision &&
+                trackedCollision !== entry &&
+                !acceptedEntries.has(trackedCollision)
+            ) {
                 throw new Error(
                     `An instance of '${entry.metadata.entityName}' with key '${String(entry.keyValue)}' is already tracked.`,
                 );
