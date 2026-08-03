@@ -49,7 +49,8 @@ export class SavePlanBuilder {
     private buildPreparedPlan(): SavePlanEntry[] {
         this.prepareEntriesForSave();
 
-        const pending = orderSaveEntries(this.deps.changeTracker.entries().filter(entry =>
+        const tracked = this.deps.changeTracker.entries();
+        const pending = orderSaveEntries(tracked.filter(entry =>
             entry.state === EntityState.Added ||
       entry.state === EntityState.Modified ||
       entry.state === EntityState.Deleted,
@@ -65,7 +66,7 @@ export class SavePlanBuilder {
         const outboxPlan = buildOutboxSavePlan({
             sql,
             outbox: this.deps.getOptions().outbox,
-            entries: pending,
+            entries: tracked,
             eventTracker: this.deps.outboxEvents,
             currentAuditTimestamp: this.deps.currentAuditTimestamp,
         });
