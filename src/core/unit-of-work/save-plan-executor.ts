@@ -60,7 +60,13 @@ export class SavePlanExecutor {
                                 execution.metadata,
                                 persisted?.values ?? {},
                             )
-                        : execution?.buildStatement?.() ?? entry.statement;
+                        : execution?.buildStatement?.(
+                            (entity, propertyName) =>
+                                this.generatedValues?.findPersistedValue(
+                                    entity,
+                                    propertyName,
+                                ),
+                        ) ?? entry.statement;
                 const result = await this.database.query(statement, options);
                 if (!entry.skipAffectedRowsCheck) {
                     ensureAffectedRows(

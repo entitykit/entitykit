@@ -1,5 +1,5 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import { DbContext, EntityState } from '../src';
 import { postgresDialect } from '../src/providers/postgres';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
@@ -74,5 +74,41 @@ describe('generated outbox aggregate identities', () => {
             expect.any(Date),
         ]);
         expect(aggregate.events).toEqual([]);
+    });
+
+    it('uses persisted identity and captured payload after live mutations', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = GeneratedOutboxContext.create(connection);
+        const payload = { source: 'captured' };
+        const target = Object.assign(new GeneratedAggregate(), {
+            name: 'generated',
+            events: [{ type: 'Created', payload }],
+        });
+        const aggregate = new Proxy(target, {
+            set: (entity, property, value) => {
+                const written = Reflect.set(entity, property, value);
+                if (property === 'id' && value === 41) {
+                    queueMicrotask(() => {
+                        entity.id = 999;
+                        payload.source = 'later';
+                    });
+                }
+                return written;
+            },
+        });
+        db.aggregates.add(aggregate);
+        connection.queueResult({ rows: [{ id: 41 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await db.saveChanges();
+
+        expect(connection.statements[1]?.values).toEqual([
+            'Created',
+            { source: 'captured' },
+            41,
+            expect.any(Date),
+        ]);
+        expect(db.entry(aggregate)?.originalValues.id).toBe(41);
+        expect(db.entry(aggregate)?.state).toBe(EntityState.Modified);
     });
 });

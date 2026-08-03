@@ -20,13 +20,24 @@ export interface GeneratedKeyPropagation {
     readonly foreignKeyProperties: readonly string[];
 }
 
+export interface PersistedValueFact {
+    readonly persistedValue: unknown;
+}
+
+export type PersistedValueLookup = (
+    entity: object,
+    propertyName: string,
+) => PersistedValueFact | undefined;
+
 interface SavePlanExecutionMetadata {
     readonly metadata?: EntityMetadata;
     readonly generatedValues?: GeneratedValuesPlan;
     readonly generatedKeyPropagations?: readonly GeneratedKeyPropagation[];
     readonly persistedEntries?: readonly PersistedEntrySnapshot[];
     readonly manyToManyChanges?: readonly ManyToManyChange[];
-    readonly buildStatement?: () => SqlStatement;
+    readonly buildStatement?: (
+        persistedValue?: PersistedValueLookup,
+    ) => SqlStatement;
 }
 
 const executionByEntry: WeakMap<

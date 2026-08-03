@@ -21,7 +21,10 @@ import {
     writeGeneratedRow,
     writeGeneratedValue,
 } from './generated-value-writer';
-import type { GeneratedValueAcceptance } from './applied-generated-value';
+import type {
+    AppliedPropertyValue,
+    GeneratedValueAcceptance,
+} from './applied-generated-value';
 import { GeneratedValueRecorder } from './generated-value-recorder';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
@@ -43,6 +46,13 @@ export class GeneratedValueHydrator {
 
     public restore(): void {
         this.mutations.restore();
+    }
+
+    public findPersistedValue(
+        entity: object,
+        propertyName: string,
+    ): AppliedPropertyValue | undefined {
+        return this.recorded.find(entity, propertyName);
     }
 
     public async hydrate(
