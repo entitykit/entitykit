@@ -4,7 +4,6 @@ import type {
     DatabaseQueryResult,
 } from '../../storage/database-connection';
 import type { StoreValueReader } from '../../storage/store-value-reader';
-import type { PropertyMetadata } from '../../model/property-metadata';
 import type { SqlDialect } from '../../sql/sql-dialect';
 import type { ChangeTracker } from '../../tracking/change-tracker';
 import type { SavePlanEntry } from '../save-plan';
@@ -15,17 +14,14 @@ import type {
 import { SaveTimeMutationLog } from '../save-time-mutations';
 import { propagateGeneratedKeys } from './generated-key-propagator';
 import { buildGeneratedValueRefresh } from './generated-value-refresh';
-import { EntityState } from '../../tracking/entity-state';
 import { assertGeneratedIdentityAvailable } from './generated-identity-assertion';
-import {
-    writeGeneratedRow,
-    writeGeneratedValue,
-} from './generated-value-writer';
+import { writeGeneratedRow } from './generated-value-writer';
 import type {
     AppliedPropertyValue,
     GeneratedValueAcceptance,
 } from './applied-generated-value';
 import { GeneratedValueRecorder } from './generated-value-recorder';
+import { applyGeneratedInsertIdentity } from './generated-insert-identity';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
     private readonly recorded: GeneratedValueRecorder;
@@ -80,10 +76,13 @@ export class GeneratedValueHydrator {
             return;
         }
 
-        const insertedIdentity = this.applyInsertedIdentity(
+        const insertedIdentity = applyGeneratedInsertIdentity(
             entry,
             properties,
             result.insertId,
+            this.mutations,
+            this.recorded,
+            this.valueReader,
         );
         const remaining = properties.filter(property =>
             property !== insertedIdentity);
@@ -130,35 +129,6 @@ export class GeneratedValueHydrator {
                     this.recorded.find(principal, propertyName),
             ),
         );
-    }
-
-    private applyInsertedIdentity(
-        entry: SavePlanEntry,
-        properties: readonly PropertyMetadata[],
-        insertId: unknown,
-    ): PropertyMetadata | undefined {
-        if (entry.state !== EntityState.Added ||
-            insertId === undefined || insertId === null ||
-            insertId === '' || insertId === 0 || insertId === 0n) {
-            return undefined;
-        }
-        const generatedKeys = properties.filter(property =>
-            property.isPrimaryKey);
-        if (generatedKeys.length !== 1) {
-            return undefined;
-        }
-        const persistedValue = writeGeneratedValue(
-            entry.entity,
-            generatedKeys[0],
-            insertId,
-            this.mutations,
-            this.valueReader,
-        );
-        this.recorded.record(entry.entity, [{
-            propertyName: generatedKeys[0].propertyName,
-            persistedValue,
-        }]);
-        return generatedKeys[0];
     }
 
     private assertFinalIdentity(entry: SavePlanEntry): void {
