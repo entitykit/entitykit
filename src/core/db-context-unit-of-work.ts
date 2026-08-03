@@ -47,6 +47,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     }
 
     public getSavePlan(): readonly SavePlanEntry[] {
+        this.assertSaveNotInProgress('getSavePlan()');
         try {
             return this.savePlanBuilder.build();
         } finally {
@@ -55,6 +56,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     }
 
     public getSavePlanDebugView(): string {
+        this.assertSaveNotInProgress('getSavePlanDebugView()');
         try {
             return this.savePlanBuilder.debugView();
         } finally {
@@ -63,6 +65,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     }
 
     public clearChanges(): void {
+        this.assertSaveNotInProgress('clearChanges()');
         this.changeTracker.clear();
         this.manyToMany.clear();
     }
@@ -101,5 +104,14 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     ): Promise<TResult> {
         this.assertNotDisposed('transaction()');
         return this.transactionCoordinator.run(async () => work(this), options);
+    }
+
+    private assertSaveNotInProgress(operation: string): void {
+        if (this.saveInProgress) {
+            throw new ContextConcurrentOperationError(
+                operation,
+                `${operation} cannot run while saveChanges() is in progress. Await the save before inspecting or clearing its unit of work.`,
+            );
+        }
     }
 }
