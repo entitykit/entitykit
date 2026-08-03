@@ -17,15 +17,7 @@ export type { PostgresDeleteSqlOptions, BulkDeleteSqlOptions } from './delete-sq
 export type { PostgresUpsertSqlOptions, UpsertSqlOptions } from './upsert-sql-builder';
 export type { ManyToManyEndpointKey } from './modification-sql-helpers';
 
-/**
- * Facade over the four DML strategy builders — insert, update, delete, upsert.
- *
- * Each verb's SQL construction (and the parameter-binding order that goes with
- * it) lives in its own module; this class holds one builder per verb and
- * delegates, so callers keep the single entry point they have always used while
- * each operation can grow or be probed in isolation. Every builder receives the
- * same dialect, the one piece of shared configuration the verbs need.
- */
+/** Compatibility facade delegating DML to its per-verb builders. */
 export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
     private readonly updateBuilder: UpdateSqlBuilder;
     private readonly deleteBuilder: DeleteSqlBuilder;

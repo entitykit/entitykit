@@ -2,15 +2,19 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
 import {
     buildEntityInsert,
-    buildEntityInsertBatch,
     buildEntityInsertFromValues,
 } from './entity-insert-sql';
+import { buildEntityInsertBatch } from './entity-insert-batch-sql';
 import {
     buildManyToManyInsert,
     buildManyToManyInsertBatch,
 } from './many-to-many-insert-sql';
 import type { ManyToManyEndpointKey } from './modification-sql-helpers';
-import { buildOutboxInsertBatch } from './outbox-insert-sql';
+import {
+    buildOutboxInsertBatch,
+    type OutboxInsertOptions,
+    type SingleOutboxInsertOptions,
+} from './outbox-insert-sql';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import type { SqlStatement } from './sql-statement';
 
@@ -70,18 +74,9 @@ export class InsertSqlBuilder {
         return buildManyToManyInsertBatch(this.dialect, relationship, pairs);
     }
 
-    public buildInsertOutboxMessage(options: {
-        readonly schemaName?: string;
-        readonly tableName: string;
-        readonly typeColumn: string;
-        readonly payloadColumn: string;
-        readonly aggregateIdColumn?: string;
-        readonly occurredAtColumn?: string;
-        readonly type: string;
-        readonly payload: unknown;
-        readonly aggregateId?: unknown;
-        readonly occurredAt?: Date;
-    }): SqlStatement {
+    public buildInsertOutboxMessage(
+        options: SingleOutboxInsertOptions,
+    ): SqlStatement {
         return buildOutboxInsertBatch(this.dialect, {
             schemaName: options.schemaName,
             tableName: options.tableName,
@@ -98,20 +93,9 @@ export class InsertSqlBuilder {
         });
     }
 
-    public buildInsertOutboxMessagesBatch(options: {
-        readonly schemaName?: string;
-        readonly tableName: string;
-        readonly typeColumn: string;
-        readonly payloadColumn: string;
-        readonly aggregateIdColumn?: string;
-        readonly occurredAtColumn?: string;
-        readonly messages: ReadonlyArray<{
-            readonly type: string;
-            readonly payload: unknown;
-            readonly aggregateId?: unknown;
-            readonly occurredAt?: Date;
-        }>;
-    }): SqlStatement {
+    public buildInsertOutboxMessagesBatch(
+        options: OutboxInsertOptions,
+    ): SqlStatement {
         return buildOutboxInsertBatch(this.dialect, options);
     }
 }

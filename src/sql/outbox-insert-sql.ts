@@ -18,6 +18,9 @@ export interface OutboxInsertOptions {
     readonly messages: readonly OutboxInsertMessage[];
 }
 
+export type SingleOutboxInsertOptions =
+    Omit<OutboxInsertOptions, 'messages'> & OutboxInsertMessage;
+
 export function buildOutboxInsertBatch(
     dialect: SqlDialect,
     options: OutboxInsertOptions,
