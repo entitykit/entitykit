@@ -67,7 +67,12 @@ export class SaveTimeWrites {
                 entry.metadata.softDelete ??
                 entry.metadata.audit,
             );
-            applyTenantWrite(entry, currentTenant(), this.mutations);
+            applyTenantWrite(
+                entry,
+                currentTenant(),
+                this.scope.allowsCrossTenantAccess(),
+                this.mutations,
+            );
             applySoftDeleteWrite(entry, currentTime, this.mutations);
             applyAuditWrites(entry, currentTime, currentUser, this.mutations);
         }

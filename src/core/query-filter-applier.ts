@@ -16,7 +16,10 @@ import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-
  * current tenant id, so the context hands it the tenant accessor as a closure.
  */
 export class QueryFilterApplier {
-    constructor(private readonly currentTenantId: () => unknown) {}
+    constructor(
+        private readonly currentTenantId: () => unknown,
+        private readonly allowsCrossTenantAccess: () => boolean,
+    ) {}
 
     public apply<TEntity extends object>(metadata: EntityMetadata<TEntity>, query: QueryModel<TEntity>): QueryModel<TEntity> {
         if (query.ignoreQueryFilters && query.ignoreTenantScope) {
@@ -125,7 +128,11 @@ export class QueryFilterApplier {
             filters.push(new FieldExpression<TEntity, unknown>(metadata.softDelete.propertyName, sourceAlias).isNull());
         }
 
-        if (metadata.tenantKeyProperty && applies.tenant) {
+        if (
+            metadata.tenantKeyProperty &&
+            applies.tenant &&
+            !this.allowsCrossTenantAccess()
+        ) {
             filters.push(new FieldExpression<TEntity, unknown>(metadata.tenantKeyProperty, sourceAlias).eq(
                 resolveTenantId(metadata.entityName),
             ));

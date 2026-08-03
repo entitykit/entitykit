@@ -60,7 +60,11 @@ export class DbSetBulkWriter<TEntity extends object> {
             ? this.context.currentTenantIdForWrites()
             : undefined;
         for (const entity of entities) {
-            this.assertEntityInTenantScope(entity, tenantId);
+            this.assertEntityInTenantScope(
+                entity,
+                tenantId,
+                this.context.allowsCrossTenantAccess(),
+            );
         }
 
         const sql = this.modificationSql();
@@ -115,9 +119,16 @@ export class DbSetBulkWriter<TEntity extends object> {
    * The same rule `saveChanges()` applies. A set-based write must not be the
    * way around an isolation boundary the tracked path enforces.
    */
-    private assertEntityInTenantScope(entity: TEntity, tenantId: unknown): void {
+    private assertEntityInTenantScope(
+        entity: TEntity,
+        tenantId: unknown,
+        allowsCrossTenantAccess: boolean,
+    ): void {
         const tenantProperty = this.metadata.tenantKeyProperty;
         if (!tenantProperty) {
+            return;
+        }
+        if (allowsCrossTenantAccess) {
             return;
         }
 

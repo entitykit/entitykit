@@ -91,7 +91,16 @@ export class DbContextOptionsBuilder {
         if (typeof currentTenantId !== 'function') {
             throw new Error('useTenantScope requires a current-tenant callback.');
         }
-        this.tenantScope = { currentTenantId };
+        this.tenantScope = { currentTenantId, allowCrossTenantAccess: false };
+        tenantScopedBuilders.add(this);
+        return this;
+    }
+
+    public allowCrossTenantAccess(): this {
+        this.tenantScope = {
+            currentTenantId: () => undefined,
+            allowCrossTenantAccess: true,
+        };
         tenantScopedBuilders.add(this);
         return this;
     }

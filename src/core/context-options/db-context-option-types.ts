@@ -23,6 +23,8 @@ export interface ProviderOptions {
 
 /** Options that configure tenant scope. */ export interface TenantScopeOptions {
     /** The current tenant id. */ readonly currentTenantId: () => unknown;
+    /** Whether this context deliberately spans every tenant. */
+    readonly allowCrossTenantAccess?: boolean;
 }
 
 /** Options that configure lazy loading. */ export interface LazyLoadingOptions {

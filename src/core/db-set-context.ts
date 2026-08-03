@@ -23,4 +23,5 @@ export interface DbSetContext extends EntityNavigationLoader {
     ): QueryModel<TEntity>;
 
     currentTenantIdForWrites(): unknown;
+    allowsCrossTenantAccess(): boolean;
 }

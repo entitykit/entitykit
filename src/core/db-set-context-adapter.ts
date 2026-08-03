@@ -17,6 +17,7 @@ interface DbSetContextAdapterOptions {
         query: QueryModel<TEntity>,
     ) => QueryModel<TEntity>;
     readonly currentTenantIdForWrites: () => unknown;
+    readonly allowsCrossTenantAccess: () => boolean;
     readonly loadNavigation: <TEntity extends object>(
         entry: EntityEntry<TEntity>,
         navigationProperty: string,
@@ -44,6 +45,7 @@ export function createDbSetContextAdapter(options: DbSetContextAdapterOptions): 
         changeTracker: options.changeTracker,
         applyQueryFilters: options.applyQueryFilters,
         currentTenantIdForWrites: options.currentTenantIdForWrites,
+        allowsCrossTenantAccess: options.allowsCrossTenantAccess,
         loadNavigation: options.loadNavigation,
     };
 }

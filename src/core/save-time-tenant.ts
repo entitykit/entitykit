@@ -7,6 +7,7 @@ import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-
 export function applyTenantWrite(
     entry: EntityEntry<object>,
     tenantId: unknown,
+    allowsCrossTenantAccess: boolean,
     mutations: SaveTimeMutationLog,
 ): void {
     const configuredProperty: unknown = entry.metadata.tenantKeyProperty;
@@ -14,6 +15,9 @@ export function applyTenantWrite(
         ? configuredProperty
         : undefined;
     if (!tenantProperty) {
+        return;
+    }
+    if (allowsCrossTenantAccess) {
         return;
     }
     if (tenantId === undefined || tenantId === null) {

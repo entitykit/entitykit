@@ -22,6 +22,7 @@ export interface DbContextOptionsBuilder {
     /** Populate configured audit properties during saves. */ useAuditing(options?: AuditOptions): this;
     /** Enable explicit `lazy(...)` navigation wrappers; plain property access stays inert. */ useLazyLoading(options?: LazyLoadingOptions): this;
     /** Scope query and write operations to the current tenant. */ useTenantScope(currentTenantId: () => unknown): this;
+    /** Deliberately configure a context whose operations span every tenant. */ allowCrossTenantAccess(): this;
     /** Persist configured outbox messages in the save transaction. */ useOutbox(options: OutboxOptions): this;
     /** Advanced provider registration; prefer the typed contracts from `entitykit/adapter`. */
     useProvider(

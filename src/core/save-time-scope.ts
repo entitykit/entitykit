@@ -3,4 +3,5 @@ export interface SaveTimeScope {
     now(): Date;
     currentUserId(): unknown;
     currentTenantId(): unknown;
+    allowsCrossTenantAccess(): boolean;
 }

@@ -100,6 +100,27 @@ describe('model misconfiguration', () => {
         await result.context.dispose();
     });
 
+    it('accepts a context that explicitly spans tenants', async () => {
+        const result = build(
+            entity => entity.tenantKey(doc => doc.tenantId),
+            options => options.allowCrossTenantAccess(),
+        );
+
+        expect(result.built).toBe(true);
+        if (!result.built) return;
+        const docs = result.context.set(Doc);
+        await result.context.database.connection.query({
+            text: result.context.database.createScript(),
+            values: [],
+        });
+        docs.add(new Doc({ id: 't1', tenantId: 't1', title: 'One' }));
+        docs.add(new Doc({ id: 't2', tenantId: 't2', title: 'Two' }));
+
+        await expect(result.context.saveChanges()).resolves.toBe(2);
+        await expect(docs.count()).resolves.toBe(2);
+        await result.context.dispose();
+    });
+
     it('refuses a required soft-delete marker', () => {
     // A live row is one whose marker is null, so a `not null` marker hides
     // every row forever. Measured before the fix: the schema script emitted

@@ -26,6 +26,7 @@ class Item {
 
 let currentTenant: string | undefined = 't1';
 let scoped = true;
+let crossTenant = false;
 
 class CatalogDbContext extends DbContext {
     public items = this.set(Item);
@@ -34,7 +35,11 @@ class CatalogDbContext extends DbContext {
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useProvider(sqliteProviderServices, ':memory:');
         if (scoped) {
-            options.useTenantScope(() => currentTenant);
+            if (crossTenant) {
+                options.allowCrossTenantAccess();
+            } else {
+                options.useTenantScope(() => currentTenant);
+            }
         }
         options.useDiagnostics(event => {
             if (event.kind === 'queryPlan') {
@@ -78,6 +83,7 @@ function item(id: string, overrides: Partial<Item> = {}): Item {
 beforeEach(() => {
     currentTenant = 't1';
     scoped = true;
+    crossTenant = false;
 });
 
 describe('bulk upsert', () => {
@@ -177,6 +183,19 @@ describe('bulk upsert', () => {
             await expect(db.items.upsert([item('a')]))
                 .rejects.toThrow('Tenant scope is unavailable');
             expect(await db.items.ignoreTenantScope().count()).toBe(0);
+            await db.dispose();
+        });
+
+        it('accepts multiple tenant identities in an explicit cross-tenant context', async () => {
+            crossTenant = true;
+            currentTenant = undefined;
+            const db = await open();
+
+            await expect(db.items.upsert([
+                item('a', { tenantId: 't1' }),
+                item('b', { tenantId: 't2' }),
+            ])).resolves.toBe(2);
+            await expect(db.items.count()).resolves.toBe(2);
             await db.dispose();
         });
 
