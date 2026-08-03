@@ -1,6 +1,7 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
+    OutboxMessage,
 } from '../../src';
 import {
     DbContext,
@@ -22,7 +23,13 @@ export class OutboxUser {
 export class OutboxContext extends DbContext {
     public users = this.set(OutboxUser);
 
-    constructor(private readonly connection: RecordingDatabaseConnection) {
+    constructor(
+        private readonly connection: RecordingDatabaseConnection,
+        private readonly clearOutboxEvents: (
+            entity: object,
+            persistedEvents: readonly OutboxMessage[],
+        ) => void = clearPersistedEvents,
+    ) {
         super();
     }
 
@@ -34,15 +41,7 @@ export class OutboxContext extends DbContext {
                 now: () => new Date('2026-06-01T12:00:00.000Z'),
                 collectEvents: entity =>
                     'domainEvents' in entity ? (entity as OutboxUser).domainEvents : [],
-                clearEvents: (entity, persistedEvents) => {
-                    if ('domainEvents' in entity) {
-                        const persisted = new Set(persistedEvents);
-                        const user = entity as OutboxUser;
-                        user.domainEvents = user.domainEvents.filter(
-                            event => !persisted.has(event),
-                        );
-                    }
-                },
+                clearEvents: this.clearOutboxEvents,
             });
     }
 
@@ -58,9 +57,28 @@ export class OutboxContext extends DbContext {
 
     public static createWith(
         connection: RecordingDatabaseConnection,
+        clearEvents?: (
+            entity: object,
+            persistedEvents: readonly OutboxMessage[],
+        ) => void,
     ): OutboxContext {
-        const context = OutboxContext.create(connection);
+        const context = clearEvents
+            ? OutboxContext.create(connection, clearEvents)
+            : OutboxContext.create(connection);
         return context;
+    }
+}
+
+function clearPersistedEvents(
+    entity: object,
+    persistedEvents: readonly OutboxMessage[],
+): void {
+    if ('domainEvents' in entity) {
+        const persisted = new Set(persistedEvents);
+        const user = entity as OutboxUser;
+        user.domainEvents = user.domainEvents.filter(
+            event => !persisted.has(event),
+        );
     }
 }
 

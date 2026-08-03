@@ -108,10 +108,9 @@ export class SaveLifecycle {
         for (const batch of batches) {
             try {
                 clearEvents(batch.entity, batch.events);
+                this.outboxEvents.release([batch]);
             } catch {
                 // Clearing an in-memory event list is post-commit observation.
-            } finally {
-                this.outboxEvents.release([batch]);
             }
         }
     }
