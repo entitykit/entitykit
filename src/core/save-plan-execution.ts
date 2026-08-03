@@ -4,6 +4,7 @@ import type { EntityEntry } from '../tracking/entity-entry';
 import type { SavePlanEntry } from './save-plan';
 import type { ManyToManyChange } from './many-to-many-change';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import type { SqlStatement } from '../sql/sql-statement';
 
 export interface GeneratedValuesPlan<TEntity extends object = object> {
     readonly metadata: EntityMetadata<TEntity>;
@@ -24,6 +25,7 @@ interface SavePlanExecutionMetadata {
     readonly generatedKeyPropagations?: readonly GeneratedKeyPropagation[];
     readonly persistedEntries?: readonly PersistedEntrySnapshot[];
     readonly manyToManyChanges?: readonly ManyToManyChange[];
+    readonly buildStatement?: () => SqlStatement;
 }
 
 const executionByEntry: WeakMap<

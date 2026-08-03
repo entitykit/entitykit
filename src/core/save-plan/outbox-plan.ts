@@ -7,6 +7,8 @@ import type {
     OutboxEventTracker,
 } from '../outbox-event-tracker';
 import type { SavePlanEntry } from '../save-plan';
+import { registerSavePlanExecution } from '../save-plan-execution';
+import type { SqlStatement } from '../../sql/sql-statement';
 
 interface OutboxPlanOptions {
     readonly sql: ModificationSqlBuilder;
@@ -19,6 +21,7 @@ interface OutboxPlanOptions {
 interface PendingOutboxMessage {
     readonly entity: object;
     readonly keyValue: unknown;
+    readonly entry: EntityEntry<object>;
     readonly type: string;
     readonly payload: unknown;
     readonly aggregateId: unknown;
@@ -53,9 +56,10 @@ export function buildOutboxSavePlan(options: OutboxPlanOptions): SavePlanEntry[]
             messages.push({
                 entity: entry.entity,
                 keyValue: event.aggregateId ?? entry.keyValue,
+                entry,
                 type: event.type,
                 payload: event.payload,
-                aggregateId: event.aggregateId ?? entry.keyValue,
+                aggregateId: event.aggregateId,
                 occurredAt: event.occurredAt ?? outbox.now?.() ?? options.currentAuditTimestamp(),
             });
         }
@@ -65,23 +69,30 @@ export function buildOutboxSavePlan(options: OutboxPlanOptions): SavePlanEntry[]
         return [];
     }
 
+    const buildStatement = (): SqlStatement => options.sql.buildInsertOutboxMessagesBatch({
+        schemaName: outbox.schemaName,
+        tableName,
+        typeColumn,
+        payloadColumn,
+        aggregateIdColumn,
+        occurredAtColumn,
+        messages: messages.map(message => ({
+            type: message.type,
+            payload: message.payload,
+            aggregateId: message.aggregateId ?? message.entry.keyValue,
+            occurredAt: message.occurredAt,
+        })),
+    });
     const planEntry: SavePlanEntry = {
         entity: messages[0].entity,
         entityName: 'OutboxMessage',
         keyValue: messages.length === 1 ? messages[0].keyValue : `${String(messages.length)} messages`,
         state: EntityState.Added,
-        statement: options.sql.buildInsertOutboxMessagesBatch({
-            schemaName: outbox.schemaName,
-            tableName,
-            typeColumn,
-            payloadColumn,
-            aggregateIdColumn,
-            occurredAtColumn,
-            messages,
-        }),
+        statement: buildStatement(),
         expectedAffectedRows: messages.length,
         isSystemGenerated: true,
     };
+    registerSavePlanExecution(planEntry, { buildStatement });
     options.eventTracker.associate(planEntry, batches);
     return [planEntry];
 }

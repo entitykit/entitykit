@@ -46,7 +46,7 @@ export class SavePlanExecutor {
                     execution?.generatedKeyPropagations && execution.metadata
                         ? new ModificationSqlBuilder(this.getDialect())
                             .buildInsert(execution.metadata, entry.entity)
-                        : entry.statement;
+                        : execution?.buildStatement?.() ?? entry.statement;
                 const result = await this.database.query(statement, options);
                 if (!entry.skipAffectedRowsCheck) {
                     ensureAffectedRows(
