@@ -18,13 +18,13 @@ describe('TransactionCoordinator', () => {
             coordinator.enqueueAfterCommitCallback(() => {
                 completed.push('second');
             });
-        })).rejects.toThrow('first callback failed');
+        })).resolves.toBeUndefined();
 
         expect(completed).toEqual(['first', 'second']);
         expect(database.transactionEvents).toEqual(['begin', 'commit']);
     });
 
-    it('reports all failures after attempting every callback', async () => {
+    it('keeps a committed transaction successful when every callback fails', async () => {
         const database = new RecordingDatabaseConnection();
         const coordinator = new TransactionCoordinator(
             () => database,
@@ -40,12 +40,7 @@ describe('TransactionCoordinator', () => {
             });
         });
 
-        await expect(result).rejects.toMatchObject({
-            name: 'AggregateError',
-            errors: [
-                expect.objectContaining({ message: 'first' }),
-                expect.objectContaining({ message: 'second' }),
-            ],
-        });
+        await expect(result).resolves.toBeUndefined();
+        expect(database.transactionEvents).toEqual(['begin', 'commit']);
     });
 });

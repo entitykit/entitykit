@@ -54,13 +54,9 @@ export class UnitOfWorkSaver {
             return 0;
         }
 
+        let affectedEntities: number;
         try {
-            const affectedEntities = await this.executor.run(plan, options);
-            this.trackedState.accept(plan);
-            this.executor.acceptGeneratedValues();
-            await this.lifecycle.afterCommitted(plan, affectedEntities);
-            this.lifecycle.emitDiagnostic(plan, elapsed(), affectedEntities);
-            return affectedEntities;
+            affectedEntities = await this.executor.run(plan, options);
         } catch (error) {
             this.executor.restoreGeneratedValues();
             this.trackedState.restoreSaveTimeWrites();
@@ -69,5 +65,11 @@ export class UnitOfWorkSaver {
             this.lifecycle.emitDiagnostic(plan, elapsed(), undefined, mappedError);
             throw mappedError;
         }
+
+        this.trackedState.accept(plan);
+        this.executor.acceptGeneratedValues();
+        await this.lifecycle.afterCommitted(plan, affectedEntities);
+        this.lifecycle.emitDiagnostic(plan, elapsed(), affectedEntities);
+        return affectedEntities;
     }
 }

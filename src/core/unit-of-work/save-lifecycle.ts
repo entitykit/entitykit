@@ -25,7 +25,11 @@ export class SaveLifecycle {
 
     public async notifyFailed(plan: readonly SavePlanEntry[], error: unknown): Promise<void> {
         for (const interceptor of this.options.saveInterceptors) {
-            await interceptor.saveChangesFailed?.({ plan, error });
+            try {
+                await interceptor.saveChangesFailed?.({ plan, error });
+            } catch {
+                // A failure observer cannot replace the provider failure it observes.
+            }
         }
     }
 
@@ -76,7 +80,11 @@ export class SaveLifecycle {
         affectedEntities: number,
     ): Promise<void> {
         for (const interceptor of this.options.saveInterceptors) {
-            await interceptor.savedChanges?.({ plan, affectedEntities });
+            try {
+                await interceptor.savedChanges?.({ plan, affectedEntities });
+            } catch {
+                // The database is committed; observer failures cannot undo it.
+            }
         }
     }
 
@@ -88,8 +96,13 @@ export class SaveLifecycle {
         }
 
         for (const batch of batches) {
-            clearEvents(batch.entity, batch.events);
-            this.outboxEvents.release([batch]);
+            try {
+                clearEvents(batch.entity, batch.events);
+            } catch {
+                // Clearing an in-memory event list is post-commit observation.
+            } finally {
+                this.outboxEvents.release([batch]);
+            }
         }
     }
 }

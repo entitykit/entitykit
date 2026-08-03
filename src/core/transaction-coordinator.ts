@@ -81,22 +81,12 @@ export class TransactionCoordinator {
 
     private async flushAfterCommitCallbacks(): Promise<void> {
         const callbacks = this.afterCommitCallbacks.splice(0);
-        const errors: unknown[] = [];
         for (const callback of callbacks) {
             try {
                 await callback.afterCommit();
-            } catch (error) {
-                errors.push(error);
+            } catch {
+                // The provider already committed; callbacks cannot change that result.
             }
-        }
-        if (errors.length === 1) {
-            throw errors[0];
-        }
-        if (errors.length > 1) {
-            throw new AggregateError(
-                errors,
-                'Multiple after-commit callbacks failed.',
-            );
         }
     }
 }

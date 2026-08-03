@@ -178,7 +178,7 @@ describe('save changes interceptors', () => {
         expect(user.deletedAt).toBeInstanceOf(Date);
     });
 
-    it('reports after-save hook failures after the provider transaction commits', async () => {
+    it('does not report a committed save as failed when an after-save hook throws', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({ rowCount: 1 });
         const failure = new Error('after save failed');
@@ -196,9 +196,9 @@ describe('save changes interceptors', () => {
         const user = new User({ id: 'usr_1', name: 'Ada' });
         db.users.add(user);
 
-        await expect(db.saveChanges()).rejects.toBe(failure);
+        await expect(db.saveChanges()).resolves.toBe(1);
 
-        expect(events).toEqual(['saved:1', 'failed:after save failed']);
+        expect(events).toEqual(['saved:1']);
         // A one-row plan runs without a transaction: a single statement is
         // already atomic, and the begin/commit pair was two round trips for
         // nothing. Multi-statement and multi-row plans still take one — see
@@ -207,7 +207,29 @@ describe('save changes interceptors', () => {
         expect(db.entry(user)?.state).toBe(EntityState.Unchanged);
     });
 
-    it('surfaces failure-hook errors after rolling back the provider transaction', async () => {
+    it('does not reject an explicit transaction after a deferred after-save hook throws', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rowCount: 1 });
+        const db = TestContext.createWith(connection, {
+            savedChanges: () => {
+                throw new Error('after save failed');
+            },
+        });
+
+        await expect(db.transaction(async transaction => {
+            transaction.users.add(new User({ id: 'usr_1', name: 'Ada' }));
+            await transaction.saveChanges();
+        })).resolves.toBeUndefined();
+
+        expect(connection.transactionEvents).toEqual([
+            'begin',
+            'savepoint:entitykit_sp_1',
+            'release:entitykit_sp_1',
+            'commit',
+        ]);
+    });
+
+    it('preserves the provider error when a failure hook also throws', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueError(new Error('provider failed'));
         const failure = new Error('failure hook failed');
@@ -222,7 +244,7 @@ describe('save changes interceptors', () => {
         const user = new User({ id: 'usr_1', name: 'Ada' });
         db.users.add(user);
 
-        await expect(db.saveChanges()).rejects.toBe(failure);
+        await expect(db.saveChanges()).rejects.toThrow('provider failed');
 
         expect(events).toEqual(['failed:provider failed']);
         // A one-row plan runs without a transaction: a single statement is

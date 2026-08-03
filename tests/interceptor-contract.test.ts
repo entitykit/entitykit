@@ -199,16 +199,14 @@ describe('interceptor contract', () => {
         });
     });
 
-    it('has already committed and accepted changes when an after hook throws', async () => {
-    // The save succeeded; only the notification failed. The error surfaces,
-    // but the write is not undone and the entity is no longer dirty.
+    it('keeps a committed save successful when an after hook throws', async () => {
         const db =  open([{ savedChanges: () => {
             throw new Error('after-save failed');
         } }]);
         const row = new Row({ id: '1', label: 'x' });
         db.rows.add(row);
 
-        await expect(db.saveChanges()).rejects.toThrow('after-save failed');
+        await expect(db.saveChanges()).resolves.toBe(1);
 
         expect(connection.statements).toHaveLength(1);
         expect(db.entry(row)?.state).toBe('Unchanged');
