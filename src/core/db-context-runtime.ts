@@ -84,7 +84,8 @@ export abstract class DbContextRuntime {
                 changeTracker: this.changeTracker,
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),
                 currentTenantIdForWrites: () => this.currentTenantIdForWrites(),
-                allowsCrossTenantAccess: () => this.allowsCrossTenantAccess(),
+                allowsCrossTenantAccess: () =>
+                    this.options.tenantScope?.allowCrossTenantAccess === true,
                 loadNavigation: async (entry, navigationProperty) =>
                     this.loadNavigation(entry, navigationProperty),
             }), entityType,
@@ -128,11 +129,6 @@ export abstract class DbContextRuntime {
     protected currentTenantId(): unknown {
         return this.options.tenantScope?.currentTenantId();
     }
-
-    protected allowsCrossTenantAccess(): boolean {
-        return this.options.tenantScope?.allowCrossTenantAccess === true;
-    }
-
     protected cancelAddedEntity(entity: object): void {
         this.changeTracker.detach(entity);
     }
@@ -150,5 +146,4 @@ export abstract class DbContextRuntime {
             },
         );
     }
-
 }

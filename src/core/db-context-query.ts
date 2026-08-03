@@ -9,7 +9,7 @@ import { DbContextConcurrency } from './db-context-concurrency';
 export abstract class DbContextQuery extends DbContextConcurrency {
     private readonly queryFilters = new QueryFilterApplier(
         () => this.currentTenantId(),
-        () => this.allowsCrossTenantAccess(),
+        () => this.options.tenantScope?.allowCrossTenantAccess === true,
     );
 
     public override async loadNavigation<TEntity extends object>(

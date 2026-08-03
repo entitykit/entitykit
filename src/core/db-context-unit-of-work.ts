@@ -17,7 +17,8 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         now: () => this.currentAuditTimestamp(),
         currentUserId: () => this.currentAuditUserId(),
         currentTenantId: () => this.currentTenantId(),
-        allowsCrossTenantAccess: () => this.allowsCrossTenantAccess(),
+        allowsCrossTenantAccess: () =>
+            this.options.tenantScope?.allowCrossTenantAccess === true,
     });
     private readonly transactionCoordinator = new TransactionCoordinator(
         () => this.databaseConnection,
