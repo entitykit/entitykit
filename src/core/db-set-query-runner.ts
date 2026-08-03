@@ -9,15 +9,12 @@ import type { DbSetResultMapper } from './db-set-result-mapper';
 import { DbSetQueryPipeline } from './db-set-query-pipeline';
 import { ChangeTracker } from '../tracking/change-tracker';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
-import {
-    queryCountBigInt,
-    queryCountNumber,
-    type QueryCountValue,
-} from './query-count-result';
+import { DbSetCountRunner } from './db-set-count-runner';
 /** Runs full-entity, scalar, projection, and aggregate reads for a `DbSet`. */
 export class DbSetQueryRunner<TEntity extends object> {
     private materializerInstance?: Materializer;
     private readonly pipeline: DbSetQueryPipeline<TEntity>;
+    private readonly counts: DbSetCountRunner<TEntity>;
 
     constructor(
         private readonly context: DbSetContext,
@@ -26,6 +23,7 @@ export class DbSetQueryRunner<TEntity extends object> {
         private readonly resultMapper: DbSetResultMapper<TEntity>,
     ) {
         this.pipeline = new DbSetQueryPipeline(context, entityType, diagnostics);
+        this.counts = new DbSetCountRunner(context, entityType, diagnostics, this.pipeline);
     }
 
     private get metadata(): EntityMetadata<TEntity> {
@@ -68,41 +66,14 @@ export class DbSetQueryRunner<TEntity extends object> {
     }
 
     public async executeCount(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<number> {
-        return this.executeCountValue(model, 'count', queryCountNumber, options);
+        return this.counts.executeNumber(model, options);
     }
 
     public async executeCountBigInt(
         model: QueryModel<TEntity>,
         options?: DatabaseOperationOptions,
     ): Promise<bigint> {
-        return this.executeCountValue(
-            model,
-            'countBigInt',
-            queryCountBigInt,
-            options,
-        );
-    }
-
-    private async executeCountValue<TResult>(
-        model: QueryModel<TEntity>,
-        operation: 'count' | 'countBigInt',
-        convert: (value: QueryCountValue) => TResult,
-        options?: DatabaseOperationOptions,
-    ): Promise<TResult> {
-        const filteredModel = this.context.applyQueryFilters(this.metadata, model);
-        const shape = this.diagnostics.queryShape(operation, filteredModel);
-        const statement = this.pipeline.compile('count', filteredModel, shape);
-        return this.pipeline.execute(shape, async () => {
-            const result = await this.context.database.query<{
-                count: QueryCountValue;
-            }>(statement, options);
-            const value = result.rows[0]?.count ?? 0;
-            return {
-                value: convert(value),
-                rowCount: result.rowCount,
-                resultCount: result.rows.length,
-            };
-        });
+        return this.counts.executeBigInt(model, options);
     }
 
     public async executeExists(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<boolean> {

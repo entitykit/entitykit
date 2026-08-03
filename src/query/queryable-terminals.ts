@@ -1,6 +1,6 @@
 import { SelectSqlBuilder } from '../sql/select-sql-builder';
 import type { SqlStatement } from '../sql/sql-statement';
-import { QueryableBase } from './queryable-base';
+import { QueryableScalarTerminals } from './queryable-scalar-terminals';
 import { terminalQueryLimit } from './terminal-query-limit';
 import type { EntityUpdateValues } from '../types';
 import { formatDebugSql, type DebugSqlOptions } from '../sql/debug-sql';
@@ -22,7 +22,7 @@ import {
  * supplies the `with()` factory. Every method is a leaf of the fluent chain: it
  * runs the query rather than returning another builder.
  */
-export abstract class QueryableTerminals<TEntity extends object> extends QueryableBase<TEntity> {
+export abstract class QueryableTerminals<TEntity extends object> extends QueryableScalarTerminals<TEntity> {
     /**
    * Execute the query and return all matching entities.
    */
@@ -76,30 +76,6 @@ export abstract class QueryableTerminals<TEntity extends object> extends Queryab
             await this.singleOrNull(options),
             this.metadata.entityName,
         );
-    }
-
-    /**
-   * Execute a `count(*)` query.
-   */
-    public async count(options?: DatabaseOperationOptions): Promise<number> {
-        return this.executor.executeCount(this.toQueryModel(), options);
-    }
-
-    /** Execute a `count(*)` query without narrowing the result to a number. */
-    public async countBigInt(
-        options?: DatabaseOperationOptions,
-    ): Promise<bigint> {
-        if (!this.executor.executeCountBigInt) {
-            throw new ProviderCapabilityError('countBigInt()');
-        }
-        return this.executor.executeCountBigInt(this.toQueryModel(), options);
-    }
-
-    /**
-   * Execute an `exists` query.
-   */
-    public async exists(options?: DatabaseOperationOptions): Promise<boolean> {
-        return this.executor.executeExists(this.toQueryModel(), options);
     }
 
     /**
