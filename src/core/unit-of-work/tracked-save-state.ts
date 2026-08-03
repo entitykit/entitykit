@@ -10,6 +10,8 @@ import {
 import type { PropertyMetadata } from '../../model/property-metadata';
 import { savePlanExecution } from '../save-plan-execution';
 import type { AppliedGeneratedValue } from './applied-generated-value';
+import type { SaveStateAcceptance } from './save-state-acceptance';
+import { acceptSaveState } from './save-state-acceptor';
 
 export class TrackedSaveState {
     constructor(
@@ -21,22 +23,19 @@ export class TrackedSaveState {
     public accept(
         plan: readonly SavePlanEntry[],
         generatedValues: readonly AppliedGeneratedValue[] = [],
-    ): () => void {
+    ): SaveStateAcceptance {
         this.mergeGeneratedValues(plan, generatedValues);
         const rollbackVersions = this.acceptVersionIncrements(plan);
-        const rollbackTracker = this.changeTracker.acceptPersistedChanges(
-            plan.flatMap(item => savePlanExecution(item)?.persistedEntries ?? []),
-        );
-        const rollbackSaveTimeWrites = this.saveTimeWrites.acceptWithRollback();
-        const rollbackManyToMany = this.manyToMany.accept(
-            plan.flatMap(item => savePlanExecution(item)?.manyToManyChanges ?? []),
-        );
-        return () => {
-            rollbackTracker();
-            rollbackVersions();
-            rollbackSaveTimeWrites();
-            rollbackManyToMany();
-        };
+        return acceptSaveState({
+            changeTracker: this.changeTracker,
+            saveTimeWrites: this.saveTimeWrites,
+            manyToMany: this.manyToMany,
+            persistedEntries: plan.flatMap(item =>
+                savePlanExecution(item)?.persistedEntries ?? []),
+            manyToManyChanges: plan.flatMap(item =>
+                savePlanExecution(item)?.manyToManyChanges ?? []),
+            rollbackVersions,
+        });
     }
 
     public validateVersionValues(plan: readonly SavePlanEntry[]): void {

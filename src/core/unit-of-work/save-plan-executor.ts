@@ -25,6 +25,7 @@ export class SavePlanExecutor {
 
     public async run(
         plan: readonly SavePlanEntry[],
+        beforeCommit: () => void,
         options?: DatabaseOperationOptions,
     ): Promise<number> {
         this.generatedValues = new GeneratedValueHydrator(
@@ -66,16 +67,14 @@ export class SavePlanExecutor {
             }
         };
 
-        if (
-            plan.length === 1
-            && !this.database.isInTransaction
-            && expectsAtMostOneRow(plan[0])
-            && savePlanExecution(plan[0])?.generatedValues === undefined
-            && options?.signal === undefined
-        ) {
-            await runPlan();
-        } else {
-            await this.database.transaction(runPlan, options);
+        const releaseSaveLock = this.changeTracker.beginSaveExecution();
+        try {
+            await this.database.transaction(async () => {
+                await runPlan();
+                beforeCommit();
+            }, options);
+        } finally {
+            releaseSaveLock();
         }
 
         return affectedEntities;
@@ -94,11 +93,6 @@ export class SavePlanExecutor {
         this.generatedValues?.restore();
         this.generatedValues = undefined;
     }
-}
-
-function expectsAtMostOneRow(entry: SavePlanEntry): boolean {
-    return (entry.expectedAffectedRows ?? 1) === 1
-    && (entry.affectedEntityCount ?? 1) === 1;
 }
 
 function ensureAffectedRows(

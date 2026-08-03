@@ -6,6 +6,10 @@ import {
 } from './navigation-snapshot';
 import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 import type { TrackedIdentityMap } from './tracked-identity-map';
+import {
+    TrackedAcceptanceJournal,
+    type TrackedAcceptance,
+} from './tracked-acceptance-journal';
 
 export class ChangeTrackerAcceptance {
     constructor(
@@ -14,6 +18,9 @@ export class ChangeTrackerAcceptance {
         private readonly identities: TrackedIdentityMap,
         private readonly detach: (entity: object) => void,
         private readonly restore: (entry: EntityEntry<object>) => void,
+        private readonly defer: (
+            entries: ReadonlyArray<EntityEntry<object>>,
+        ) => () => void,
     ) {}
 
     public acceptAll(): void {
@@ -31,7 +38,7 @@ export class ChangeTrackerAcceptance {
 
     public acceptPersisted(
         snapshots: readonly PersistedEntrySnapshot[],
-    ): () => void {
+    ): TrackedAcceptance {
         const tracked = snapshots.filter(snapshot =>
             this.isTracked(snapshot.entry));
         const checkpoints = tracked.map(snapshot => {
@@ -70,11 +77,27 @@ export class ChangeTrackerAcceptance {
             },
         );
 
-        for (const snapshot of tracked) {
-            this.acceptSnapshot(snapshot);
+        const uncommitted = new TrackedAcceptanceJournal(
+            checkpoints,
+            this.identities,
+            this.restore,
+            () => undefined,
+        );
+        try {
+            for (const snapshot of tracked) {
+                this.acceptSnapshot(snapshot);
+            }
+        } catch (error) {
+            uncommitted.rollback();
+            throw error;
         }
 
-        return this.createRollback(checkpoints);
+        return new TrackedAcceptanceJournal(
+            checkpoints,
+            this.identities,
+            this.restore,
+            this.defer(tracked.map(snapshot => snapshot.entry)),
+        );
     }
 
     private acceptSnapshot(snapshot: PersistedEntrySnapshot): void {
@@ -91,41 +114,16 @@ export class ChangeTrackerAcceptance {
             return;
         }
 
-        entry.acceptPersistedValues(snapshot.values, snapshot.navigations);
+        entry.acceptPersistedValues(
+            snapshot.values,
+            snapshot.navigations,
+            pendingState !== snapshot.state
+                ? pendingState
+                : EntityState.Unchanged,
+        );
         if (pendingState !== snapshot.state) {
-            entry.state = pendingState;
-        } else {
-            entry.detectChanges();
+            return;
         }
+        entry.detectChanges();
     }
-
-    private createRollback(checkpoints: readonly AcceptanceCheckpoint[]): () => void {
-        let pending = true;
-        return () => {
-            if (!pending) {
-                return;
-            }
-            pending = false;
-            for (const checkpoint of checkpoints) {
-                checkpoint.entry.restoreTrackedValues(
-                    checkpoint.originalValues,
-                    checkpoint.navigations,
-                    checkpoint.state,
-                );
-                this.restore(checkpoint.entry);
-            }
-            this.identities.restoreKeys(checkpoints.map(checkpoint => ({
-                entry: checkpoint.entry,
-                key: checkpoint.identityKey,
-            })));
-        };
-    }
-}
-
-interface AcceptanceCheckpoint {
-    readonly entry: EntityEntry<object>;
-    readonly state: EntityState;
-    readonly originalValues: Record<string, unknown>;
-    readonly navigations: ReturnType<typeof captureNavigationSnapshotValues>;
-    readonly identityKey: string;
 }

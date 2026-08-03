@@ -5,6 +5,7 @@ import type {
 } from '../outbox-event-tracker';
 import type { SavePlanEntry } from '../save-plan';
 import type { TransactionCoordinator } from '../transaction-coordinator';
+import type { SaveStateAcceptance } from './save-state-acceptance';
 
 export class SaveLifecycle {
     constructor(
@@ -42,11 +43,12 @@ export class SaveLifecycle {
     public async afterCommitted(
         plan: readonly SavePlanEntry[],
         affectedEntities: number,
-        rollbackTrackedState: () => void,
+        acceptance: SaveStateAcceptance,
     ): Promise<void> {
         const outboxBatches = this.outboxEvents.batchesFor(plan);
         this.outboxEvents.defer(outboxBatches);
         const callback = async (): Promise<void> => {
+            acceptance.commit();
             this.clearOutboxEvents(outboxBatches);
             await this.notifySaved(plan, affectedEntities);
         };
@@ -56,7 +58,7 @@ export class SaveLifecycle {
                 callback,
                 () => {
                     this.outboxEvents.release(outboxBatches);
-                    rollbackTrackedState();
+                    acceptance.rollback();
                 },
             );
             return;

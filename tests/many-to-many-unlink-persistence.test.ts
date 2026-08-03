@@ -93,7 +93,7 @@ describe('many-to-many unlink persistence', () => {
 
         await expect(db.saveChanges()).rejects.toThrow('join delete failed');
 
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(connection.statements).toHaveLength(1);
         expect(db.getSavePlan()).toHaveLength(1);
         expect(db.getSavePlanDebugView()).toContain('2 changes');

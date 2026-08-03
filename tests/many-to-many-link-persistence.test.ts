@@ -148,7 +148,7 @@ describe('many-to-many link persistence', () => {
 
         await expect(db.saveChanges()).rejects.toThrow('join insert failed');
 
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(connection.statements).toHaveLength(1);
         expect(db.getSavePlan()).toHaveLength(1);
         expect(db.getSavePlanDebugView()).toContain('2 changes');

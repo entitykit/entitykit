@@ -5,7 +5,7 @@ import type {
     ModelBuilder,
     SqlStatement,
 } from '../src';
-import { DbContext, EntityState } from '../src';
+import { ContextConcurrentOperationError, DbContext, EntityState } from '../src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {
@@ -93,7 +93,7 @@ describe('save snapshot acceptance', () => {
         expect(db.entry(user)?.state).toBe(EntityState.Unchanged);
     });
 
-    it('does not accept an unrelated entity tracked while SQL is running', async () => {
+    it('rejects structural tracker mutations while SQL is running', async () => {
         const connection = new DelayedRecordingConnection();
         connection.queueResult({ rowCount: 1 });
         const db = SnapshotContext.open(connection);
@@ -103,11 +103,19 @@ describe('save snapshot acceptance', () => {
 
         const saving = db.saveChanges();
         await connection.queryStarted;
-        db.users.add(late);
+        expect(() => db.users.add(late)).toThrow(ContextConcurrentOperationError);
+        expect(() => db.users.detach(first)).toThrow(ContextConcurrentOperationError);
+        expect(() => {
+            db.changeTracker.clear();
+        }).toThrow(ContextConcurrentOperationError);
+        expect(() => {
+            const entry = db.entry(first);
+            if (entry) entry.state = EntityState.Deleted;
+        }).toThrow(ContextConcurrentOperationError);
         connection.release();
         await expect(saving).resolves.toBe(1);
 
         expect(db.entry(first)?.state).toBe(EntityState.Unchanged);
-        expect(db.entry(late)?.state).toBe(EntityState.Added);
+        expect(db.entry(late)).toBeUndefined();
     });
 });

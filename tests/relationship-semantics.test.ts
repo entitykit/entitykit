@@ -40,11 +40,7 @@ describe('relationship semantics', () => {
         }));
 
         await expect(db.saveChanges()).rejects.toBeInstanceOf(ForeignKeyConstraintError);
-        // A one-row plan runs without a transaction: a single statement is
-        // already atomic, and the begin/commit pair was two round trips for
-        // nothing. Multi-statement and multi-row plans still take one — see
-        // tests/single-statement-saves.test.ts.
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(connection.statements).toEqual([{
             text: 'insert into "required_posts" ("id", "title", "author_id") values ($1, $2, $3)',
             values: ['post_1', 'Missing author', 'missing'],

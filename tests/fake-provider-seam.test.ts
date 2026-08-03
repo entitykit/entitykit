@@ -78,11 +78,7 @@ describe('fake provider seam fixture', () => {
                 values: ['usr_1', 'a@example.com'],
             },
         ]);
-        // A one-row plan runs without a transaction: a single statement is
-        // already atomic, and the begin/commit pair was two round trips for
-        // nothing. Multi-statement and multi-row plans still take one — see
-        // tests/single-statement-saves.test.ts.
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'commit']);
     });
 
     it('runs migration updates through the fake migration dialect without advisory locks', async () => {

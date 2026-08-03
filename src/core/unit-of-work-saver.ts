@@ -6,6 +6,7 @@ import { TrackedSaveState } from './unit-of-work/tracked-save-state';
 import type { UnitOfWorkSaverDeps } from './unit-of-work/unit-of-work-saver-deps';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import type { SaveStateAcceptance } from './unit-of-work/save-state-acceptance';
 
 export type { UnitOfWorkSaverDeps } from './unit-of-work/unit-of-work-saver-deps';
 
@@ -54,9 +55,31 @@ export class UnitOfWorkSaver {
         }
 
         let affectedEntities: number;
+        let acceptance: SaveStateAcceptance | undefined;
         try {
-            affectedEntities = await this.executor.run(plan, options);
+            affectedEntities = await this.executor.run(plan, () => {
+                const generatedValues = this.executor.acceptGeneratedValues();
+                try {
+                    const tracked = this.trackedState.accept(
+                        plan,
+                        generatedValues.values,
+                    );
+                    acceptance = {
+                        commit: () => {
+                            tracked.commit();
+                        },
+                        rollback: () => {
+                            tracked.rollback();
+                            generatedValues.rollback();
+                        },
+                    };
+                } catch (error) {
+                    generatedValues.rollback();
+                    throw error;
+                }
+            }, options);
         } catch (error) {
+            acceptance?.rollback();
             this.executor.restoreGeneratedValues();
             this.trackedState.restoreSaveTimeWrites();
             const mappedError = mapDatabaseProviderError(error);
@@ -65,15 +88,10 @@ export class UnitOfWorkSaver {
             throw mappedError;
         }
 
-        const generatedValues = this.executor.acceptGeneratedValues();
-        const rollbackTrackedState = this.trackedState.accept(
-            plan,
-            generatedValues.values,
-        );
-        await this.lifecycle.afterCommitted(plan, affectedEntities, () => {
-            rollbackTrackedState();
-            generatedValues.rollback();
-        });
+        if (!acceptance) {
+            throw new Error('Save state was not accepted before commit.');
+        }
+        await this.lifecycle.afterCommitted(plan, affectedEntities, acceptance);
         this.lifecycle.emitDiagnostic(plan, elapsed(), affectedEntities);
         return affectedEntities;
     }

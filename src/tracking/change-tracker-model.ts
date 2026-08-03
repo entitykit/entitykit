@@ -3,6 +3,7 @@ import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { configureEntityEntryStore } from './entity-entry-concurrency';
 import type { EntityEntryStore } from './entity-entry-store';
+import { configureEntityEntryMutationGuard } from './entity-entry-mutation-guard';
 
 const models: WeakMap<ChangeTracker, Model> = new WeakMap();
 const stores: WeakMap<ChangeTracker, EntityEntryStore> = new WeakMap();
@@ -35,9 +36,13 @@ export function changeTrackerStore(
 export function configureTrackedEntry(
     tracker: ChangeTracker,
     entry: EntityEntry<object>,
+    assertStateMutation?: () => void,
 ): void {
     const store = changeTrackerStore(tracker);
     if (store) {
         configureEntityEntryStore(entry, store);
+    }
+    if (assertStateMutation) {
+        configureEntityEntryMutationGuard(entry, assertStateMutation);
     }
 }

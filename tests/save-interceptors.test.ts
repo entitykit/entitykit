@@ -225,11 +225,7 @@ describe('save changes interceptors', () => {
         await expect(db.saveChanges()).resolves.toBe(1);
 
         expect(events).toEqual(['saved:1']);
-        // A one-row plan runs without a transaction: a single statement is
-        // already atomic, and the begin/commit pair was two round trips for
-        // nothing. Multi-statement and multi-row plans still take one — see
-        // tests/single-statement-saves.test.ts.
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'commit']);
         expect(db.entry(user)?.state).toBe(EntityState.Unchanged);
     });
 
@@ -273,11 +269,7 @@ describe('save changes interceptors', () => {
         await expect(db.saveChanges()).rejects.toThrow('provider failed');
 
         expect(events).toEqual(['failed:provider failed']);
-        // A one-row plan runs without a transaction: a single statement is
-        // already atomic, and the begin/commit pair was two round trips for
-        // nothing. Multi-statement and multi-row plans still take one — see
-        // tests/single-statement-saves.test.ts.
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(db.entry(user)?.state).toBe(EntityState.Added);
     });
 });

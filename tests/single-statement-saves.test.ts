@@ -2,18 +2,7 @@ import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext } from '../src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
-/**
- * A save whose plan is one single-row statement runs without a transaction.
- *
- * The statement is already atomic, so `begin`/`commit` bought nothing but two
- * round trips — and those two round trips were the entire difference between a
- * tracked insert and a raw one. Profiled: 0.475ms of transaction against
- * 0.006ms of plan building.
- *
- * The value of the optimization is obvious; the risk is all in the boundary.
- * These tests are about the boundary — every case that must still take a
- * transaction, still does.
- */
+/** Tracked saves finalize in-memory acceptance before their transaction commits. */
 class Row {
     public id!: string;
     public label!: string;
@@ -71,14 +60,14 @@ function open(affectedRows: readonly number[] = [1]): SaveDbContext {
 }
 
 describe('single-statement saves', () => {
-    it('skips the transaction for one single-row statement', async () => {
+    it('keeps a one-row statement and tracker acceptance in one transaction', async () => {
         const db =  open();
         db.rows.add(new Row({ id: 'a', label: 'one', version: 1 }));
 
         await db.saveChanges();
 
         expect(connection.statements).toHaveLength(1);
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'commit']);
         await db.dispose();
     });
 
@@ -137,9 +126,7 @@ describe('single-statement saves', () => {
 
         await expect(db.saveChanges()).rejects.toThrow('insert failed');
 
-        // Nothing to roll back, and the entity is left exactly as the caller had
-        // it — the same end state the transaction used to produce.
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(db.entry(row)?.state).toBe('Added');
         expect(row.version).toBe(1);
         await db.dispose();

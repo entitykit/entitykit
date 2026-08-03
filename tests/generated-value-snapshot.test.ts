@@ -105,6 +105,30 @@ class DelayedQueryConnection extends RecordingDatabaseConnection {
 }
 
 describe('generated-value snapshot acceptance', () => {
+    it('rolls back SQL when persisted identities collide during acceptance', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = GeneratedRaceContext.create(connection);
+        const first = Object.assign(new GeneratedItem(), { name: 'first' });
+        const second = Object.assign(new GeneratedItem(), { name: 'second' });
+        db.items.add(first);
+        db.items.add(second);
+        const generatedAt = new Date('2026-08-03T10:00:00.000Z');
+        connection.queueResult({
+            rows: [{ id: 41, updatedAt: generatedAt }], rowCount: 1,
+        });
+        connection.queueResult({
+            rows: [{ id: 41, updatedAt: generatedAt }], rowCount: 1,
+        });
+
+        await expect(db.saveChanges()).rejects.toThrow('already tracked');
+
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
+        expect(first.id).toBeUndefined();
+        expect(second.id).toBeUndefined();
+        expect(db.entry(first)?.state).toBe(EntityState.Added);
+        expect(db.entry(second)?.state).toBe(EntityState.Added);
+    });
+
     it('accepts the generated primary key rather than a later live mutation', async () => {
         const connection = new DelayedQueryConnection(2);
         const db = GeneratedRaceContext.create(connection);

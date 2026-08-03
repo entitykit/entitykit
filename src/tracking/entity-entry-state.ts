@@ -7,6 +7,7 @@ import {
     readEntityValues,
 } from './entity-entry-snapshot';
 import { EntityState } from './entity-state';
+import { assertEntityEntryStateMutation } from './entity-entry-mutation-guard';
 import {
     acceptNavigationSnapshotValues,
     captureNavigation,
@@ -20,13 +21,26 @@ export class EntityEntryState<TEntity extends object> {
     private readonly loadedNavigations: Set<string> = new Set();
 
     constructor(
+        private readonly owner: EntityEntry<TEntity>,
         private readonly metadata: EntityMetadata<TEntity>,
         private readonly entity: TEntity,
+        private currentState: EntityState,
         originalValues?: Record<string, unknown>,
     ) {
         this.snapshot = originalValues
             ? cloneEntityValues(metadata, originalValues)
             : readEntityValues(metadata, entity);
+    }
+
+    public get state(): EntityState {
+        return this.currentState;
+    }
+
+    public set state(state: EntityState) {
+        if (state !== this.currentState) {
+            assertEntityEntryStateMutation(this.owner);
+            this.currentState = state;
+        }
     }
 
     public get originalValues(): Readonly<Record<string, unknown>> {
@@ -41,12 +55,15 @@ export class EntityEntryState<TEntity extends object> {
         return modifiedEntityProperties(this.metadata, this.entity, this.snapshot);
     }
 
-    public detectChanges(state: EntityState): EntityState {
-        if (state !== EntityState.Unchanged && state !== EntityState.Modified) {
-            return state;
+    public detectChanges(): void {
+        if (
+            this.currentState !== EntityState.Unchanged &&
+            this.currentState !== EntityState.Modified
+        ) {
+            return;
         }
 
-        return hasEntityModifications(this.metadata, this.entity, this.snapshot)
+        this.currentState = hasEntityModifications(this.metadata, this.entity, this.snapshot)
             ? EntityState.Modified
             : EntityState.Unchanged;
     }
@@ -57,18 +74,28 @@ export class EntityEntryState<TEntity extends object> {
             : readEntityValues(this.metadata, this.entity);
     }
 
-    public accept(entry: EntityEntry<object>): void {
+    public accept(
+        entry: EntityEntry<object>,
+        state: EntityState = EntityState.Unchanged,
+    ): void {
         this.snapshot = readEntityValues(this.metadata, this.entity);
         refreshNavigationSnapshots(entry);
+        this.currentState = state;
     }
 
     public acceptPersisted(
         entry: EntityEntry<object>,
         values: Record<string, unknown>,
         navigations: NavigationSnapshotValues,
+        state: EntityState = EntityState.Unchanged,
     ): void {
         this.snapshot = cloneEntityValues(this.metadata, values);
         acceptNavigationSnapshotValues(entry, navigations);
+        this.currentState = state;
+    }
+
+    public detach(): void {
+        this.currentState = EntityState.Detached;
     }
 
     public markNavigationLoaded(

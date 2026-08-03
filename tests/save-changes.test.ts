@@ -109,11 +109,7 @@ describe('DbContext.saveChanges', () => {
 
         await expect(db.saveChanges()).rejects.toThrow('database failed');
 
-        // A one-row plan runs without a transaction: a single statement is
-        // already atomic, and the begin/commit pair was two round trips for
-        // nothing. Multi-statement and multi-row plans still take one — see
-        // tests/single-statement-saves.test.ts.
-        expect(connection.transactionEvents).toEqual([]);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(db.entry(user)?.state).toBe(EntityState.Modified);
         expect(db.entry(user)?.originalValues.name).toBe('A');
     });
@@ -159,6 +155,25 @@ describe('DbContext.saveChanges', () => {
 
         await expect(db.saveChanges()).rejects.toThrow('Primary key changes are not supported');
         expect(connection.transactionEvents).toEqual([]);
+    });
+
+    it('restores accepted tracker state when provider commit fails', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const now = new Date('2026-01-01T00:00:00.000Z');
+        const user = new User({
+            id: 'usr_1', email: 'a@example.com', name: 'A',
+            createdAt: now, updatedAt: now,
+        });
+        db.users.add(user);
+        connection.queueResult({ rowCount: 1 });
+        connection.failNextTransactionCommit(new Error('commit failed'));
+
+        await expect(db.saveChanges()).rejects.toThrow('commit failed');
+
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
+        expect(db.entry(user)?.state).toBe(EntityState.Added);
+        expect(db.getSavePlan()).toHaveLength(1);
     });
 
     it('uses a savepoint when saveChanges is called inside db.transaction', async () => {
