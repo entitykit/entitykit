@@ -7,6 +7,7 @@ import {
 import type { PropertyMetadata } from '../../model/property-metadata';
 import { readStoreValue, type StoreValueReader } from '../../storage/store-value-reader';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
+import type { AppliedPropertyValue } from './applied-generated-value';
 
 export function writeGeneratedRow(
     entity: object,
@@ -15,9 +16,10 @@ export function writeGeneratedRow(
     row: Record<string, unknown>,
     mutations: SaveTimeMutationLog,
     valueReader?: StoreValueReader,
-): void {
+): readonly AppliedPropertyValue[] {
+    const applied: AppliedPropertyValue[] = [];
     for (const property of properties) {
-        writeGeneratedValue(
+        const persistedValue = writeGeneratedValue(
             entity,
             property,
             row[property.columnName],
@@ -25,7 +27,9 @@ export function writeGeneratedRow(
             valueReader,
             metadata,
         );
+        applied.push({ propertyName: property.propertyName, persistedValue });
     }
+    return applied;
 }
 
 export function writeGeneratedValue(
@@ -35,7 +39,7 @@ export function writeGeneratedValue(
     mutations: SaveTimeMutationLog,
     valueReader?: StoreValueReader,
     metadata?: EntityMetadata,
-): void {
+): unknown {
     const value = readStoreValue(storeValue, property, valueReader);
     if (metadata && value !== null && value !== undefined) {
         ensureComplexPropertyPath(
@@ -50,4 +54,5 @@ export function writeGeneratedValue(
     const target = propertyValueTarget(entity, property.propertyPath);
     mutations.record(target.target, target.propertyName);
     writePropertyValue(entity, property, value);
+    return value;
 }

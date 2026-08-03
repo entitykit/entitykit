@@ -2,14 +2,16 @@ import type { PropertyMetadata } from '../../model/property-metadata';
 import type { SavePlanEntry } from '../save-plan';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
+import type { AppliedPropertyValue } from './applied-generated-value';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
     entry: SavePlanEntry,
     mutations: SaveTimeMutationLog,
     propagations: readonly GeneratedKeyPropagation[] = [],
-): void {
+): readonly AppliedPropertyValue[] {
     const values = entry.entity as Record<string, unknown>;
+    const applied: AppliedPropertyValue[] = [];
     for (const propagation of propagations) {
         const principal = propagation.principal as Record<string, unknown>;
         const keyValues = propagation.principalKeyProperties.map(
@@ -27,8 +29,10 @@ export function propagateGeneratedKeys(
             }
             mutations.record(values, propertyName);
             values[propertyName] = value;
+            applied.push({ propertyName, persistedValue: value });
         });
     }
+    return applied;
 }
 
 function hasValue(

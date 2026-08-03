@@ -9,7 +9,7 @@ import {
 } from '../../model/property-value-access';
 import type { PropertyMetadata } from '../../model/property-metadata';
 import { savePlanExecution } from '../save-plan-execution';
-import { readEntityValues } from '../../tracking/entity-entry-snapshot';
+import type { AppliedGeneratedValue } from './applied-generated-value';
 
 export class TrackedSaveState {
     constructor(
@@ -18,8 +18,11 @@ export class TrackedSaveState {
         private readonly manyToMany: ManyToManyChangeSet,
     ) {}
 
-    public accept(plan: readonly SavePlanEntry[]): () => void {
-        this.acceptGeneratedValues(plan);
+    public accept(
+        plan: readonly SavePlanEntry[],
+        generatedValues: readonly AppliedGeneratedValue[] = [],
+    ): () => void {
+        this.mergeGeneratedValues(plan, generatedValues);
         const rollbackVersions = this.acceptVersionIncrements(plan);
         const rollbackTracker = this.changeTracker.acceptPersistedChanges(
             plan.flatMap(item => savePlanExecution(item)?.persistedEntries ?? []),
@@ -65,26 +68,16 @@ export class TrackedSaveState {
         };
     }
 
-    private acceptGeneratedValues(plan: readonly SavePlanEntry[]): void {
-        for (const item of plan) {
-            const execution = savePlanExecution(item);
-            const generated = execution?.generatedValues;
-            const persisted = execution?.persistedEntries?.find(snapshot =>
-                snapshot.entry.entity === item.entity);
-            if (generated && persisted) {
-                const current = readEntityValues(generated.metadata, item.entity);
-                for (const propertyName of generated.propertyNames) {
-                    persisted.values[propertyName] = current[propertyName];
-                }
-            }
-            for (const propagation of execution?.generatedKeyPropagations ?? []) {
-                if (!persisted) {
-                    continue;
-                }
-                const current = readEntityValues(persisted.entry.metadata, item.entity);
-                for (const propertyName of propagation.foreignKeyProperties) {
-                    persisted.values[propertyName] = current[propertyName];
-                }
+    private mergeGeneratedValues(
+        plan: readonly SavePlanEntry[],
+        generatedValues: readonly AppliedGeneratedValue[],
+    ): void {
+        const persisted = plan.flatMap(item =>
+            savePlanExecution(item)?.persistedEntries ?? []);
+        for (const generated of generatedValues) {
+            const snapshot = persisted.find(item => item.entry === generated.entry);
+            if (snapshot) {
+                snapshot.values[generated.propertyName] = generated.persistedValue;
             }
         }
     }

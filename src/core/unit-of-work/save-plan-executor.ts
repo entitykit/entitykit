@@ -7,6 +7,7 @@ import type { SavePlanEntry } from '../save-plan';
 import { savePlanExecution } from '../save-plan-execution';
 import { GeneratedValueHydrator } from './generated-value-hydrator';
 import { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
+import type { GeneratedValueAcceptance } from './applied-generated-value';
 
 export class SavePlanExecutor {
     private generatedValues?: GeneratedValueHydrator;
@@ -32,7 +33,6 @@ export class SavePlanExecutor {
             this.changeTracker,
             this.getValueReader(),
         );
-        this.generatedValues.reset();
         let affectedEntities = 0;
         const runPlan = async (): Promise<void> => {
             for (const entry of plan) {
@@ -81,10 +81,13 @@ export class SavePlanExecutor {
         return affectedEntities;
     }
 
-    public acceptGeneratedValues(): () => void {
-        const rollback = this.generatedValues?.accept() ?? (() => undefined);
+    public acceptGeneratedValues(): GeneratedValueAcceptance {
+        const acceptance = this.generatedValues?.accept() ?? {
+            values: [],
+            rollback: () => undefined,
+        };
         this.generatedValues = undefined;
-        return rollback;
+        return acceptance;
     }
 
     public restoreGeneratedValues(): void {

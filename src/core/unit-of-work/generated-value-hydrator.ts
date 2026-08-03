@@ -21,24 +21,24 @@ import {
     writeGeneratedRow,
     writeGeneratedValue,
 } from './generated-value-writer';
-
-/** Hydrates database-generated values and restores them when a save rolls back. */
+import type { GeneratedValueAcceptance } from './applied-generated-value';
+import { GeneratedValueRecorder } from './generated-value-recorder';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
-
+    private readonly recorded: GeneratedValueRecorder;
     constructor(
         private readonly database: DatabaseConnection,
         private readonly dialect: SqlDialect,
         private readonly changeTracker: ChangeTracker,
         private readonly valueReader?: StoreValueReader,
-    ) {}
-
-    public reset(): void {
-        this.mutations.reset();
+    ) {
+        this.recorded = new GeneratedValueRecorder(changeTracker);
     }
-
-    public accept(): () => void {
-        return this.mutations.takeRollback();
+    public accept(): GeneratedValueAcceptance {
+        return {
+            values: this.recorded.take(),
+            rollback: this.mutations.takeRollback(),
+        };
     }
 
     public restore(): void {
@@ -58,14 +58,14 @@ export class GeneratedValueHydrator {
         const properties = plan.propertyNames.map(propertyName =>
             plan.metadata.getProperty(propertyName as never));
         if (result.rows.length > 0) {
-            writeGeneratedRow(
+            this.recorded.record(entry.entity, writeGeneratedRow(
                 entry.entity,
                 plan.metadata,
                 properties,
                 result.rows[0],
                 this.mutations,
                 this.valueReader,
-            );
+            ));
             this.assertFinalIdentity(entry);
             return;
         }
@@ -92,14 +92,14 @@ export class GeneratedValueHydrator {
                     `The '${this.dialect.name}' provider saved '${entry.entityName}' but could not refresh its database-generated values.`,
                 );
             }
-            writeGeneratedRow(
+            this.recorded.record(entry.entity, writeGeneratedRow(
                 entry.entity,
                 plan.metadata,
                 remaining,
                 refresh.rows[0],
                 this.mutations,
                 this.valueReader,
-            );
+            ));
         }
         this.assertFinalIdentity(entry);
     }
@@ -108,7 +108,10 @@ export class GeneratedValueHydrator {
         entry: SavePlanEntry,
         propagations?: readonly GeneratedKeyPropagation[],
     ): void {
-        propagateGeneratedKeys(entry, this.mutations, propagations);
+        this.recorded.record(
+            entry.entity,
+            propagateGeneratedKeys(entry, this.mutations, propagations),
+        );
     }
 
     private applyInsertedIdentity(
@@ -126,13 +129,17 @@ export class GeneratedValueHydrator {
         if (generatedKeys.length !== 1) {
             return undefined;
         }
-        writeGeneratedValue(
+        const persistedValue = writeGeneratedValue(
             entry.entity,
             generatedKeys[0],
             insertId,
             this.mutations,
             this.valueReader,
         );
+        this.recorded.record(entry.entity, [{
+            propertyName: generatedKeys[0].propertyName,
+            persistedValue,
+        }]);
         return generatedKeys[0];
     }
 

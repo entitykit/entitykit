@@ -65,11 +65,14 @@ export class UnitOfWorkSaver {
             throw mappedError;
         }
 
-        const rollbackGeneratedValues = this.executor.acceptGeneratedValues();
-        const rollbackTrackedState = this.trackedState.accept(plan);
+        const generatedValues = this.executor.acceptGeneratedValues();
+        const rollbackTrackedState = this.trackedState.accept(
+            plan,
+            generatedValues.values,
+        );
         await this.lifecycle.afterCommitted(plan, affectedEntities, () => {
             rollbackTrackedState();
-            rollbackGeneratedValues();
+            generatedValues.rollback();
         });
         this.lifecycle.emitDiagnostic(plan, elapsed(), affectedEntities);
         return affectedEntities;
