@@ -7,3 +7,4 @@ export type { DbUpdateErrorOptions } from './db-update-error';
 export { MigrationChecksumError, MigrationDataLossError, MigrationError, MigrationExecutionError, MigrationLockReleaseError, PendingModelChangesError } from './migration-errors';
 export type { MigrationErrorOptions, MigrationExecutionErrorOptions } from './migration-errors';
 export { ContextConcurrentOperationError, ContextDisposedError, ContextNotInitializedError, OperationCanceledError, ProviderCapabilityError } from './runtime-errors';
+export { TenantScopeUnavailableError } from './tenant-scope-unavailable-error';

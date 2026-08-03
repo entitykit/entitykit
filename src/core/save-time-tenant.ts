@@ -2,6 +2,7 @@ import { DbValidationError } from '../errors/entity-kit-error';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
+import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
 
 export function applyTenantWrite(
     entry: EntityEntry<object>,
@@ -12,8 +13,11 @@ export function applyTenantWrite(
     const tenantProperty = typeof configuredProperty === 'string'
         ? configuredProperty
         : undefined;
-    if (!tenantProperty || tenantId === undefined || tenantId === null) {
+    if (!tenantProperty) {
         return;
+    }
+    if (tenantId === undefined || tenantId === null) {
+        throw new TenantScopeUnavailableError(entry.metadata.entityName);
     }
 
     const values = entry.entity as Record<string, unknown>;

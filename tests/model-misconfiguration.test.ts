@@ -87,10 +87,7 @@ describe('model misconfiguration', () => {
         await result.context.dispose();
     });
 
-    it('accepts a context that deliberately spans tenants', async () => {
-    // The escape hatch named in the error message: a provider that returns
-    // undefined is a declaration that this context is tenant-agnostic, which
-    // is different from having forgotten to configure one.
+    it('fails closed when a configured tenant provider returns no identity', async () => {
         const result =  build(
             entity => entity.tenantKey(doc => doc.tenantId),
             options => options.useTenantScope(() => undefined),
@@ -98,6 +95,8 @@ describe('model misconfiguration', () => {
 
         expect(result.built).toBe(true);
         if (!result.built) return;
+        await expect(result.context.set(Doc).toArray())
+            .rejects.toThrow('Tenant scope is unavailable');
         await result.context.dispose();
     });
 

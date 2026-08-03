@@ -170,6 +170,16 @@ describe('bulk upsert', () => {
             await db.dispose();
         });
 
+        it('fails closed when the current tenant disappears', async () => {
+            const db = await open();
+            currentTenant = undefined;
+
+            await expect(db.items.upsert([item('a')]))
+                .rejects.toThrow('Tenant scope is unavailable');
+            expect(await db.items.ignoreTenantScope().count()).toBe(0);
+            await db.dispose();
+        });
+
         it('imposes nothing when the entity has no tenant key', async () => {
             scoped = false;
             const db = await open();

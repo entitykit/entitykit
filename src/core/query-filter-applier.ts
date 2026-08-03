@@ -3,6 +3,7 @@ import { FieldExpression } from '../query/expression/field-expression';
 import type { PredicateExpression } from '../query/expression/predicate-expression';
 import { cloneQueryModel, type JoinExpression, type QueryModel } from '../query/query-model';
 import type { RelationExistenceExpression } from '../query/relation-expression';
+import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
 
 /**
  * Applies a context's implicit query filters — soft-delete and tenant scope —
@@ -23,13 +24,33 @@ export class QueryFilterApplier {
         }
 
         const opts = { softDelete: !query.ignoreQueryFilters, tenant: !query.ignoreTenantScope };
-        let predicate = combinePredicates(query.predicate, this.filtersFor(metadata, undefined, opts));
+        let tenantId: unknown;
+        let tenantIdResolved = false;
+        const resolveTenantId = (entityName: string): unknown => {
+            if (!tenantIdResolved) {
+                tenantId = this.currentTenantId();
+                tenantIdResolved = true;
+            }
+            if (tenantId === undefined || tenantId === null) {
+                throw new TenantScopeUnavailableError(entityName);
+            }
+            return tenantId;
+        };
+        let predicate = combinePredicates(
+            query.predicate,
+            this.filtersFor(metadata, undefined, opts, resolveTenantId),
+        );
         let joins: JoinExpression[] | undefined;
         let relationExistence: RelationExistenceExpression[] | undefined;
 
         for (let index = 0; index < query.joins.length; index += 1) {
             const join = query.joins[index];
-            const filters = this.filtersFor(join.metadata, join.alias, opts);
+            const filters = this.filtersFor(
+                join.metadata,
+                join.alias,
+                opts,
+                resolveTenantId,
+            );
             if (filters.length === 0) {
                 continue;
             }
@@ -56,7 +77,12 @@ export class QueryFilterApplier {
 
         for (let index = 0; index < query.relationExistence.length; index += 1) {
             const expression = query.relationExistence[index];
-            const filters = this.filtersFor(expression.relation.targetMetadata, undefined, opts);
+            const filters = this.filtersFor(
+                expression.relation.targetMetadata,
+                undefined,
+                opts,
+                resolveTenantId,
+            );
             if (filters.length === 0) {
                 continue;
             }
@@ -91,6 +117,7 @@ export class QueryFilterApplier {
         metadata: EntityMetadata<TEntity>,
         sourceAlias: string | undefined,
         applies: { softDelete: boolean; tenant: boolean },
+        resolveTenantId: (entityName: string) => unknown,
     ): PredicateExpression[] {
         const filters: PredicateExpression[] = [];
 
@@ -98,9 +125,10 @@ export class QueryFilterApplier {
             filters.push(new FieldExpression<TEntity, unknown>(metadata.softDelete.propertyName, sourceAlias).isNull());
         }
 
-        const tenantId = this.currentTenantId();
-        if (metadata.tenantKeyProperty && tenantId !== undefined && tenantId !== null && applies.tenant) {
-            filters.push(new FieldExpression<TEntity, unknown>(metadata.tenantKeyProperty, sourceAlias).eq(tenantId));
+        if (metadata.tenantKeyProperty && applies.tenant) {
+            filters.push(new FieldExpression<TEntity, unknown>(metadata.tenantKeyProperty, sourceAlias).eq(
+                resolveTenantId(metadata.entityName),
+            ));
         }
 
         return filters;

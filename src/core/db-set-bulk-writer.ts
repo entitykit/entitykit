@@ -9,6 +9,7 @@ import { createQueryModel } from '../query/query-model';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
 
 /**
  * The batched `upsert` write for a `DbSet`.
@@ -55,8 +56,11 @@ export class DbSetBulkWriter<TEntity extends object> {
             return 0;
         }
 
+        const tenantId = this.metadata.tenantKeyProperty
+            ? this.context.currentTenantIdForWrites()
+            : undefined;
         for (const entity of entities) {
-            this.assertEntityInTenantScope(entity);
+            this.assertEntityInTenantScope(entity, tenantId);
         }
 
         const sql = this.modificationSql();
@@ -111,15 +115,14 @@ export class DbSetBulkWriter<TEntity extends object> {
    * The same rule `saveChanges()` applies. A set-based write must not be the
    * way around an isolation boundary the tracked path enforces.
    */
-    private assertEntityInTenantScope(entity: TEntity): void {
+    private assertEntityInTenantScope(entity: TEntity, tenantId: unknown): void {
         const tenantProperty = this.metadata.tenantKeyProperty;
         if (!tenantProperty) {
             return;
         }
 
-        const tenantId = this.context.currentTenantIdForWrites();
         if (tenantId === undefined || tenantId === null) {
-            return;
+            throw new TenantScopeUnavailableError(this.metadata.entityName);
         }
 
         const values = entity as Record<string, unknown>;

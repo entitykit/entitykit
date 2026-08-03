@@ -88,6 +88,6 @@ function assertTenantScopeConfigured(tenantScopeConfigured: boolean, model: Mode
     const subject = scoped.length === 1 ? `Entity ${names} configures` : `Entities ${names} configure`;
     throw new Error(
         `${subject} a tenant key, but no tenant scope is configured. ` +
-    'Call options.useTenantScope(...) in configure(), or return undefined from it for a context that deliberately spans tenants.',
+    'Call options.useTenantScope(...) in configure(), or explicitly configure a cross-tenant context.',
     );
 }

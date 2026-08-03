@@ -1,5 +1,5 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import { DbContext, TenantScopeUnavailableError } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { requireDefined } from './support/require-defined';
 
@@ -19,7 +19,7 @@ class Doc {
     }
 }
 
-let currentTenant = 't1';
+let currentTenant: string | undefined = 't1';
 
 class ScopedDbContext extends DbContext {
     public docs = this.set(Doc);
@@ -153,5 +153,34 @@ describe('tenant scope isolation', () => {
         const seen = [...new Set(joined.flatMap(row => [row.left, row.right]))];
         expect(seen.length).toBeGreaterThan(0);
         expect(seen.every(id => id.startsWith('t1-'))).toBe(true);
+    });
+
+    it('fails closed when the current tenant disappears', async () => {
+        currentTenant = undefined;
+
+        await expect(db.docs.toArray()).rejects.toBeInstanceOf(
+            TenantScopeUnavailableError,
+        );
+        await expect(db.docs.where(doc => doc.id.eq('t1-live')).executeDelete())
+            .rejects.toBeInstanceOf(TenantScopeUnavailableError);
+
+        const rogue = new Doc({
+            id: 'rogue',
+            tenantId: 't9',
+            title: 'Rogue',
+            deletedAt: null,
+        });
+        db.docs.add(rogue);
+        await expect(db.saveChanges()).rejects.toBeInstanceOf(
+            TenantScopeUnavailableError,
+        );
+        expect(db.entry(rogue)?.state).toBe('Added');
+    });
+
+    it('allows an explicit query-level escape when no tenant exists', async () => {
+        currentTenant = undefined;
+
+        expect(await ids(db.docs.ignoreTenantScope().toArray()))
+            .toEqual(['t1-live', 't2-live']);
     });
 });
