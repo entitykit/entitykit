@@ -9,6 +9,7 @@ import { mySqlValueReader } from './mysql-value-reader';
 import { MySqlConnectionSource } from './mysql-connection-source';
 import { DatabaseProviderError, DatabaseTransactionCleanupError } from '../../storage/database-errors';
 import type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
+import { isTransactionOutcomeUnknown } from '../../storage/transaction-outcome';
 
 export type { MySqlConnectionConfig } from './mysql-driver';
 
@@ -42,9 +43,18 @@ export const mySqlProviderServices: DatabaseProviderServices<MySqlConnectionConf
         return new MySqlConnectionSource(config);
     },
     isTransientError(error: unknown): boolean {
+        if (isTransactionOutcomeUnknown(error)) {
+            return false;
+        }
         const candidate = error instanceof DatabaseTransactionCleanupError
             ? error.primaryError
             : error;
+        if (
+            candidate instanceof DatabaseProviderError &&
+            candidate.operation === 'commit'
+        ) {
+            return candidate.code === 'ER_LOCK_DEADLOCK';
+        }
         return candidate instanceof DatabaseProviderError
             && candidate.code !== undefined
             && [

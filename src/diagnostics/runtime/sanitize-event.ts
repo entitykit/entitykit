@@ -2,6 +2,7 @@ import {
     DatabaseProviderError,
     DatabaseTransactionCleanupError,
 } from '../../storage/database-errors';
+import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
 import type { SavePlanEntry } from '../../core/save-plan';
 import type {
     RuntimeDiagnosticEvent,
@@ -56,6 +57,15 @@ function sanitizeSavePlanEntry(
 function sanitizeError(error: unknown): unknown {
     if (error === undefined) {
         return undefined;
+    }
+    if (error instanceof TransactionOutcomeUnknownError) {
+        return {
+            name: error.name,
+            message: 'A database commit outcome is unknown.',
+            provider: error.provider,
+            operation: error.operation,
+            retryable: error.retryable,
+        };
     }
     if (error instanceof DatabaseTransactionCleanupError) {
         return {

@@ -4,3 +4,4 @@ export type {
     DatabaseProviderOperation,
 } from './database-provider-error';
 export { DatabaseTransactionCleanupError } from './database-transaction-cleanup-error';
+export { TransactionOutcomeUnknownError } from './transaction-outcome-unknown-error';

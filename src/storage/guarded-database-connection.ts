@@ -12,6 +12,10 @@ import {
 import { queryStreamBatchSize } from './query-stream-options';
 import { ExclusiveOperationGuard } from './exclusive-operation-guard';
 import { throwIfOperationAborted } from './operation-cancellation';
+import {
+    findTransactionOutcomeUnknown,
+} from './transaction-outcome';
+import type { TransactionOutcomeUnknownError } from './transaction-outcome-unknown-error';
 
 /**
  * Rejects overlapping use of one context connection while preserving nested
@@ -19,6 +23,7 @@ import { throwIfOperationAborted } from './operation-cancellation';
  */
 export class GuardedDatabaseConnection implements DatabaseConnection {
     private readonly operations = new ExclusiveOperationGuard();
+    private outcomeUnknown?: TransactionOutcomeUnknownError;
 
     constructor(private readonly inner: DatabaseConnection) {}
 
@@ -34,6 +39,7 @@ export class GuardedDatabaseConnection implements DatabaseConnection {
         statement: SqlStatement,
         options?: DatabaseOperationOptions,
     ): Promise<DatabaseQueryResult<TRow>> {
+        this.assertUsable();
         return this.operations.runQuery(
             'a query',
             async () => {
@@ -49,6 +55,7 @@ export class GuardedDatabaseConnection implements DatabaseConnection {
         statement: SqlStatement,
         options?: QueryStreamOptions,
     ): AsyncIterable<TRow> {
+        this.assertUsable();
         if (!this.inner.stream) {
             throw new ProviderCapabilityError('streaming queries');
         }
@@ -62,21 +69,28 @@ export class GuardedDatabaseConnection implements DatabaseConnection {
         work: () => TResult | Promise<TResult>,
         options?: TransactionOptions,
     ): Promise<TResult> {
-        return this.operations.run(
-            'a transaction',
-            async () => this.inner.transaction(async () => {
-                throwIfOperationAborted(options?.signal);
-                const result = await work();
-                throwIfOperationAborted(options?.signal);
-                return result;
-            }, options),
-        );
+        this.assertUsable();
+        try {
+            return await this.operations.run(
+                'a transaction',
+                async () => this.inner.transaction(async () => {
+                    throwIfOperationAborted(options?.signal);
+                    const result = await work();
+                    throwIfOperationAborted(options?.signal);
+                    return result;
+                }, options),
+            );
+        } catch (error) {
+            this.outcomeUnknown = findTransactionOutcomeUnknown(error);
+            throw error;
+        }
     }
 
     public async session<TResult>(
         work: () => TResult | Promise<TResult>,
         options?: DatabaseOperationOptions,
     ): Promise<TResult> {
+        this.assertUsable();
         return this.operations.run(
             'a provider session',
             async () => {
@@ -101,5 +115,11 @@ export class GuardedDatabaseConnection implements DatabaseConnection {
             throw new ProviderCapabilityError('streaming queries');
         }
         return this.inner.stream<TRow>(statement, options);
+    }
+
+    public assertUsable(): void {
+        if (this.outcomeUnknown) {
+            throw this.outcomeUnknown;
+        }
     }
 }

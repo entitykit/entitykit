@@ -63,6 +63,33 @@ describe('PostgresDatabaseConnection transactions', () => {
         expect(pgClient.release).toHaveBeenCalledTimes(1);
     });
 
+    it('poisons the connection when commit acknowledgement is lost', async () => {
+        const connection = new PostgresDatabaseConnection('postgres://localhost/entitykit');
+        const pgClient = createPgClient();
+        pgClient.query.mockResolvedValueOnce(undefined);
+        pgClient.query.mockRejectedValueOnce({ code: 'ECONNRESET' });
+        pgClient.query.mockResolvedValueOnce(undefined);
+        pgPool().connect.mockResolvedValueOnce(pgClient);
+
+        await expect(connection.transaction(() => 'ok')).rejects.toMatchObject({
+            name: 'TransactionOutcomeUnknownError',
+            provider: 'postgres',
+            operation: 'commit',
+            retryable: false,
+            commitError: containing({ code: 'ECONNRESET' }),
+        });
+        await expect(connection.query({ text: 'select 1', values: [] }))
+            .rejects.toMatchObject({ name: 'TransactionOutcomeUnknownError' });
+
+        expect(pgClient.query.mock.calls).toEqual([
+            ['begin'],
+            ['commit'],
+            ['rollback'],
+        ]);
+        expect(pgClient.release).toHaveBeenCalledWith(true);
+        expect(pgPool().connect).toHaveBeenCalledTimes(1);
+    });
+
     it('surfaces rollback failures when work fails', async () => {
         const connection = new PostgresDatabaseConnection('postgres://localhost/entitykit');
         const pgClient = createPgClient();

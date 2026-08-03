@@ -1,5 +1,7 @@
 import {
     DatabaseProviderError,
+    DatabaseTransactionCleanupError,
+    TransactionOutcomeUnknownError,
 } from '../src';
 import {
     createPostgresDataSource,
@@ -186,9 +188,36 @@ describe('production provider configuration', () => {
             undefined,
             { provider: 'postgres', operation: 'query', code: '23505' },
         );
+        const uncertainCommit = new TransactionOutcomeUnknownError(
+            'postgres',
+            new DatabaseProviderError(
+                'Postgres commit failed.',
+                undefined,
+                {
+                    provider: 'postgres',
+                    operation: 'commit',
+                    code: 'ECONNRESET',
+                },
+            ),
+        );
+        const uncertainCleanup = new DatabaseTransactionCleanupError(
+            'postgres',
+            uncertainCommit,
+            new DatabaseProviderError(
+                'Postgres rollback failed.',
+                undefined,
+                {
+                    provider: 'postgres',
+                    operation: 'rollback',
+                    code: 'ECONNRESET',
+                },
+            ),
+        );
 
         expect(postgresProviderServices.isTransientError?.(postgresNetworkError)).toBe(true);
         expect(mySqlProviderServices.isTransientError?.(mysqlDeadlock)).toBe(true);
         expect(postgresProviderServices.isTransientError?.(constraintFailure)).toBe(false);
+        expect(postgresProviderServices.isTransientError?.(uncertainCommit)).toBe(false);
+        expect(postgresProviderServices.isTransientError?.(uncertainCleanup)).toBe(false);
     });
 });

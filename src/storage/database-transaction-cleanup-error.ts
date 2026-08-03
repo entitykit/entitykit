@@ -3,6 +3,7 @@ import {
     type DatabaseProviderOperation,
 } from './database-provider-error';
 import type { DebugSqlOptions } from '../sql/debug-sql';
+import { TransactionOutcomeUnknownError } from './transaction-outcome-unknown-error';
 
 /** Typed error reported for database transaction cleanup failures. */ export class DatabaseTransactionCleanupError extends Error {
     /** Original failure, when one is available. */ public override readonly cause: unknown;
@@ -40,7 +41,11 @@ function capitalizeProvider(provider: string): string {
 }
 
 function serializeError(error: unknown, options: DebugSqlOptions): unknown {
-    if (error instanceof DatabaseProviderError || error instanceof DatabaseTransactionCleanupError) {
+    if (
+        error instanceof DatabaseProviderError ||
+        error instanceof DatabaseTransactionCleanupError ||
+        error instanceof TransactionOutcomeUnknownError
+    ) {
         return error.toJSON(options);
     }
     if (error instanceof Error) {

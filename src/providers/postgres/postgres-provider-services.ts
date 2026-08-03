@@ -8,6 +8,7 @@ import { PostgresDatabaseConnection } from './pg-database-connection';
 import { PostgresConnectionSource } from './postgres-connection-source';
 import { DatabaseProviderError, DatabaseTransactionCleanupError } from '../../storage/database-errors';
 import type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
+import { isTransactionOutcomeUnknown } from '../../storage/transaction-outcome';
 
 export type { PostgresConnectionConfig } from './postgres-driver';
 
@@ -29,6 +30,9 @@ export type { PostgresConnectionConfig } from './postgres-driver';
         return new PostgresConnectionSource(config);
     },
     isTransientError(error: unknown): boolean {
+        if (isTransactionOutcomeUnknown(error)) {
+            return false;
+        }
         const candidate = error instanceof DatabaseTransactionCleanupError
             ? error.primaryError
             : error;
@@ -36,6 +40,9 @@ export type { PostgresConnectionConfig } from './postgres-driver';
             return false;
         }
         const code = candidate.code;
+        if (candidate.operation === 'commit') {
+            return code === '40001' || code === '40P01';
+        }
         return code !== undefined && (
             code.startsWith('08')
             || code.startsWith('53')

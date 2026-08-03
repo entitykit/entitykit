@@ -19,6 +19,7 @@ import type {
     EntityKitDataSource,
     EntityKitDataSourceOptions,
 } from './entity-kit-data-source-types';
+import { isTransactionOutcomeUnknown } from './transaction-outcome';
 
 export type {
     EntityKitContextFactory,
@@ -95,6 +96,7 @@ class EntityKitDataSourceImplementation<
                     return await operation({ attempt, maxAttempts: this.retryPolicy.maxAttempts });
                 } catch (error) {
                     if (
+                        isTransactionOutcomeUnknown(error) ||
                         attempt === this.retryPolicy.maxAttempts
                         || !this.retryPolicy.shouldRetry(error)
                     ) {

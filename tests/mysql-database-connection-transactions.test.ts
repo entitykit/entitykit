@@ -167,6 +167,38 @@ describe('MySqlDatabaseConnection transactions', () => {
         expect(connection.isInTransaction).toBe(false);
     });
 
+    it('poisons the connection when commit acknowledgement is lost', async () => {
+        const connection = new MySqlDatabaseConnection('mysql://localhost/entitykit');
+        const mysqlClient = createMysqlClient();
+        mysqlClient.query
+            .mockResolvedValueOnce([[], []])
+            .mockRejectedValueOnce({
+                code: 'PROTOCOL_CONNECTION_LOST',
+                sqlMessage: 'connection lost',
+            })
+            .mockResolvedValueOnce([[], []]);
+        mysqlPool().getConnection.mockResolvedValueOnce(mysqlClient);
+
+        await expect(connection.transaction(() => 'ok')).rejects.toMatchObject({
+            name: 'TransactionOutcomeUnknownError',
+            provider: 'mysql',
+            operation: 'commit',
+            retryable: false,
+            commitError: containing({ code: 'PROTOCOL_CONNECTION_LOST' }),
+        });
+        await expect(connection.query({ text: 'select 1', values: [] }))
+            .rejects.toMatchObject({ name: 'TransactionOutcomeUnknownError' });
+
+        expect(mysqlClient.query.mock.calls).toEqual([
+            ['begin', []],
+            ['commit', []],
+            ['rollback', []],
+        ]);
+        expect(mysqlClient.destroy).toHaveBeenCalledTimes(1);
+        expect(mysqlClient.release).not.toHaveBeenCalled();
+        expect(mysqlPool().getConnection).toHaveBeenCalledTimes(1);
+    });
+
     it('preserves the primary failure when rollback cleanup also fails', async () => {
         const connection = new MySqlDatabaseConnection('mysql://localhost/entitykit');
         const mysqlClient = createMysqlClient();

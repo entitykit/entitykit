@@ -80,7 +80,7 @@ export type { IncludeNavigationExpression, IncludeProxy, NavigationElement } fro
 export type { RelationNavigationExpression, RelationNavigationProxy, RelationPredicateSelector } from './query/relation-types';
 export type { DebugSqlOptions } from './sql/debug-sql';
 export type { SqlStatement } from './sql/sql-statement';
-export { DatabaseProviderError, DatabaseTransactionCleanupError } from './storage/database-errors';
+export { DatabaseProviderError, DatabaseTransactionCleanupError, TransactionOutcomeUnknownError } from './storage/database-errors';
 export type { DatabaseProviderErrorDetails, DatabaseProviderOperation } from './storage/database-errors';
 export type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionIsolationLevel, TransactionOptions } from './storage/database-connection';
 export type { DatabaseTlsOptions, DatabaseTlsVersion, DriverOptions, MySqlConnectionConfig, MySqlPoolOptions, PostgresConnectionConfig, PostgresPoolOptions, SqliteConnectionConfig } from './storage/built-in-provider-config';

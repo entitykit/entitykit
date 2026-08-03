@@ -34,6 +34,7 @@ export class DbContextState {
         if (!this.initialized || !this.databaseConnection) {
             throw new ContextNotInitializedError();
         }
+        this.databaseConnection.assertUsable();
         return this.databaseConnection;
     }
 

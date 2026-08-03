@@ -2,12 +2,16 @@ import {
     DatabaseProviderError,
     DatabaseTransactionCleanupError,
 } from '../../storage/database-errors';
+import { isTransactionOutcomeUnknown } from '../../storage/transaction-outcome';
 import type { TransactionDiagnosticEvent } from './events';
 
 export function transactionFailurePhase(
     error: unknown,
     nested: boolean,
 ): TransactionDiagnosticEvent['phase'] {
+    if (isTransactionOutcomeUnknown(error)) {
+        return 'commit';
+    }
     const providerError = providerErrorFromTransactionFailure(error);
     if (!providerError) {
         return nested ? 'rollbackToSavepoint' : 'rollback';

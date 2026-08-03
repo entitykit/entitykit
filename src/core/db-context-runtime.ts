@@ -80,6 +80,7 @@ export abstract class DbContextRuntime {
                 assertCanQuery: operation => {
                     this.assertNotDisposed(operation);
                     this.ensureInitialized();
+                    void this.state.database;
                 },
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),
                 currentTenantIdForWrites: () => this.currentTenantIdForWrites(),

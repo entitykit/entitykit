@@ -1,5 +1,9 @@
 import { createDataSource, type DatabaseProviderServices, type EntityKitDataSource } from '../src/adapter';
-import { OperationCanceledError } from '../src';
+import {
+    DatabaseProviderError,
+    OperationCanceledError,
+    TransactionOutcomeUnknownError,
+} from '../src';
 import { postgresDialect } from '../src/providers/postgres';
 import {
     MigrationBuilder,
@@ -54,6 +58,35 @@ describe('EntityKitDataSource retries', () => {
         const operation = jest.fn().mockRejectedValue(permanent);
 
         await expect(source.executeWithRetry(operation)).rejects.toBe(permanent);
+        expect(operation).toHaveBeenCalledTimes(1);
+        await source.dispose();
+    });
+
+    it('never replays an unknown commit outcome through a custom classifier', async () => {
+        const source = createDataSource(retryProvider, {}, {
+            retry: {
+                maxAttempts: 3,
+                initialDelayMs: 0,
+                maxDelayMs: 0,
+                jitter: false,
+                shouldRetry: () => true,
+            },
+        });
+        const failure = new TransactionOutcomeUnknownError(
+            'postgres',
+            new DatabaseProviderError(
+                'Postgres commit failed.',
+                undefined,
+                {
+                    provider: 'postgres',
+                    operation: 'commit',
+                    code: 'ECONNRESET',
+                },
+            ),
+        );
+        const operation = jest.fn().mockRejectedValue(failure);
+
+        await expect(source.executeWithRetry(operation)).rejects.toBe(failure);
         expect(operation).toHaveBeenCalledTimes(1);
         await source.dispose();
     });

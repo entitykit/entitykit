@@ -32,6 +32,7 @@ export type {
 export {
     DatabaseProviderError,
     DatabaseTransactionCleanupError,
+    TransactionOutcomeUnknownError,
 } from '../storage/database-errors';
 export { mapDatabaseProviderError } from '../errors/db-update-error';
 export type {
