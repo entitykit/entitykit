@@ -8,6 +8,10 @@ import { changeTrackerModel, configureTrackedEntry } from './change-tracker-mode
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { detectRelationshipChanges } from './relationship-change-detector';
 import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
+import {
+    captureNavigationSnapshotValues,
+} from './navigation-snapshot';
+import { cloneEntityValues } from './entity-entry-snapshot';
 
 export class ChangeTracker {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -132,9 +136,25 @@ export class ChangeTracker {
     /** Accept only the entries and values represented by an executed plan. */
     public acceptPersistedChanges(
         snapshots: readonly PersistedEntrySnapshot[],
-    ): void {
+    ): () => void {
         const tracked = snapshots.filter(snapshot =>
             this.entriesByEntity.get(snapshot.entry.entity) === snapshot.entry);
+        const checkpoints = tracked.map(snapshot => {
+            const identityKey = this.identities.keyFor(snapshot.entry);
+            if (identityKey === undefined) {
+                throw new Error('Tracked entity has no registered identity.');
+            }
+            return {
+                entry: snapshot.entry,
+                state: snapshot.entry.state,
+                originalValues: cloneEntityValues(
+                    snapshot.entry.metadata,
+                    { ...snapshot.entry.originalValues },
+                ),
+                navigations: captureNavigationSnapshotValues(snapshot.entry),
+                identityKey,
+            };
+        });
         this.identities.prepareAccept(
             tracked
                 .filter(snapshot => snapshot.state !== EntityState.Deleted)
@@ -162,6 +182,27 @@ export class ChangeTracker {
                 entry.detectChanges();
             }
         }
+
+        let pending = true;
+        return () => {
+            if (!pending) {
+                return;
+            }
+            pending = false;
+            for (const checkpoint of checkpoints) {
+                checkpoint.entry.restoreTrackedValues(
+                    checkpoint.originalValues,
+                    checkpoint.navigations,
+                    checkpoint.state,
+                );
+                this.entriesByEntity.set(checkpoint.entry.entity, checkpoint.entry);
+                this.trackedEntries.add(checkpoint.entry);
+            }
+            this.identities.restoreKeys(checkpoints.map(checkpoint => ({
+                entry: checkpoint.entry,
+                key: checkpoint.identityKey,
+            })));
+        };
     }
     public clear(): void {
         for (const entry of this.trackedEntries) {

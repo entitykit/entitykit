@@ -37,8 +37,8 @@ export class GeneratedValueHydrator {
         this.mutations.reset();
     }
 
-    public accept(): void {
-        this.mutations.accept();
+    public accept(): () => void {
+        return this.mutations.takeRollback();
     }
 
     public restore(): void {

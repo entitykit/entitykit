@@ -81,9 +81,10 @@ export class SavePlanExecutor {
         return affectedEntities;
     }
 
-    public acceptGeneratedValues(): void {
-        this.generatedValues?.accept();
+    public acceptGeneratedValues(): () => void {
+        const rollback = this.generatedValues?.accept() ?? (() => undefined);
         this.generatedValues = undefined;
+        return rollback;
     }
 
     public restoreGeneratedValues(): void {

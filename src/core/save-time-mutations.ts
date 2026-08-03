@@ -31,13 +31,26 @@ export class SaveTimeMutationLog {
     }
 
     public restore(): void {
-        for (const mutation of [...this.mutations].reverse()) {
-            mutation.restore();
-        }
-        this.reset();
+        this.takeRollback()();
     }
 
     public accept(): void {
         this.reset();
+    }
+
+    /** Accept the mutations now while retaining a one-shot rollback journal. */
+    public takeRollback(): () => void {
+        const accepted = this.mutations;
+        this.mutations = [];
+        let pending = true;
+        return () => {
+            if (!pending) {
+                return;
+            }
+            pending = false;
+            for (const mutation of [...accepted].reverse()) {
+                mutation.restore();
+            }
+        };
     }
 }

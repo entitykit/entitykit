@@ -89,6 +89,11 @@ export class SaveTimeWrites {
     public accept(): void {
         this.mutations.accept();
     }
+
+    /** Accept these writes while retaining rollback for an outer transaction. */
+    public acceptWithRollback(): () => void {
+        return this.mutations.takeRollback();
+    }
 }
 
 export type { SaveTimeScope } from './save-time-scope';

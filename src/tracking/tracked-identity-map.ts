@@ -29,6 +29,25 @@ export class TrackedIdentityMap {
         this.keys.delete(entry);
     }
 
+    public keyFor(entry: EntityEntry<object>): string | undefined {
+        return this.keys.get(entry);
+    }
+
+    public restoreKeys(
+        checkpoints: ReadonlyArray<{
+            readonly entry: EntityEntry<object>;
+            readonly key: string;
+        }>,
+    ): void {
+        for (const checkpoint of checkpoints) {
+            this.remove(checkpoint.entry);
+        }
+        for (const checkpoint of checkpoints) {
+            this.entries.set(checkpoint.key, checkpoint.entry);
+            this.keys.set(checkpoint.entry, checkpoint.key);
+        }
+    }
+
     public prepareAccept(entries: ReadonlyArray<EntityEntry<object>>): void {
         const acceptedEntries = new Set(entries);
         const finalKeys: Map<string, EntityEntry<object>> = new Map();

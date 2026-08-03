@@ -35,13 +35,28 @@ export class ManyToManyChangeSet {
     }
 
     /** Remove only relationship changes represented by a committed plan. */
-    public accept(accepted: readonly ManyToManyChange[]): void {
+    public accept(accepted: readonly ManyToManyChange[]): () => void {
         const acceptedSet = new Set(accepted);
+        const removed: Array<{
+            readonly index: number;
+            readonly change: ManyToManyChange;
+        }> = [];
         for (let index = this.changes.length - 1; index >= 0; index -= 1) {
             if (acceptedSet.has(this.changes[index])) {
+                removed.push({ index, change: this.changes[index] });
                 this.changes.splice(index, 1);
             }
         }
+        let pending = true;
+        return () => {
+            if (!pending) {
+                return;
+            }
+            pending = false;
+            for (const item of removed.reverse()) {
+                this.changes.splice(item.index, 0, item.change);
+            }
+        };
     }
 
     /** Drop queued join work whose source or target was a canceled addition. */

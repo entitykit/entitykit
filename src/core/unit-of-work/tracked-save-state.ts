@@ -18,16 +18,22 @@ export class TrackedSaveState {
         private readonly manyToMany: ManyToManyChangeSet,
     ) {}
 
-    public accept(plan: readonly SavePlanEntry[]): void {
+    public accept(plan: readonly SavePlanEntry[]): () => void {
         this.acceptGeneratedValues(plan);
-        this.acceptVersionIncrements(plan);
-        this.changeTracker.acceptPersistedChanges(
+        const rollbackVersions = this.acceptVersionIncrements(plan);
+        const rollbackTracker = this.changeTracker.acceptPersistedChanges(
             plan.flatMap(item => savePlanExecution(item)?.persistedEntries ?? []),
         );
-        this.saveTimeWrites.accept();
-        this.manyToMany.accept(
+        const rollbackSaveTimeWrites = this.saveTimeWrites.acceptWithRollback();
+        const rollbackManyToMany = this.manyToMany.accept(
             plan.flatMap(item => savePlanExecution(item)?.manyToManyChanges ?? []),
         );
+        return () => {
+            rollbackTracker();
+            rollbackVersions();
+            rollbackSaveTimeWrites();
+            rollbackManyToMany();
+        };
     }
 
     public validateVersionValues(plan: readonly SavePlanEntry[]): void {
@@ -40,14 +46,23 @@ export class TrackedSaveState {
         this.saveTimeWrites.restore();
     }
 
-    private acceptVersionIncrements(plan: readonly SavePlanEntry[]): void {
+    private acceptVersionIncrements(plan: readonly SavePlanEntry[]): () => void {
+        const rollback: Array<() => void> = [];
         this.forEachVersionValue(plan, (entity, property, value, path, values) => {
             const incremented = incrementVersionValue(value, path);
             values[property.propertyName] = incremented;
             if (readPropertyValue(entity, property) === value) {
+                rollback.push(() => {
+                    writePropertyValue(entity, property, value);
+                });
                 writePropertyValue(entity, property, incremented);
             }
         });
+        return () => {
+            for (const restore of rollback.reverse()) {
+                restore();
+            }
+        };
     }
 
     private acceptGeneratedValues(plan: readonly SavePlanEntry[]): void {

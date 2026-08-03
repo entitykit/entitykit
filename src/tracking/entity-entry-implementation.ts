@@ -99,6 +99,20 @@ export class EntityEntry<TEntity extends object> {
         this.state = EntityState.Unchanged;
     }
 
+    /** Restore the tracker baseline recorded before a transactional save. */
+    public restoreTrackedValues(
+        values: Record<string, unknown>,
+        navigations: NavigationSnapshotValues,
+        state: EntityState,
+    ): void {
+        this.snapshot = cloneEntityValues(this.metadata, values);
+        acceptNavigationSnapshotValues(
+            this as unknown as EntityEntry<object>,
+            navigations,
+        );
+        this.state = state;
+    }
+
     public markDeleted(): void {
         this.state = EntityState.Deleted;
     }
