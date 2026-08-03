@@ -79,6 +79,11 @@ export class SaveLifecycle {
                 provider: this.options.provider.provider,
                 plan,
                 durationMs,
+                durability: error !== undefined
+                    ? 'failed'
+                    : this.transactionCoordinator.depth > 0
+                        ? 'pendingTransaction'
+                        : 'committed',
                 affectedEntities,
                 error,
             });

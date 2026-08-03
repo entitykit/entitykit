@@ -42,6 +42,7 @@ describe('save and migration diagnostics', () => {
             kind: 'saveChanges',
             provider: 'diagnostic-test',
             durationMs: anyNumber(),
+            durability: 'committed',
             affectedEntities: 2,
         }));
         expect(saveEvent?.plan).toHaveLength(1);
@@ -75,6 +76,7 @@ describe('save and migration diagnostics', () => {
             kind: 'saveChanges',
             provider: 'diagnostic-test',
             durationMs: anyNumber(),
+            durability: 'failed',
             error: failure,
         }));
         expect(saveEvent?.affectedEntities).toBeUndefined();
@@ -117,6 +119,7 @@ describe('save and migration diagnostics', () => {
             kind: 'saveChanges',
             provider: 'diagnostic-test',
             durationMs: anyNumber(),
+            durability: 'failed',
             error: thrown,
         }));
         expect(saveEvent?.plan[0]).toMatchObject({
@@ -130,6 +133,31 @@ describe('save and migration diagnostics', () => {
             phase: 'rollback',
             error: thrown,
         }));
+    });
+
+    it('marks saves as pending until an explicit outer transaction commits', async () => {
+        const db = DiagnosticsContext.create();
+        const user = new User();
+        user.id = 'usr_1';
+        DiagnosticsContext.connection.queueResult({ rowCount: 1 });
+
+        await db.transaction(async transaction => {
+            transaction.users.add(user);
+            await transaction.saveChanges();
+
+            const saveEvent = DiagnosticsContext.events.find(
+                (event): event is SaveChangesDiagnosticEvent =>
+                    event.kind === 'saveChanges',
+            );
+            expect(saveEvent?.durability).toBe('pendingTransaction');
+            expect(DiagnosticsContext.events).not.toEqual(arrayContaining([
+                containing({ kind: 'transaction', phase: 'commit' }),
+            ]));
+        });
+
+        expect(DiagnosticsContext.events).toEqual(arrayContaining([
+            containing({ kind: 'transaction', phase: 'commit' }),
+        ]));
     });
 
     it('emits migration diagnostics through DbContext updateDatabase', async () => {

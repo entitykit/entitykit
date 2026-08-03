@@ -6,6 +6,8 @@ import type { SqlStatement } from '../../sql/sql-statement';
     /** Name of the configured database provider. */ readonly provider: string;
     /** The plan. */ readonly plan: readonly SaveChangesDiagnosticPlanEntry[];
     /** The duration ms. */ readonly durationMs: number;
+    /** Whether the save is durable, still pending an outer transaction, or failed. */
+    readonly durability: 'committed' | 'pendingTransaction' | 'failed';
     /** The affected entities. */ readonly affectedEntities?: number;
     /** The error. */ readonly error?: unknown;
 }
