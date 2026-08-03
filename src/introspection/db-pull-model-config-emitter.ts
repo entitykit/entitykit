@@ -24,7 +24,7 @@ export function renderContextFile(
         `import { ${entity.className} } from "./${toKebabFileStem(entity.className)}";`,
     );
     const connectionStringExpression = options.connectionStringExpression ?? 'process.env.DATABASE_URL!';
-    const setLines = entities.map(entity => `  ${entity.setName} = this.set(${entity.className});`);
+    const setLines = entities.map(renderSetDeclaration);
     const modelLines = [
         ...sequences.map(renderSequenceConfiguration),
         ...entities.flatMap(entity =>
@@ -50,6 +50,23 @@ export function renderContextFile(
         '}',
         '',
     ].join('\n');
+}
+
+function renderSetDeclaration(entity: EntityShape): string {
+    const keyColumns = entity.table.primaryKey?.columns;
+    if (!keyColumns || keyColumns.length === 0) {
+        return `  ${entity.setName} = this.set(${entity.className});`;
+    }
+    const keyProperties = keyColumns.map(column =>
+        entity.propertiesByColumn.get(column),
+    );
+    if (keyProperties.some(property => property === undefined)) {
+        return `  ${entity.setName} = this.set(${entity.className});`;
+    }
+    const keyTypes = keyProperties
+        .map(property => `${entity.className}[${JSON.stringify(property)}]`)
+        .join(', ');
+    return `  ${entity.setName} = this.set<${entity.className}, [${keyTypes}]>(${entity.className});`;
 }
 
 function renderSequenceConfiguration(sequence: DatabaseSequence): string {

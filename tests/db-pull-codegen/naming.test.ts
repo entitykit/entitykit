@@ -56,9 +56,9 @@ describe('db pull generated naming', () => {
         expect(files.map(file => file.path)).toEqual(['app-user.ts', 'auth-user.ts', 'session.ts', 'pulled-db-context.ts']);
         expect(sessionFile).toContain('import { AuthUser } from "./auth-user";');
         expect(sessionFile).toContain('user?: AuthUser | null;');
-        expect(contextFile).toContain('appUsers = this.set(AppUser);');
-        expect(contextFile).toContain('authUsers = this.set(AuthUser);');
-        expect(contextFile).toContain('sessions = this.set(Session);');
+        expect(contextFile).toContain('appUsers = this.set<AppUser, [AppUser["id"]]>(AppUser);');
+        expect(contextFile).toContain('authUsers = this.set<AuthUser, [AuthUser["id"]]>(AuthUser);');
+        expect(contextFile).toContain('sessions = this.set<Session, [Session["id"]]>(Session);');
         expect(contextFile).toContain('entity.hasOne(AuthUser, row => row.user)');
         expect(contextFile).toContain('entity.toTable("users", "app")');
         expect(contextFile).toContain('entity.toTable("users", "auth")');
@@ -86,7 +86,7 @@ describe('db pull generated naming', () => {
         expect(files.find(file => file.path === 'pulled-db-context.ts')?.contents).toContain('export class PulledDbContext');
         expect(contextFile).toContain('export class PulledDbContext2 extends DbContext');
         expect(contextFile).toContain('import { PulledDbContext } from "./pulled-db-context";');
-        expect(contextFile).toContain('pulledDbContexts = this.set(PulledDbContext);');
+        expect(contextFile).toContain('pulledDbContexts = this.set<PulledDbContext, [PulledDbContext["id"]]>(PulledDbContext);');
     });
 
     it('generates safe unique property identifiers for awkward column names', () => {

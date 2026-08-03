@@ -187,7 +187,7 @@ describe('db pull CLI', () => {
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toBe('Wrote 2 db pull file(s) to generated.');
         expect(fs.readFileSync(path.join(cwd, 'generated', 'user.ts'), 'utf8')).toContain('export class User');
-        expect(fs.readFileSync(path.join(cwd, 'generated', 'pulled-db-context.ts'), 'utf8')).toContain('users = this.set(User);');
+        expect(fs.readFileSync(path.join(cwd, 'generated', 'pulled-db-context.ts'), 'utf8')).toContain('users = this.set<User, [User["id"]]>(User);');
         expect(pool().end).toHaveBeenCalledTimes(1);
     });
 

@@ -54,7 +54,7 @@ describe('db pull model mapping', () => {
         expect(postFile).toContain('import { User } from "./user";');
         expect(postFile).toContain('author?: User | null;');
         expect(contextFile).toContain('export class PulledDbContext extends DbContext');
-        expect(contextFile).toContain('users = this.set(User);');
+        expect(contextFile).toContain('users = this.set<User, [User["id"]]>(User);');
         expect(contextFile).toContain('entity.toTable("users", "app")');
         expect(contextFile).toContain('entity.hasKey(row => row.id)');
         expect(contextFile).toContain('.hasDatabaseName("ux_users_email").isUnique();');

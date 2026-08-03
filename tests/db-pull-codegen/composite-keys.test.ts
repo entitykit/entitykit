@@ -47,6 +47,9 @@ describe('db pull with composite keys', () => {
         const contextFile = files.find(file => file.path === 'pulled-db-context.ts')?.contents ?? '';
 
         // Both keep their constraint column order.
+        expect(contextFile).toContain(
+            'orderLines = this.set<OrderLine, [OrderLine["orderId"], OrderLine["lineNumber"]]>(OrderLine);',
+        );
         expect(contextFile).toContain('entity.hasKey(row => [row.orderId, row.lineNumber]);');
         expect(contextFile).toContain('.hasForeignKey(row => [row.orderId, row.lineNumber])');
     });
