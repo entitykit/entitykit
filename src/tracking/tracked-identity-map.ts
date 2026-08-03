@@ -1,5 +1,12 @@
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
+import {
+    assertIdentityKeysRestorable,
+    assertIdentityMapConsistency,
+    assertTrackedIdentityConsistency,
+    identityCollision,
+    type IdentityCheckpoint,
+} from './tracked-identity-invariants';
 
 /**
  * Identity keys as they were registered, independent of mutable entity fields.
@@ -38,10 +45,7 @@ export class TrackedIdentityMap {
     }
 
     public restoreKeys(
-        checkpoints: ReadonlyArray<{
-            readonly entry: EntityEntry<object>;
-            readonly key: string;
-        }>,
+        checkpoints: readonly IdentityCheckpoint[],
     ): void {
         this.assertCanRestoreKeys(checkpoints);
         for (const checkpoint of checkpoints) {
@@ -55,22 +59,9 @@ export class TrackedIdentityMap {
     }
 
     public assertCanRestoreKeys(
-        checkpoints: ReadonlyArray<{
-            readonly entry: EntityEntry<object>;
-            readonly key: string;
-        }>,
+        checkpoints: readonly IdentityCheckpoint[],
     ): void {
-        const restoring = new Set(checkpoints.map(checkpoint => checkpoint.entry));
-        for (const checkpoint of checkpoints) {
-            const collision = this.entries.get(checkpoint.key);
-            if (
-                collision &&
-                collision !== checkpoint.entry &&
-                !restoring.has(collision)
-            ) {
-                throw identityCollision(checkpoint.entry);
-            }
-        }
+        assertIdentityKeysRestorable(this.entries, checkpoints);
     }
 
     public prepareAccept(
@@ -143,37 +134,10 @@ export class TrackedIdentityMap {
     public assertConsistent(
         trackedEntries: ReadonlySet<EntityEntry<object>>,
     ): void {
-        for (const entry of trackedEntries) {
-            const key = this.keys.get(entry);
-            if (key === undefined || this.entries.get(key) !== entry) {
-                throw new Error(
-                    `Identity-map invariant failed for tracked '${entry.metadata.entityName}'.`,
-                );
-            }
-        }
-        for (const entry of this.entries.values()) {
-            if (!trackedEntries.has(entry)) {
-                throw new Error(
-                    `Identity-map invariant retained detached '${entry.metadata.entityName}'.`,
-                );
-            }
-        }
-        this.assertMapConsistency();
+        assertTrackedIdentityConsistency(this.entries, this.keys, trackedEntries);
     }
 
     private assertMapConsistency(): void {
-        for (const [key, entry] of this.entries) {
-            if (this.keys.get(entry) !== key) {
-                throw new Error(
-                    `Identity-map invariant failed for '${entry.metadata.entityName}'.`,
-                );
-            }
-        }
+        assertIdentityMapConsistency(this.entries, this.keys);
     }
-}
-
-function identityCollision(entry: EntityEntry<object>): Error {
-    return new Error(
-        `An instance of '${entry.metadata.entityName}' with key '${String(entry.keyValue)}' is already tracked.`,
-    );
 }
