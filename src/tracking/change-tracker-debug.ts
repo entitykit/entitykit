@@ -1,5 +1,13 @@
 import type { EntityEntry } from './entity-entry';
 
+export function formatChangeTracker(
+    entries: ReadonlyArray<EntityEntry<object>>,
+): string {
+    return entries.length === 0
+        ? 'No tracked entities.'
+        : entries.map(formatTrackedEntry).join('\n');
+}
+
 export function formatTrackedEntry(entry: EntityEntry<object>): string {
     const keyParts = entry.metadata.keyProperties
         .map(propertyName =>

@@ -1,5 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { formatTrackedEntry } from './change-tracker-debug';
+import { ChangeTrackerAcceptance } from './change-tracker-acceptance';
+import { formatChangeTracker } from './change-tracker-debug';
 import { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
 import { TrackedIdentityMap } from './tracked-identity-map';
@@ -8,24 +9,26 @@ import { changeTrackerModel, configureTrackedEntry } from './change-tracker-mode
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { detectRelationshipChanges } from './relationship-change-detector';
 import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
-import {
-    captureNavigationSnapshotValues,
-} from './navigation-snapshot';
-import { cloneEntityValues } from './entity-entry-snapshot';
 
 export class ChangeTracker {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
     private readonly identities = new TrackedIdentityMap();
     private readonly trackedEntries: Set<EntityEntry<object>> = new Set();
     private readonly identityFactory = new TrackingIdentityFactory();
+    private readonly acceptance = new ChangeTrackerAcceptance(
+        () => this.entries(),
+        entry => this.trackedEntries.has(entry),
+        this.identities,
+        entity => {
+            this.detach(entity);
+        },
+        entry => {
+            this.entriesByEntity.set(entry.entity, entry);
+            this.trackedEntries.add(entry);
+        },
+    );
     private onTracked?: (entity: object) => void;
 
-    /**
-   * Observe entities as they become tracked.
-   *
-   * Every path that tracks an entity — query materialization, `add`, `attach` —
-   * arrives here, so one hook covers them all. Used to attach the lazy loader.
-   */
     public observeTracked(observer: (entity: object) => void): void {
         this.onTracked = observer;
     }
@@ -121,88 +124,14 @@ export class ChangeTracker {
         }
     }
     public acceptAllChanges(): void {
-        const entries = Array.from(this.trackedEntries);
-        this.identities.prepareAccept(entries);
-        for (const entry of entries) {
-            if (entry.state === EntityState.Deleted) {
-                this.detach(entry.entity);
-                continue;
-            }
-
-            entry.acceptChanges();
-        }
+        this.acceptance.acceptAll();
     }
 
     /** Accept only the entries and values represented by an executed plan. */
     public acceptPersistedChanges(
         snapshots: readonly PersistedEntrySnapshot[],
     ): () => void {
-        const tracked = snapshots.filter(snapshot =>
-            this.entriesByEntity.get(snapshot.entry.entity) === snapshot.entry);
-        const checkpoints = tracked.map(snapshot => {
-            const identityKey = this.identities.keyFor(snapshot.entry);
-            if (identityKey === undefined) {
-                throw new Error('Tracked entity has no registered identity.');
-            }
-            return {
-                entry: snapshot.entry,
-                state: snapshot.entry.state,
-                originalValues: cloneEntityValues(
-                    snapshot.entry.metadata,
-                    { ...snapshot.entry.originalValues },
-                ),
-                navigations: captureNavigationSnapshotValues(snapshot.entry),
-                identityKey,
-            };
-        });
-        this.identities.prepareAccept(
-            tracked
-                .filter(snapshot => snapshot.state !== EntityState.Deleted)
-                .map(snapshot => snapshot.entry),
-        );
-
-        for (const snapshot of tracked) {
-            const entry = snapshot.entry;
-            const pendingState = entry.state;
-            if (
-                snapshot.state === EntityState.Deleted &&
-                pendingState === EntityState.Deleted
-            ) {
-                this.detach(entry.entity);
-                continue;
-            }
-            if (snapshot.state === EntityState.Deleted) {
-                continue;
-            }
-
-            entry.acceptPersistedValues(snapshot.values, snapshot.navigations);
-            if (pendingState !== snapshot.state) {
-                entry.state = pendingState;
-            } else {
-                entry.detectChanges();
-            }
-        }
-
-        let pending = true;
-        return () => {
-            if (!pending) {
-                return;
-            }
-            pending = false;
-            for (const checkpoint of checkpoints) {
-                checkpoint.entry.restoreTrackedValues(
-                    checkpoint.originalValues,
-                    checkpoint.navigations,
-                    checkpoint.state,
-                );
-                this.entriesByEntity.set(checkpoint.entry.entity, checkpoint.entry);
-                this.trackedEntries.add(checkpoint.entry);
-            }
-            this.identities.restoreKeys(checkpoints.map(checkpoint => ({
-                entry: checkpoint.entry,
-                key: checkpoint.identityKey,
-            })));
-        };
+        return this.acceptance.acceptPersisted(snapshots);
     }
     public clear(): void {
         for (const entry of this.trackedEntries) {
@@ -215,12 +144,6 @@ export class ChangeTracker {
 
     public debugView(): string {
         this.detectChanges();
-        if (this.trackedEntries.size === 0) {
-            return 'No tracked entities.';
-        }
-
-        return Array.from(this.trackedEntries)
-            .map(formatTrackedEntry)
-            .join('\n');
+        return formatChangeTracker(this.entries());
     }
 }
