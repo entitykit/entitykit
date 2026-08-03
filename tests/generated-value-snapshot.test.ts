@@ -5,7 +5,7 @@ import type {
     ModelBuilder,
     SqlStatement,
 } from '../src';
-import { DbContext, EntityState } from '../src';
+import { ContextConcurrentOperationError, DbContext, EntityState } from '../src';
 import { postgresDialect } from '../src/providers/postgres';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
@@ -258,5 +258,29 @@ describe('generated-value snapshot acceptance', () => {
         expect(db.entry(parent)?.originalValues.id).toBe(71);
         expect(db.entry(parent)?.state).toBe(EntityState.Modified);
         expect(db.entry(child)?.originalValues.parentId).toBe(71);
+    });
+
+    it('reserves an accepted generated identity until transaction completion', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = GeneratedRaceContext.create(connection);
+        const parent = Object.assign(new GeneratedParent(), { name: 'parent' });
+        db.parents.add(parent);
+        connection.queueResult({ rows: [{ id: 71 }], rowCount: 1 });
+
+        await expect(db.transaction(async transaction => {
+            await transaction.saveChanges();
+            const replacement = Object.assign(new GeneratedParent(), {
+                id: 71,
+                name: 'replacement',
+            });
+            expect(() => transaction.parents.add(replacement)).toThrow(
+                ContextConcurrentOperationError,
+            );
+            throw new Error('abort transaction');
+        })).rejects.toThrow('abort transaction');
+
+        expect(parent.id).toBeUndefined();
+        expect(db.entry(parent)?.state).toBe(EntityState.Added);
+        expect(db.changeTracker.entries()).toHaveLength(1);
     });
 });

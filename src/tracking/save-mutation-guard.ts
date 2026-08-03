@@ -5,6 +5,7 @@ export class SaveMutationGuard {
     private executionDepth = 0;
     private pendingCount = 0;
     private readonly pendingByEntity: WeakMap<object, number> = new WeakMap();
+    private readonly pendingByIdentity: Map<string, number> = new Map();
 
     public beginExecution(): () => void {
         this.executionDepth += 1;
@@ -17,14 +18,24 @@ export class SaveMutationGuard {
         };
     }
 
-    public defer(entries: ReadonlyArray<EntityEntry<object>>): () => void {
+    public defer(
+        entries: ReadonlyArray<EntityEntry<object>>,
+        identityKeys: readonly string[],
+    ): () => void {
         const entities = new Set(entries.map(entry => entry.entity));
+        const identities = new Set(identityKeys);
         for (const entity of entities) {
             this.pendingByEntity.set(
                 entity,
                 (this.pendingByEntity.get(entity) ?? 0) + 1,
             );
             this.pendingCount += 1;
+        }
+        for (const identity of identities) {
+            this.pendingByIdentity.set(
+                identity,
+                (this.pendingByIdentity.get(identity) ?? 0) + 1,
+            );
         }
         let pending = true;
         return () => {
@@ -36,10 +47,19 @@ export class SaveMutationGuard {
                 else this.pendingByEntity.set(entity, count - 1);
                 this.pendingCount -= 1;
             }
+            for (const identity of identities) {
+                const count = this.pendingByIdentity.get(identity) ?? 0;
+                if (count <= 1) this.pendingByIdentity.delete(identity);
+                else this.pendingByIdentity.set(identity, count - 1);
+            }
         };
     }
 
-    public assertMutation(operation: string, entity?: object): void {
+    public assertMutation(
+        operation: string,
+        entity?: object,
+        identityKey?: string,
+    ): void {
         if (this.executionDepth > 0) {
             throw new ContextConcurrentOperationError(
                 operation,
@@ -48,6 +68,7 @@ export class SaveMutationGuard {
         }
         if (
             entity && this.pendingByEntity.has(entity) ||
+            identityKey !== undefined && this.pendingByIdentity.has(identityKey) ||
             entity === undefined && this.pendingCount > 0
         ) {
             throw new ContextConcurrentOperationError(

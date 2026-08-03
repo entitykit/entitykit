@@ -14,8 +14,8 @@ export class ChangeTracker {
     private readonly saveGuard = new SaveMutationGuard();
     private readonly registry = new ChangeTrackerRegistry(
         this,
-        (operation, entity) => {
-            this.saveGuard.assertMutation(operation, entity);
+        (operation, entity, identityKey) => {
+            this.saveGuard.assertMutation(operation, entity, identityKey);
         },
         entity => {
             this.onTracked?.(entity);
@@ -31,7 +31,10 @@ export class ChangeTracker {
         entry => {
             this.registry.restore(entry);
         },
-        entries => this.saveGuard.defer(entries),
+        (entries, identityKeys) => this.saveGuard.defer(entries, identityKeys),
+        () => {
+            this.registry.assertInvariant();
+        },
     );
     private onTracked?: (entity: object) => void;
 

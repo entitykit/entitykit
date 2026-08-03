@@ -24,6 +24,7 @@ export class TrackedAcceptanceJournal implements TrackedAcceptance {
         private readonly identities: TrackedIdentityMap,
         private readonly restoreEntry: (entry: EntityEntry<object>) => void,
         private readonly release: () => void,
+        private readonly assertInvariant: () => void,
     ) {}
 
     public commit(): void {
@@ -35,18 +36,24 @@ export class TrackedAcceptanceJournal implements TrackedAcceptance {
     public rollback(): void {
         if (!this.pending) return;
         this.pending = false;
-        this.release();
-        for (const checkpoint of this.checkpoints) {
-            checkpoint.entry.restoreTrackedValues(
-                checkpoint.originalValues,
-                checkpoint.navigations,
-                checkpoint.state,
-            );
-            this.restoreEntry(checkpoint.entry);
-        }
-        this.identities.restoreKeys(this.checkpoints.map(checkpoint => ({
+        const identityCheckpoints = this.checkpoints.map(checkpoint => ({
             entry: checkpoint.entry,
             key: checkpoint.identityKey,
-        })));
+        }));
+        try {
+            this.identities.assertCanRestoreKeys(identityCheckpoints);
+            for (const checkpoint of this.checkpoints) {
+                checkpoint.entry.restoreTrackedValues(
+                    checkpoint.originalValues,
+                    checkpoint.navigations,
+                    checkpoint.state,
+                );
+                this.restoreEntry(checkpoint.entry);
+            }
+            this.identities.restoreKeys(identityCheckpoints);
+            this.assertInvariant();
+        } finally {
+            this.release();
+        }
     }
 }

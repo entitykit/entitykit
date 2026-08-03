@@ -15,7 +15,11 @@ export class ChangeTrackerRegistry {
 
     constructor(
         private readonly owner: ChangeTracker,
-        private readonly assertMutation: (operation: string, entity: object) => void,
+        private readonly assertMutation: (
+            operation: string,
+            entity: object,
+            identityKey?: string,
+        ) => void,
         private readonly notifyTracked: (entity: object) => void,
     ) {}
 
@@ -26,14 +30,14 @@ export class ChangeTrackerRegistry {
         originalValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
         metadata.assertWritable('Tracking');
-        this.assertMutation('Tracking an entity', entity);
+        const identityKey = this.identityFactory.create(entity, metadata, state);
+        this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByObject = this.entriesByEntity.get(entity);
         if (existingByObject) {
             existingByObject.state = state;
             if (originalValues) existingByObject.refreshOriginalValues(originalValues);
             return existingByObject as unknown as EntityEntry<TEntity>;
         }
-        const identityKey = this.identityFactory.create(entity, metadata, state);
         const existingByIdentity = this.identities.get(identityKey);
         if (existingByIdentity) {
             if (state === EntityState.Unchanged) {
@@ -61,6 +65,7 @@ export class ChangeTrackerRegistry {
             );
         }
         this.notifyTracked(entity);
+        this.assertInvariant();
         return entry;
     }
 
@@ -83,6 +88,7 @@ export class ChangeTrackerRegistry {
         this.entriesByEntity.delete(entity);
         this.identities.remove(entry as unknown as EntityEntry<object>);
         this.trackedEntries.delete(entry as unknown as EntityEntry<object>);
+        this.assertInvariant();
         return entry;
     }
 
@@ -96,5 +102,10 @@ export class ChangeTrackerRegistry {
         this.entriesByEntity = new WeakMap<object, EntityEntry<object>>();
         this.identities.clear();
         this.trackedEntries.clear();
+        this.assertInvariant();
+    }
+
+    public assertInvariant(): void {
+        this.identities.assertConsistent(this.trackedEntries);
     }
 }

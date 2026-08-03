@@ -20,7 +20,9 @@ export class ChangeTrackerAcceptance {
         private readonly restore: (entry: EntityEntry<object>) => void,
         private readonly defer: (
             entries: ReadonlyArray<EntityEntry<object>>,
+            identityKeys: readonly string[],
         ) => () => void,
+        private readonly assertInvariant: () => void,
     ) {}
 
     public acceptAll(): void {
@@ -34,6 +36,7 @@ export class ChangeTrackerAcceptance {
 
             entry.acceptChanges();
         }
+        this.assertInvariant();
     }
 
     public acceptPersisted(
@@ -76,17 +79,28 @@ export class ChangeTrackerAcceptance {
                 );
             },
         );
+        const reservedIdentityKeys = new Set(
+            checkpoints.map(checkpoint => checkpoint.identityKey),
+        );
+        for (const snapshot of tracked) {
+            const identityKey = this.identities.keyFor(snapshot.entry);
+            if (identityKey !== undefined) {
+                reservedIdentityKeys.add(identityKey);
+            }
+        }
 
         const uncommitted = new TrackedAcceptanceJournal(
             checkpoints,
             this.identities,
             this.restore,
             () => undefined,
+            this.assertInvariant,
         );
         try {
             for (const snapshot of tracked) {
                 this.acceptSnapshot(snapshot);
             }
+            this.assertInvariant();
         } catch (error) {
             uncommitted.rollback();
             throw error;
@@ -96,7 +110,11 @@ export class ChangeTrackerAcceptance {
             checkpoints,
             this.identities,
             this.restore,
-            this.defer(tracked.map(snapshot => snapshot.entry)),
+            this.defer(
+                tracked.map(snapshot => snapshot.entry),
+                [...reservedIdentityKeys],
+            ),
+            this.assertInvariant,
         );
     }
 

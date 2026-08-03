@@ -38,6 +38,28 @@ describe('transaction tracker invariants', () => {
         expect(db.getSavePlan()).toHaveLength(1);
     });
 
+    it('reserves a deleted identity for rollback across different objects', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createSaveChangesDb(connection);
+        const original = user();
+        const replacement = user();
+        db.users.attach(original);
+        db.users.remove(original);
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.transaction(async transaction => {
+            await transaction.saveChanges();
+            expect(() => transaction.users.add(replacement)).toThrow(
+                ContextConcurrentOperationError,
+            );
+            throw new Error('abort transaction');
+        })).rejects.toThrow('abort transaction');
+
+        expect(db.changeTracker.entries()).toEqual([db.entry(original)]);
+        expect(db.entry(original)?.state).toBe(EntityState.Deleted);
+        expect(db.entry(replacement)).toBeUndefined();
+    });
+
     it('rejects incompatible post-save state transitions and restores intent', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = createSaveChangesDb(connection);

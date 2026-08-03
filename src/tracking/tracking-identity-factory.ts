@@ -13,8 +13,9 @@ export class TrackingIdentityFactory {
     ): string {
         if (
             state === EntityState.Added &&
-            metadata.keyPropertiesMetadata.some(property =>
-                isGeneratedOnAdd(property.valueGenerated))
+            metadata.keyPropertiesMetadata.some((property, index) =>
+                isGeneratedOnAdd(property.valueGenerated) &&
+                isEmptyGeneratedValue(metadata.getKeyValues(entity)[index]))
         ) {
             return `\0entitykit:${metadata.entityName}:${
                 String(this.nextTemporaryIdentity++)
@@ -22,4 +23,9 @@ export class TrackingIdentityFactory {
         }
         return metadata.createIdentityKey(entity);
     }
+}
+
+function isEmptyGeneratedValue(value: unknown): boolean {
+    return value === undefined || value === null || value === '' ||
+        value === 0 || value === 0n;
 }

@@ -17,6 +17,10 @@ export class TrackedIdentityMap {
     }
 
     public add(key: string, entry: EntityEntry<object>): void {
+        const collision = this.entries.get(key);
+        if (collision && collision !== entry) {
+            throw identityCollision(entry);
+        }
         this.entries.set(key, entry);
         this.keys.set(entry, key);
     }
@@ -39,12 +43,33 @@ export class TrackedIdentityMap {
             readonly key: string;
         }>,
     ): void {
+        this.assertCanRestoreKeys(checkpoints);
         for (const checkpoint of checkpoints) {
             this.remove(checkpoint.entry);
         }
         for (const checkpoint of checkpoints) {
             this.entries.set(checkpoint.key, checkpoint.entry);
             this.keys.set(checkpoint.entry, checkpoint.key);
+        }
+        this.assertMapConsistency();
+    }
+
+    public assertCanRestoreKeys(
+        checkpoints: ReadonlyArray<{
+            readonly entry: EntityEntry<object>;
+            readonly key: string;
+        }>,
+    ): void {
+        const restoring = new Set(checkpoints.map(checkpoint => checkpoint.entry));
+        for (const checkpoint of checkpoints) {
+            const collision = this.entries.get(checkpoint.key);
+            if (
+                collision &&
+                collision !== checkpoint.entry &&
+                !restoring.has(collision)
+            ) {
+                throw identityCollision(checkpoint.entry);
+            }
         }
     }
 
@@ -108,9 +133,47 @@ export class TrackedIdentityMap {
             this.entries.set(rekey.next, rekey.entry);
             this.keys.set(rekey.entry, rekey.next);
         }
+        this.assertMapConsistency();
     }
 
     public clear(): void {
         this.entries.clear();
     }
+
+    public assertConsistent(
+        trackedEntries: ReadonlySet<EntityEntry<object>>,
+    ): void {
+        for (const entry of trackedEntries) {
+            const key = this.keys.get(entry);
+            if (key === undefined || this.entries.get(key) !== entry) {
+                throw new Error(
+                    `Identity-map invariant failed for tracked '${entry.metadata.entityName}'.`,
+                );
+            }
+        }
+        for (const entry of this.entries.values()) {
+            if (!trackedEntries.has(entry)) {
+                throw new Error(
+                    `Identity-map invariant retained detached '${entry.metadata.entityName}'.`,
+                );
+            }
+        }
+        this.assertMapConsistency();
+    }
+
+    private assertMapConsistency(): void {
+        for (const [key, entry] of this.entries) {
+            if (this.keys.get(entry) !== key) {
+                throw new Error(
+                    `Identity-map invariant failed for '${entry.metadata.entityName}'.`,
+                );
+            }
+        }
+    }
+}
+
+function identityCollision(entry: EntityEntry<object>): Error {
+    return new Error(
+        `An instance of '${entry.metadata.entityName}' with key '${String(entry.keyValue)}' is already tracked.`,
+    );
 }
