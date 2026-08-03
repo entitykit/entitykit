@@ -29,9 +29,13 @@ export function createRuntimeDiagnosticsHandler(
     ) {
         throw new Error('Diagnostics includeSensitiveData must be a boolean.');
     }
-    return options.includeSensitiveData
-        ? handler
-        : event => {
-            handler(sanitizeRuntimeDiagnosticEvent(event));
-        };
+    return event => {
+        try {
+            handler(options.includeSensitiveData
+                ? event
+                : sanitizeRuntimeDiagnosticEvent(event));
+        } catch {
+            // Diagnostics observe application work; they never participate in it.
+        }
+    };
 }

@@ -5,6 +5,7 @@ import type {
 import {
     DbContext,
     type RuntimeDiagnosticEvent,
+    type RuntimeDiagnosticsHandler,
 } from '../../src';
 import type { SqlDialect } from '../../src/adapter';
 import type { MigrationBuilder } from '../../src/migrations/api';
@@ -38,6 +39,9 @@ export class DiagnosticsContext extends DbContext {
     public static events: RuntimeDiagnosticEvent[] = [];
     public static dialect: SqlDialect | undefined;
     public static includeSensitiveData = true;
+    public static handler: RuntimeDiagnosticsHandler = event => {
+        DiagnosticsContext.events.push(event);
+    };
 
     public users = this.set(User);
     public posts = this.set(Post);
@@ -52,7 +56,9 @@ export class DiagnosticsContext extends DbContext {
                 },
             )
             .useDiagnostics(
-                event => DiagnosticsContext.events.push(event),
+                event => {
+                    DiagnosticsContext.handler(event);
+                },
                 { includeSensitiveData: DiagnosticsContext.includeSensitiveData },
             );
     }
@@ -107,4 +113,7 @@ export function resetDiagnosticsContext(): void {
     DiagnosticsContext.events = [];
     DiagnosticsContext.dialect = undefined;
     DiagnosticsContext.includeSensitiveData = true;
+    DiagnosticsContext.handler = event => {
+        DiagnosticsContext.events.push(event);
+    };
 }

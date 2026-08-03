@@ -46,6 +46,22 @@ describe('query diagnostics', () => {
         ]);
     });
 
+    it('does not let a diagnostic handler change a successful query result', async () => {
+        const db = DiagnosticsContext.create();
+        DiagnosticsContext.connection.queueResult({
+            rows: [{ id: 'usr_1' }],
+            rowCount: 1,
+        });
+        DiagnosticsContext.handler = () => {
+            throw new Error('telemetry failed');
+        };
+
+        await expect(db.database.connection.query({
+            text: 'select * from users',
+            values: [],
+        })).resolves.toMatchObject({ rowCount: 1 });
+    });
+
     it('emits query plan diagnostics without parameter values', async () => {
         const db =  DiagnosticsContext.create();
         DiagnosticsContext.connection.queueResult({ rows: [{ id: 'usr_secret' }], rowCount: 1 });
