@@ -1,89 +1,19 @@
 import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { DbContextOptionsBuilder , ModelBuilder } from '../src';
 import type { EntityMetadata } from '../src/model/entity-metadata';
-import { DbContext, UniqueConstraintError, type RuntimeDiagnosticEvent } from '../src';
+import { UniqueConstraintError } from '../src';
 import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
 import { postgresDialect } from '../src/sql/sql-dialect';
 import { mySqlDialect } from '../src/providers/mysql';
-import { sqliteDialect, sqliteProviderServices } from '../src/providers/sqlite';
-
-/**
- * Upsert used to be Postgres-only, one row per statement, and reached through a
- * raw statement — so it bypassed tenant validation and the bound-parameter
- * batching every other write path had. This covers the provider-neutral form.
- */
-class Item {
-    public id!: string;
-    public tenantId!: string;
-    public sku!: string;
-    public name!: string;
-    public quantity!: number;
-
-    constructor(data?: Partial<Item>) {
-        Object.assign(this, data);
-    }
-}
-
-let currentTenant: string | undefined = 't1';
-let scoped = true;
-let crossTenant = false;
-
-class CatalogDbContext extends DbContext {
-    public items = this.set(Item);
-    public readonly plans: Array<Extract<RuntimeDiagnosticEvent, { kind: 'queryPlan' }>> = [];
-
-    protected override configure(options: DbContextOptionsBuilder): void {
-        options.useProvider(sqliteProviderServices, ':memory:');
-        if (scoped) {
-            if (crossTenant) {
-                options.allowCrossTenantAccess();
-            } else {
-                options.useTenantScope(() => currentTenant);
-            }
-        }
-        options.useDiagnostics(event => {
-            if (event.kind === 'queryPlan') {
-                this.plans.push(event);
-            }
-        });
-    }
-
-    protected override model(model: ModelBuilder): void {
-        model.entity(Item, entity => {
-            entity.toTable('items');
-            entity.hasKey(item => item.id);
-            entity.property(item => item.id).hasColumnName('id').hasColumnType('text').isRequired();
-            entity.property(item => item.tenantId).hasColumnName('tenant_id').hasColumnType('text').isRequired();
-            entity.property(item => item.sku).hasColumnName('sku').hasColumnType('text').isRequired();
-            entity.property(item => item.name).hasColumnName('name').hasColumnType('text').isRequired();
-            entity.property(item => item.quantity).hasColumnName('quantity').hasColumnType('integer').isRequired();
-            entity.hasIndex(item => [item.tenantId, item.sku]).isUnique();
-            if (scoped) {
-                entity.tenantKey(item => item.tenantId);
-            }
-        });
-    }
-}
-
-async function open(): Promise<CatalogDbContext> {
-    const db =  CatalogDbContext.create();
-    await db.database.connection.query({
-        text: 'create table items (id text primary key, tenant_id text not null, sku text not null, name text not null, quantity integer not null)',
-        values: [],
-    });
-    await db.database.connection.query({ text: 'create unique index ux_items_tenant_sku on items (tenant_id, sku)', values: [] });
-    db.plans.length = 0;
-    return db;
-}
-
-function item(id: string, overrides: Partial<Item> = {}): Item {
-    return new Item({ id, tenantId: 't1', sku: `sku-${id}`, name: `Name ${id}`, quantity: 1, ...overrides });
-}
+import { sqliteDialect } from '../src/providers/sqlite';
+import {
+    bulkUpsertFixture,
+    Item,
+    item,
+    openBulkUpsertDb as open,
+} from './support/bulk-upsert-fixture';
 
 beforeEach(() => {
-    currentTenant = 't1';
-    scoped = true;
-    crossTenant = false;
+    bulkUpsertFixture.reset();
 });
 
 describe('bulk upsert', () => {
@@ -178,7 +108,7 @@ describe('bulk upsert', () => {
 
         it('fails closed when the current tenant disappears', async () => {
             const db = await open();
-            currentTenant = undefined;
+            bulkUpsertFixture.useTenant(undefined);
 
             await expect(db.items.upsert([item('a')]))
                 .rejects.toThrow('Tenant scope is unavailable');
@@ -187,8 +117,8 @@ describe('bulk upsert', () => {
         });
 
         it('accepts multiple tenant identities in an explicit cross-tenant context', async () => {
-            crossTenant = true;
-            currentTenant = undefined;
+            bulkUpsertFixture.allowCrossTenantAccess();
+            bulkUpsertFixture.useTenant(undefined);
             const db = await open();
 
             await expect(db.items.upsert([
@@ -200,7 +130,7 @@ describe('bulk upsert', () => {
         });
 
         it('imposes nothing when the entity has no tenant key', async () => {
-            scoped = false;
+            bulkUpsertFixture.withoutTenantKey();
             const db = await open();
 
             expect(await db.items.upsert([item('a', { tenantId: 'anything' })])).toBe(1);
