@@ -16,6 +16,7 @@ export interface GeneratedKeyPropagation {
     readonly principal: object;
     readonly principalMetadata: EntityMetadata;
     readonly principalKeyProperties: readonly string[];
+    readonly principalKeyValues: readonly unknown[];
     readonly foreignKeyProperties: readonly string[];
 }
 

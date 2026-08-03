@@ -22,6 +22,7 @@ class GeneratedParent {
 
 class GeneratedChild {
     public id!: string;
+    public name!: string;
     public parentId!: number;
     public parent!: GeneratedParent;
 }
@@ -63,6 +64,7 @@ class GeneratedRaceContext extends DbContext {
             entity.toTable('generated_children');
             entity.hasKey(child => child.id);
             entity.property(child => child.id).hasColumnType('text').isRequired();
+            entity.property(child => child.name).hasColumnType('text').isRequired();
             entity.property(child => child.parentId).hasColumnType('integer').isRequired();
             entity.hasOne(GeneratedParent, child => child.parent)
                 .withMany().hasForeignKey(child => child.parentId);
@@ -182,7 +184,7 @@ describe('generated-value snapshot acceptance', () => {
         const db = GeneratedRaceContext.create(connection);
         const parent = Object.assign(new GeneratedParent(), { name: 'parent' });
         const child = Object.assign(new GeneratedChild(), {
-            id: 'child_1', parent,
+            id: 'child_1', name: 'child', parent,
         });
         db.children.add(child);
         db.parents.add(parent);
@@ -195,8 +197,66 @@ describe('generated-value snapshot acceptance', () => {
         connection.release();
         await saving;
 
-        expect(connection.statements[1]?.values).toEqual(['child_1', 71]);
+        expect(connection.statements[1]?.values).toEqual(['child_1', 'child', 71]);
         expect(db.entry(child)?.originalValues.parentId).toBe(71);
         expect(db.entry(child)?.state).toBe(EntityState.Modified);
+    });
+
+    it('executes dependent inserts from the captured non-key values', async () => {
+        const connection = new DelayedQueryConnection(1);
+        const db = GeneratedRaceContext.create(connection);
+        const parent = Object.assign(new GeneratedParent(), { name: 'parent' });
+        const child = Object.assign(new GeneratedChild(), {
+            id: 'child_1', name: 'captured', parent,
+        });
+        db.children.add(child);
+        db.parents.add(parent);
+        connection.queueResult({ rows: [{ id: 71 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        const saving = db.saveChanges();
+        await connection.queryStarted;
+        child.name = 'later';
+        connection.release();
+        await saving;
+
+        expect(connection.statements[1]?.values).toEqual([
+            'child_1', 'captured', 71,
+        ]);
+        expect(db.entry(child)?.originalValues.name).toBe('captured');
+        expect(db.entry(child)?.state).toBe(EntityState.Modified);
+    });
+
+    it('propagates the recorded principal key instead of a later live value', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = GeneratedRaceContext.create(connection);
+        const target = Object.assign(new GeneratedParent(), { name: 'parent' });
+        const parent = new Proxy(target, {
+            set: (entity, property, value) => {
+                const written = Reflect.set(entity, property, value);
+                if (property === 'id' && value === 71) {
+                    queueMicrotask(() => {
+                        entity.id = 999;
+                    });
+                }
+                return written;
+            },
+        });
+        const child = Object.assign(new GeneratedChild(), {
+            id: 'child_1', name: 'child', parent,
+        });
+        db.children.add(child);
+        db.parents.add(parent);
+        connection.queueResult({ rows: [{ id: 71 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await db.saveChanges();
+
+        expect(connection.statements[1]?.values).toEqual([
+            'child_1', 'child', 71,
+        ]);
+        expect(db.entry(parent)?.originalValues.id).toBe(71);
+        expect(db.entry(parent)?.state).toBe(EntityState.Modified);
+        expect(db.entry(child)?.originalValues.parentId).toBe(71);
     });
 });

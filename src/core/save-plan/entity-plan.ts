@@ -113,6 +113,8 @@ function generatedKeyPropagations(
             principal: principal.entity,
             principalMetadata: principal.metadata,
             principalKeyProperties: principalKeyProperties.map(String),
+            principalKeyValues: principalKeyProperties.map(propertyName =>
+                principal.currentValues()[propertyName]),
             foreignKeyProperties: relationship.foreignKeyProperties.map(String),
         }];
     });

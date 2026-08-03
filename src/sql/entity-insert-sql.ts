@@ -5,6 +5,8 @@ import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { isGeneratedOnAdd } from '../model/value-generated';
 import { readPropertyValue } from '../model/property-value-access';
+import type { PropertyMetadata } from '../model/property-metadata';
+import { DbValidationError } from '../errors/entity-kit-error';
 
 export function buildEntityInsert<TEntity extends object>(
     dialect: SqlDialect,
@@ -16,6 +18,44 @@ export function buildEntityInsert<TEntity extends object>(
         forInsert: true,
         allowMissingProperties,
     });
+
+    return buildEntityInsertFromReader(
+        dialect,
+        metadata,
+        property => readPropertyValue(entity, property),
+    );
+}
+
+/** Build an insert from the immutable values captured by a save plan. */
+export function buildEntityInsertFromValues<TEntity extends object>(
+    dialect: SqlDialect,
+    metadata: EntityMetadata<TEntity>,
+    valuesByProperty: Readonly<Record<string, unknown>>,
+): SqlStatement {
+    for (const property of metadata.properties) {
+        if (
+            property.isRequired &&
+            !isGeneratedOnAdd(property.valueGenerated) &&
+            valuesByProperty[property.propertyName] == null
+        ) {
+            throw new DbValidationError(
+                `Required property '${metadata.entityName}.${property.propertyName}' must have a value.`,
+            );
+        }
+    }
+
+    return buildEntityInsertFromReader(
+        dialect,
+        metadata,
+        property => valuesByProperty[property.propertyName],
+    );
+}
+
+function buildEntityInsertFromReader<TEntity extends object>(
+    dialect: SqlDialect,
+    metadata: EntityMetadata<TEntity>,
+    readValue: (property: PropertyMetadata<TEntity>) => unknown,
+): SqlStatement {
 
     const parameters = new SqlParameterBag(dialect);
     const writeProperties = metadata.properties.filter(
@@ -29,7 +69,7 @@ export function buildEntityInsert<TEntity extends object>(
         .join(', ');
     const values = writeProperties
         .map(property => parameters.add(toStoreValue(
-            readPropertyValue(entity, property),
+            readValue(property),
             property.columnType,
             property.converter as never,
         )))

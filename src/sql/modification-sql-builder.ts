@@ -53,6 +53,13 @@ export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
         return this.insertBuilder.buildInsertBatch(metadata, entities);
     }
 
+    public buildInsertFromValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        values: Readonly<Record<string, unknown>>,
+    ): SqlStatement {
+        return this.insertBuilder.buildInsertFromValues(metadata, values);
+    }
+
     public buildUpsertBatch<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         entities: readonly TEntity[],

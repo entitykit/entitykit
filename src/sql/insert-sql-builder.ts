@@ -3,6 +3,7 @@ import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
 import {
     buildEntityInsert,
     buildEntityInsertBatch,
+    buildEntityInsertFromValues,
 } from './entity-insert-sql';
 import {
     buildManyToManyInsert,
@@ -40,6 +41,13 @@ export class InsertSqlBuilder {
         entities: readonly TEntity[],
     ): SqlStatement {
         return buildEntityInsertBatch(this.dialect, metadata, entities);
+    }
+
+    public buildInsertFromValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        values: Readonly<Record<string, unknown>>,
+    ): SqlStatement {
+        return buildEntityInsertFromValues(this.dialect, metadata, values);
     }
 
     public buildInsertManyToMany<TEntity extends object>(

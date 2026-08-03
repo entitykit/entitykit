@@ -22,6 +22,23 @@ export class GeneratedValueRecorder {
         }
     }
 
+    public find(
+        entity: object,
+        propertyName: string,
+    ): AppliedPropertyValue | undefined {
+        const entry = this.changeTracker.entry(entity);
+        for (let index = this.values.length - 1; index >= 0; index -= 1) {
+            const value = this.values[index];
+            if (value.entry === entry && value.propertyName === propertyName) {
+                return {
+                    propertyName: value.propertyName,
+                    persistedValue: value.persistedValue,
+                };
+            }
+        }
+        return undefined;
+    }
+
     public take(): readonly AppliedGeneratedValue[] {
         return this.values.splice(0);
     }

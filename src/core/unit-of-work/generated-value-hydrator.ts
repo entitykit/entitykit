@@ -106,11 +106,19 @@ export class GeneratedValueHydrator {
 
     public propagateGeneratedKeys(
         entry: SavePlanEntry,
+        persistedValues: Record<string, unknown>,
         propagations?: readonly GeneratedKeyPropagation[],
     ): void {
         this.recorded.record(
             entry.entity,
-            propagateGeneratedKeys(entry, this.mutations, propagations),
+            propagateGeneratedKeys(
+                entry,
+                persistedValues,
+                this.mutations,
+                propagations,
+                (principal, propertyName) =>
+                    this.recorded.find(principal, propertyName),
+            ),
         );
     }
 

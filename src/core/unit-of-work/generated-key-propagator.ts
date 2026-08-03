@@ -7,18 +7,24 @@ import type { AppliedPropertyValue } from './applied-generated-value';
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
     entry: SavePlanEntry,
+    persistedValues: Record<string, unknown>,
     mutations: SaveTimeMutationLog,
     propagations: readonly GeneratedKeyPropagation[] = [],
+    generatedValue: (
+        principal: object,
+        propertyName: string,
+    ) => AppliedPropertyValue | undefined,
 ): readonly AppliedPropertyValue[] {
-    const values = entry.entity as Record<string, unknown>;
+    const liveValues = entry.entity as Record<string, unknown>;
     const applied: AppliedPropertyValue[] = [];
     for (const propagation of propagations) {
-        const principal = propagation.principal as Record<string, unknown>;
         const keyValues = propagation.principalKeyProperties.map(
-            propertyName => principal[propertyName],
+            (propertyName, index) =>
+                generatedValue(propagation.principal, propertyName)
+                    ?.persistedValue ?? propagation.principalKeyValues[index],
         );
         propagation.foreignKeyProperties.forEach((propertyName, index) => {
-            if (hasValue(values, { propertyName })) {
+            if (hasValue(persistedValues, { propertyName })) {
                 return;
             }
             const value = keyValues[index];
@@ -27,8 +33,11 @@ export function propagateGeneratedKeys(
                     `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
                 );
             }
-            mutations.record(values, propertyName);
-            values[propertyName] = value;
+            if (!hasValue(liveValues, { propertyName })) {
+                mutations.record(liveValues, propertyName);
+                liveValues[propertyName] = value;
+            }
+            persistedValues[propertyName] = value;
             applied.push({ propertyName, persistedValue: value });
         });
     }

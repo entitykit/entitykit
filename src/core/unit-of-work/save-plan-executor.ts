@@ -38,14 +38,28 @@ export class SavePlanExecutor {
         const runPlan = async (): Promise<void> => {
             for (const entry of plan) {
                 const execution = savePlanExecution(entry);
-                this.generatedValues?.propagateGeneratedKeys(
-                    entry,
-                    execution?.generatedKeyPropagations,
+                const persisted = execution?.persistedEntries?.find(
+                    snapshot => snapshot.entry.entity === entry.entity,
                 );
+                if (execution?.generatedKeyPropagations) {
+                    if (!persisted) {
+                        throw new Error(
+                            `Dependent insert '${entry.entityName}' has no persisted-value snapshot.`,
+                        );
+                    }
+                    this.generatedValues?.propagateGeneratedKeys(
+                        entry,
+                        persisted.values,
+                        execution.generatedKeyPropagations,
+                    );
+                }
                 const statement =
                     execution?.generatedKeyPropagations && execution.metadata
                         ? new ModificationSqlBuilder(this.getDialect())
-                            .buildInsert(execution.metadata, entry.entity)
+                            .buildInsertFromValues(
+                                execution.metadata,
+                                persisted?.values ?? {},
+                            )
                         : execution?.buildStatement?.() ?? entry.statement;
                 const result = await this.database.query(statement, options);
                 if (!entry.skipAffectedRowsCheck) {
