@@ -50,10 +50,24 @@ export class ChangeTrackerAcceptance {
                 identityKey,
             };
         });
+        const persistedByEntry = new Map(tracked.map(snapshot => [
+            snapshot.entry,
+            snapshot,
+        ]));
         this.identities.prepareAccept(
             tracked
                 .filter(snapshot => snapshot.state !== EntityState.Deleted)
                 .map(snapshot => snapshot.entry),
+            entry => {
+                const persisted = persistedByEntry.get(entry);
+                if (!persisted) {
+                    throw new Error('Persisted identity snapshot is unavailable.');
+                }
+                return entry.metadata.createIdentityKeyFromValues(
+                    entry.metadata.keyProperties.map(propertyName =>
+                        persisted.values[propertyName]),
+                );
+            },
         );
 
         for (const snapshot of tracked) {

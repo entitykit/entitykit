@@ -48,7 +48,11 @@ export class TrackedIdentityMap {
         }
     }
 
-    public prepareAccept(entries: ReadonlyArray<EntityEntry<object>>): void {
+    public prepareAccept(
+        entries: ReadonlyArray<EntityEntry<object>>,
+        identityKey: (entry: EntityEntry<object>) => string = entry =>
+            entry.metadata.createIdentityKey(entry.entity),
+    ): void {
         const acceptedEntries = new Set(entries);
         const finalKeys: Map<string, EntityEntry<object>> = new Map();
         const rekeys: Array<{
@@ -63,7 +67,7 @@ export class TrackedIdentityMap {
             }
 
             const previous = this.keys.get(entry);
-            const next = entry.metadata.createIdentityKey(entry.entity);
+            const next = identityKey(entry);
             if (previous === undefined) {
                 throw new Error('Tracked entity has no registered identity.');
             }
