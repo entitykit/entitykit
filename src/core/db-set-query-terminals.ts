@@ -12,6 +12,11 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
     /** A fresh queryable bound to the concrete `DbSet` as its query executor. */
     protected abstract query(): Queryable<TEntity>;
 
+    /** Resolve a primary-key tuple from this context's identity map. */
+    protected abstract findTracked(
+        keyValues: readonly unknown[],
+    ): TEntity | undefined;
+
     /**
    * Find an entity by its configured primary key.
    *
@@ -32,6 +37,10 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
             throw new Error(
                 `find() on '${this.metadata.entityName}' expects ${String(keyProperties.length)} key ${keyProperties.length === 1 ? 'value' : 'values'} (${keyProperties.join(', ')}), but received ${String(keyValues.length)}.`,
             );
+        }
+        const tracked = this.findTracked(keyValues);
+        if (tracked) {
+            return tracked;
         }
 
         return this.query()

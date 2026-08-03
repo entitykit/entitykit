@@ -90,6 +90,7 @@ describe('DbSet query execution', () => {
         expect(second).toBe(first);
         expect(requireDefined(second).name).toBe('Local');
         expect(db.changeTracker.entries()).toHaveLength(1);
+        expect(connection.statements).toHaveLength(1);
     });
 
     it('returns duplicate root rows as the same tracked instance without overwriting first values', async () => {

@@ -40,6 +40,13 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         return new Queryable(this.metadata, this.queryExecutor);
     }
 
+    protected findTracked(keyValues: readonly unknown[]): TEntity | undefined {
+        return this.context.changeTracker.tryGetByIdentityValues(
+            this.metadata,
+            keyValues,
+        )?.entity;
+    }
+
     /** Start tracking a new entity as `Added`. */
     public add(entity: TEntity): EntityEntry<TEntity> {
         this.metadata.assertWritable('add()');
