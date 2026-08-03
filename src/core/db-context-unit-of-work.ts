@@ -86,7 +86,11 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
 
         this.saveInProgress = true;
         try {
-            return await this.saver.run(plan, options);
+            return await this.saver.run(
+                plan,
+                () => this.savePlanBuilder.build({ continueSaveAttempt: true }),
+                options,
+            );
         } finally {
             this.saveInProgress = false;
         }

@@ -65,6 +65,48 @@ describe('save changes interceptors', () => {
         expect(events).toEqual([`saving:1:${EntityState.Added}`, 'saved:1:User']);
     });
 
+    it('rebuilds the executable plan after a before-save hook mutates an entity', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rowCount: 1 });
+        const user = new User({ id: 'usr_1', name: 'before hook' });
+        const db = TestContext.createWith(connection, {
+            savingChanges: () => {
+                user.name = 'after hook';
+            },
+        });
+        db.users.add(user);
+
+        await expect(db.saveChanges()).resolves.toBe(1);
+
+        expect(connection.statements).toEqual([{
+            text: 'insert into "users" ("id", "deleted_at", "name") values ($1, $2, $3)',
+            values: ['usr_1', undefined, 'after hook'],
+        }]);
+        expect(db.entry(user)?.state).toBe(EntityState.Unchanged);
+    });
+
+    it('includes entities added by a before-save hook in the executable plan', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rowCount: 2 });
+        const first = new User({ id: 'usr_1', name: 'First' });
+        const late = new User({ id: 'usr_2', name: 'Late' });
+        const db = TestContext.createWith(connection, {
+            savingChanges: () => {
+                db.users.add(late);
+            },
+        });
+        db.users.add(first);
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect(connection.statements[0]).toEqual({
+            text: 'insert into "users" ("id", "deleted_at", "name") values ($1, $2, $3), ($4, $5, $6)',
+            values: ['usr_1', undefined, 'First', 'usr_2', undefined, 'Late'],
+        });
+        expect(db.entry(first)?.state).toBe(EntityState.Unchanged);
+        expect(db.entry(late)?.state).toBe(EntityState.Unchanged);
+    });
+
     it('runs failure hooks without accepting changes', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueError(new Error('boom'));

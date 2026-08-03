@@ -14,8 +14,23 @@ import { applyTenantWrite } from './save-time-tenant';
  */
 export class SaveTimeWrites {
     private readonly mutations = new SaveTimeMutationLog();
+    private now?: Date;
+    private userId: unknown;
+    private userIdInitialized = false;
+    private tenantId: unknown;
+    private tenantIdInitialized = false;
 
     constructor(private readonly scope: SaveTimeScope) {}
+
+    /** Start one save attempt and snapshot its request-scoped values lazily. */
+    public begin(): void {
+        this.mutations.reset();
+        this.now = undefined;
+        this.userId = undefined;
+        this.userIdInitialized = false;
+        this.tenantId = undefined;
+        this.tenantIdInitialized = false;
+    }
 
     /**
    * Apply every save-time write to the tracked entries.
@@ -24,24 +39,27 @@ export class SaveTimeWrites {
    * whether re-running change detection is worth it.
    */
     public applyTo(entries: Iterable<EntityEntry<object>>): boolean {
-        let now: Date | undefined;
-        let userId: unknown;
-        let userIdInitialized = false;
         let mayHaveWritten = false;
 
         const currentTime = (): Date => {
-            now ??= this.scope.now();
-            return now;
+            this.now ??= this.scope.now();
+            return this.now;
         };
         const currentUser = (): unknown => {
-            if (!userIdInitialized) {
-                userId = this.scope.currentUserId();
-                userIdInitialized = true;
+            if (!this.userIdInitialized) {
+                this.userId = this.scope.currentUserId();
+                this.userIdInitialized = true;
             }
-            return userId;
+            return this.userId;
+        };
+        const currentTenant = (): unknown => {
+            if (!this.tenantIdInitialized) {
+                this.tenantId = this.scope.currentTenantId();
+                this.tenantIdInitialized = true;
+            }
+            return this.tenantId;
         };
 
-        this.mutations.reset();
         for (const entry of entries) {
             const tenantKeyProperty: unknown = entry.metadata.tenantKeyProperty;
             mayHaveWritten ||= Boolean(
@@ -49,7 +67,7 @@ export class SaveTimeWrites {
                 entry.metadata.softDelete ??
                 entry.metadata.audit,
             );
-            applyTenantWrite(entry, this.scope.currentTenantId(), this.mutations);
+            applyTenantWrite(entry, currentTenant(), this.mutations);
             applySoftDeleteWrite(entry, currentTime, this.mutations);
             applyAuditWrites(entry, currentTime, currentUser, this.mutations);
         }

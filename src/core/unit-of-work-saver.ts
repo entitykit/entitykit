@@ -34,16 +34,24 @@ export class UnitOfWorkSaver {
     }
 
     public async run(
-        plan: readonly SavePlanEntry[],
+        previewPlan: readonly SavePlanEntry[],
+        rebuildPlan: () => readonly SavePlanEntry[],
         options?: DatabaseOperationOptions,
     ): Promise<number> {
         const elapsed = startElapsedTimer();
+        let plan: readonly SavePlanEntry[];
         try {
-            await this.lifecycle.notifySaving(plan);
+            await this.lifecycle.notifySaving(previewPlan);
+            plan = rebuildPlan();
             this.trackedState.validateVersionValues(plan);
         } catch (error) {
             this.trackedState.restoreSaveTimeWrites();
             throw error;
+        }
+
+        if (plan.length === 0) {
+            this.trackedState.restoreSaveTimeWrites();
+            return 0;
         }
 
         try {

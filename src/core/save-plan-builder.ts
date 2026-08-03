@@ -34,7 +34,10 @@ export class SavePlanBuilder {
     constructor(private readonly deps: SavePlanBuilderDeps) {}
 
     /** Build the frozen SQL save plan for the current tracked changes. */
-    public build(): SavePlanEntry[] {
+    public build(options: { readonly continueSaveAttempt?: boolean } = {}): SavePlanEntry[] {
+        if (!options.continueSaveAttempt) {
+            this.deps.saveTimeWrites.begin();
+        }
         try {
             return this.buildPreparedPlan();
         } catch (error) {
