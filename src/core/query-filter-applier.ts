@@ -3,7 +3,7 @@ import { FieldExpression } from '../query/expression/field-expression';
 import type { PredicateExpression } from '../query/expression/predicate-expression';
 import { cloneQueryModel, type JoinExpression, type QueryModel } from '../query/query-model';
 import type { RelationExistenceExpression } from '../query/relation-expression';
-import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
+import { createTenantScopeResolver } from './tenant-scope-resolver';
 
 /**
  * Applies a context's implicit query filters — soft-delete and tenant scope —
@@ -27,18 +27,7 @@ export class QueryFilterApplier {
         }
 
         const opts = { softDelete: !query.ignoreQueryFilters, tenant: !query.ignoreTenantScope };
-        let tenantId: unknown;
-        let tenantIdResolved = false;
-        const resolveTenantId = (entityName: string): unknown => {
-            if (!tenantIdResolved) {
-                tenantId = this.currentTenantId();
-                tenantIdResolved = true;
-            }
-            if (tenantId === undefined || tenantId === null) {
-                throw new TenantScopeUnavailableError(entityName);
-            }
-            return tenantId;
-        };
+        const resolveTenantId = createTenantScopeResolver(this.currentTenantId);
         let predicate = combinePredicates(
             query.predicate,
             this.filtersFor(metadata, undefined, opts, resolveTenantId),
