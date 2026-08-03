@@ -15,19 +15,14 @@ import type {
  * depth to decide defer-vs-run and enqueues its post-commit callback here, and
  * `DbContext.dispose` reads the depth to refuse disposal mid-transaction.
  *
- * The connection arrives as a getter and the rollback reset as a closure, so
- * the coordinator never reaches into context internals — and both are resolved
- * lazily, because a `DbContext` builds its collaborators before it has a
- * connection.
+ * The connection arrives as a getter, resolved lazily because a `DbContext`
+ * builds its collaborators before it has a connection.
  */
 export class TransactionCoordinator {
     private contextTransactionDepth = 0;
     private readonly afterCommitCallbacks: DeferredCallback[] = [];
 
-    constructor(
-        private readonly getDatabase: () => DatabaseConnection,
-        private readonly resetTrackedState: () => void,
-    ) {}
+    constructor(private readonly getDatabase: () => DatabaseConnection) {}
 
     /** The current `transaction(...)` nesting depth; 0 when none is open. */
     public get depth(): number {
@@ -64,11 +59,11 @@ export class TransactionCoordinator {
             const rolledBackCallbacks =
                 this.afterCommitCallbacks.splice(afterCommitCallbackStart);
             for (const callback of rolledBackCallbacks.reverse()) {
-                callback.afterRollback?.();
-            }
-            const deferredCallbacksWereAdded = rolledBackCallbacks.length > 0;
-            if (isRootContextTransaction || deferredCallbacksWereAdded) {
-                this.resetTrackedState();
+                try {
+                    callback.afterRollback?.();
+                } catch {
+                    // Preserve the transaction failure; rollback journals are best effort.
+                }
             }
             throw error;
         } finally {

@@ -121,6 +121,35 @@ function createDb(
 }
 
 describe('database-generated values', () => {
+    it('restores generated values and temporary identity after an outer rollback', async () => {
+        const { db, connection } = createDb();
+        const item = new GeneratedItem({ name: 'generated' });
+        db.items.add(item);
+        connection.queueResult({
+            rows: [{
+                id: 41,
+                created_at: new Date('2026-07-30T10:00:00.000Z'),
+                updated_at: new Date('2026-07-30T10:00:01.000Z'),
+            }],
+            rowCount: 1,
+        });
+
+        await expect(db.transaction(async transaction => {
+            await transaction.saveChanges();
+            expect(item.id).toBe(41);
+            throw new Error('abort outer transaction');
+        })).rejects.toThrow('abort outer transaction');
+
+        expect(item.id).toBeUndefined();
+        expect(item.createdAt).toBeUndefined();
+        expect(item.updatedAt).toBeUndefined();
+        expect(db.entry(item)?.state).toBe(EntityState.Added);
+        expect(internalChangeTracker(db.changeTracker)
+            .tryGetByIdentity(setMetadata(db.items), 41))
+            .toBeUndefined();
+        expect(db.getSavePlan()).toHaveLength(1);
+    });
+
     it('omits and hydrates generated-on-add values through returning', async () => {
         const { db, connection } = createDb();
         const createdAt = new Date('2026-07-30T10:00:00.000Z');

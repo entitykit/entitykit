@@ -131,13 +131,10 @@ describe('outbox explicit transactions', () => {
         );
 
         const statementsBeforeRetry = connection.statements.length;
-        await expect(db.saveChanges()).resolves.toBe(0);
-        expect(connection.statements).toHaveLength(statementsBeforeRetry);
-
         connection.queueResult({ rowCount: 1 });
         connection.queueResult({ rowCount: 1 });
-        db.users.add(inner);
-        await db.saveChanges();
+        await expect(db.saveChanges()).resolves.toBe(1);
+        expect(connection.statements).toHaveLength(statementsBeforeRetry + 2);
 
         expect(inner.domainEvents).toEqual([]);
         const publishedTypes = connection.statements

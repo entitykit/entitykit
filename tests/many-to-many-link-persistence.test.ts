@@ -154,4 +154,26 @@ describe('many-to-many link persistence', () => {
         expect(db.getSavePlanDebugView()).toContain('2 changes');
         expect(post.tags).toEqual([tag1, tag2]);
     });
+
+    it('restores linked join rows when an outer transaction rolls back', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rowCount: 1 });
+        const db = ManyToManyContext.createWith(connection);
+        const post = createPost();
+        const tag = createTag();
+        db.posts.attach(post);
+        db.tags.attach(tag);
+        db.link(post, item => item.tags, tag);
+
+        await expect(db.transaction(async transaction => {
+            await transaction.saveChanges();
+            throw new Error('abort outer transaction');
+        })).rejects.toThrow('abort outer transaction');
+
+        expect(db.getSavePlan()).toHaveLength(1);
+        expect(db.getSavePlanDebugView()).toContain('post_1->tag_1');
+        connection.queueResult({ rowCount: 1 });
+        await expect(db.saveChanges()).resolves.toBe(0);
+        expect(db.getSavePlan()).toHaveLength(0);
+    });
 });

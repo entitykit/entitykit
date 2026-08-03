@@ -6,7 +6,6 @@ describe('TransactionCoordinator', () => {
         const database = new RecordingDatabaseConnection();
         const coordinator = new TransactionCoordinator(
             () => database,
-            jest.fn(),
         );
         const completed: string[] = [];
 
@@ -28,7 +27,6 @@ describe('TransactionCoordinator', () => {
         const database = new RecordingDatabaseConnection();
         const coordinator = new TransactionCoordinator(
             () => database,
-            jest.fn(),
         );
 
         const result = coordinator.run(() => {

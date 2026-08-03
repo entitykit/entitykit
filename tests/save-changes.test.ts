@@ -246,7 +246,7 @@ describe('DbContext.saveChanges', () => {
         ]);
     });
 
-    it('detaches tracked state when an explicit transaction rolls back after saveChanges', async () => {
+    it('restores retryable tracked state when an explicit transaction rolls back', async () => {
         const connection = new RecordingDatabaseConnection();
         const db =  createDb(connection);
         const now = new Date('2026-01-01T00:00:00.000Z');
@@ -265,8 +265,9 @@ describe('DbContext.saveChanges', () => {
             'release:entitykit_sp_1',
             'rollback',
         ]);
-        expect(db.entry(user)).toBeUndefined();
-        expect(db.changeTracker.entries()).toHaveLength(0);
+        expect(db.entry(user)?.state).toBe(EntityState.Added);
+        expect(db.changeTracker.entries()).toHaveLength(1);
+        expect(db.getSavePlan()).toHaveLength(1);
     });
 
     it('rolls back nested explicit transactions to a savepoint after saveChanges', async () => {
@@ -292,8 +293,54 @@ describe('DbContext.saveChanges', () => {
             'rollback-to:entitykit_sp_1',
             'commit',
         ]);
-        expect(db.entry(user)).toBeUndefined();
-        expect(db.changeTracker.entries()).toHaveLength(0);
+        expect(db.entry(user)?.state).toBe(EntityState.Added);
+        expect(db.changeTracker.entries()).toHaveLength(1);
+        expect(db.getSavePlan()).toHaveLength(1);
+    });
+
+    it('preserves outer tracked state when a nested savepoint rolls back', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const now = new Date('2026-01-01T00:00:00.000Z');
+        const outerUser = new User({
+            id: 'usr_1',
+            email: 'a@example.com',
+            name: 'Before outer',
+            createdAt: now,
+            updatedAt: now,
+        });
+        db.users.attach(outerUser);
+        outerUser.name = 'Outer saved';
+        connection.queueResult({ rowCount: 1 });
+
+        await db.transaction(async outer => {
+            await outer.saveChanges();
+            const nestedUser = new User({
+                id: 'usr_2',
+                email: 'b@example.com',
+                name: 'Nested',
+                createdAt: now,
+                updatedAt: now,
+            });
+
+            await expect(outer.transaction(async inner => {
+                inner.users.add(nestedUser);
+                connection.queueResult({ rowCount: 1 });
+                await inner.saveChanges();
+                throw new Error('abort inner transaction');
+            })).rejects.toThrow('abort inner transaction');
+
+            expect(outer.entry(outerUser)?.state).toBe(EntityState.Unchanged);
+            expect(outer.entry(nestedUser)?.state).toBe(EntityState.Added);
+            outer.users.detach(nestedUser);
+            outerUser.name = 'Outer after inner';
+            connection.queueResult({ rowCount: 1 });
+            await expect(outer.saveChanges()).resolves.toBe(1);
+        });
+
+        expect(db.entry(outerUser)?.state).toBe(EntityState.Unchanged);
+        expect(connection.statements.at(-1)?.values)
+            .toContain('Outer after inner');
     });
 
     it('rolls back a failed saveChanges call to the explicit transaction savepoint', async () => {

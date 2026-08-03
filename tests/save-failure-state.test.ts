@@ -78,6 +78,23 @@ describe('state after a failed saveChanges()', () => {
         await db.dispose();
     });
 
+    it('restores soft-delete and audit writes after an outer rollback', async () => {
+        const doc = requireDefined(await db.docs.find('d1'));
+        const updatedAt = doc.updatedAt;
+
+        await expect(db.transaction(async transaction => {
+            transaction.docs.remove(doc);
+            await transaction.saveChanges();
+            expect(doc.deletedAt).toBeInstanceOf(Date);
+            throw new Error('abort outer transaction');
+        })).rejects.toThrow('abort outer transaction');
+
+        expect(doc.deletedAt).toBeNull();
+        expect(doc.updatedAt).toEqual(updatedAt);
+        expect(db.entry(doc)?.state).toBe(EntityState.Deleted);
+        expect(db.getSavePlan()).toHaveLength(1);
+    });
+
     it('leaves an added entity retryable, and retries successfully', async () => {
         const conflicting = new Doc({
             id: 'd2', title: 'Two', slug: 'one', tenantId: 'tenant_1',

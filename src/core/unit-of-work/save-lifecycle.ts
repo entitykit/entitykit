@@ -36,6 +36,7 @@ export class SaveLifecycle {
     public async afterCommitted(
         plan: readonly SavePlanEntry[],
         affectedEntities: number,
+        rollbackTrackedState: () => void,
     ): Promise<void> {
         const outboxBatches = this.outboxEvents.batchesFor(plan);
         this.outboxEvents.defer(outboxBatches);
@@ -49,6 +50,7 @@ export class SaveLifecycle {
                 callback,
                 () => {
                     this.outboxEvents.release(outboxBatches);
+                    rollbackTrackedState();
                 },
             );
             return;

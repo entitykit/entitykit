@@ -21,9 +21,6 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     });
     private readonly transactionCoordinator = new TransactionCoordinator(
         () => this.databaseConnection,
-        () => {
-            this.clearChanges();
-        },
     );
     private readonly savePlanBuilder = new SavePlanBuilder({
         changeTracker: this.changeTracker,
