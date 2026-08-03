@@ -9,6 +9,7 @@ import type {
 import { createPostgresProviderError } from './postgres-provider-error';
 import { throwIfOperationAborted } from '../../storage/operation-cancellation';
 import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
+import { isUnknownPostgresCommitOutcome } from './postgres-commit-outcome';
 
 export async function runPostgresTransaction<TResult>(
     client: PoolClient,
@@ -61,21 +62,6 @@ export async function runPostgresTransaction<TResult>(
 
         throw error;
     }
-}
-
-function isUnknownPostgresCommitOutcome(code?: string): boolean {
-    return code !== undefined && (
-        code.startsWith('08') ||
-        [
-            '57P01',
-            '57P02',
-            '57P03',
-            'ECONNREFUSED',
-            'ECONNRESET',
-            'EPIPE',
-            'ETIMEDOUT',
-        ].includes(code)
-    );
 }
 
 function postgresBeginStatement(options?: TransactionOptions): string {

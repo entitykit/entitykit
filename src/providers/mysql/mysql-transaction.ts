@@ -11,6 +11,7 @@ import type {
 } from '../../storage/database-connection';
 import { throwIfOperationAborted } from '../../storage/operation-cancellation';
 import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
+import { isUnknownMysqlCommitOutcome } from './mysql-commit-outcome';
 
 export async function runMysqlTransaction<TResult>(
     connection: MySqlConnection,
@@ -67,17 +68,6 @@ export async function runMysqlTransaction<TResult>(
         }
         throw error;
     }
-}
-
-function isUnknownMysqlCommitOutcome(code?: string): boolean {
-    return code !== undefined && [
-        'ER_SERVER_SHUTDOWN',
-        'PROTOCOL_CONNECTION_LOST',
-        'ECONNRESET',
-        'ECONNREFUSED',
-        'EPIPE',
-        'ETIMEDOUT',
-    ].includes(code);
 }
 
 function mysqlIsolationLevel(level: TransactionIsolationLevel): string {
