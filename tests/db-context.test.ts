@@ -33,9 +33,10 @@ describe('DbContext', () => {
         expect(setMetadata(db.users).getProperty('email').columnName).toBe('email');
     });
 
-    it('throws when direct construction is used before initialization', () => {
+    it('lazily initializes a directly constructed context on first use', () => {
         const db = new AppDbContext();
 
-        expect(() => contextModel(db)).toThrow('Use DbContext.create()');
+        expect(contextModel(db).getEntity(User).tableName).toBe('users');
+        expect(setMetadata(db.users).getProperty('email').columnName).toBe('email');
     });
 });

@@ -17,8 +17,6 @@ import type { EntityEntry } from '../tracking/entity-entry';
 import type { SqlDialect } from '../sql/sql-dialect';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import { createDbSetContextAdapter } from './db-set-context-adapter';
-
-/** Lifecycle, metadata, and set ownership shared by the focused context stages. */
 export abstract class DbContextRuntime {
     private readonly state = new DbContextState();
     private disposePromise?: Promise<void>;
@@ -29,7 +27,6 @@ export abstract class DbContextRuntime {
             this.assertNotDisposed(operation);
         },
     );
-
     protected abstract get transactionDepth(): number;
     public abstract loadNavigation<TEntity extends object>(
         entry: EntityEntry<TEntity>,
@@ -39,15 +36,15 @@ export abstract class DbContextRuntime {
         metadata: EntityMetadata<TEntity>,
         query: QueryModel<TEntity>
     ): QueryModel<TEntity>;
-
     public get options(): DbContextOptions {
+        this.ensureInitialized();
         return this.state.options;
     }
     protected get databaseConnection(): DatabaseConnection {
         this.assertNotDisposed('database connection access');
+        this.ensureInitialized();
         return this.state.database;
     }
-
     public get dialect(): SqlDialect {
         return this.options.dialect;
     }
@@ -55,6 +52,7 @@ export abstract class DbContextRuntime {
         return this.options.valueReader;
     }
     public get modelMetadata(): Model {
+        this.ensureInitialized();
         return this.state.model;
     }
     protected configure(options: DbContextOptionsBuilder): void {
@@ -63,11 +61,9 @@ export abstract class DbContextRuntime {
     protected model(model: ModelBuilder): void {
         void model;
     }
-
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.changeTracker.entry(entity)?.useNavigationLoader(this);
     }
-
     public set<TEntity extends object>(
         entityType: EntityConstructor<TEntity>,
     ): DbSetContract<TEntity> {
@@ -75,7 +71,6 @@ export abstract class DbContextRuntime {
         if (existing) {
             return existing;
         }
-
         const created: DbSet<TEntity> = new DbSet(
             createDbSetContextAdapter({
                 options: () => this.options,
@@ -96,16 +91,15 @@ export abstract class DbContextRuntime {
         this.state.addSet(entityType, created);
         return created;
     }
-
     public currentTenantIdForWrites(): unknown {
         return this.currentTenantId();
     }
-
     public async dispose(): Promise<void> {
         if (this.disposePromise) {
             await this.disposePromise;
             return;
         }
+        this.ensureInitialized();
         this.state.assertCanDispose(this.transactionDepth);
         this.state.disposed = true;
         this.disposePromise = this.state.disposeConnection();
@@ -145,5 +139,11 @@ export abstract class DbContextRuntime {
                 this.model(builder);
             },
         );
+    }
+
+    private ensureInitialized(): void {
+        if (!this.state.initialized) {
+            this.initialize();
+        }
     }
 }
