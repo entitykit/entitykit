@@ -109,6 +109,16 @@ describe('operation-wide cancellation', () => {
         expect(connection.statements).toEqual([]);
     });
 
+    it('rejects a canceled find before returning a tracked entity', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        db.users.attach({ id: 'usr_1', email: 'a@example.com' });
+
+        await expect(db.users.find('usr_1', canceledOptions()))
+            .rejects.toBeInstanceOf(OperationCanceledError);
+        expect(connection.statements).toEqual([]);
+    });
+
     it('rolls back a canceled save and leaves tracked state retryable', async () => {
         const connection = new AbortAfterQueryConnection();
         const controller = new AbortController();

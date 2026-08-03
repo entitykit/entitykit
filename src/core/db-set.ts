@@ -12,6 +12,7 @@ import { DbSetDiagnostics } from './db-set-diagnostics';
 import { DbSetBulkWriter } from './db-set-bulk-writer';
 import { DbSetQueryExecutor } from './db-set-query-executor';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
+import { resolveTrackedFind } from './tracked-find-resolver';
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
 export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
@@ -40,11 +41,16 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         return new Queryable(this.metadata, this.queryExecutor);
     }
 
-    protected findTracked(keyValues: readonly unknown[]): TEntity | undefined {
-        return this.context.changeTracker.tryGetByIdentityValues(
+    protected findTracked(
+        keyValues: readonly unknown[],
+        options?: DatabaseOperationOptions,
+    ): TEntity | null | undefined {
+        return resolveTrackedFind(
+            this.context,
             this.metadata,
             keyValues,
-        )?.entity;
+            options,
+        );
     }
 
     /** Start tracking a new entity as `Added`. */

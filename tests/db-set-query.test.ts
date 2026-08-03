@@ -93,6 +93,22 @@ describe('DbSet query execution', () => {
         expect(connection.statements).toHaveLength(1);
     });
 
+    it('does not return a tracked entity pending deletion', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const user = new User({
+            id: 'usr_1',
+            email: 'a@example.com',
+            name: 'A',
+            createdAt: new Date(),
+        });
+        db.users.attach(user);
+        db.users.remove(user);
+
+        await expect(db.users.find('usr_1')).resolves.toBeNull();
+        expect(connection.statements).toEqual([]);
+    });
+
     it('returns duplicate root rows as the same tracked instance without overwriting first values', async () => {
         const connection = new RecordingDatabaseConnection();
         const db =  createDb(connection);

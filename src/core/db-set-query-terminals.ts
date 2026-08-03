@@ -15,7 +15,8 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
     /** Resolve a primary-key tuple from this context's identity map. */
     protected abstract findTracked(
         keyValues: readonly unknown[],
-    ): TEntity | undefined;
+        options?: DatabaseOperationOptions,
+    ): TEntity | null | undefined;
 
     /**
    * Find an entity by its configured primary key.
@@ -38,8 +39,8 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
                 `find() on '${this.metadata.entityName}' expects ${String(keyProperties.length)} key ${keyProperties.length === 1 ? 'value' : 'values'} (${keyProperties.join(', ')}), but received ${String(keyValues.length)}.`,
             );
         }
-        const tracked = this.findTracked(keyValues);
-        if (tracked) {
+        const tracked = this.findTracked(keyValues, options);
+        if (tracked !== undefined) {
             return tracked;
         }
 

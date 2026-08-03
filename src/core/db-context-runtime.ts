@@ -77,6 +77,10 @@ export abstract class DbContextRuntime {
                 database: () => this.databaseConnection,
                 model: () => this.modelMetadata,
                 changeTracker: this.changeTracker,
+                assertCanQuery: operation => {
+                    this.assertNotDisposed(operation);
+                    this.ensureInitialized();
+                },
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),
                 currentTenantIdForWrites: () => this.currentTenantIdForWrites(),
                 allowsCrossTenantAccess: () =>

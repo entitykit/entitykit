@@ -17,6 +17,8 @@ export interface DbSetContext extends EntityNavigationLoader {
     readonly modelMetadata: Model;
     readonly changeTracker: ChangeTracker;
 
+    assertCanQuery(operation: string): void;
+
     applyQueryFilters<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         query: QueryModel<TEntity>

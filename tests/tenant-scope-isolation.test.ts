@@ -177,6 +177,33 @@ describe('tenant scope isolation', () => {
         expect(db.entry(rogue)?.state).toBe('Added');
     });
 
+    it('does not return a cross-tenant entity cached by an administrative query', async () => {
+        const cached = await db.docs.ignoreTenantScope()
+            .where(doc => doc.id.eq('t2-live'))
+            .single();
+
+        await expect(db.docs.find('t2-live')).resolves.toBeNull();
+        expect(db.entry(cached)).toBeDefined();
+    });
+
+    it('does not return a soft-deleted entity cached by an unfiltered query', async () => {
+        const cached = await db.docs.ignoreQueryFilters()
+            .where(doc => doc.id.eq('t1-gone'))
+            .single();
+
+        await expect(db.docs.find('t1-gone')).resolves.toBeNull();
+        expect(db.entry(cached)).toBeDefined();
+    });
+
+    it('fails closed when the tenant disappears after an entity was cached', async () => {
+        await expect(db.docs.find('t1-live')).resolves.toBeDefined();
+        currentTenant = undefined;
+
+        await expect(db.docs.find('t1-live')).rejects.toBeInstanceOf(
+            TenantScopeUnavailableError,
+        );
+    });
+
     it('allows an explicit query-level escape when no tenant exists', async () => {
         currentTenant = undefined;
 

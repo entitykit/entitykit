@@ -75,6 +75,17 @@ describe('context lifecycle', () => {
         });
     });
 
+    it('refuses to return a tracked find result after disposal', async () => {
+        const db = await open();
+        const row = new Row({ id: 'tracked', label: 'tracked' });
+        db.rows.attach(row);
+        await db.dispose();
+
+        await expect(db.rows.find('tracked')).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
+    });
+
     it('refuses a save on a disposed context', async () => {
         const db = await open();
         await db.dispose();
