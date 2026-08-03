@@ -22,10 +22,7 @@ export abstract class DbContextRuntime {
     private disposePromise?: Promise<void>;
     public readonly changeTracker = new ChangeTracker();
     private readonly lazyNavigation = new LazyNavigationCoordinator(
-        this,
-        operation => {
-            this.assertNotDisposed(operation);
-        },
+        this, this.assertNotDisposed.bind(this),
     );
     protected abstract get transactionDepth(): number;
     public abstract loadNavigation<TEntity extends object>(
@@ -64,10 +61,7 @@ export abstract class DbContextRuntime {
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.changeTracker.entry(entity)?.useNavigationLoader(this);
     }
-    public set<
-        TEntity extends object,
-        TKey extends readonly unknown[] = readonly unknown[],
-    >(
+    public set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(
         entityType: EntityConstructor<TEntity>,
     ): DbSetContract<TEntity, TKey> {
         const existing = this.state.findSet(entityType);
@@ -140,12 +134,8 @@ export abstract class DbContextRuntime {
             this.state,
             this.changeTracker,
             this.lazyNavigation,
-            builder => {
-                this.configure(builder);
-            },
-            builder => {
-                this.model(builder);
-            },
+            this.configure.bind(this),
+            this.model.bind(this),
         );
     }
 

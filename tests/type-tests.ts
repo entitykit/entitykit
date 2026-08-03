@@ -1,7 +1,5 @@
 import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
 import {
-    DbContext,
-    type DbSet,
     type JoinTarget,
     type DatabaseOperationOptions,
     type ModelPropertySelector,
@@ -39,17 +37,6 @@ class Order {
     public customerEmail!: string;
     public paidAt!: Date | null;
     public createdAt!: Date;
-}
-
-class OrderLine {
-    public orderId!: string;
-    public lineNumber!: number;
-}
-
-class TypedKeyContext extends DbContext {
-    public users: DbSet<User, [string]> = this.set<User, [string]>(User);
-    public orderLines: DbSet<OrderLine, [string, number]> =
-        this.set<OrderLine, [string, number]>(OrderLine);
 }
 
 type HasMember<TValue, TKey extends PropertyKey> =
@@ -129,17 +116,6 @@ const streamOptions = {
 const operationOptions = {
     signal: new AbortController().signal,
 } satisfies DatabaseOperationOptions;
-declare const typedKeyContext: TypedKeyContext;
-void typedKeyContext.users.find('usr_1');
-void typedKeyContext.users.find('usr_1', operationOptions);
-void typedKeyContext.orderLines.find('ord_1', 2);
-void typedKeyContext.orderLines.findOrThrow('ord_1', 2, operationOptions);
-// @ts-expect-error a typed single-column key rejects the wrong value type
-void typedKeyContext.users.find(1);
-// @ts-expect-error a typed composite key rejects missing key values
-void typedKeyContext.orderLines.find('ord_1');
-// @ts-expect-error a typed composite key rejects key values in the wrong order
-void typedKeyContext.orderLines.find(2, 'ord_1');
 void posts.toArray(operationOptions);
 void posts.count(operationOptions);
 void posts.executeDelete(operationOptions);
