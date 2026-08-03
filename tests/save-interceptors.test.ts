@@ -16,20 +16,23 @@ class TestContext extends DbContext {
 
     public static createWith(
         connection: RecordingDatabaseConnection,
-        interceptor: SaveChangesInterceptor,
+        ...interceptors: readonly SaveChangesInterceptor[]
     ): TestContext {
-        return TestContext.create(connection, interceptor);
+        return TestContext.create(connection, interceptors);
     }
 
     constructor(
         private readonly connection: RecordingDatabaseConnection,
-        private readonly interceptor: SaveChangesInterceptor,
+        private readonly interceptors: readonly SaveChangesInterceptor[],
     ) {
         super();
     }
 
     protected override configure(options: DbContextOptionsBuilder): void {
-        options.useConnection(this.connection).useSaveInterceptor(this.interceptor);
+        options.useConnection(this.connection);
+        for (const interceptor of this.interceptors) {
+            options.useSaveInterceptor(interceptor);
+        }
     }
 
     protected override model(model: ModelBuilder): void {
@@ -105,6 +108,29 @@ describe('save changes interceptors', () => {
         });
         expect(db.entry(first)?.state).toBe(EntityState.Unchanged);
         expect(db.entry(late)?.state).toBe(EntityState.Unchanged);
+    });
+
+    it('gives each before-save interceptor the plan produced by earlier interceptors', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({ rowCount: 2 });
+        const late = new User({ id: 'usr_2', name: 'Late' });
+        const observedEntityCounts: number[] = [];
+        const db = TestContext.createWith(connection, {
+            savingChanges: () => {
+                db.users.add(late);
+            },
+        }, {
+            savingChanges: event => {
+                observedEntityCounts.push(
+                    event.plan[0]?.affectedEntityCount ?? event.plan.length,
+                );
+            },
+        });
+        db.users.add(new User({ id: 'usr_1', name: 'First' }));
+
+        await db.saveChanges();
+
+        expect(observedEntityCounts).toEqual([2]);
     });
 
     it('runs failure hooks without accepting changes', async () => {

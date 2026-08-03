@@ -17,10 +17,16 @@ export class SaveLifecycle {
         return this.getOptions();
     }
 
-    public async notifySaving(plan: readonly SavePlanEntry[]): Promise<void> {
+    public async notifySaving(
+        initialPlan: readonly SavePlanEntry[],
+        rebuildPlan: () => readonly SavePlanEntry[],
+    ): Promise<readonly SavePlanEntry[]> {
+        let plan = initialPlan;
         for (const interceptor of this.options.saveInterceptors) {
             await interceptor.savingChanges?.({ plan });
+            plan = rebuildPlan();
         }
+        return plan;
     }
 
     public async notifyFailed(plan: readonly SavePlanEntry[], error: unknown): Promise<void> {

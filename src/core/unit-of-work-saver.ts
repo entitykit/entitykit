@@ -41,8 +41,7 @@ export class UnitOfWorkSaver {
         const elapsed = startElapsedTimer();
         let plan: readonly SavePlanEntry[];
         try {
-            await this.lifecycle.notifySaving(previewPlan);
-            plan = rebuildPlan();
+            plan = await this.lifecycle.notifySaving(previewPlan, rebuildPlan);
             this.trackedState.validateVersionValues(plan);
         } catch (error) {
             this.trackedState.restoreSaveTimeWrites();
