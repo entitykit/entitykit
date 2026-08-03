@@ -67,10 +67,13 @@ export abstract class DbContext {
         return this.databaseFacade;
     }
     /** Return the tracked query and mutation gateway for an entity type. */
-    public set<TEntity extends object>(
+    public set<
+        TEntity extends object,
+        TKey extends readonly unknown[] = readonly unknown[],
+    >(
         entityType: EntityConstructor<TEntity>,
-    ): DbSet<TEntity> {
-        return this.contextHost.set(entityType);
+    ): DbSet<TEntity, TKey> {
+        return this.contextHost.set<TEntity, TKey>(entityType);
     }
     /** Return the tracked entry for an entity, or `undefined` when it is not tracked. */
     public entry<TEntity extends object>(

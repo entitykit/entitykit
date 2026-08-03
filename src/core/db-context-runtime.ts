@@ -64,9 +64,12 @@ export abstract class DbContextRuntime {
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.changeTracker.entry(entity)?.useNavigationLoader(this);
     }
-    public set<TEntity extends object>(
+    public set<
+        TEntity extends object,
+        TKey extends readonly unknown[] = readonly unknown[],
+    >(
         entityType: EntityConstructor<TEntity>,
-    ): DbSetContract<TEntity> {
+    ): DbSetContract<TEntity, TKey> {
         const existing = this.state.findSet(entityType);
         if (existing) {
             return existing;

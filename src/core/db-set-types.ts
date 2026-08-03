@@ -12,13 +12,20 @@ export interface UpsertOptions<TEntity extends object> extends DatabaseOperation
 }
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
-export interface DbSet<TEntity extends object> extends Omit<
-    Queryable<TEntity>,
-    'executeDelete' | 'executeUpdate' | 'toDebugSql' | 'toPlan' | 'toSql'
-> {
+export interface DbSet<
+    TEntity extends object,
+    TKey extends readonly unknown[] = readonly unknown[],
+> extends Omit<
+        Queryable<TEntity>,
+        'executeDelete' | 'executeUpdate' | 'toDebugSql' | 'toPlan' | 'toSql'
+    > {
     /** The entity type. */ readonly entityType: EntityConstructor<TEntity>;
-    /** Find by key, optionally followed by cancelable operation options. */ find(...keyValuesAndOptions: readonly unknown[]): Promise<TEntity | null>;
-    /** Find by key or throw, optionally followed by cancelable operation options. */ findOrThrow(...keyValuesAndOptions: readonly unknown[]): Promise<TEntity>;
+    /** Find by key, optionally followed by cancelable operation options. */ find(
+        ...keyValuesAndOptions: [...TKey] | [...TKey, DatabaseOperationOptions]
+    ): Promise<TEntity | null>;
+    /** Find by key or throw, optionally followed by cancelable operation options. */ findOrThrow(
+        ...keyValuesAndOptions: [...TKey] | [...TKey, DatabaseOperationOptions]
+    ): Promise<TEntity>;
     /** Perform the add operation. */ add(entity: TEntity): EntityEntry<TEntity>;
     /** Perform the attach operation. */ attach(entity: TEntity): EntityEntry<TEntity>;
     /** Perform the remove operation. */ remove(entity: TEntity): EntityEntry<TEntity>;
