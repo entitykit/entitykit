@@ -23,6 +23,7 @@ export interface ProjectedQuery<TProjection extends Record<string, unknown>> {
     /** Return the only matching row, `null` for none, or throw for multiple rows. */ singleOrNull(options?: DatabaseOperationOptions): Promise<TProjection | null>;
     /** Return the only matching row, or throw unless exactly one exists. */ single(options?: DatabaseOperationOptions): Promise<TProjection>;
     /** Return the number of matching rows. */ count(options?: DatabaseOperationOptions): Promise<number>;
+    /** Return the number of matching rows without numeric precision loss. */ countBigInt(options?: DatabaseOperationOptions): Promise<bigint>;
     /** Return whether at least one row matches the query. */ exists(options?: DatabaseOperationOptions): Promise<boolean>;
     /** Build parameterized SQL without executing it. */ toSql(): SqlStatement;
     /** Render non-throwing diagnostic SQL with values redacted by default. */ toDebugSql(options?: DebugSqlOptions): string;
@@ -56,7 +57,7 @@ export interface ProjectedQueryable<
 /** Terminal aggregate projection returned by aggregate and grouped queries. */
 export type AggregateProjectedQueryable<
     TProjection extends Record<string, unknown>,
-> = Omit<ProjectedQuery<TProjection>, 'count' | 'exists'>;
+> = Omit<ProjectedQuery<TProjection>, 'count' | 'countBigInt' | 'exists'>;
 
 /** Query stage produced by grouping an entity query. */
 export interface GroupedQueryable<

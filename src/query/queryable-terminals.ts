@@ -85,6 +85,16 @@ export abstract class QueryableTerminals<TEntity extends object> extends Queryab
         return this.executor.executeCount(this.toQueryModel(), options);
     }
 
+    /** Execute a `count(*)` query without narrowing the result to a number. */
+    public async countBigInt(
+        options?: DatabaseOperationOptions,
+    ): Promise<bigint> {
+        if (!this.executor.executeCountBigInt) {
+            throw new ProviderCapabilityError('countBigInt()');
+        }
+        return this.executor.executeCountBigInt(this.toQueryModel(), options);
+    }
+
     /**
    * Execute an `exists` query.
    */

@@ -36,6 +36,7 @@ export interface QueryExecutor<TEntity extends object> {
     executeToArray(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<TEntity[]>;
     executeStream?(model: QueryModel<TEntity>, options?: QueryStreamOptions): AsyncIterable<TEntity>;
     executeCount(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<number>;
+    executeCountBigInt?(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<bigint>;
     executeExists(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<boolean>;
     executeProjectionToArray<TProjection extends Record<string, unknown>>(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<TProjection[]>;
     executeProjectionStream?<TProjection extends Record<string, unknown>>(model: QueryModel<TEntity>, options?: QueryStreamOptions): AsyncIterable<TProjection>;

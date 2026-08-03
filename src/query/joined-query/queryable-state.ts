@@ -8,6 +8,7 @@ import { snapshotJoinedQueryModel } from '../query-model-snapshot';
 import type { JoinedQueryable } from './queryable';
 import { createQueryPlan, type QueryPlan } from '../query-plan';
 import type { DatabaseOperationOptions } from '../../storage/database-connection';
+import { ProviderCapabilityError } from '../../errors/runtime-errors';
 
 export class JoinedQueryableState<
     TRoot extends object,
@@ -22,6 +23,15 @@ export class JoinedQueryableState<
 
     public async count(options?: DatabaseOperationOptions): Promise<number> {
         return this.executor.executeCount(this.toQueryModel(), options);
+    }
+
+    public async countBigInt(
+        options?: DatabaseOperationOptions,
+    ): Promise<bigint> {
+        if (!this.executor.executeCountBigInt) {
+            throw new ProviderCapabilityError('countBigInt()');
+        }
+        return this.executor.executeCountBigInt(this.toQueryModel(), options);
     }
 
     public async exists(options?: DatabaseOperationOptions): Promise<boolean> {

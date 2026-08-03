@@ -21,7 +21,7 @@ describe('compositional query paging SQL', () => {
         await expect(query.exists()).resolves.toBe(true);
         expect(connection.statements).toEqual([
             {
-                text: 'select count(*)::int as "count" from (select 1 from "blog_posts" where "title" like $1 escape \'~\' limit $2 offset $3) "entitykit_page"',
+                text: 'select count(*) as "count" from (select 1 from "blog_posts" where "title" like $1 escape \'~\' limit $2 offset $3) "entitykit_page"',
                 values: ['%EntityKit%', 3, 2],
             },
             {
@@ -48,7 +48,7 @@ describe('compositional query paging SQL', () => {
         await expect(query.exists()).resolves.toBe(false);
         expect(connection.statements).toEqual([
             {
-                text: 'select count(*)::int as "count" from (select 1 from "blog_posts" "root" inner join "authors" "author" on "root"."author_id" = "author"."id" where "author"."status" = $1 limit $2 offset $3) "entitykit_page"',
+                text: 'select count(*) as "count" from (select 1 from "blog_posts" "root" inner join "authors" "author" on "root"."author_id" = "author"."id" where "author"."status" = $1 limit $2 offset $3) "entitykit_page"',
                 values: ['active', 2, 1],
             },
             {

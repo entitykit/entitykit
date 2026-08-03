@@ -120,7 +120,7 @@ describe('SelectSqlBuilder selection and predicates', () => {
         };
 
         expect(new SelectSqlBuilder().buildCount(metadata, query)).toEqual({
-            text: 'select count(*)::int as "count" from "users" where "email" like $1',
+            text: 'select count(*) as "count" from "users" where "email" like $1',
             values: ['%@example.com'],
         });
         expect(new SelectSqlBuilder().buildExists(metadata, query)).toEqual({

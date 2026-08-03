@@ -87,6 +87,15 @@ export abstract class ProjectedQueryTerminals<
         return this.executor.executeCount(this.toQueryModel(), options);
     }
 
+    public async countBigInt(
+        options?: DatabaseOperationOptions,
+    ): Promise<bigint> {
+        if (!this.executor.executeCountBigInt) {
+            throw new ProviderCapabilityError('countBigInt()');
+        }
+        return this.executor.executeCountBigInt(this.toQueryModel(), options);
+    }
+
     public async exists(options?: DatabaseOperationOptions): Promise<boolean> {
         return this.executor.executeExists(this.toQueryModel(), options);
     }

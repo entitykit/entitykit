@@ -64,7 +64,7 @@ describe('joined projection operators and cardinality', () => {
 
         expect(connection.statements).toEqual([
             {
-                text: 'select count(*)::int as "count" from "blog_posts" "root" inner join "authors" "author" on "root"."author_id" = "author"."id" where "author"."status" = $1',
+                text: 'select count(*) as "count" from "blog_posts" "root" inner join "authors" "author" on "root"."author_id" = "author"."id" where "author"."status" = $1',
                 values: ['active'],
             },
             {

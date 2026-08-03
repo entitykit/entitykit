@@ -199,7 +199,7 @@ describe('DbSet query execution', () => {
         });
 
         expect(connection.statements[0]).toEqual({
-            text: 'select count(*)::int as "count" from "users" where "email" like $1',
+            text: 'select count(*) as "count" from "users" where "email" like $1',
             values: ['%@example.com'],
         });
         expect(connection.statements[1]).toEqual({
@@ -220,7 +220,7 @@ describe('DbSet query execution', () => {
 
         expect(connection.statements).toEqual([
             {
-                text: 'select count(*)::int as "count" from "users"',
+                text: 'select count(*) as "count" from "users"',
                 values: [],
             },
             {
@@ -228,5 +228,20 @@ describe('DbSet query execution', () => {
                 values: [],
             },
         ]);
+    });
+
+    it('rejects unsafe numeric counts and exposes exact bigint results', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const unsafeCount = '9007199254740992';
+        connection.queueResult({ rows: [{ count: unsafeCount }], rowCount: 1 });
+        connection.queueResult({ rows: [{ count: unsafeCount }], rowCount: 1 });
+
+        await expect(db.users.count()).rejects.toThrow(
+            'exceeds Number.MAX_SAFE_INTEGER',
+        );
+        await expect(db.users.countBigInt()).resolves.toBe(
+            9007199254740992n,
+        );
     });
 });

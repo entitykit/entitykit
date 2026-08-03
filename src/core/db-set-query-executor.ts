@@ -64,6 +64,13 @@ implements QueryExecutor<TEntity> {
         return this.runner.executeCount(model, options);
     }
 
+    public async executeCountBigInt(
+        model: QueryModel<TEntity>,
+        options?: DatabaseOperationOptions,
+    ): Promise<bigint> {
+        return this.runner.executeCountBigInt(model, options);
+    }
+
     public async executeExists(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<boolean> {
         return this.runner.executeExists(model, options);
     }

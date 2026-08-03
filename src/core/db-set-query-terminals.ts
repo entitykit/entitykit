@@ -94,6 +94,12 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
         return this.query().count(options);
     }
 
+    public async countBigInt(
+        options?: DatabaseOperationOptions,
+    ): Promise<bigint> {
+        return this.query().countBigInt(options);
+    }
+
     public async exists(options?: DatabaseOperationOptions): Promise<boolean> {
         return this.query().exists(options);
     }

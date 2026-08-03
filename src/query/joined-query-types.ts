@@ -43,6 +43,7 @@ export interface JoinedQueryable<
     /** Perform the ignore query filters operation. */ ignoreQueryFilters(): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
     /** Perform the ignore tenant scope operation. */ ignoreTenantScope(): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
     /** Return the number of matching rows. */ count(options?: DatabaseOperationOptions): Promise<number>;
+    /** Return the number of matching rows without numeric precision loss. */ countBigInt(options?: DatabaseOperationOptions): Promise<bigint>;
     /** Return whether at least one row matches the query. */ exists(options?: DatabaseOperationOptions): Promise<boolean>;
     /** Return the versioned, serializable query plan. */ toPlan(): QueryPlan;
     /** Project the current query into a typed read model. */ select<TSelection extends ProjectionSelection>(selector: (

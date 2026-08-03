@@ -60,6 +60,7 @@ export interface Queryable<TEntity extends object> {
     /** Return the only matching row, `null` for none, or throw for multiple rows. */ singleOrNull(options?: DatabaseOperationOptions): Promise<TEntity | null>;
     /** Return the only matching row, or throw unless exactly one exists. */ single(options?: DatabaseOperationOptions): Promise<TEntity>;
     /** Return the number of matching rows. */ count(options?: DatabaseOperationOptions): Promise<number>;
+    /** Return the number of matching rows without numeric precision loss. */ countBigInt(options?: DatabaseOperationOptions): Promise<bigint>;
     /** Return whether at least one row matches the query. */ exists(options?: DatabaseOperationOptions): Promise<boolean>;
     /** Perform the execute update operation. */ executeUpdate(values: EntityUpdateValues<TEntity>, options?: DatabaseOperationOptions): Promise<number>;
     /** Perform the execute delete operation. */ executeDelete(options?: DatabaseOperationOptions): Promise<number>;

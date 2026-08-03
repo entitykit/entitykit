@@ -30,6 +30,7 @@ export type {
     | 'toArray'
     | 'stream'
     | 'count'
+    | 'countBigInt'
     | 'exists'
     | 'projection'
     | 'aggregate'

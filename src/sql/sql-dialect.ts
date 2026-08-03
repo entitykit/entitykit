@@ -79,6 +79,8 @@ export interface SqlDialect extends SchemaSqlDialect {
     /** Perform the quote qualified identifier operation. */ quoteQualifiedIdentifier(...identifiers: ReadonlyArray<string | undefined>): string;
     /** Perform the parameter operation. */ parameter(index: number): string;
     /** Perform the count all expression operation. */ countAllExpression(): string;
+    /** Optional full-width row-count expression for count terminal queries. */
+    countRowsExpression?(): string;
     /** Perform the false predicate operation. */ falsePredicate(): string;
     /**
    * The clause that makes an insert a no-op on a key conflict. `columns` are the

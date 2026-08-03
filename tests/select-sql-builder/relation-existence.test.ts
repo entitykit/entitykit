@@ -17,7 +17,7 @@ describe('SelectSqlBuilder relation existence', () => {
             values: [5],
         });
         expect(new SelectSqlBuilder().buildCount(metadata, query)).toEqual({
-            text: 'select count(*)::int as "count" from (select 1 from "users" "root" where exists(select 1 from "posts" "rel" where "rel"."author_id" = "root"."id") limit $1) "entitykit_page"',
+            text: 'select count(*) as "count" from (select 1 from "users" "root" where exists(select 1 from "posts" "rel" where "rel"."author_id" = "root"."id") limit $1) "entitykit_page"',
             values: [5],
         });
     });
@@ -70,7 +70,7 @@ describe('SelectSqlBuilder relation existence', () => {
             .toQueryModel();
 
         expect(new SelectSqlBuilder().buildCount(metadata, query)).toEqual({
-            text: 'select count(*)::int as "count" from "roles" "root" where not exists(select 1 from "user_roles" "rel_join" join "users" "rel" on "rel_join"."user_id" = "rel"."id" where "rel_join"."role_id" = "root"."id" and "rel"."email" like $1 escape \'~\')',
+            text: 'select count(*) as "count" from "roles" "root" where not exists(select 1 from "user_roles" "rel_join" join "users" "rel" on "rel_join"."user_id" = "rel"."id" where "rel_join"."role_id" = "root"."id" and "rel"."email" like $1 escape \'~\')',
             values: ['%@example.com'],
         });
     });

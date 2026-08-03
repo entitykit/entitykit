@@ -8,11 +8,13 @@ export function buildCountStatement(
     values: readonly unknown[],
     paging: readonly string[] = [],
 ): SqlStatement {
+    const count = dialect.countRowsExpression?.() ??
+        dialect.countAllExpression();
     if (paging.length > 0) {
         const sequence = buildSequence(fromParts, where, paging);
         return {
             text: [
-                `select ${dialect.countAllExpression()} as ${dialect.quoteIdentifier('count')}`,
+                `select ${count} as ${dialect.quoteIdentifier('count')}`,
                 `from (${sequence}) ${dialect.quoteIdentifier('entitykit_page')}`,
             ].join(' '),
             values,
@@ -20,7 +22,7 @@ export function buildCountStatement(
     }
 
     const parts = [
-        `select ${dialect.countAllExpression()} as ${dialect.quoteIdentifier('count')}`,
+        `select ${count} as ${dialect.quoteIdentifier('count')}`,
         ...fromParts,
     ];
     if (where) {

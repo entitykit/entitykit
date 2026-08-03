@@ -74,6 +74,9 @@ import { alterPostgresStoreGeneration, postgresStoreGenerationClause } from './p
     countAllExpression(): string {
         return 'count(*)::int';
     },
+    countRowsExpression(): string {
+        return 'count(*)';
+    },
     falsePredicate(): string {
         return '1 = 0';
     },
