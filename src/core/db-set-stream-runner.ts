@@ -38,54 +38,73 @@ export class DbSetStreamRunner<TEntity extends object> {
         model: QueryModel<TEntity>,
         options?: QueryStreamOptions,
     ): AsyncIterable<TEntity> {
-        const filtered = this.streamModel(model);
-        const shape = this.diagnostics.queryShape('stream', filtered);
-        const statement = this.pipeline.compile('select', filtered, shape);
-        const noTracking = filtered.trackingBehavior === 'noTracking';
-        const rows = this.streamRows(statement, options);
-        const materializer = this.materializer;
-        const metadata = this.metadata;
-        const mapped = mapAsyncIterable(
-            rows,
-            row => noTracking
-                ? materializer.materializeUntracked(metadata, row)
-                : materializer.materialize(
-                    metadata,
-                    row,
-                    this.context.changeTracker,
-                ),
-        );
-        return instrumentDbSetStream(this.diagnostics, shape, mapped);
+        return this.defer(() => {
+            this.context.assertCanQuery('stream()');
+            const filtered = this.streamModel(model);
+            const shape = this.diagnostics.queryShape('stream', filtered);
+            const statement = this.pipeline.compile('select', filtered, shape);
+            const noTracking = filtered.trackingBehavior === 'noTracking';
+            const rows = this.streamRows(statement, options);
+            const materializer = this.materializer;
+            const metadata = this.metadata;
+            const mapped = mapAsyncIterable(
+                rows,
+                row => noTracking
+                    ? materializer.materializeUntracked(metadata, row)
+                    : materializer.materialize(
+                        metadata,
+                        row,
+                        this.context.changeTracker,
+                    ),
+            );
+            return instrumentDbSetStream(this.diagnostics, shape, mapped);
+        });
     }
 
     public executeProjectionStream<TProjection extends Record<string, unknown>>(
         model: QueryModel<TEntity>,
         options?: QueryStreamOptions,
     ): AsyncIterable<TProjection> {
-        const filtered = this.streamModel(model);
-        const shape = this.diagnostics.queryShape('stream', filtered);
-        const statement = this.pipeline.compile('select', filtered, shape);
-        const rows = this.streamRows(statement, options);
-        const mapped = mapAsyncIterable(
-            rows,
-            row => this.resultMapper.materializeProjectionRow(filtered, row) as TProjection,
-        );
-        return instrumentDbSetStream(this.diagnostics, shape, mapped);
+        return this.defer(() => {
+            this.context.assertCanQuery('stream()');
+            const filtered = this.streamModel(model);
+            const shape = this.diagnostics.queryShape('stream', filtered);
+            const statement = this.pipeline.compile('select', filtered, shape);
+            const rows = this.streamRows(statement, options);
+            const mapped = mapAsyncIterable(
+                rows,
+                row => this.resultMapper.materializeProjectionRow(filtered, row) as TProjection,
+            );
+            return instrumentDbSetStream(this.diagnostics, shape, mapped);
+        });
     }
 
     public executeAggregateStream<TProjection extends Record<string, unknown>>(
         model: QueryModel<TEntity>,
         options?: QueryStreamOptions,
     ): AsyncIterable<TProjection> {
-        const filtered = this.streamModel(model);
-        const shape = this.diagnostics.queryShape('stream', filtered);
-        const statement = this.pipeline.compile('aggregate', filtered, shape);
-        const rows = this.streamRows(statement, options);
-        const mapped = mapAsyncIterable(
-            rows,
-            row => this.resultMapper.materializeAggregateRow(filtered, row) as TProjection,
-        );
-        return instrumentDbSetStream(this.diagnostics, shape, mapped);
+        return this.defer(() => {
+            this.context.assertCanQuery('stream()');
+            const filtered = this.streamModel(model);
+            const shape = this.diagnostics.queryShape('stream', filtered);
+            const statement = this.pipeline.compile('aggregate', filtered, shape);
+            const rows = this.streamRows(statement, options);
+            const mapped = mapAsyncIterable(
+                rows,
+                row => this.resultMapper.materializeAggregateRow(filtered, row) as TProjection,
+            );
+            return instrumentDbSetStream(this.diagnostics, shape, mapped);
+        });
+    }
+
+    private defer<TResult>(
+        createRows: () => AsyncIterable<TResult>,
+    ): AsyncIterable<TResult> {
+        return {
+            async *[Symbol.asyncIterator]() {
+                yield* createRows();
+            },
+        };
     }
 
     private streamModel(model: QueryModel<TEntity>): QueryModel<TEntity> {

@@ -264,6 +264,49 @@ describe('query streaming', () => {
         expect(connection.operations).toEqual([]);
     });
 
+    it('rechecks context lifecycle when entity stream iteration begins', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const stream = db.users.stream();
+
+        await db.dispose();
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
+        expect(connection.operations).toEqual([]);
+    });
+
+    it('rechecks context lifecycle when projection stream iteration begins', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const stream = db.users
+            .select(user => ({ email: user.email }))
+            .stream();
+
+        await db.dispose();
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
+        expect(connection.operations).toEqual([]);
+    });
+
+    it('rechecks context lifecycle when aggregate stream iteration begins', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const stream = db.users.aggregate(aggregate => ({
+            total: aggregate.count(),
+        })).stream();
+
+        await db.dispose();
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
+        expect(connection.operations).toEqual([]);
+    });
+
     it('rejects a partial tracked raw row before streaming it', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = createDb(connection);
@@ -280,10 +323,11 @@ describe('query streaming', () => {
         const db = createDb(connection);
 
         const included = db.users.include(user => user.posts);
-        expect(() => (included as unknown as Queryable<StreamUser>).stream())
-            .toThrow(QueryCompilationError);
-        expect(() => db.users.stream({ batchSize: 0 }))
-            .toThrow(/batchSize must be a positive safe integer/);
+        await expect(collect(
+            (included as unknown as Queryable<StreamUser>).stream(),
+        )).rejects.toBeInstanceOf(QueryCompilationError);
+        await expect(collect(db.users.stream({ batchSize: 0 })))
+            .rejects.toThrow(/batchSize must be a positive safe integer/);
 
         const bufferedDb = createDb(new BufferedOnlyConnection());
         await expect(collect(bufferedDb.users.stream()))
