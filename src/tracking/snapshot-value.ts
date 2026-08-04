@@ -1,4 +1,8 @@
 import type { ValueConverter } from '../model/value-converter/converter';
+import {
+    fromProviderValue,
+    toProviderValue,
+} from '../model/value-converter/store-value';
 import { cloneSnapshotValue } from './snapshot-value-clone';
 import { snapshotValuesEqual } from './snapshot-value-equality';
 
@@ -12,8 +16,8 @@ export function snapshotPropertyValue(
         return cloneSnapshotValue(value);
     }
 
-    const providerSnapshot = cloneSnapshotValue(converter.toProvider(value));
-    return converter.fromProvider(providerSnapshot);
+    const providerSnapshot = cloneSnapshotValue(toProviderValue(value, converter));
+    return fromProviderValue(providerSnapshot, converter);
 }
 
 export function snapshotPropertyValuesEqual(
@@ -33,5 +37,5 @@ function comparableValue(
 ): unknown {
     return value === null || value === undefined || !converter
         ? value
-        : converter.toProvider(value);
+        : toProviderValue(value, converter);
 }

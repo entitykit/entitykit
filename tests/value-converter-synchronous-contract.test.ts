@@ -3,6 +3,10 @@ import {
     fromProviderValue,
     toProviderValue,
 } from '../src/model/value-converter';
+import {
+    snapshotPropertyValue,
+    snapshotPropertyValuesEqual,
+} from '../src/tracking/snapshot-value';
 
 describe('value converter synchronous contract', () => {
     it('allows ordinary converted values in both directions', () => {
@@ -52,6 +56,35 @@ describe('value converter synchronous contract', () => {
         expect(() => toProviderValue('value', converter)).toThrow(
             'ValueConverter.toProvider() must be synchronous',
         );
+    });
+
+    it('guards converter calls made while tracking snapshots', () => {
+        const asyncWrite: ValueConverter = {
+            toProvider: async () => {
+                await Promise.resolve();
+                return 'stored:value';
+            },
+            fromProvider: value => value,
+        };
+        const asyncRead: ValueConverter = {
+            toProvider: value => value,
+            fromProvider: async () => {
+                await Promise.resolve();
+                return 'value';
+            },
+        };
+
+        expect(() => snapshotPropertyValue('value', asyncWrite)).toThrow(
+            'ValueConverter.toProvider() must be synchronous',
+        );
+        expect(() => snapshotPropertyValue('value', asyncRead)).toThrow(
+            'ValueConverter.fromProvider() must be synchronous',
+        );
+        expect(() => snapshotPropertyValuesEqual(
+            'value',
+            'value',
+            asyncWrite,
+        )).toThrow('ValueConverter.toProvider() must be synchronous');
     });
 
     it('consumes rejected converter promises', async () => {
