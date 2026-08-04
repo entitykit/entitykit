@@ -1,5 +1,4 @@
 import { createRequire } from 'node:module';
-import type { Readable } from 'node:stream';
 import type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
 import {
     assertNonEmptyMysqlConnectionString,
@@ -34,7 +33,14 @@ export interface MySqlCallbackConnection {
 
 export interface MySqlStreamQuery {
     once(event: 'end' | 'error', listener: (error?: unknown) => void): this;
-    stream(options?: { readonly highWaterMark?: number }): Readable;
+    stream(options?: { readonly highWaterMark?: number }): MySqlReadable;
+}
+
+export interface MySqlReadable {
+    iterator(options: {
+        readonly destroyOnReturn: boolean;
+    }): AsyncIterableIterator<unknown>;
+    resume(): this;
 }
 
 export interface MySqlStreamQueryOptions {
