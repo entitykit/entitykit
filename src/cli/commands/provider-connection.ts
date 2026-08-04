@@ -8,6 +8,7 @@ import type {
     DatabaseProviderConnectionConfig,
     DatabaseProviderServices,
 } from '../../storage/database-provider-services';
+import { assertSynchronousCallbackResult } from '../../synchronous-callback';
 
 type ConnectionConfig = Pick<
     ResolvedEntityKitConfig,
@@ -44,7 +45,13 @@ export function createDatabaseConnection<TConfig extends object>(
     connection: DatabaseProviderConnectionConfig<TConfig>,
 ): ReturnType<ConnectionProvider<TConfig>['createConnection']> {
     try {
-        return provider.createConnection(connection);
+        const created: unknown = provider.createConnection(connection);
+        assertSynchronousCallbackResult(
+            created,
+            `Database provider '${provider.name}' connection factory`,
+            message => new TypeError(message),
+        );
+        return created as ReturnType<ConnectionProvider<TConfig>['createConnection']>;
     } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         throw new Error(
