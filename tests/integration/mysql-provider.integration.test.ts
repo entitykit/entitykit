@@ -129,7 +129,7 @@ maybe('MySQL provider', () => {
         expect(await db.saveChanges()).toBe(rows);
         db.changeTracker.clear();
         expect(await db.values.count()).toBe(rows);
-    });
+    }, 60_000);
 
     it('upserts, inserting what is missing and overwriting what is not', async () => {
         await db.values.upsert([value('u1', { score: 1 }), value('u2', { score: 2 })]);
