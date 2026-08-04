@@ -10,6 +10,8 @@ import { attachLazyLoader } from './lazy-loading';
 import type { LazyNavigationCoordinator } from './lazy-navigation-coordinator';
 import type { DbContextState } from './db-context-state';
 import { configureChangeTrackerModel } from '../tracking/change-tracker-model';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
+import { ModelValidationError } from '../errors/model-validation-error';
 
 /**
  * The one-time construction of a `DbContext`'s configuration: run the derived
@@ -27,14 +29,24 @@ export interface DbContextBootstrap {
 }
 
 export function bootstrapDbContext(
-    configure: (builder: DbContextOptionsBuilder) => void,
-    buildModel: (builder: ModelBuilder) => void,
+    configure: (builder: DbContextOptionsBuilder) => unknown,
+    buildModel: (builder: ModelBuilder) => unknown,
 ): DbContextBootstrap {
     const optionsBuilder = new DbContextOptionsBuilder();
-    configure(optionsBuilder);
+    assertSynchronousCallbackResult(
+        configure(optionsBuilder),
+        'DbContext.configure()',
+        message => new Error(message),
+    );
 
     const modelBuilder = new ModelBuilder();
-    buildModel(modelBuilder);
+    assertSynchronousCallbackResult(
+        buildModel(modelBuilder),
+        'DbContext.model()',
+        message => new ModelValidationError(message, {
+            contractViolation: 'asyncContextModel',
+        }),
+    );
     const model = modelBuilder.build();
 
     assertTenantScopeConfigured(hasConfiguredTenantScope(optionsBuilder), model);
@@ -46,8 +58,8 @@ export function initializeDbContext(
     state: DbContextState,
     changeTracker: ChangeTracker,
     lazyNavigation: LazyNavigationCoordinator,
-    configure: (builder: DbContextOptionsBuilder) => void,
-    buildModel: (builder: ModelBuilder) => void,
+    configure: (builder: DbContextOptionsBuilder) => unknown,
+    buildModel: (builder: ModelBuilder) => unknown,
 ): void {
     if (state.initialized) {
         return;

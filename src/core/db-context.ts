@@ -30,12 +30,8 @@ export abstract class DbContext {
 
     constructor() {
         this.contextHost = new DbContextHost(
-            options => {
-                this.configure(options);
-            },
-            model => {
-                this.model(model);
-            },
+            options => this.configure(options),
+            model => this.model(model),
         );
         registerContextMigrationHost(this, this.contextHost);
     }
@@ -49,12 +45,14 @@ export abstract class DbContext {
         return context;
     }
     /** Configure the database provider and production options for this context. */
-    protected configure(options: DbContextOptionsBuilder): void {
+    protected configure(options: DbContextOptionsBuilder): unknown {
         void options;
+        return undefined;
     }
     /** Configure mapped entity types for this context. */
-    protected model(model: ModelBuilder): void {
+    protected model(model: ModelBuilder): unknown {
         void model;
+        return undefined;
     }
     /** Inspect and manage entities tracked by this context. */
     public get changeTracker(): ChangeTracker {

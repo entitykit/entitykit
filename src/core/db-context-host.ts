@@ -6,8 +6,8 @@ import type { DatabaseConnection } from '../storage/database-connection';
 /** Internal runtime host behind the application-facing DbContext class. */
 export class DbContextHost extends DbContextUnitOfWork {
     constructor(
-        private readonly configureOwner: (options: DbContextOptionsBuilder) => void,
-        private readonly modelOwner: (model: ModelBuilder) => void,
+        private readonly configureOwner: (options: DbContextOptionsBuilder) => unknown,
+        private readonly modelOwner: (model: ModelBuilder) => unknown,
     ) {
         super();
     }
@@ -20,11 +20,11 @@ export class DbContextHost extends DbContextUnitOfWork {
         this.initialize();
     }
 
-    protected override configure(options: DbContextOptionsBuilder): void {
-        this.configureOwner(options);
+    protected override configure(options: DbContextOptionsBuilder): unknown {
+        return this.configureOwner(options);
     }
 
-    protected override model(model: ModelBuilder): void {
-        this.modelOwner(model);
+    protected override model(model: ModelBuilder): unknown {
+        return this.modelOwner(model);
     }
 }

@@ -52,11 +52,13 @@ export abstract class DbContextRuntime {
         this.ensureInitialized();
         return this.state.model;
     }
-    protected configure(options: DbContextOptionsBuilder): void {
+    protected configure(options: DbContextOptionsBuilder): unknown {
         void options;
+        return undefined;
     }
-    protected model(model: ModelBuilder): void {
+    protected model(model: ModelBuilder): unknown {
         void model;
+        return undefined;
     }
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.changeTracker.entry(entity)?.useNavigationLoader(this);
