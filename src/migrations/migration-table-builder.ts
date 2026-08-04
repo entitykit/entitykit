@@ -1,5 +1,7 @@
 import { MigrationColumnBuilder } from './migration-column-builder';
 import type { MigrationColumnDefinition, MutableMigrationColumnDefinition } from './migration-builder-types';
+import { MigrationError } from '../errors/migration-errors';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
 
 /**
  * WHY: Owns the fluent table DSL used by `MigrationBuilder.createTable` — it
@@ -33,6 +35,17 @@ export class MigrationTableBuilder {
 
 export function collectTableColumns(callback: MigrationTableCallback): readonly MigrationColumnDefinition[] {
     const table = new MigrationTableBuilder();
-    callback(table);
+    // The public void contract hides values that JavaScript still returns.
+    // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+    const result: unknown = callback(table);
+    assertSynchronousCallbackResult(
+        result,
+        'Migration createTable() callback',
+        message => new MigrationError(message, {
+            details: {
+                contractViolation: 'asyncMigrationTableDefinition',
+            },
+        }),
+    );
     return table.build();
 }

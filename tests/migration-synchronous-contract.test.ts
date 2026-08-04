@@ -48,6 +48,20 @@ class AsyncDownMigration extends Migration {
     }
 }
 
+class AsyncTableCallbackMigration extends Migration {
+    public readonly id = '20260804170300_AsyncTableCallback';
+    public readonly name = 'AsyncTableCallback';
+
+    public override up(builder: MigrationBuilder): void {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        builder.createTable('async_table_users', async table => {
+            table.column('id', 'text').primaryKey();
+            await Promise.resolve();
+            table.column('name', 'text').notNull();
+        });
+    }
+}
+
 describe('migration synchronous callback contract', () => {
     it('rejects async up before executing DDL or writing history', async () => {
         const connection = connectionForRejectedDefinition();
@@ -99,6 +113,21 @@ describe('migration synchronous callback contract', () => {
             .toThrow('Migration \'20260804170000_AsyncUp\' up() must be synchronous');
         expect(() => migrationChecksum(new AsyncDownMigration()))
             .toThrow('Migration \'20260804170200_AsyncDown\' down() must be synchronous');
+    });
+
+    it('rejects async table callbacks before migration execution', async () => {
+        const connection = connectionForRejectedDefinition();
+
+        await expect(new MigrationRunner(connection).apply(
+            new AsyncTableCallbackMigration(),
+        )).rejects.toMatchObject({
+            name: 'MigrationError',
+            details: {
+                contractViolation: 'asyncMigrationTableDefinition',
+            },
+        });
+
+        expectOnlyLockStatements(connection);
     });
 });
 
