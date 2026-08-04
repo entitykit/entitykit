@@ -1,4 +1,5 @@
 import type { ValueConverter } from './converter';
+import { assertSynchronousCallbackResult } from '../../synchronous-callback';
 
 export function toProviderValue<TProperty>(
     value: TProperty,
@@ -8,7 +9,13 @@ export function toProviderValue<TProperty>(
         return value;
     }
 
-    return converter.toProvider(value);
+    const converted = converter.toProvider(value);
+    assertSynchronousCallbackResult(
+        converted,
+        'ValueConverter.toProvider()',
+        message => new TypeError(message),
+    );
+    return converted;
 }
 
 export function toStoreValue<TProperty>(
@@ -37,5 +44,11 @@ export function fromProviderValue<TProperty>(
         return value;
     }
 
-    return converter.fromProvider(value);
+    const converted = converter.fromProvider(value);
+    assertSynchronousCallbackResult(
+        converted,
+        'ValueConverter.fromProvider()',
+        message => new TypeError(message),
+    );
+    return converted;
 }
