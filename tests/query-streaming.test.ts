@@ -244,6 +244,17 @@ describe('query streaming', () => {
         expect(connection.operations).toEqual([]);
     });
 
+    it('rejects a partial tracked raw row before streaming it', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        connection.queueResult({ rows: [{ id: 'user_1' }] });
+
+        await expect(collect(
+            db.users.fromSql`select id from stream_users`.stream(),
+        )).rejects.toBeInstanceOf(QueryCompilationError);
+        expect(db.changeTracker.entries()).toEqual([]);
+    });
+
     it('rejects includes, invalid batches, and providers without streaming', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = createDb(connection);

@@ -11,6 +11,7 @@ import {
     singleResultOrNull,
 } from './query-cardinality';
 import type { RawSqlQueryHost } from './raw-sql-query-host';
+import { assertTrackedRawSqlRows } from './raw-sql-result-shape';
 import { streamRawSqlEntities } from './raw-sql-stream';
 
 interface RawSqlQueryOptions {
@@ -27,7 +28,6 @@ const defaultOptions: RawSqlQueryOptions = {
 
 export class RawSqlQueryable<TEntity extends object> {
     private readonly materializer: Materializer;
-
     constructor(
         private readonly metadata: EntityMetadata<TEntity>,
         private readonly host: RawSqlQueryHost,
@@ -47,6 +47,9 @@ export class RawSqlQueryable<TEntity extends object> {
             ? new ChangeTracker()
             : this.host.changeTracker;
         try {
+            if (!this.options.noTracking) {
+                assertTrackedRawSqlRows(this.metadata, result.rows);
+            }
             return this.materializer.materializeMany(
                 this.metadata,
                 result.rows,
@@ -85,7 +88,6 @@ export class RawSqlQueryable<TEntity extends object> {
     public ignoreTenantScope(): RawSqlQueryable<TEntity> {
         return this.with({ ignoreTenantScope: true });
     }
-
     public async firstOrNull(options?: DatabaseOperationOptions): Promise<TEntity | null> {
         const rows = await this.toArray(options);
         return firstResultOrNull(rows);
