@@ -45,6 +45,14 @@ async function open(): Promise<LifecycleDbContext> {
     return db;
 }
 
+async function collect<T>(rows: AsyncIterable<T>): Promise<T[]> {
+    const values: T[] = [];
+    for await (const row of rows) {
+        values.push(row);
+    }
+    return values;
+}
+
 describe('context lifecycle', () => {
     it('disposes idempotently', async () => {
     // Disposal is usually written in a `finally`, so a path that also disposes
@@ -73,6 +81,43 @@ describe('context lifecycle', () => {
             code: 'CONTEXT_DISPOSED',
             name: ContextDisposedError.name,
         });
+    });
+
+    it('rejects a deferred entity stream after owned connection disposal', async () => {
+        const db = await open();
+        const stream = db.rows.stream();
+
+        await db.dispose();
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
+    });
+
+    it('rejects a deferred projection stream after owned connection disposal', async () => {
+        const db = await open();
+        const stream = db.rows
+            .select(row => ({ label: row.label }))
+            .stream();
+
+        await db.dispose();
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
+    });
+
+    it('rejects a deferred aggregate stream after owned connection disposal', async () => {
+        const db = await open();
+        const stream = db.rows.aggregate(aggregate => ({
+            total: aggregate.count(),
+        })).stream();
+
+        await db.dispose();
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
     });
 
     it('refuses to return a tracked find result after disposal', async () => {
