@@ -13,6 +13,7 @@ import {
     validateProviderServices,
 } from '../../storage/database-provider-validation';
 import type { ProviderOptions } from './db-context-option-types';
+import { assertSynchronousCallbackResult } from '../../synchronous-callback';
 
 export interface ConfiguredProvider {
     readonly provider: ProviderOptions;
@@ -89,7 +90,16 @@ export class ProviderSelection {
         ) {
             throw new Error('DbContextOptionsBuilder must configure a database provider.');
         }
-        const connection = this.connection ?? this.connectionFactory?.();
+        let connection = this.connection;
+        if (!connection && this.connectionFactory) {
+            const created: unknown = this.connectionFactory();
+            assertSynchronousCallbackResult(
+                created,
+                `Database provider '${this.provider.provider}' connection factory`,
+                message => new TypeError(message),
+            );
+            connection = created as DatabaseConnection;
+        }
         if (!connection) {
             throw new Error('The configured database provider did not create a connection.');
         }

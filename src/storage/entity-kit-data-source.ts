@@ -20,6 +20,7 @@ import type {
     EntityKitDataSourceOptions,
 } from './entity-kit-data-source-types';
 import { isTransactionOutcomeUnknown } from './transaction-outcome';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
 
 export type {
     EntityKitContextFactory,
@@ -57,14 +58,26 @@ class EntityKitDataSourceImplementation<
             ? (error: unknown): boolean => provider.isTransientError?.(error) ?? false
             : undefined;
         this.retryPolicy = resolveRetryPolicy(options.retry, providerClassifier);
-        this.source = provider.createDataSource?.(config) ?? {
+        const createdSource: unknown = provider.createDataSource?.(config);
+        assertSynchronousCallbackResult(
+            createdSource,
+            `Database provider '${provider.name}' data-source factory`,
+            message => new TypeError(message),
+        );
+        this.source = createdSource as DatabaseConnectionSource | undefined ?? {
             createConnection: () => provider.createConnection(config),
         };
     }
 
     public createConnection(): DatabaseConnection {
         this.assertActive();
-        const connection = this.source.createConnection();
+        const created: unknown = this.source.createConnection();
+        assertSynchronousCallbackResult(
+            created,
+            `Database data source '${this.providerName}' connection factory`,
+            message => new TypeError(message),
+        );
+        const connection = created as DatabaseConnection;
         this.activeLeases += 1;
         return new DataSourceConnectionLease(connection, () => {
             this.activeLeases -= 1;
