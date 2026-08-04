@@ -11,6 +11,7 @@ import {
     registerSavePlanExecution,
 } from '../save-plan-execution';
 import { capturePersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
+import { maxParameterBatchSize } from './parameter-batch-size';
 
 /** Maximum rows that fit in one provider-legal multi-row insert statement. */
 export function maxInsertBatchSize(
@@ -23,17 +24,12 @@ export function maxInsertBatchSize(
         // correlate returned values to input rows without relying on row order.
         return 1;
     }
-    const limit = dialect.maxStatementParameters?.();
-    if (limit === undefined) {
-        return Number.POSITIVE_INFINITY;
-    }
-
     const parametersPerRow = Math.max(
         metadata.properties.filter(property =>
             !isGeneratedOnAdd(property.valueGenerated)).length,
         1,
     );
-    return Math.max(Math.floor(limit / parametersPerRow), 1);
+    return maxParameterBatchSize(dialect, parametersPerRow);
 }
 
 /** Build one save-plan entry from a non-empty group of compatible inserts. */
