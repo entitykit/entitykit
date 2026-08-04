@@ -4,6 +4,7 @@ import type {
 import {
     fromProviderValue,
 } from '../model/value-converter/store-value';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
 
 /**
  * Provider-owned read-side value mapping.
@@ -41,9 +42,15 @@ export interface StoreValueProperty {
  * read path — materialization, projections, and aggregates — stays consistent.
  */
 export function readStoreValue(value: unknown, property: StoreValueProperty, reader?: StoreValueReader): unknown {
-    const stored = reader && value !== null && value !== undefined
-        ? reader.readValue(value, property.columnType)
-        : value;
+    let stored = value;
+    if (reader && value !== null && value !== undefined) {
+        stored = reader.readValue(value, property.columnType);
+        assertSynchronousCallbackResult(
+            stored,
+            'StoreValueReader.readValue()',
+            message => new TypeError(message),
+        );
+    }
 
     return fromProviderValue(stored, property.converter as ValueConverter | undefined);
 }
