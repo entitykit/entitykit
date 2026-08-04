@@ -72,6 +72,25 @@ describe('production provider configuration', () => {
         expect(onPoolError).toHaveBeenCalledWith(poolError);
     });
 
+    it('detaches asynchronous Postgres pool error rejection', async () => {
+        let observerFinished = false;
+        new PostgresDatabaseConnection({
+            connectionString: 'postgres://localhost/entitykit',
+            pool: {
+                onError: async () => {
+                    await Promise.resolve();
+                    observerFinished = true;
+                    throw new Error('async pool observer failed');
+                },
+            },
+        });
+
+        pgPool().errorListener?.(new Error('idle client failed'));
+        await new Promise<void>(resolve => setImmediate(resolve));
+
+        expect(observerFinished).toBe(true);
+    });
+
     it('maps MySQL pool settings and applies a per-command timeout', async () => {
         const connection = new MySqlDatabaseConnection({
             host: 'mysql.internal',
