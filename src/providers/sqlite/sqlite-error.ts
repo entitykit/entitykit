@@ -20,6 +20,9 @@ import { DatabaseProviderError, type DatabaseProviderOperation } from '../../sto
  * what went wrong.
  */
 export function sqliteError(operation: DatabaseProviderOperation, cause: unknown, statement?: SqlStatement): DatabaseProviderError {
+    if (cause instanceof DatabaseProviderError) {
+        return cause;
+    }
     const record = cause && typeof cause === 'object'
         ? cause as { code?: unknown; errcode?: unknown; message?: unknown }
         : {};
