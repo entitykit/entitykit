@@ -4,6 +4,9 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
+const packageManifest = JSON.parse(
+  fs.readFileSync(path.join(root, 'package.json'), 'utf8'),
+);
 const npmCli = process.env.npm_execpath;
 if (!npmCli) {
   throw new Error('check:package must run through npm.');
@@ -52,21 +55,43 @@ function assertTarballFiles(pack) {
       || file.startsWith('dogfood/')),
     'Packed artifact contains source, tests, or dogfood files.',
   );
+  assert(
+    ![...files].some(([file]) => file.endsWith('.map')),
+    'Packed artifact contains source maps without their source files.',
+  );
   const cli = files.get('dist/cli/index.js');
   assert(Boolean(cli && (cli.mode & 0o111) !== 0), 'Packed CLI is not executable.');
+}
+
+function runPackagedCli(project) {
+  const binary = path.join(
+    project,
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? 'entitykit.cmd' : 'entitykit',
+  );
+  if (process.platform !== 'win32') {
+    return run(binary, ['--version', '--json'], {
+      cwd: project,
+      capture: true,
+    });
+  }
+  const command = `"${binary}" --version --json`;
+  return run(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', command], {
+    cwd: project,
+    capture: true,
+  });
 }
 
 const temporaryRoot = fs.mkdtempSync(
   path.join(os.tmpdir(), 'entitykit-package-check-'),
 );
 try {
-  run(process.execPath, [path.join(root, 'scripts', 'build-package.js')]);
-
   const artifacts = path.join(temporaryRoot, 'artifacts');
   const npmCache = path.join(temporaryRoot, 'npm-cache');
   fs.mkdirSync(artifacts);
   const packResult = JSON.parse(runNpm([
-    'pack', '--json', '--ignore-scripts',
+    'pack', '--json',
     '--pack-destination', artifacts,
     '--cache', npmCache,
   ], { capture: true }));
@@ -91,14 +116,13 @@ try {
     '-p', path.join(project, 'tsconfig.json'),
   ], { cwd: project });
   run(process.execPath, [path.join(project, 'runtime.cjs')], { cwd: project });
+  run(process.execPath, [path.join(project, 'runtime.mjs')], { cwd: project });
 
-  const cliOutput = run(process.execPath, [
-    path.join(project, 'node_modules', 'entitykit', 'dist', 'cli', 'index.js'),
-    '--version', '--json',
-  ], { cwd: project, capture: true });
+  const cliOutput = runPackagedCli(project);
   const cliResult = JSON.parse(cliOutput);
   assert(
-    cliResult.data?.version === '0.1.0-alpha.1' && cliResult.exitCode === 0,
+    cliResult.data?.version === packageManifest.version
+      && cliResult.exitCode === 0,
     'Packaged CLI did not report the installed package version.',
   );
 

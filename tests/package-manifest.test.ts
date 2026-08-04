@@ -45,6 +45,7 @@ describe('package manifest', () => {
         expect(manifest.scripts).toMatchObject({
             build: 'node scripts/build-package.js',
             'check:package': 'node scripts/check-package.js',
+            prepack: 'npm run build',
         });
         expect(manifest.peerDependenciesMeta).toEqual({
             mysql2: { optional: true },
