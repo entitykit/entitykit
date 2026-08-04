@@ -11,6 +11,8 @@ import type {
     ComplexPropertyBuilder,
     ComplexPropertyOptions,
 } from './complex-property-builder-types';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
+import { ModelValidationError } from '../errors/model-validation-error';
 
 export interface ComplexPropertyRegistry<TEntity extends object> {
     propertyAtPath<TProperty>(
@@ -84,7 +86,14 @@ class ComplexPropertyBuilderImplementation<
             configuredComplexConstructor(options),
             options?.required,
         );
-        callback?.(builder);
+        const result: unknown = callback?.(builder);
+        assertSynchronousCallbackResult(
+            result,
+            'ComplexPropertyBuilder.complexProperty() callback',
+            message => new ModelValidationError(message, {
+                contractViolation: 'asyncNestedComplexPropertyConfiguration',
+            }),
+        );
         return builder;
     }
 

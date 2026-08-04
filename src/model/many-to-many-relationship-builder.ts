@@ -6,6 +6,8 @@ import type {
     ManyToManyJoinTableBuilder,
     ManyToManyRelationshipBuilder,
 } from './relationship-builder-types';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
+import { ModelValidationError } from '../errors/model-validation-error';
 
 export class ManyToManyRelationshipBuilderImplementation<
     TEntity extends object,
@@ -24,7 +26,18 @@ export class ManyToManyRelationshipBuilderImplementation<
     ): this {
         this.metadata.joinTableName = tableName;
         if (configure) {
-            configure(new ManyToManyJoinTableBuilderImplementation(this.metadata));
+            // The public void contract hides values that JavaScript still returns.
+            // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+            const result: unknown = configure(
+                new ManyToManyJoinTableBuilderImplementation(this.metadata),
+            );
+            assertSynchronousCallbackResult(
+                result,
+                'ManyToManyRelationshipBuilder.usingJoinTable() callback',
+                message => new ModelValidationError(message, {
+                    contractViolation: 'asyncJoinTableConfiguration',
+                }),
+            );
         }
         return this;
     }

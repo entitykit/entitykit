@@ -6,6 +6,8 @@ import type {
     ComplexPropertyBuilder,
     ComplexPropertyOptions,
 } from '../complex-property-builder-types';
+import { assertSynchronousCallbackResult } from '../../synchronous-callback';
+import { ModelValidationError } from '../../errors/model-validation-error';
 
 export class EntityPropertyConfiguration<TEntity extends object>
     extends EntityBuilderBase<TEntity> {
@@ -50,7 +52,14 @@ export class EntityPropertyConfiguration<TEntity extends object>
             selector,
             options,
         );
-        callback?.(builder);
+        const result: unknown = callback?.(builder);
+        assertSynchronousCallbackResult(
+            result,
+            'EntityBuilder.complexProperty() callback',
+            message => new ModelValidationError(message, {
+                contractViolation: 'asyncComplexPropertyConfiguration',
+            }),
+        );
         return builder;
     }
 
