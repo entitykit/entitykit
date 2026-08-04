@@ -6,7 +6,10 @@ import type {
 import type { PersistedValueLookup } from '../save-plan-execution';
 import type { EntityEntry } from '../../tracking/entity-entry';
 import { cloneSnapshotValue } from '../../tracking/entity-entry';
-import { readSynchronousDate } from '../../synchronous-value';
+import {
+    readSynchronousDate,
+    readSynchronousValue,
+} from '../../synchronous-value';
 
 export interface PendingOutboxMessage {
     readonly entity: object;
@@ -32,9 +35,18 @@ export function collectPendingOutboxMessages(
 ): PendingOutboxMessage[] {
     const messages: PendingOutboxMessage[] = [];
     for (const entry of options.entries) {
+        const collectedEvents = readSynchronousValue(
+            () => options.outbox.collectEvents(entry.entity),
+            'The outbox collectEvents callback',
+        );
+        if (!Array.isArray(collectedEvents)) {
+            throw new TypeError(
+                'The outbox collectEvents callback must return an array.',
+            );
+        }
         const events = options.eventTracker.pending(
             entry.entity,
-            options.outbox.collectEvents(entry.entity),
+            collectedEvents,
         );
         for (const event of events) {
             messages.push({

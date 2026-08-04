@@ -14,14 +14,23 @@ class ClockAggregate {
 class OutboxClockContext extends DbContext {
     public aggregates = this.set(ClockAggregate);
 
-    constructor(private readonly connection: RecordingDatabaseConnection) {
+    constructor(
+        private readonly connection: RecordingDatabaseConnection,
+        private readonly collectEvents: (
+            entity: object,
+        ) => readonly OutboxMessage[] = entity => (entity as ClockAggregate).events,
+        private readonly now: () => Date = (async () => {
+            await Promise.resolve();
+            return new Date('2026-08-04T12:00:00.000Z');
+        }) as unknown as () => Date,
+    ) {
         super();
     }
 
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useConnection(this.connection);
         options.useOutbox({
-            collectEvents: entity => (entity as ClockAggregate).events,
+            collectEvents: this.collectEvents,
             clearEvents: (entity, persisted) => {
                 const aggregate = entity as ClockAggregate;
                 for (const event of persisted) {
@@ -29,10 +38,7 @@ class OutboxClockContext extends DbContext {
                     if (index >= 0) aggregate.events.splice(index, 1);
                 }
             },
-            now: (async () => {
-                await Promise.resolve();
-                return new Date('2026-08-04T12:00:00.000Z');
-            }) as unknown as () => Date,
+            now: this.now,
         });
     }
 
@@ -63,4 +69,42 @@ describe('outbox clock synchronous contract', () => {
         expect(db.entry(aggregate)?.state).toBe(EntityState.Added);
         expect(aggregate.events).toHaveLength(1);
     });
+
+    it.each(['resolve', 'reject'] as const)(
+        'rejects a %s promise from the event collector before executing statements',
+        async mode => {
+            const connection = new RecordingDatabaseConnection();
+            const collectEvents = (async (entity: object): Promise<readonly OutboxMessage[]> => {
+                await Promise.resolve();
+                if (mode === 'reject') throw new Error('collector failed');
+                return (entity as ClockAggregate).events;
+            }) as unknown as (entity: object) => readonly OutboxMessage[];
+            const db = OutboxClockContext.create(
+                connection,
+                collectEvents,
+                () => new Date('2026-08-04T12:00:00.000Z'),
+            );
+            const aggregate = Object.assign(new ClockAggregate(), { id: `aggregate_${mode}` });
+            aggregate.events.push({ type: 'Created', payload: { id: aggregate.id } });
+            db.aggregates.add(aggregate);
+            const unhandled: unknown[] = [];
+            const observeUnhandled = (reason: unknown): void => {
+                unhandled.push(reason);
+            };
+            process.on('unhandledRejection', observeUnhandled);
+            try {
+                await expect(db.saveChanges()).rejects.toThrow(
+                    'The outbox collectEvents callback must be synchronous',
+                );
+                await new Promise<void>(resolve => setImmediate(resolve));
+
+                expect(connection.statements).toEqual([]);
+                expect(db.entry(aggregate)?.state).toBe(EntityState.Added);
+                expect(aggregate.events).toHaveLength(1);
+                expect(unhandled).toEqual([]);
+            } finally {
+                process.off('unhandledRejection', observeUnhandled);
+            }
+        },
+    );
 });
