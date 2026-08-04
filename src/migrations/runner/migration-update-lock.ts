@@ -35,8 +35,7 @@ export class MigrationUpdateLock {
         await this.diagnostics.runLock('lockAcquire', async () => {
             const result = await this.database.query(acquireStatement, options);
             this.dialect.validateMigrationLockAcquired?.(result);
-            // Set inside the diagnostic wrapper: a user handler can throw after the
-            // database acquired the lock, and cleanup must still run.
+            // Record ownership before emitting the successful acquisition event.
             this.acquired = true;
         });
     }

@@ -120,6 +120,32 @@ describe('migration update apply and rollback', () => {
         ]);
     });
 
+    it('keeps a committed migration successful when its diagnostic handler throws', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult();
+        connection.queueResult();
+        connection.queueResult();
+        connection.queueResult({ rows: [] });
+        connection.queueResult();
+        connection.queueResult({ rowCount: 1 });
+        connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
+
+        await expect(new MigrationRunner(
+            connection,
+            postgresMigrationDialect,
+            undefined,
+            {
+                diagnostics: [() => {
+                    throw new Error('diagnostic failed');
+                }],
+            },
+        ).update([new CreateUsers()])).resolves.toMatchObject({
+            appliedMigrations: ['up:20260601120000_CreateUsers'],
+        });
+
+        expect(connection.transactionEvents).toEqual(['begin', 'commit']);
+    });
+
     it('rolls back applied migrations when targeting an earlier migration', async () => {
         const createUsers = new CreateUsers();
         const addPosts = new AddPosts();

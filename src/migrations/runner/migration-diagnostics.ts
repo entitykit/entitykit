@@ -4,6 +4,7 @@ import type {
 import type { MigrationSqlDialect } from '../migration-sql-dialect';
 import type { MigrationRunnerDiagnosticsOptions } from './migration-runner-options';
 import { startElapsedTimer } from '../../diagnostics/runtime/elapsed-time';
+import { invokeDetachedObserver } from '../../diagnostics/detached-observer';
 
 export class MigrationDiagnostics {
     constructor(
@@ -38,7 +39,9 @@ export class MigrationDiagnostics {
         };
 
         for (const handler of handlers) {
-            handler(diagnostic);
+            invokeDetachedObserver(
+                (): void | Promise<void> => handler(diagnostic),
+            );
         }
     }
 }

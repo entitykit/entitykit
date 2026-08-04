@@ -7,11 +7,13 @@ import {
 import { CreateUsers, migrationDiagnostics, migrationEvents, RecordingDatabaseConnection } from './support';
 
 describe('migration update lock failures', () => {
-    it('releases an acquired lock when its diagnostic handler throws', async () => {
+    it('ignores a diagnostic handler that throws after lock acquisition', async () => {
         const connection = new RecordingDatabaseConnection();
         const failure = new Error('diagnostic failed');
         connection.queueResult();
         connection.queueResult();
+        connection.queueResult();
+        connection.queueResult({ rows: [] });
         connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
 
         await expect(new MigrationRunner(
@@ -29,11 +31,13 @@ describe('migration update lock failures', () => {
                     }
                 }],
             },
-        ).update([])).rejects.toBe(failure);
+        ).update([])).resolves.toMatchObject({ appliedMigrations: [] });
 
         expect(connection.statements.map(statement => statement.text)).toEqual([
             stringContaining('create table if not exists'),
             'select pg_advisory_lock(hashtext($1))',
+            stringContaining('create table if not exists'),
+            stringContaining('select "id", "name", "checksum"'),
             'select pg_advisory_unlock(hashtext($1))',
         ]);
         expect(connection.sessionEvents).toEqual(['start', 'end']);

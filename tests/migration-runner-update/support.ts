@@ -126,7 +126,9 @@ export function migrationDiagnostics(): {
         events,
         options: {
             provider: 'postgres',
-            diagnostics: [event => events.push(event)],
+            diagnostics: [event => {
+                events.push(event);
+            }],
         },
     };
 }

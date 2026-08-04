@@ -6,7 +6,7 @@ import type { DatabaseOperationOptions } from '../../storage/database-connection
 /** Receives migration-only diagnostics from a standalone runner. */
 export type MigrationDiagnosticsHandler = (
     event: MigrationDiagnosticEvent,
-) => void;
+) => void | Promise<void>;
 
 /** Options shared by apply, revert, history, and update operations. */
 export type MigrationOperationOptions = DatabaseOperationOptions;
