@@ -117,10 +117,7 @@ export abstract class DbContextRuntime {
         }
     }
     protected currentAuditTimestamp(): Date {
-        return readSynchronousDate(
-            this.options.auditing?.now,
-            'The audit clock',
-        ) ?? new Date();
+        return readSynchronousDate(this.options.auditing?.now, 'The audit clock') ?? new Date();
     }
     protected currentAuditUserId(): unknown {
         return readSynchronousScopeValue(this.options.auditing?.currentUserId,

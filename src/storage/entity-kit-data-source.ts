@@ -4,7 +4,10 @@ import type {
     DatabaseProviderConnectionConfig,
     DatabaseProviderServices,
 } from './database-provider-services';
-import { DataSourceConnectionLease } from './data-source-connection-lease';
+import {
+    createDataSourceConnectionLease,
+    resolveDataSourceConnectionSource,
+} from './data-source-connection-factory';
 import {
     abortableDelay,
     evaluateRetryDecision,
@@ -21,13 +24,8 @@ import type {
     EntityKitDataSourceOptions,
 } from './entity-kit-data-source-types';
 import { isTransactionOutcomeUnknown } from './transaction-outcome';
-import { assertSynchronousCallbackResult } from '../synchronous-callback';
 
-export type {
-    EntityKitContextFactory,
-    EntityKitDataSource,
-    EntityKitDataSourceOptions,
-} from './entity-kit-data-source-types';
+export type { EntityKitContextFactory, EntityKitDataSource, EntityKitDataSourceOptions } from './entity-kit-data-source-types';
 
 class EntityKitDataSourceImplementation<
     TConfig extends object = Record<string, unknown>,
@@ -59,30 +57,20 @@ class EntityKitDataSourceImplementation<
             ? (error: unknown): boolean => provider.isTransientError?.(error) ?? false
             : undefined;
         this.retryPolicy = resolveRetryPolicy(options.retry, providerClassifier);
-        const createdSource: unknown = provider.createDataSource?.(config);
-        assertSynchronousCallbackResult(
-            createdSource,
-            `Database provider '${provider.name}' data-source factory`,
-            message => new TypeError(message),
-        );
-        this.source = createdSource as DatabaseConnectionSource | undefined ?? {
-            createConnection: () => provider.createConnection(config),
-        };
+        this.source = resolveDataSourceConnectionSource(provider, config);
     }
 
     public createConnection(): DatabaseConnection {
         this.assertActive();
-        const created: unknown = this.source.createConnection();
-        assertSynchronousCallbackResult(
-            created,
-            `Database data source '${this.providerName}' connection factory`,
-            message => new TypeError(message),
+        const connection = createDataSourceConnectionLease(
+            this.providerName,
+            this.source,
+            () => {
+                this.activeLeases -= 1;
+            },
         );
-        const connection = created as DatabaseConnection;
         this.activeLeases += 1;
-        return new DataSourceConnectionLease(connection, () => {
-            this.activeLeases -= 1;
-        });
+        return connection;
     }
 
     public createContext<
