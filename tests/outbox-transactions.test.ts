@@ -29,6 +29,31 @@ describe('outbox explicit transactions', () => {
         ]);
     });
 
+    it('awaits asynchronous clearing and keeps failed events suppressed after commit', async () => {
+        const connection = new RecordingDatabaseConnection();
+        let clearFinished = false;
+        const db = OutboxContext.createWith(connection, async () => {
+            await Promise.resolve();
+            clearFinished = true;
+            throw new Error('async clear failed');
+        });
+        const user = createOutboxUser([
+            { type: 'UserCreated', payload: { userId: 'usr_1' } },
+        ]);
+        db.users.add(user);
+        connection.queueResult({ rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.transaction(async tx => tx.saveChanges()))
+            .resolves.toBe(1);
+        await expect(db.saveChanges()).resolves.toBe(0);
+
+        expect(clearFinished).toBe(true);
+        expect(user.domainEvents).toHaveLength(1);
+        expect(connection.statements).toHaveLength(2);
+        expect(connection.transactionEvents.at(-1)).toBe('commit');
+    });
+
     it('clears only events persisted before the outer commit', async () => {
         const connection = new RecordingDatabaseConnection();
         const db =  OutboxContext.createWith(connection);
