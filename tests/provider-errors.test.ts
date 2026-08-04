@@ -1,8 +1,11 @@
 import {
     DatabaseProviderError,
     DatabaseTransactionCleanupError,
+    findTransactionOutcomeUnknown,
     ForeignKeyConstraintError,
+    isTransactionOutcomeUnknown,
     NotNullConstraintError,
+    TransactionOutcomeUnknownError,
     UniqueConstraintError,
 } from '../src';
 import { mapDatabaseProviderError } from '../src/adapter';
@@ -151,6 +154,25 @@ describe('DatabaseProviderError', () => {
             primaryError: { operation: 'commit', code: 'COMMIT_FAILED' },
             cleanupError: { operation: 'rollback', code: 'ROLLBACK_FAILED' },
         });
+    });
+
+    it('classifies unknown commit outcomes recursively through the public API', () => {
+        const commit = new TransactionOutcomeUnknownError(
+            'postgres',
+            createPostgresProviderError('commit', { code: '08P01' }),
+        );
+        const cleanup = new DatabaseTransactionCleanupError(
+            'postgres',
+            commit,
+            createPostgresProviderError('rollback', { code: 'ECONNRESET' }),
+        );
+
+        expect(commit.message).toBe(
+            'Postgres commit outcome could not be established. The transaction may have committed.',
+        );
+        expect(findTransactionOutcomeUnknown(cleanup)).toBe(commit);
+        expect(isTransactionOutcomeUnknown(cleanup)).toBe(true);
+        expect(isTransactionOutcomeUnknown(new Error('known failure'))).toBe(false);
     });
 
     it('preserves primary and release errors for failed migration lock release cleanup', () => {

@@ -5,3 +5,7 @@ export type {
 } from './database-provider-error';
 export { DatabaseTransactionCleanupError } from './database-transaction-cleanup-error';
 export { TransactionOutcomeUnknownError } from './transaction-outcome-unknown-error';
+export {
+    findTransactionOutcomeUnknown,
+    isTransactionOutcomeUnknown,
+} from './transaction-outcome';

@@ -11,7 +11,7 @@ export class TransactionOutcomeUnknownError extends Error {
         public readonly commitError: DatabaseProviderError,
     ) {
         super(
-            `${capitalizeProvider(provider)} commit outcome is unknown because the connection failed while awaiting commit.`,
+            `${capitalizeProvider(provider)} commit outcome could not be established. The transaction may have committed.`,
         );
         this.name = 'TransactionOutcomeUnknownError';
         this.cause = commitError;
