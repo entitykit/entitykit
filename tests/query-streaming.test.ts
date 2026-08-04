@@ -113,7 +113,7 @@ describe('query streaming', () => {
         }]);
     });
 
-    it('releases the context lock and temporary tracker after early disposal', async () => {
+    it('releases the context lock after early no-tracking disposal', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = createDb(connection);
         connection.queueResult({
@@ -146,6 +146,27 @@ describe('query streaming', () => {
         );
         expect(queryEvent).toBeDefined();
         expect(planEvent).toMatchObject({ resultCount: 1, rowCount: 1 });
+    });
+
+    it('does not retain identity state in no-tracking streams', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        connection.queueResult({
+            rows: [
+                { id: 'user_1', email: 'first@example.com' },
+                { id: 'user_1', email: 'second@example.com' },
+            ],
+        });
+
+        const users = await collect(db.users.asNoTracking().stream());
+
+        expect(users).toHaveLength(2);
+        expect(users[0]).not.toBe(users[1]);
+        expect(users.map(user => user.email)).toEqual([
+            'first@example.com',
+            'second@example.com',
+        ]);
+        expect(db.changeTracker.entries()).toEqual([]);
     });
 
     it('rejects overlapping context work until the iterator is closed', async () => {

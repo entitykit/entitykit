@@ -5,7 +5,6 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { QueryModel } from '../query/query-model';
 import type { QueryStreamOptions } from '../storage/database-connection';
 import type { EntityConstructor } from '../types';
-import { ChangeTracker } from '../tracking/change-tracker';
 import type { DbSetContext } from './db-set-context';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
 import { DbSetQueryPipeline } from './db-set-query-pipeline';
@@ -42,20 +41,19 @@ export class DbSetStreamRunner<TEntity extends object> {
         const filtered = this.streamModel(model);
         const shape = this.diagnostics.queryShape('stream', filtered);
         const statement = this.pipeline.compile('select', filtered, shape);
-        const tracker = filtered.trackingBehavior === 'noTracking'
-            ? new ChangeTracker()
-            : this.context.changeTracker;
+        const noTracking = filtered.trackingBehavior === 'noTracking';
         const rows = this.streamRows(statement, options);
         const materializer = this.materializer;
         const metadata = this.metadata;
         const mapped = mapAsyncIterable(
             rows,
-            row => materializer.materialize(metadata, row, tracker),
-            tracker === this.context.changeTracker
-                ? undefined
-                : () => {
-                    tracker.clear();
-                },
+            row => noTracking
+                ? materializer.materializeUntracked(metadata, row)
+                : materializer.materialize(
+                    metadata,
+                    row,
+                    this.context.changeTracker,
+                ),
         );
         return instrumentDbSetStream(this.diagnostics, shape, mapped);
     }
