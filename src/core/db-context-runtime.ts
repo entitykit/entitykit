@@ -17,6 +17,7 @@ import type { EntityEntry } from '../tracking/entity-entry';
 import type { SqlDialect } from '../sql/sql-dialect';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import { createDbSetContextAdapter } from './db-set-context-adapter';
+import { readSynchronousScopeValue } from './synchronous-scope-value';
 export abstract class DbContextRuntime {
     private readonly state = new DbContextState();
     private disposePromise?: Promise<void>;
@@ -109,28 +110,27 @@ export abstract class DbContextRuntime {
         this.disposePromise = this.state.disposeConnection();
         await this.disposePromise;
     }
-
     protected assertNotDisposed(operation: string): void {
         if (this.state.disposed) {
             throw new ContextDisposedError(operation);
         }
     }
-
     protected currentAuditTimestamp(): Date {
         return this.options.auditing?.now?.() ?? new Date();
     }
-
     protected currentAuditUserId(): unknown {
-        return this.options.auditing?.currentUserId?.();
+        return readSynchronousScopeValue(this.options.auditing?.currentUserId,
+            'The current audit user callback',
+        );
     }
-
     protected currentTenantId(): unknown {
-        return this.options.tenantScope?.currentTenantId();
+        return readSynchronousScopeValue(this.options.tenantScope?.currentTenantId,
+            'The current tenant callback',
+        );
     }
     protected cancelAddedEntity(entity: object): void {
         this.changeTracker.detach(entity);
     }
-
     protected initialize(): void {
         initializeDbContext(
             this.state,
@@ -140,7 +140,6 @@ export abstract class DbContextRuntime {
             this.model.bind(this),
         );
     }
-
     private ensureInitialized(): void {
         if (!this.state.initialized) {
             this.initialize();
