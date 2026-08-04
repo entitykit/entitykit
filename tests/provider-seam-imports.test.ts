@@ -76,10 +76,10 @@ describe('provider seam architecture: imports', () => {
         }
     });
 
-    it('keeps direct pg imports isolated to the Postgres driver boundary', () => {
-        expect(filesContaining(/from\s+["']pg["']/)).toEqual([
+    it('keeps pg loading isolated to the Postgres driver boundary', () => {
+        expect(filesContaining(/from\s+["']pg["']/)).toEqual([]);
+        expect(filesContaining(/loadModule\(["']pg["']\)/)).toEqual([
             'src/providers/postgres/postgres-driver.ts',
-            'src/providers/postgres/postgres-transaction.ts',
         ]);
     });
 

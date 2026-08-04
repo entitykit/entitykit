@@ -68,6 +68,7 @@ describe('provider seam architecture: registration', () => {
             'src/providers/postgres/postgres-commit-outcome.ts',
             'src/providers/postgres/postgres-connection-source.ts',
             'src/providers/postgres/postgres-data-source.ts',
+            'src/providers/postgres/postgres-driver-contract.ts',
             'src/providers/postgres/postgres-driver.ts',
             'src/providers/postgres/postgres-introspect-index-query.ts',
             'src/providers/postgres/postgres-introspect-queries.ts',
