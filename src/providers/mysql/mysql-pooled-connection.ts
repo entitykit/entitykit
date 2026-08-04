@@ -49,7 +49,10 @@ export class MySqlPooledConnection implements DatabaseConnection {
         return streamMysqlConnectionRows(
             statement,
             options,
-            () => this.activeConnection,
+            () => {
+                this.usability.assertUsable();
+                return this.activeConnection;
+            },
             async () => await this.connect(),
             this.commandTimeoutMs,
         );

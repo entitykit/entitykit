@@ -43,6 +43,7 @@ function mysqlFixture(rows: ReadonlyArray<Record<string, unknown>>): {
     readonly callbackQuery: jest.Mock;
     readonly commandQuery: jest.Mock;
     readonly destroy: jest.Mock;
+    readonly getConnection: jest.Mock;
     readonly release: jest.Mock;
     readonly rowStream: jest.Mock;
 } {
@@ -57,9 +58,10 @@ function mysqlFixture(rows: ReadonlyArray<Record<string, unknown>>): {
         release,
         destroy,
     };
+    const getConnection = jest.fn().mockResolvedValue(client);
     const pool: MySqlPool = {
         query: jest.fn(),
-        getConnection: jest.fn().mockResolvedValue(client),
+        getConnection,
         end: jest.fn(),
     };
     return {
@@ -67,6 +69,7 @@ function mysqlFixture(rows: ReadonlyArray<Record<string, unknown>>): {
         callbackQuery,
         commandQuery,
         destroy,
+        getConnection,
         release,
         rowStream: streamed.stream,
     };
@@ -193,5 +196,50 @@ describe('MySQL query streaming', () => {
             sql: 'commit', timeout: 5000, values: [],
         });
         expect(release).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not start a deferred stream after commit outcome becomes unknown', async () => {
+        const commitFailure = Object.assign(
+            new Error('commit acknowledgement lost'),
+            { code: 'PROTOCOL_CONNECTION_LOST' },
+        );
+        const { connection, commandQuery, getConnection } = mysqlFixture([]);
+        commandQuery.mockImplementation(
+            async (command: { sql?: string } | string) => {
+                await Promise.resolve();
+                const sql = typeof command === 'string' ? command : command.sql;
+                if (sql === 'commit') {
+                    throw commitFailure;
+                }
+                return [[], []];
+            },
+        );
+        const rows = connection.stream({
+            text: 'select id from widgets',
+            values: [],
+        });
+
+        let failure: unknown;
+        try {
+            await connection.transaction(() => undefined);
+        } catch (error) {
+            failure = error;
+        }
+
+        expect(failure).toMatchObject({
+            name: 'TransactionOutcomeUnknownError',
+            provider: 'mysql',
+        });
+        await expect(collect(rows)).rejects.toBe(failure);
+        expect(getConnection).toHaveBeenCalledTimes(1);
+        expect(commandQuery).toHaveBeenNthCalledWith(1, {
+            sql: 'begin', timeout: 5000, values: [],
+        });
+        expect(commandQuery).toHaveBeenNthCalledWith(2, {
+            sql: 'commit', timeout: 5000, values: [],
+        });
+        expect(commandQuery).toHaveBeenNthCalledWith(3, {
+            sql: 'rollback', timeout: 5000, values: [],
+        });
     });
 });
