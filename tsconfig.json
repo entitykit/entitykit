@@ -20,5 +20,8 @@
     "dogfood/**/*.ts",
     "src/**/*.ts",
     "tests/**/*.ts"
+  ],
+  "exclude": [
+    "tests/fixtures/package-consumer"
   ]
 }

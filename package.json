@@ -65,13 +65,14 @@
   ],
   "scripts": {
     "build": "node scripts/build-package.js",
+    "check:package": "node scripts/check-package.js",
     "lint": "eslint . --ignore-pattern temp/ --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/",
     "test:coverage": "jest --config jest.coverage.config.cjs --runInBand && node scripts/check-runtime-coverage.js",
     "test:mutation": "stryker run",
     "test:mutation:dry": "stryker run --dryRunOnly",
-    "verify": "npm run lint && npm run typecheck && npm test",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run check:package",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
     "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration"
   },
