@@ -214,6 +214,34 @@ describe('EntityKit config loading', () => {
         expect(() => config.now()).toThrow('now must return a valid Date');
     });
 
+    it('rejects an asynchronous configured clock without leaking its rejection', async () => {
+        const cwd = createTempProject();
+        fs.writeFileSync(path.join(cwd, 'entitykit.config.js'), `
+      class TestContext { static create() { return new TestContext(); } }
+      module.exports = {
+        context: TestContext,
+        provider: globalThis[Symbol.for("entitykit.tests.provider")],
+        now: async () => { throw new Error("clock failed"); }
+      };
+    `);
+        const config = await loadEntityKitConfig({ cwd });
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            expect(() => config.now()).toThrow(
+                'now must be synchronous and must not return a Promise.',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
+
     it('resolves typed connection objects and async credential callbacks', async () => {
         const connection: PostgresConnectionConfig = {
             host: 'db.internal',

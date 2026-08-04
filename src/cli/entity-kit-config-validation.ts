@@ -1,6 +1,7 @@
 import type { DbContext } from '../core/db-context';
 import type { DatabaseProviderServices } from '../storage/database-provider-services';
 import type { EntityKitConfig } from './entity-kit-config';
+import { readSynchronousDate } from '../synchronous-value';
 
 type LoadedEntityKitConfig =
     Omit<EntityKitConfig<DbContext, Record<string, unknown>>, 'provider'> & {
@@ -62,8 +63,11 @@ export function validatedNow(
     configPath: string,
 ): () => Date {
     return () => {
-        const value = configured();
-        if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+        const value = readSynchronousDate(
+            configured,
+            `EntityKit config '${configPath}' now`,
+        );
+        if (!value || Number.isNaN(value.getTime())) {
             throw new Error(
                 `EntityKit config '${configPath}' now must return a valid Date.`,
             );
