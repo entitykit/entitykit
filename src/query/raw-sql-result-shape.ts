@@ -24,9 +24,9 @@ export function assertTrackedRawSqlRow<TEntity extends object>(
         return;
     }
     throw new QueryCompilationError(
-        `Tracked fromSql() for '${metadata.entityName}' requires every mapped column. ` +
+        `Tracked fromSqlUnsafe() for '${metadata.entityName}' requires every mapped column. ` +
         `Missing: ${missingColumns.map(column => `'${column}'`).join(', ')}. ` +
-        'Use asNoTracking() for an intentional partial row.',
+        'Leave the unsafe query untracked for an intentional partial row.',
         { entityName: metadata.entityName, missingColumns },
     );
 }

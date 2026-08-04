@@ -79,19 +79,14 @@ export type IncludeQueryable<
     ) => IncludeNavigationExpression<TCurrent, TNavigation>): IncludeQueryable<TEntity, NavigationElement<TNavigation>>;
 };
 
-/** Raw SQL entity query bound to a context and its change tracker. */
-export interface RawSqlQueryable<TEntity extends object> {
+/** Caller-owned SQL that materializes mapped entities without ORM filtering. */
+export interface UnsafeRawSqlQueryable<TEntity extends object> {
     /** Execute the query and return all matching rows. */ toArray(options?: DatabaseOperationOptions): Promise<TEntity[]>;
     /** Stream matching entities with provider backpressure. */ stream(options?: QueryStreamOptions): AsyncIterable<TEntity>;
-    /** Perform the as no tracking operation. */ asNoTracking(): RawSqlQueryable<TEntity>;
-    /** Ignore mapped soft-delete filters while retaining tenant scope. */
-    ignoreQueryFilters(): RawSqlQueryable<TEntity>;
-    /** Query across every tenant while retaining mapped query filters. */
-    ignoreTenantScope(): RawSqlQueryable<TEntity>;
-    /** Return the first matching row, or `null` when none exists. */ firstOrNull(options?: DatabaseOperationOptions): Promise<TEntity | null>;
-    /** Return the first matching row, or throw when none exists. */ first(options?: DatabaseOperationOptions): Promise<TEntity>;
-    /** Return the only matching row, `null` for none, or throw for multiple rows. */ singleOrNull(options?: DatabaseOperationOptions): Promise<TEntity | null>;
-    /** Return the only matching row, or throw unless exactly one exists. */ single(options?: DatabaseOperationOptions): Promise<TEntity>;
+    /** Opt into context tracking after validating the complete mapped shape. */
+    asTracking(): UnsafeRawSqlQueryable<TEntity>;
+    /** Return to the default untracked materialization behavior. */
+    asNoTracking(): UnsafeRawSqlQueryable<TEntity>;
     /** Build parameterized SQL without executing it. */ toSql(): SqlStatement;
     /** Render non-throwing diagnostic SQL with values redacted by default. */ toDebugSql(options?: DebugSqlOptions): string;
 }

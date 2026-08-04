@@ -215,8 +215,7 @@ describe('query streaming', () => {
         })).stream()))
             .resolves.toEqual([{ total: 2 }]);
         const rawUsers = await collect(db.users
-            .fromSql`select id, email from stream_users`
-            .asNoTracking()
+            .fromSqlUnsafe`select id, email from stream_users`
             .stream());
         expect(rawUsers).toEqual([
             expect.objectContaining({ id: 'user_1', email: 'one@example.com' }),
@@ -233,7 +232,7 @@ describe('query streaming', () => {
             rows: [{ id: 'user_1', email: 'one@example.com' }],
         });
         const stream = db.users
-            .fromSql`select id, email from stream_users`
+            .fromSqlUnsafe`select id, email from stream_users`
             .stream();
 
         await db.dispose();
@@ -250,7 +249,7 @@ describe('query streaming', () => {
         connection.queueResult({ rows: [{ id: 'user_1' }] });
 
         await expect(collect(
-            db.users.fromSql`select id from stream_users`.stream(),
+            db.users.fromSqlUnsafe`select id from stream_users`.asTracking().stream(),
         )).rejects.toBeInstanceOf(QueryCompilationError);
         expect(db.changeTracker.entries()).toEqual([]);
     });

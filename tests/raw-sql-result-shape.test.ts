@@ -38,7 +38,10 @@ describe('raw SQL result shape', () => {
         connection.queueResult({ rows: [{ id: 'row_1' }], rowCount: 1 });
         const db = createDb(connection);
 
-        await expect(db.rows.fromSql`select id from shape_rows`.toArray())
+        await expect(db.rows
+            .fromSqlUnsafe`select id from shape_rows`
+            .asTracking()
+            .toArray())
             .rejects.toMatchObject({
                 name: QueryCompilationError.name,
                 details: {
@@ -49,19 +52,19 @@ describe('raw SQL result shape', () => {
         expect(db.changeTracker.entries()).toEqual([]);
     });
 
-    it('allows explicit no-tracking partial rows', async () => {
+    it('allows untracked partial rows without a primary key', async () => {
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult({ rows: [{ id: 'row_1' }], rowCount: 1 });
+        connection.queueResult({ rows: [{ label: 'partial' }], rowCount: 1 });
         const db = createDb(connection);
 
-        const row = await db.rows
-            .fromSql`select id from shape_rows`
-            .asNoTracking()
-            .single();
+        const rows = await db.rows
+            .fromSqlUnsafe`select label from shape_rows`
+            .toArray();
 
-        expect(row.id).toBe('row_1');
-        expect(row.label).toBeUndefined();
-        expect(row.version).toBeUndefined();
-        expect(db.entry(row)).toBeUndefined();
+        expect(rows).toHaveLength(1);
+        expect(rows[0]?.id).toBeUndefined();
+        expect(rows[0]?.label).toBe('partial');
+        expect(rows[0]?.version).toBeUndefined();
+        expect(db.entry(rows[0] ?? {} as ShapeRow)).toBeUndefined();
     });
 });

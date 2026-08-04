@@ -3,7 +3,7 @@ import {
     MultipleEntitiesFoundError,
 } from '../errors/query-errors';
 
-export type QueryResultOperation = 'projection' | 'query' | 'raw SQL query';
+export type QueryResultOperation = 'projection' | 'query';
 
 /** Read the first materialized result, or null when the result set is empty. */
 export function firstResultOrNull<TResult>(

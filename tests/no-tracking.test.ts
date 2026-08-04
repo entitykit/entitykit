@@ -114,7 +114,7 @@ describe('no-tracking entity queries', () => {
             .toThrow('needs an entity tracked by a DbContext');
     });
 
-    it('identity-resolves duplicate raw rows without context tracking', async () => {
+    it('does not retain identity state for unsafe raw rows', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({
             rows: [
@@ -126,11 +126,11 @@ describe('no-tracking entity queries', () => {
         const db = createDb(connection);
 
         const readers = await db.readers
-            .fromSql`select id, email from readers`
+            .fromSqlUnsafe`select id, email from readers`
             .asNoTracking()
             .toArray();
 
-        expect(readers[0]).toBe(readers[1]);
+        expect(readers[0]).not.toBe(readers[1]);
         expect(db.changeTracker.entries()).toEqual([]);
     });
 

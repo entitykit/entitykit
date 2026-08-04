@@ -29,7 +29,7 @@ export {
     JoinedProjectedQueryable,
     JoinedQueryable,
 } from '../query/joined-query';
-export { RawSqlQueryable } from '../query/raw-sql-queryable';
+export { UnsafeRawSqlQueryable } from '../query/unsafe-raw-sql-queryable';
 export { FieldExpression, PredicateExpression } from '../query/expression';
 export { createQueryProxy } from '../query/query-proxy';
 export type { BinaryOperator, LogicalOperator, NullOperator, PredicateNode } from '../query/expression';

@@ -1,7 +1,7 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-    RawSqlQueryable,
+    UnsafeRawSqlQueryable,
 } from '../src';
 import { DbContext, TenantScopeUnavailableError } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
@@ -95,31 +95,60 @@ describe('tenant scope isolation', () => {
         expect(await ids(db.docs.ignoreQueryFilters().toArray())).toEqual(['t1-gone', 't1-live']);
     });
 
-    it('applies tenant and soft-delete boundaries to raw entity queries', async () => {
-        const raw = (): RawSqlQueryable<Doc> => db.docs
-            .fromSql`select id, tenant_id, title, deleted_at from docs`;
+    it('makes raw entity SQL explicitly unsafe and untracked', async () => {
+        const raw = (): UnsafeRawSqlQueryable<Doc> => db.docs
+            .fromSqlUnsafe`select id, tenant_id, title, deleted_at from docs`;
 
-        expect(await ids(raw().toArray())).toEqual(['t1-live']);
-        expect(await ids(raw().ignoreQueryFilters().toArray()))
-            .toEqual(['t1-gone', 't1-live']);
-        expect(await ids(raw().ignoreTenantScope().toArray()))
-            .toEqual(['t1-live', 't2-live']);
-        expect(await ids(raw()
-            .ignoreQueryFilters()
-            .ignoreTenantScope()
-            .toArray()))
+        expect(await ids(raw().toArray()))
             .toEqual(['t1-gone', 't1-live', 't2-gone', 't2-live']);
+        expect(db.changeTracker.entries()).toEqual([]);
     });
 
-    it('appends raw-query scope parameters after caller parameters', () => {
+    it('does not claim projected aliases establish tenant provenance', async () => {
+        const rows = await db.docs.fromSqlUnsafe`
+            select id, 't1' as tenant_id, title, null as deleted_at
+            from docs
+            where tenant_id = 't2' and deleted_at is null
+        `.toArray();
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+            id: 't2-live',
+            tenantId: 't1',
+            title: 't2 live',
+        });
+        expect(db.entry(rows[0])).toBeUndefined();
+    });
+
+    it('executes unsafe SQL without wrappers or scope parameters', () => {
         const statement = db.docs
-            .fromSql`select id, tenant_id, title, deleted_at from docs where title like ${'%'}`
+            .fromSqlUnsafe`select id, tenant_id, title, deleted_at from docs where title like ${'%'}`
             .toSql();
 
-        expect(statement.values).toEqual(['%', 't1']);
-        expect(statement.text).toContain('from (select id, tenant_id');
-        expect(statement.text).toContain('"__entitykit_raw"."deleted_at" is null');
-        expect(statement.text).toContain('"__entitykit_raw"."tenant_id" = ?');
+        expect(statement).toEqual({
+            text: 'select id, tenant_id, title, deleted_at from docs where title like ?',
+            values: ['%'],
+        });
+    });
+
+    it('preserves caller-owned ordering and limit semantics', async () => {
+        const rows = await db.docs.fromSqlUnsafe`
+            select id, tenant_id, title, deleted_at
+            from docs
+            where deleted_at is null
+            order by tenant_id desc, id
+            limit 1
+        `.toArray();
+
+        expect(rows.map(row => row.id)).toEqual(['t2-live']);
+    });
+
+    it('accepts a terminal semicolon with bound parameters', async () => {
+        const rows = await db.docs
+            .fromSqlUnsafe`select id, tenant_id, title, deleted_at from docs where id = ${'t1-live'};`
+            .toArray();
+
+        expect(rows.map(row => row.id)).toEqual(['t1-live']);
     });
 
     it('crosses tenants only through ignoreTenantScope, still hiding deleted rows', async () => {
@@ -207,16 +236,13 @@ describe('tenant scope isolation', () => {
         expect(rogue.tenantId).toBeUndefined();
     });
 
-    it('fails closed for raw entities when the tenant disappears', async () => {
+    it('keeps the unsafe escape hatch independent from tenant context', async () => {
         currentTenant = undefined;
-        const raw = (): RawSqlQueryable<Doc> => db.docs
-            .fromSql`select id, tenant_id, title, deleted_at from docs`;
+        const raw = (): UnsafeRawSqlQueryable<Doc> => db.docs
+            .fromSqlUnsafe`select id, tenant_id, title, deleted_at from docs`;
 
-        await expect(raw().toArray()).rejects.toBeInstanceOf(
-            TenantScopeUnavailableError,
-        );
-        expect(await ids(raw().ignoreTenantScope().toArray()))
-            .toEqual(['t1-live', 't2-live']);
+        expect(await ids(raw().toArray()))
+            .toEqual(['t1-gone', 't1-live', 't2-gone', 't2-live']);
     });
 
     it('stamps an added entity before tracking and returns it from find', async () => {

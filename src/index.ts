@@ -67,7 +67,7 @@ export { EntityState } from './tracking/entity-state';
 export type { PredicateExpression, HavingPredicateExpression } from './query/predicate-types';
 export type { OrderExpression, SortDirection } from './query/expression';
 export type { QueryField, QueryFieldOperand, QueryProxy } from './query/query-field-types';
-export type { IncludeQueryable, Queryable, RawSqlQueryable } from './query/entity-query-types';
+export type { IncludeQueryable, Queryable, UnsafeRawSqlQueryable } from './query/entity-query-types';
 export type { AggregateProjectedQueryable, GroupedQueryable, ProjectedQuery, ProjectedQueryable } from './query/projected-query-types';
 export type { JoinedGroupedQueryable, JoinedProjectedQueryable, JoinedQueryable } from './query/joined-query-types';
 export type { QueryPlan, QueryPlanJoin } from './query/query-plan';

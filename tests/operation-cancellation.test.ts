@@ -103,7 +103,7 @@ describe('operation-wide cancellation', () => {
             .rejects.toBeInstanceOf(OperationCanceledError);
         await expect(db.users.aggregate(value => ({ count: value.count() })).single(options))
             .rejects.toBeInstanceOf(OperationCanceledError);
-        await expect(db.users.fromSql`select id, email from users`.single(options))
+        await expect(db.users.fromSqlUnsafe`select id, email from users`.toArray(options))
             .rejects.toBeInstanceOf(OperationCanceledError);
 
         expect(connection.statements).toEqual([]);

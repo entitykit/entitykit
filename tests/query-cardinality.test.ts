@@ -18,9 +18,9 @@ describe('query cardinality', () => {
             .toThrow(EntityNotFoundError);
         expect(() => requireQueryResult(null, 'Widget', 'projection'))
             .toThrow('No \'Widget\' projection matched the query.');
-        expect(() => singleResultOrNull(['one', 'two'], 'Widget', 'raw SQL query'))
+        expect(() => singleResultOrNull(['one', 'two'], 'Widget'))
             .toThrow(MultipleEntitiesFoundError);
-        expect(() => singleResultOrNull(['one', 'two'], 'Widget', 'raw SQL query'))
-            .toThrow('More than one \'Widget\' entity matched the raw SQL query.');
+        expect(() => singleResultOrNull(['one', 'two'], 'Widget'))
+            .toThrow('More than one \'Widget\' entity matched the query.');
     });
 });

@@ -100,7 +100,7 @@ describe('public export surface', () => {
             'PredicateExpression',
             'PropertyBuilder',
             'Queryable',
-            'RawSqlQueryable',
+            'UnsafeRawSqlQueryable',
             'RelationNavigationExpression',
             'RelationshipBuilder',
         ]) {
@@ -110,7 +110,7 @@ describe('public export surface', () => {
         expect(experimental.Queryable).toBeDefined();
         expect(experimental.FieldExpression).toBeDefined();
         expect(experimental.PredicateExpression).toBeDefined();
-        expect(experimental.RawSqlQueryable).toBeDefined();
+        expect(experimental.UnsafeRawSqlQueryable).toBeDefined();
     });
 
     it('keeps core-adjacent subpaths free of concrete Postgres adapter exports', () => {

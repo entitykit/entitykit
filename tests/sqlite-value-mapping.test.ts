@@ -268,7 +268,7 @@ describe('SQLite value round-trip', () => {
     });
 
     it('converts values read through raw SQL', async () => {
-        const rows = await db.readings.fromSql`select * from "readings" where "id" = ${'r1'}`.toArray();
+        const rows = await db.readings.fromSqlUnsafe`select * from "readings" where "id" = ${'r1'}`.toArray();
 
         expect(rows).toHaveLength(1);
         expect(rows[0].isActive).toBe(true);

@@ -3,7 +3,7 @@ import type { DbSetContext } from './db-set-context';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { UpsertSqlOptions } from '../sql/modification-sql-builder';
 import { Queryable } from '../query/queryable';
-import { RawSqlQueryable } from '../query/raw-sql-queryable';
+import { UnsafeRawSqlQueryable } from '../query/unsafe-raw-sql-queryable';
 import { EntityState } from '../tracking/entity-state';
 import { buildRawSql } from '../sql/raw-sql';
 import type { EntityEntry } from '../tracking/entity-entry';
@@ -104,10 +104,13 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
     }
 
     /**
-   * Start a raw SQL query that materializes rows as this entity type.
+   * Execute caller-owned SQL as this entity type without ORM query filters.
    */
-    public fromSql(strings: TemplateStringsArray, ...values: readonly unknown[]): RawSqlQueryable<TEntity> {
-        return new RawSqlQueryable(
+    public fromSqlUnsafe(
+        strings: TemplateStringsArray,
+        ...values: readonly unknown[]
+    ): UnsafeRawSqlQueryable<TEntity> {
+        return new UnsafeRawSqlQueryable(
             this.metadata,
             createDbSetRawQueryHost(this.context),
             buildRawSql(this.context.dialect, strings, ...values),

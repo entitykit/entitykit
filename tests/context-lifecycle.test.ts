@@ -88,7 +88,7 @@ describe('context lifecycle', () => {
 
     it('refuses a raw entity query created before disposal', async () => {
         const db = await open();
-        const query = db.rows.fromSql`select id, label from rows`;
+        const query = db.rows.fromSqlUnsafe`select id, label from rows`;
         await db.dispose();
 
         await expect(query.toArray()).rejects.toBeInstanceOf(

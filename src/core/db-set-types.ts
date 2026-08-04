@@ -1,5 +1,8 @@
 import type { EntityConstructor, EntityPropertyKey } from '../types';
-import type { Queryable, RawSqlQueryable } from '../query/entity-query-types';
+import type {
+    Queryable,
+    UnsafeRawSqlQueryable,
+} from '../query/entity-query-types';
 import type { EntityEntry } from '../tracking/entity-entry-types';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 
@@ -30,10 +33,10 @@ export interface DbSet<
     /** Perform the attach operation. */ attach(entity: TEntity): EntityEntry<TEntity>;
     /** Perform the remove operation. */ remove(entity: TEntity): EntityEntry<TEntity>;
     /** Perform the detach operation. */ detach(entity: TEntity): EntityEntry<TEntity> | undefined;
-    /** Perform the from sql operation. */ fromSql(
+    /** Execute caller-owned SQL without ORM query filters. */ fromSqlUnsafe(
         strings: TemplateStringsArray,
         ...values: readonly unknown[]
-    ): RawSqlQueryable<TEntity>;
+    ): UnsafeRawSqlQueryable<TEntity>;
     /** Perform the upsert operation. */ upsert(
         entities: readonly TEntity[],
         options?: UpsertOptions<TEntity>,

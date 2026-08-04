@@ -63,7 +63,7 @@ describe('query module ownership', () => {
             forbidden: ['EntityNotFoundError', 'MultipleEntitiesFoundError'],
         },
         {
-            file: 'src/query/raw-sql-queryable.ts',
+            file: 'src/query/unsafe-raw-sql-queryable.ts',
             forbidden: ['EntityNotFoundError', 'MultipleEntitiesFoundError'],
         },
         {

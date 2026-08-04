@@ -187,7 +187,7 @@ describe('raw SQL escape hatch', () => {
         })).toThrow('Postgres delete statements require a where predicate.');
     });
 
-    it('materializes raw entity queries into tracked class instances', async () => {
+    it('materializes unsafe entity SQL without tracking by default', async () => {
         const createdAt = new Date('2026-01-01T00:00:00.000Z');
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({
@@ -202,45 +202,42 @@ describe('raw SQL escape hatch', () => {
         });
         const db =  createDb(connection);
 
-        const user = await db.users.fromSql`select id, email, name, created_at, updated_at from users where id = ${'usr_1'}`.single();
+        const users = await db.users.fromSqlUnsafe`select id, email, name, created_at, updated_at from users where id = ${'usr_1'}`.toArray();
+        const user = users[0];
 
         expect(user).toBeInstanceOf(User);
         expect(user.email).toBe('a@example.com');
-        expect(db.entry(user)?.state).toBe(EntityState.Unchanged);
+        expect(db.entry(user)).toBeUndefined();
         expect(connection.statements[0]?.values).toEqual(['usr_1']);
     });
 
-    it('uses raw SQL first and single cardinality semantics', async () => {
+    it('tracks unsafe entity SQL only after an explicit opt-in', async () => {
         const createdAt = new Date('2026-01-01T00:00:00.000Z');
         const connection = new RecordingDatabaseConnection();
         const db =  createDb(connection);
-
-        connection.queueResult({ rows: [], rowCount: 0 });
-        await expect(db.users.fromSql`select * from users where id = ${'missing'}`.firstOrNull()).resolves.toBeNull();
-
-        connection.queueResult({ rows: [], rowCount: 0 });
-        await expect(db.users.fromSql`select * from users where id = ${'missing'}`.singleOrNull()).resolves.toBeNull();
-
-        connection.queueResult({ rows: [], rowCount: 0 });
-        await expect(db.users.fromSql`select * from users where id = ${'missing'}`.single())
-            .rejects.toThrow('No \'User\' entity matched the raw SQL query.');
-
         connection.queueResult({
-            rows: [
-                { id: 'usr_1', email: 'a@example.com', name: 'A', created_at: createdAt, updated_at: createdAt },
-                { id: 'usr_2', email: 'b@example.com', name: 'B', created_at: createdAt, updated_at: createdAt },
-            ],
-            rowCount: 2,
+            rows: [{
+                id: 'usr_1',
+                email: 'a@example.com',
+                name: 'A',
+                created_at: createdAt,
+                updated_at: createdAt,
+            }],
+            rowCount: 1,
         });
-        await expect(db.users.fromSql`select * from users`.single())
-            .rejects.toThrow('More than one \'User\' entity matched the raw SQL query.');
+        const users = await db.users
+            .fromSqlUnsafe`select * from users where id = ${'usr_1'}`
+            .asTracking()
+            .toArray();
+
+        expect(db.entry(users[0])?.state).toBe(EntityState.Unchanged);
     });
 
     it('can preview raw SQL statements', () => {
         const db =  createDb(new RecordingDatabaseConnection());
 
         const statement = db.database.rawSql`select * from users where id = ${'usr_1'}`;
-        const query = db.users.fromSql`select * from users where id = ${'usr_1'}`;
+        const query = db.users.fromSqlUnsafe`select * from users where id = ${'usr_1'}`;
 
         expect(statement).toEqual({ text: 'select * from users where id = $1', values: ['usr_1'] });
         expect(query.toDebugSql()).toBe(
@@ -249,13 +246,16 @@ describe('raw SQL escape hatch', () => {
         expect(query.toDebugSql({ includeSensitiveData: true })).toBe(
             'select * from users where id = $1 -- parameters: ["usr_1"]',
         );
+        expect('fromSql' in db.users).toBe(false);
+        expect('first' in query).toBe(false);
+        expect('single' in query).toBe(false);
     });
 
     it('formats unusual sensitive debug values without throwing', () => {
         const db = createDb(new RecordingDatabaseConnection());
         const circular: { self?: unknown } = {};
         circular.self = circular;
-        const query = db.users.fromSql`select ${42n}, ${new Date('2026-01-01T00:00:00.000Z')}, ${new Uint8Array([0, 1, 255])}, ${circular}`;
+        const query = db.users.fromSqlUnsafe`select ${42n}, ${new Date('2026-01-01T00:00:00.000Z')}, ${new Uint8Array([0, 1, 255])}, ${circular}`;
 
         expect(query.toDebugSql()).toBe(
             'select $1, $2, $3, $4 -- parameters: [<redacted:bigint>, <redacted:date>, <redacted:bytes>, <redacted:object>]',
@@ -309,10 +309,10 @@ describe('raw SQL escape hatch', () => {
         });
         const db =  createDialectDb(connection);
 
-        const query = db.users.fromSql`select id, email, name, created_at, updated_at from users where id = ${'usr_1'}`;
-        const user = await query.single();
+        const query = db.users.fromSqlUnsafe`select id, email, name, created_at, updated_at from users where id = ${'usr_1'}`;
+        const users = await query.toArray();
 
-        expect(user.email).toBe('a@example.com');
+        expect(users[0]?.email).toBe('a@example.com');
         expect(query.toSql()).toEqual({
             text: 'select id, email, name, created_at, updated_at from users where id = ?',
             values: ['usr_1'],
