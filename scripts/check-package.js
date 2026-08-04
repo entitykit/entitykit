@@ -115,6 +115,11 @@ try {
     path.join(project, 'node_modules', 'typescript', 'bin', 'tsc'),
     '-p', path.join(project, 'tsconfig.json'),
   ], { cwd: project });
+  run(process.execPath, [
+    path.join(project, 'node_modules', 'typescript', 'bin', 'tsc'),
+    '-p', path.join(project, 'tsconfig.nodenext.json'),
+  ], { cwd: project });
+  process.stdout.write('PACKAGE_NODE_NEXT_TYPES_OK\n');
   run(process.execPath, [path.join(project, 'runtime.cjs')], { cwd: project });
   run(process.execPath, [path.join(project, 'runtime.mjs')], { cwd: project });
 
