@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "allowImportingTsExtensions": false,
+    "types": ["node"],
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "noEmitOnError": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["tests", "dogfood", "dist"]
+}

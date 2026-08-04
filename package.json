@@ -1,8 +1,70 @@
 {
   "name": "entitykit",
   "version": "0.1.0-alpha.1",
-  "private": true,
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./adapter": {
+      "types": "./dist/adapter/index.d.ts",
+      "require": "./dist/adapter/index.js",
+      "default": "./dist/adapter/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli/api.d.ts",
+      "require": "./dist/cli/api.js",
+      "default": "./dist/cli/api.js"
+    },
+    "./experimental": {
+      "types": "./dist/experimental/index.d.ts",
+      "require": "./dist/experimental/index.js",
+      "default": "./dist/experimental/index.js"
+    },
+    "./migrations": {
+      "types": "./dist/migrations/api.d.ts",
+      "require": "./dist/migrations/api.js",
+      "default": "./dist/migrations/api.js"
+    },
+    "./mysql": {
+      "types": "./dist/providers/mysql/index.d.ts",
+      "require": "./dist/providers/mysql/index.js",
+      "default": "./dist/providers/mysql/index.js"
+    },
+    "./postgres": {
+      "types": "./dist/providers/postgres/index.d.ts",
+      "require": "./dist/providers/postgres/index.js",
+      "default": "./dist/providers/postgres/index.js"
+    },
+    "./sqlite": {
+      "types": "./dist/providers/sqlite/index.d.ts",
+      "require": "./dist/providers/sqlite/index.js",
+      "default": "./dist/providers/sqlite/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "require": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
+    },
+    "./tooling": {
+      "types": "./dist/tooling/index.d.ts",
+      "require": "./dist/tooling/index.js",
+      "default": "./dist/tooling/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "entitykit": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "node scripts/build-package.js",
     "lint": "eslint . --ignore-pattern temp/ --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/",
@@ -15,6 +77,18 @@
   },
   "dependencies": {
     "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "mysql2": "^3.23.2",
+    "pg": "^8.21.0"
+  },
+  "peerDependenciesMeta": {
+    "mysql2": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
@@ -33,7 +107,6 @@
   "engines": {
     "node": ">=22.13"
   },
-  "type": "module",
   "overrides": {
     "brace-expansion": "5.0.8",
     "glob": "13.0.6",
