@@ -7,6 +7,7 @@ import {
 import type { MigrationBuilderFactory } from './migration-builder-contract';
 import type { SqlDialect } from '../sql/sql-dialect';
 import { migrationChecksumPayload } from './migration-checksum-payload';
+import { collectMigrationOperation } from './migration-operation-collector';
 
 export const migrationHistoryTableName = '__entitykit_migrations';
 export const migrationLockKey = 'entitykit:migrations';
@@ -19,10 +20,8 @@ export const entityKitMigrationVersion = '0.1.0-alpha.1';
         ? new MigrationBuilder()
         : new MigrationBuilder(dialect),
 ): string {
-    const upBuilder = createBuilder();
-    migration.up(upBuilder);
-    const downBuilder = createBuilder();
-    migration.down(downBuilder);
+    const upBuilder = collectMigrationOperation(migration, 'up', createBuilder);
+    const downBuilder = collectMigrationOperation(migration, 'down', createBuilder);
     return migrationStatementsChecksum(
         upBuilder.statements,
         downBuilder.statements,

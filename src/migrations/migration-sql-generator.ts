@@ -14,6 +14,7 @@ import {
 } from './migration-script-renderer';
 import { postgresMigrationDialect, type MigrationSqlDialect } from './migration-sql-dialect';
 import type { SqlStatement } from '../sql/sql-statement';
+import { collectMigrationOperation } from './migration-operation-collector';
 
 export { selectMigrationRange } from './migration-range';
 export { renderScript } from './migration-script-renderer';
@@ -40,10 +41,16 @@ export { renderScript } from './migration-script-renderer';
     }
 
     /** Perform the build up statements operation. */ public buildUpStatements(migration: Migration): readonly SqlStatement[] {
-        const upBuilder = this.createBuilder();
-        migration.up(upBuilder);
-        const downBuilder = this.createBuilder();
-        migration.down(downBuilder);
+        const upBuilder = collectMigrationOperation(
+            migration,
+            'up',
+            this.createBuilder,
+        );
+        const downBuilder = collectMigrationOperation(
+            migration,
+            'down',
+            this.createBuilder,
+        );
         return [
             createMigrationHistoryTableStatement(this.dialect),
             ...upBuilder.statements,
@@ -59,8 +66,11 @@ export { renderScript } from './migration-script-renderer';
     }
 
     /** Perform the build down statements operation. */ public buildDownStatements(migration: Migration): readonly SqlStatement[] {
-        const builder = this.createBuilder();
-        migration.down(builder);
+        const builder = collectMigrationOperation(
+            migration,
+            'down',
+            this.createBuilder,
+        );
         return [
             ...builder.statements,
             deleteMigrationHistoryStatement(migration, this.dialect),
