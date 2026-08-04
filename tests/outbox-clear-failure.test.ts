@@ -69,4 +69,28 @@ describe('outbox event clearing', () => {
         expect(user.domainEvents).toHaveLength(1);
         expect(connection.statements).toHaveLength(2);
     });
+
+    it('keeps a committed event suppressed after asynchronous clearing rejects', async () => {
+        const connection = new RecordingDatabaseConnection();
+        let clearFinished = false;
+        const db = OutboxContext.createWith(connection, async () => {
+            await Promise.resolve();
+            clearFinished = true;
+            throw new Error('async clear failed');
+        });
+        const user = createOutboxUser([{
+            type: 'UserCreated',
+            payload: { userId: 'usr_1' },
+        }]);
+        db.users.add(user);
+        connection.queueResult({ rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.saveChanges()).resolves.toBe(1);
+        await expect(db.saveChanges()).resolves.toBe(0);
+
+        expect(clearFinished).toBe(true);
+        expect(user.domainEvents).toHaveLength(1);
+        expect(connection.statements).toHaveLength(2);
+    });
 });
