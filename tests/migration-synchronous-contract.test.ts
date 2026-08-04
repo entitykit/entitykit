@@ -1,7 +1,12 @@
-import type { MigrationBuilder } from '../src/migrations/api';
+import type {
+    MigrationBuilder,
+    MigrationBuilderFactory,
+} from '../src/migrations/api';
 import {
     Migration,
+    MigrationBuilder as MigrationBuilderImplementation,
     migrationChecksum,
+    MigrationSqlGenerator,
     MigrationRunner,
 } from '../src/migrations/api';
 import { RecordingDatabaseConnection } from '../src/testing';
@@ -128,6 +133,20 @@ describe('migration synchronous callback contract', () => {
         });
 
         expectOnlyLockStatements(connection);
+    });
+
+    it('rejects an asynchronous migration builder factory', async () => {
+        const factory = (async () => {
+            await Promise.resolve();
+            return new MigrationBuilderImplementation();
+        }) as unknown as MigrationBuilderFactory;
+        const generator = new MigrationSqlGenerator(undefined, factory);
+
+        expect(() => generator.generateUpScript(new AsyncDownMigration()))
+            .toThrow(
+                'Migration builder factory for \'20260804170200_AsyncDown\' must be synchronous',
+            );
+        await new Promise<void>(resolve => setImmediate(resolve));
     });
 });
 

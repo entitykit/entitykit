@@ -11,7 +11,20 @@ export function collectMigrationOperation(
     direction: 'up' | 'down',
     createBuilder: MigrationBuilderFactory,
 ): MigrationBuilder {
-    const builder = createBuilder();
+    const created: unknown = createBuilder();
+    assertSynchronousCallbackResult(
+        created,
+        `Migration builder factory for '${migration.id}'`,
+        message => new MigrationError(message, {
+            details: {
+                migrationId: migration.id,
+                migrationName: migration.name,
+                direction,
+                contractViolation: 'asyncMigrationBuilderFactory',
+            },
+        }),
+    );
+    const builder = created as MigrationBuilder;
     // The public void contract hides values that JavaScript still returns.
     // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
     const result: unknown = migration[direction](builder);
