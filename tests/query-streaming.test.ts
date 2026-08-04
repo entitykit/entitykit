@@ -6,6 +6,7 @@ import type {
 } from '../src';
 import {
     ContextConcurrentOperationError,
+    ContextDisposedError,
     DbContext,
     EntityState,
     OperationCanceledError,
@@ -223,6 +224,24 @@ describe('query streaming', () => {
         expect(db.entry(rawUsers[0])).toBeUndefined();
         expect(connection.operations.map(operation => operation.kind))
             .toEqual(['stream', 'stream', 'stream', 'stream']);
+    });
+
+    it('rechecks raw-query lifecycle when stream iteration begins', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        connection.queueResult({
+            rows: [{ id: 'user_1', email: 'one@example.com' }],
+        });
+        const stream = db.users
+            .fromSql`select id, email from stream_users`
+            .stream();
+
+        await db.dispose();
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            ContextDisposedError,
+        );
+        expect(connection.operations).toEqual([]);
     });
 
     it('rejects includes, invalid batches, and providers without streaming', async () => {

@@ -84,6 +84,10 @@ export interface RawSqlQueryable<TEntity extends object> {
     /** Execute the query and return all matching rows. */ toArray(options?: DatabaseOperationOptions): Promise<TEntity[]>;
     /** Stream matching entities with provider backpressure. */ stream(options?: QueryStreamOptions): AsyncIterable<TEntity>;
     /** Perform the as no tracking operation. */ asNoTracking(): RawSqlQueryable<TEntity>;
+    /** Ignore mapped soft-delete filters while retaining tenant scope. */
+    ignoreQueryFilters(): RawSqlQueryable<TEntity>;
+    /** Query across every tenant while retaining mapped query filters. */
+    ignoreTenantScope(): RawSqlQueryable<TEntity>;
     /** Return the first matching row, or `null` when none exists. */ firstOrNull(options?: DatabaseOperationOptions): Promise<TEntity | null>;
     /** Return the first matching row, or throw when none exists. */ first(options?: DatabaseOperationOptions): Promise<TEntity>;
     /** Return the only matching row, `null` for none, or throw for multiple rows. */ singleOrNull(options?: DatabaseOperationOptions): Promise<TEntity | null>;

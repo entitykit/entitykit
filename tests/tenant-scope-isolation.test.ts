@@ -1,4 +1,8 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type {
+    DbContextOptionsBuilder,
+    ModelBuilder,
+    RawSqlQueryable,
+} from '../src';
 import { DbContext, TenantScopeUnavailableError } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { requireDefined } from './support/require-defined';
@@ -91,6 +95,33 @@ describe('tenant scope isolation', () => {
         expect(await ids(db.docs.ignoreQueryFilters().toArray())).toEqual(['t1-gone', 't1-live']);
     });
 
+    it('applies tenant and soft-delete boundaries to raw entity queries', async () => {
+        const raw = (): RawSqlQueryable<Doc> => db.docs
+            .fromSql`select id, tenant_id, title, deleted_at from docs`;
+
+        expect(await ids(raw().toArray())).toEqual(['t1-live']);
+        expect(await ids(raw().ignoreQueryFilters().toArray()))
+            .toEqual(['t1-gone', 't1-live']);
+        expect(await ids(raw().ignoreTenantScope().toArray()))
+            .toEqual(['t1-live', 't2-live']);
+        expect(await ids(raw()
+            .ignoreQueryFilters()
+            .ignoreTenantScope()
+            .toArray()))
+            .toEqual(['t1-gone', 't1-live', 't2-gone', 't2-live']);
+    });
+
+    it('appends raw-query scope parameters after caller parameters', () => {
+        const statement = db.docs
+            .fromSql`select id, tenant_id, title, deleted_at from docs where title like ${'%'}`
+            .toSql();
+
+        expect(statement.values).toEqual(['%', 't1']);
+        expect(statement.text).toContain('from (select id, tenant_id');
+        expect(statement.text).toContain('"__entitykit_raw"."deleted_at" is null');
+        expect(statement.text).toContain('"__entitykit_raw"."tenant_id" = ?');
+    });
+
     it('crosses tenants only through ignoreTenantScope, still hiding deleted rows', async () => {
         expect(await ids(db.docs.ignoreTenantScope().toArray())).toEqual(['t1-live', 't2-live']);
     });
@@ -174,6 +205,18 @@ describe('tenant scope isolation', () => {
         );
         expect(db.entry(rogue)).toBeUndefined();
         expect(rogue.tenantId).toBeUndefined();
+    });
+
+    it('fails closed for raw entities when the tenant disappears', async () => {
+        currentTenant = undefined;
+        const raw = (): RawSqlQueryable<Doc> => db.docs
+            .fromSql`select id, tenant_id, title, deleted_at from docs`;
+
+        await expect(raw().toArray()).rejects.toBeInstanceOf(
+            TenantScopeUnavailableError,
+        );
+        expect(await ids(raw().ignoreTenantScope().toArray()))
+            .toEqual(['t1-live', 't2-live']);
     });
 
     it('stamps an added entity before tracking and returns it from find', async () => {

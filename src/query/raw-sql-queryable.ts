@@ -1,43 +1,51 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { Materializer } from '../materialization/materializer';
 import { ChangeTracker } from '../tracking/change-tracker';
-import type { DatabaseConnection, DatabaseOperationOptions } from '../storage/database-connection';
-import type { StoreValueReader } from '../storage/store-value-reader';
+import type { DatabaseOperationOptions, QueryStreamOptions } from '../storage/database-connection';
 import type { SqlStatement } from '../sql/sql-statement';
-import {
-    formatDebugSql,
-    type DebugSqlOptions,
-} from '../sql/debug-sql';
-import type { QueryStreamOptions } from '../storage/database-connection';
+import { formatDebugSql, type DebugSqlOptions } from '../sql/debug-sql';
 import { ProviderCapabilityError } from '../errors/runtime-errors';
 import {
     firstResultOrNull,
     requireQueryResult,
     singleResultOrNull,
 } from './query-cardinality';
-import { mapAsyncIterable } from '../storage/map-async-iterable';
+import type { RawSqlQueryHost } from './raw-sql-query-host';
+import { streamRawSqlEntities } from './raw-sql-stream';
+
+interface RawSqlQueryOptions {
+    readonly noTracking: boolean;
+    readonly ignoreQueryFilters: boolean;
+    readonly ignoreTenantScope: boolean;
+}
+
+const defaultOptions: RawSqlQueryOptions = {
+    noTracking: false,
+    ignoreQueryFilters: false,
+    ignoreTenantScope: false,
+};
 
 export class RawSqlQueryable<TEntity extends object> {
     private readonly materializer: Materializer;
-    private readonly valueReader?: StoreValueReader;
-    private noTracking = false;
 
     constructor(
         private readonly metadata: EntityMetadata<TEntity>,
-        private readonly database: DatabaseConnection,
-        private readonly changeTracker: ChangeTracker,
+        private readonly host: RawSqlQueryHost,
         private readonly statement: SqlStatement,
-        valueReader?: StoreValueReader,
+        private readonly options: RawSqlQueryOptions = defaultOptions,
     ) {
-        this.valueReader = valueReader;
-        this.materializer = new Materializer(valueReader);
+        this.materializer = new Materializer(host.valueReader);
     }
 
     public async toArray(options?: DatabaseOperationOptions): Promise<TEntity[]> {
-        const result = await this.database.query(this.statement, options);
-        const tracker = this.noTracking
+        this.host.assertCanQuery('fromSql()');
+        const result = await this.host.database.query(
+            this.buildStatement(),
+            options,
+        );
+        const tracker = this.options.noTracking
             ? new ChangeTracker()
-            : this.changeTracker;
+            : this.host.changeTracker;
         try {
             return this.materializer.materializeMany(
                 this.metadata,
@@ -45,39 +53,37 @@ export class RawSqlQueryable<TEntity extends object> {
                 tracker,
             );
         } finally {
-            if (tracker !== this.changeTracker) {
+            if (tracker !== this.host.changeTracker) {
                 tracker.clear();
             }
         }
     }
 
     public stream(options?: QueryStreamOptions): AsyncIterable<TEntity> {
-        if (!this.database.stream) {
+        this.host.assertCanQuery('fromSql()');
+        if (!this.host.database.stream) {
             throw new ProviderCapabilityError('streaming queries');
         }
-        const rows = this.database.stream(this.statement, options);
-        const tracker = this.noTracking
-            ? new ChangeTracker()
-            : this.changeTracker;
-        return mapAsyncIterable(
-            rows,
-            row => this.materializer.materialize(this.metadata, row, tracker),
-            tracker === this.changeTracker ? undefined : () => {
-                tracker.clear();
-            },
-        );
+        return streamRawSqlEntities({
+            host: this.host,
+            metadata: this.metadata,
+            materializer: this.materializer,
+            statement: () => this.buildStatement(),
+            noTracking: this.options.noTracking,
+            stream: options,
+        });
     }
 
     public asNoTracking(): RawSqlQueryable<TEntity> {
-        const query = new RawSqlQueryable(
-            this.metadata,
-            this.database,
-            this.changeTracker,
-            this.statement,
-            this.valueReader,
-        );
-        query.noTracking = true;
-        return query;
+        return this.with({ noTracking: true });
+    }
+
+    public ignoreQueryFilters(): RawSqlQueryable<TEntity> {
+        return this.with({ ignoreQueryFilters: true });
+    }
+
+    public ignoreTenantScope(): RawSqlQueryable<TEntity> {
+        return this.with({ ignoreTenantScope: true });
     }
 
     public async firstOrNull(options?: DatabaseOperationOptions): Promise<TEntity | null> {
@@ -111,13 +117,31 @@ export class RawSqlQueryable<TEntity extends object> {
     }
 
     public toSql(): SqlStatement {
+        this.host.assertCanQuery('fromSql()');
+        const statement = this.buildStatement();
         return {
-            text: this.statement.text,
-            values: [...this.statement.values],
+            text: statement.text,
+            values: [...statement.values],
         };
     }
 
     public toDebugSql(options: DebugSqlOptions = {}): string {
-        return formatDebugSql(this.statement, options);
+        return formatDebugSql(this.toSql(), options);
+    }
+
+    private buildStatement(): SqlStatement {
+        return this.host.buildStatement(this.metadata, this.statement, {
+            ignoreQueryFilters: this.options.ignoreQueryFilters,
+            ignoreTenantScope: this.options.ignoreTenantScope,
+        });
+    }
+
+    private with(changes: Partial<RawSqlQueryOptions>): RawSqlQueryable<TEntity> {
+        return new RawSqlQueryable(
+            this.metadata,
+            this.host,
+            this.statement,
+            { ...this.options, ...changes },
+        );
     }
 }

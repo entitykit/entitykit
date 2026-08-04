@@ -14,6 +14,7 @@ import { DbSetQueryExecutor } from './db-set-query-executor';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { resolveTrackedFind } from './tracked-find-resolver';
 import { applyTenantOnAdd } from './save-time-tenant';
+import { createDbSetRawQueryHost } from './db-set-raw-query-host';
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
 export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
@@ -108,10 +109,8 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
     public fromSql(strings: TemplateStringsArray, ...values: readonly unknown[]): RawSqlQueryable<TEntity> {
         return new RawSqlQueryable(
             this.metadata,
-            this.context.database,
-            this.context.changeTracker,
+            createDbSetRawQueryHost(this.context),
             buildRawSql(this.context.dialect, strings, ...values),
-            this.context.valueReader,
         );
     }
 
