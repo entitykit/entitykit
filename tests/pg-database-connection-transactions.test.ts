@@ -49,16 +49,16 @@ describe('PostgresDatabaseConnection transactions', () => {
         expect(pgClient.release).toHaveBeenCalledWith(true);
     });
 
-    it('wraps commit failures and releases the client after rollback', async () => {
+    it('keeps a proven serialization abort retryable after rollback', async () => {
         const connection = new PostgresDatabaseConnection('postgres://localhost/entitykit');
         const pgClient = createPgClient();
         pgClient.query.mockResolvedValueOnce(undefined);
-        pgClient.query.mockRejectedValueOnce({ code: 'COMMIT_FAILED' });
+        pgClient.query.mockRejectedValueOnce({ code: '40001' });
         pgClient.query.mockResolvedValueOnce(undefined);
         pgPool().connect.mockResolvedValueOnce(pgClient);
 
         await expect(connection.transaction(() => 'ok'))
-            .rejects.toMatchObject({ name: 'DatabaseProviderError', operation: 'commit', code: 'COMMIT_FAILED' });
+            .rejects.toMatchObject({ name: 'DatabaseProviderError', operation: 'commit', code: '40001' });
         expect(pgClient.query.mock.calls).toEqual([['begin'], ['commit'], ['rollback']]);
         expect(pgClient.release).toHaveBeenCalledTimes(1);
     });
@@ -113,11 +113,11 @@ describe('PostgresDatabaseConnection transactions', () => {
         expect(pgClient.release).toHaveBeenCalledWith(true);
     });
 
-    it('preserves commit failures when rollback cleanup also fails', async () => {
+    it('preserves a proven deadlock abort when rollback cleanup also fails', async () => {
         const connection = new PostgresDatabaseConnection('postgres://localhost/entitykit');
         const pgClient = createPgClient();
         pgClient.query.mockResolvedValueOnce(undefined);
-        pgClient.query.mockRejectedValueOnce({ code: 'COMMIT_FAILED' });
+        pgClient.query.mockRejectedValueOnce({ code: '40P01' });
         pgClient.query.mockRejectedValueOnce({ code: 'ROLLBACK_FAILED' });
         pgPool().connect.mockResolvedValueOnce(pgClient);
 
@@ -128,7 +128,7 @@ describe('PostgresDatabaseConnection transactions', () => {
                 primaryError: containing({
                     name: 'DatabaseProviderError',
                     operation: 'commit',
-                    code: 'COMMIT_FAILED',
+                    code: '40P01',
                 }),
                 cleanupError: containing({
                     name: 'DatabaseProviderError',

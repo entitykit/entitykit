@@ -10,8 +10,7 @@ import type {
     TransactionOptions,
 } from '../../storage/database-connection';
 import { throwIfOperationAborted } from '../../storage/operation-cancellation';
-import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
-import { isUnknownMysqlCommitOutcome } from './mysql-commit-outcome';
+import { mysqlCommitFailure } from './mysql-commit-outcome';
 
 export async function runMysqlTransaction<TResult>(
     connection: MySqlConnection,
@@ -45,13 +44,7 @@ export async function runMysqlTransaction<TResult>(
         try {
             await exec(connection, 'commit', 'commit', commandTimeoutMs);
         } catch (error) {
-            if (
-                error instanceof DatabaseProviderError &&
-                isUnknownMysqlCommitOutcome(error.code)
-            ) {
-                throw new TransactionOutcomeUnknownError('mysql', error);
-            }
-            throw error;
+            throw mysqlCommitFailure(error);
         }
         return result;
     } catch (error) {

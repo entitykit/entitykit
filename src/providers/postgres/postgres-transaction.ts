@@ -8,8 +8,7 @@ import type {
 } from '../../storage/database-connection';
 import { createPostgresProviderError } from './postgres-provider-error';
 import { throwIfOperationAborted } from '../../storage/operation-cancellation';
-import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
-import { isUnknownPostgresCommitOutcome } from './postgres-commit-outcome';
+import { postgresCommitFailure } from './postgres-commit-outcome';
 
 export async function runPostgresTransaction<TResult>(
     client: PoolClient,
@@ -34,14 +33,7 @@ export async function runPostgresTransaction<TResult>(
         try {
             await client.query('commit');
         } catch (error) {
-            const commitError = createPostgresProviderError('commit', error);
-            if (isUnknownPostgresCommitOutcome(commitError.code)) {
-                throw new TransactionOutcomeUnknownError(
-                    'postgres',
-                    commitError,
-                );
-            }
-            throw commitError;
+            throw postgresCommitFailure(error);
         }
 
         return result;

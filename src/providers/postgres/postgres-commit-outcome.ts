@@ -1,15 +1,12 @@
-/** Whether a Postgres commit transport error leaves durability unknowable. */
-export function isUnknownPostgresCommitOutcome(code?: string): boolean {
-    return code !== undefined && (
-        code.startsWith('08') ||
-        [
-            '57P01',
-            '57P02',
-            '57P03',
-            'ECONNREFUSED',
-            'ECONNRESET',
-            'EPIPE',
-            'ETIMEDOUT',
-        ].includes(code)
-    );
+import type { DatabaseProviderError } from '../../storage/database-errors';
+import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
+import { createPostgresProviderError } from './postgres-provider-error';
+
+/** Classify a Postgres commit rejection by proof of transaction abortion. */
+export function postgresCommitFailure(cause: unknown): DatabaseProviderError {
+    const error = createPostgresProviderError('commit', cause);
+    if (error.code === '40001' || error.code === '40P01') {
+        return error;
+    }
+    throw new TransactionOutcomeUnknownError('postgres', error);
 }

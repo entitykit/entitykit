@@ -102,8 +102,8 @@ describe('MySqlDatabaseConnection transactions', () => {
         mysqlClient.query
             .mockResolvedValueOnce([[], []])
             .mockRejectedValueOnce({
-                code: 'COMMIT_FAILED',
-                sqlMessage: 'commit failed',
+                code: 'ER_LOCK_DEADLOCK',
+                sqlMessage: 'transaction rolled back after deadlock',
             })
             .mockRejectedValueOnce({
                 code: 'ROLLBACK_FAILED',
@@ -119,7 +119,7 @@ describe('MySqlDatabaseConnection transactions', () => {
                 primaryError: containing({
                     name: 'DatabaseProviderError',
                     operation: 'commit',
-                    code: 'COMMIT_FAILED',
+                    code: 'ER_LOCK_DEADLOCK',
                 }),
                 cleanupError: containing({
                     name: 'DatabaseProviderError',
@@ -138,14 +138,14 @@ describe('MySqlDatabaseConnection transactions', () => {
         expect(connection.isInTransaction).toBe(false);
     });
 
-    it('rolls back a failed commit and preserves the commit error', async () => {
+    it('rolls back a proven deadlock abort and preserves the commit error', async () => {
         const connection = new MySqlDatabaseConnection('mysql://localhost/entitykit');
         const mysqlClient = createMysqlClient();
         mysqlClient.query
             .mockResolvedValueOnce([[], []])
             .mockRejectedValueOnce({
-                code: 'COMMIT_FAILED',
-                sqlMessage: 'commit failed',
+                code: 'ER_LOCK_DEADLOCK',
+                sqlMessage: 'transaction rolled back after deadlock',
             })
             .mockResolvedValueOnce([[], []]);
         mysqlPool().getConnection.mockResolvedValueOnce(mysqlClient);
@@ -154,7 +154,7 @@ describe('MySqlDatabaseConnection transactions', () => {
             name: 'DatabaseProviderError',
             provider: 'mysql',
             operation: 'commit',
-            code: 'COMMIT_FAILED',
+            code: 'ER_LOCK_DEADLOCK',
         });
 
         expect(mysqlClient.query.mock.calls).toEqual([
