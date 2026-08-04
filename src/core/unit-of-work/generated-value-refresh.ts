@@ -1,7 +1,6 @@
 import type { EntityMetadata } from '../../model/entity-metadata';
 import type { PropertyMetadata } from '../../model/property-metadata';
 import { toProviderValue } from '../../model/value-converter/store-value';
-import { readPropertyValue } from '../../model/property-value-access';
 import type { SqlDialect } from '../../sql/sql-dialect';
 import { SqlParameterBag, type SqlStatement } from '../../sql/sql-statement';
 
@@ -10,11 +9,11 @@ export function buildGeneratedValueRefresh(
     dialect: SqlDialect,
     metadata: EntityMetadata,
     properties: readonly PropertyMetadata[],
-    entity: object,
+    persistedKeyValue: (propertyName: string) => unknown,
 ): SqlStatement {
     const parameters = new SqlParameterBag(dialect);
     const conditions = metadata.keyPropertiesMetadata.map(property => {
-        const value = readPropertyValue(entity, property);
+        const value = persistedKeyValue(property.propertyName);
         if (value === undefined || value === null || value === '') {
             throw new Error(
                 `Cannot refresh database-generated values for '${metadata.entityName}' because key property '${property.propertyName}' is empty.`,

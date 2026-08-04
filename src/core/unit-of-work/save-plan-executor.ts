@@ -79,6 +79,7 @@ export class SavePlanExecutor {
                     entry,
                     result,
                     execution?.generatedValues,
+                    persisted?.values,
                     options,
                 );
                 if (!entry.isSystemGenerated) {

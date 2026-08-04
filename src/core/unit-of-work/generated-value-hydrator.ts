@@ -55,6 +55,7 @@ export class GeneratedValueHydrator {
         entry: SavePlanEntry,
         result: DatabaseQueryResult,
         plan?: GeneratedValuesPlan,
+        persistedValues: Readonly<Record<string, unknown>> = {},
         options?: DatabaseOperationOptions,
     ): Promise<void> {
         if (!plan) {
@@ -92,7 +93,10 @@ export class GeneratedValueHydrator {
                     this.dialect,
                     plan.metadata,
                     remaining,
-                    entry.entity,
+                    propertyName => {
+                        const fact = this.recorded.find(entry.entity, propertyName);
+                        return fact?.persistedValue ?? persistedValues[propertyName];
+                    },
                 ),
                 options,
             );
