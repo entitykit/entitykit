@@ -1,4 +1,4 @@
-import type { PoolClient } from 'pg';
+import type { PoolClient } from './postgres-driver';
 import {
     DatabaseTransactionCleanupError,
 } from '../../storage/database-errors';

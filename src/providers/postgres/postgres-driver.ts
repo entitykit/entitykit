@@ -1,12 +1,15 @@
 import { createRequire } from 'node:module';
-import type * as PgModule from 'pg';
-import type { Pool } from 'pg';
 import type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
 import { observePostgresPoolErrors } from './postgres-pool-errors';
+import type { PgModule, Pool } from './postgres-driver-contract';
+
+export type {
+    Pool,
+    PoolClient,
+    PostgresQueryResult,
+} from './postgres-driver-contract';
 
 const loadModule = createRequire(__filename);
-
-export type { Pool, PoolClient } from 'pg';
 
 export type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
 
@@ -125,12 +128,12 @@ function assertBoolean(name: string, value: boolean | undefined): void {
     }
 }
 
-function requirePg(): typeof PgModule {
+function requirePg(): PgModule {
     // Loaded lazily so importing this module (and therefore `entitykit`) does not
     // pull in the optional `pg` peer until a Postgres connection is constructed.
     try {
 
-        return loadModule('pg') as typeof PgModule;
+        return loadModule('pg') as PgModule;
     } catch (error) {
         if ((error as { code?: string }).code !== 'MODULE_NOT_FOUND') {
             throw error;
