@@ -63,6 +63,36 @@ describe('migration update execution failures', () => {
         ]));
     });
 
+    it('preserves the provider failure when diagnostics also fail', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const providerFailure = new Error('statement failed');
+        connection.queueResult();
+        connection.queueResult();
+        connection.queueResult();
+        connection.queueResult({ rows: [] });
+        connection.queueResult();
+        connection.queueError(providerFailure);
+        connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
+
+        await expect(new MigrationRunner(
+            connection,
+            postgresMigrationDialect,
+            undefined,
+            {
+                diagnostics: [() => {
+                    throw new Error('diagnostic failed');
+                }],
+            },
+        ).update([new FailsInsideTransaction()])).rejects.toMatchObject({
+            name: 'MigrationExecutionError',
+            cause: providerFailure,
+        });
+
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
+        expect(connection.statements.at(-1)?.text)
+            .toBe('select pg_advisory_unlock(hashtext($1))');
+    });
+
     it('wraps failed migration history writes with recovery details', async () => {
         const createUsers = new CreateUsers();
         const connection = new RecordingDatabaseConnection();
