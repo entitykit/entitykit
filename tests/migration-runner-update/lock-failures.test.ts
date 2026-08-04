@@ -43,6 +43,37 @@ describe('migration update lock failures', () => {
         expect(connection.sessionEvents).toEqual(['start', 'end']);
     });
 
+    it('detaches asynchronous diagnostic rejection from the lock lifecycle', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const observedPhases: string[] = [];
+        connection.queueResult();
+        connection.queueResult();
+        connection.queueResult();
+        connection.queueResult({ rows: [] });
+        connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
+
+        await expect(new MigrationRunner(
+            connection,
+            postgresMigrationDialect,
+            undefined,
+            {
+                diagnostics: [async event => {
+                    await Promise.resolve();
+                    observedPhases.push(event.phase);
+                    throw new Error('async diagnostic failed');
+                }],
+            },
+        ).update([])).resolves.toMatchObject({ appliedMigrations: [] });
+        await new Promise<void>(resolve => setImmediate(resolve));
+
+        expect(observedPhases).toEqual([
+            'discovery',
+            'lockAcquire',
+            'pending',
+            'lockRelease',
+        ]);
+    });
+
     it('emits migration diagnostics for migration lock failures', async () => {
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
