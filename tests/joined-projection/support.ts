@@ -54,12 +54,16 @@ export class AppDbContext extends DbContext {
                 provider: 'custom',
                 dialect: AppDbContext.dialect,
             });
-            options.useDiagnostics(event => AppDbContext.diagnostics.push(event));
+            options.useDiagnostics(event => {
+                AppDbContext.diagnostics.push(event);
+            });
             return;
         }
 
         options.useConnection(AppDbContext.connection);
-        options.useDiagnostics(event => AppDbContext.diagnostics.push(event));
+        options.useDiagnostics(event => {
+            AppDbContext.diagnostics.push(event);
+        });
     }
 
     protected override model(model: ModelBuilder): void {

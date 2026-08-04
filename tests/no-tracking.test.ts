@@ -30,7 +30,9 @@ class NoTrackingContext extends DbContext {
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useConnection(NoTrackingContext.connection);
         options.useLazyLoading();
-        options.useDiagnostics(event => NoTrackingContext.events.push(event));
+        options.useDiagnostics(event => {
+            NoTrackingContext.events.push(event);
+        });
     }
 
     protected override model(model: ModelBuilder): void {

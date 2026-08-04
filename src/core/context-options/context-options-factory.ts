@@ -1,4 +1,4 @@
-import type { RuntimeDiagnosticsHandler } from '../../diagnostics/runtime/events';
+import type { RuntimeDiagnosticsEmitter } from '../../diagnostics/runtime/events';
 import type { SaveChangesInterceptor } from '../../interceptors/save-changes-interceptor';
 import type { OutboxOptions } from '../outbox-options';
 import type {
@@ -12,7 +12,7 @@ import type { ConfiguredProvider } from './provider-selection';
 
 export interface ContextBehaviorOptions {
     readonly saveInterceptors: readonly SaveChangesInterceptor[];
-    readonly diagnostics: readonly RuntimeDiagnosticsHandler[];
+    readonly diagnostics: readonly RuntimeDiagnosticsEmitter[];
     readonly auditing?: AuditOptions;
     readonly tenantScope?: TenantScopeOptions;
     readonly lazyLoading?: LazyLoadingOptions;

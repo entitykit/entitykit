@@ -6,7 +6,7 @@ import type {
     TransactionOptions,
 } from '../../storage/database-connection';
 import type { SqlStatement } from '../../sql/sql-statement';
-import type { RuntimeDiagnosticsHandler } from './events';
+import type { RuntimeDiagnosticsEmitter } from './events';
 import { startElapsedTimer } from './elapsed-time';
 import { transactionFailurePhase } from './transaction-failure-phase';
 import { ProviderCapabilityError } from '../../errors/runtime-errors';
@@ -15,7 +15,7 @@ export class DiagnosticDatabaseConnection implements DatabaseConnection {
     constructor(
         private readonly inner: DatabaseConnection,
         private readonly provider: string,
-        private readonly handler: RuntimeDiagnosticsHandler,
+        private readonly handler: RuntimeDiagnosticsEmitter,
     ) {}
 
     public get isInTransaction(): boolean {

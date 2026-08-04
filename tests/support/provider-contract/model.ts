@@ -67,7 +67,9 @@ export class ProviderContractDbContext extends DbContext {
 
     protected override configure(options: DbContextOptionsBuilder): void {
         this.runtime.configure(options);
-        options.useDiagnostics(event => this.diagnosticEvents.push(event));
+        options.useDiagnostics(event => {
+            this.diagnosticEvents.push(event);
+        });
     }
 
     protected override model(model: ModelBuilder): void {

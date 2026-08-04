@@ -45,7 +45,9 @@ class StreamingDbContext extends DbContext {
 
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useConnection(StreamingDbContext.connection);
-        options.useDiagnostics(event => StreamingDbContext.events.push(event));
+        options.useDiagnostics(event => {
+            StreamingDbContext.events.push(event);
+        });
     }
 
     protected override model(model: ModelBuilder): void {

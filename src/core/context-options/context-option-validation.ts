@@ -1,8 +1,10 @@
 import type {
     DiagnosticsOptions,
+    RuntimeDiagnosticsEmitter,
     RuntimeDiagnosticsHandler,
 } from '../../diagnostics/runtime/events';
 import { sanitizeRuntimeDiagnosticEvent } from '../../diagnostics/runtime/sanitize-event';
+import { invokeDetachedObserver } from '../../diagnostics/detached-observer';
 import type { LazyLoadingOptions } from './db-context-option-types';
 
 export function validateLazyLoadingOptions(options: LazyLoadingOptions): void {
@@ -19,7 +21,7 @@ export function validateLazyLoadingOptions(options: LazyLoadingOptions): void {
 export function createRuntimeDiagnosticsHandler(
     handler: RuntimeDiagnosticsHandler,
     options: DiagnosticsOptions,
-): RuntimeDiagnosticsHandler {
+): RuntimeDiagnosticsEmitter {
     if (typeof handler !== 'function') {
         throw new Error('useDiagnostics requires a diagnostic event handler.');
     }
@@ -30,12 +32,10 @@ export function createRuntimeDiagnosticsHandler(
         throw new Error('Diagnostics includeSensitiveData must be a boolean.');
     }
     return event => {
-        try {
+        invokeDetachedObserver((): void | Promise<void> =>
             handler(options.includeSensitiveData
                 ? event
-                : sanitizeRuntimeDiagnosticEvent(event));
-        } catch {
-            // Diagnostics observe application work; they never participate in it.
-        }
+                : sanitizeRuntimeDiagnosticEvent(event)),
+        );
     };
 }

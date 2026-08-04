@@ -56,9 +56,7 @@ export class DiagnosticsContext extends DbContext {
                 },
             )
             .useDiagnostics(
-                event => {
-                    DiagnosticsContext.handler(event);
-                },
+                (event): void | Promise<void> => DiagnosticsContext.handler(event),
                 { includeSensitiveData: DiagnosticsContext.includeSensitiveData },
             );
     }

@@ -26,7 +26,9 @@ describe('sensitive diagnostic data', () => {
         connection.queueError(new Error('query failed'));
         const options = new DbContextOptionsBuilder()
             .useConnection(connection)
-            .useDiagnostics(event => events.push(event))
+            .useDiagnostics(event => {
+                events.push(event);
+            })
             .build();
 
         await expect(options.connection.query({
@@ -53,7 +55,9 @@ describe('sensitive diagnostic data', () => {
         const options = new DbContextOptionsBuilder()
             .useConnection(connection)
             .useDiagnostics(
-                event => events.push(event),
+                event => {
+                    events.push(event);
+                },
                 { includeSensitiveData: true },
             )
             .build();
@@ -67,6 +71,28 @@ describe('sensitive diagnostic data', () => {
             statement: { text: 'select $1', values: ['secret-token'] },
             error: failure,
         }));
+    });
+
+    it('detaches asynchronous diagnostic failures from database work', async () => {
+        const connection = new RecordingDatabaseConnection();
+        let observerFinished = false;
+        connection.queueResult({ rows: [{ value: 1 }] });
+        const options = new DbContextOptionsBuilder()
+            .useConnection(connection)
+            .useDiagnostics(async () => {
+                await Promise.resolve();
+                observerFinished = true;
+                throw new Error('async diagnostic failed');
+            })
+            .build();
+
+        await expect(options.connection.query({
+            text: 'select 1 as value',
+            values: [],
+        })).resolves.toMatchObject({ rows: [{ value: 1 }] });
+        await new Promise<void>(resolve => setImmediate(resolve));
+
+        expect(observerFinished).toBe(true);
     });
 
     it('removes tracked entities, keys, and statement values from save plans', async () => {

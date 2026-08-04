@@ -55,7 +55,9 @@ class BlogContext extends DbContext {
 
     protected override configure(options: DbContextOptionsBuilder): void {
         BlogContext.configureProvider(options);
-        options.useDiagnostics(event => events.push(event));
+        options.useDiagnostics(event => {
+            events.push(event);
+        });
     }
 
     protected override model(model: ModelBuilder): void {

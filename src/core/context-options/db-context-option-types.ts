@@ -1,6 +1,4 @@
-import type {
-    RuntimeDiagnosticsHandler,
-} from '../../diagnostics/runtime/events';
+import type { RuntimeDiagnosticsEmitter } from '../../diagnostics/runtime/events';
 import type { SaveChangesInterceptor } from '../../interceptors/save-changes-interceptor';
 import type { MigrationBuilderFactory } from '../../migrations/migration-builder-contract';
 import type { MigrationSqlDialect } from '../../migrations/migration-sql-dialect';
@@ -51,7 +49,7 @@ export interface DbContextOptions {
     readonly ownsConnection: boolean;
     readonly valueReader?: StoreValueReader;
     readonly saveInterceptors: readonly SaveChangesInterceptor[];
-    readonly diagnostics: readonly RuntimeDiagnosticsHandler[];
+    readonly diagnostics: readonly RuntimeDiagnosticsEmitter[];
     readonly auditing?: AuditOptions;
     readonly tenantScope?: TenantScopeOptions;
     readonly lazyLoading?: LazyLoadingOptions;

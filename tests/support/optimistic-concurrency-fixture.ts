@@ -29,7 +29,9 @@ export class ConcurrencyContext extends DbContext {
         options
             .useConnection(ConcurrencyContext.connection)
             .useDiagnostics(
-                event => ConcurrencyContext.events.push(event),
+                event => {
+                    ConcurrencyContext.events.push(event);
+                },
                 { includeSensitiveData: true },
             );
     }

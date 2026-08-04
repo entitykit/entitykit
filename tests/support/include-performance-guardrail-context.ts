@@ -58,7 +58,9 @@ class IncludeGuardrailContext extends DbContext {
 
         options
             .useTenantScope(() => 'wrk_1')
-            .useDiagnostics(event => IncludeGuardrailContext.events.push(event));
+            .useDiagnostics(event => {
+                IncludeGuardrailContext.events.push(event);
+            });
     }
 
     protected override model(model: ModelBuilder): void {

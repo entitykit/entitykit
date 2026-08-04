@@ -1,4 +1,8 @@
-import type { DiagnosticsOptions, RuntimeDiagnosticsHandler } from '../../diagnostics/runtime/events';
+import type {
+    DiagnosticsOptions,
+    RuntimeDiagnosticsEmitter,
+    RuntimeDiagnosticsHandler,
+} from '../../diagnostics/runtime/events';
 import type { SaveChangesInterceptor } from '../../interceptors/save-changes-interceptor';
 import type { DatabaseConnection } from '../../storage/database-connection';
 import type { DatabaseDataSource } from '../../storage/database-data-source';
@@ -21,7 +25,7 @@ const tenantScopedBuilders: WeakSet<DbContextOptionsBuilder> = new WeakSet();
 export class DbContextOptionsBuilder {
     private readonly providerSelection = new ProviderSelection();
     private readonly saveInterceptors: SaveChangesInterceptor[] = [];
-    private readonly diagnostics: RuntimeDiagnosticsHandler[] = [];
+    private readonly diagnostics: RuntimeDiagnosticsEmitter[] = [];
     private auditing?: AuditOptions;
     private tenantScope?: TenantScopeOptions;
     private lazyLoading?: LazyLoadingOptions;

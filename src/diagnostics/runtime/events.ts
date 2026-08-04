@@ -138,7 +138,9 @@ export type {
 
 /** Public type representing runtime diagnostics handler. */ export type RuntimeDiagnosticsHandler = (
     event: RuntimeDiagnosticEvent,
-) => void;
+) => void | Promise<void>;
+
+export type RuntimeDiagnosticsEmitter = (event: RuntimeDiagnosticEvent) => void;
 
 /** Options that configure diagnostics. */ export interface DiagnosticsOptions {
     /** Include SQL values, tracked entities, key values, and original errors. */
