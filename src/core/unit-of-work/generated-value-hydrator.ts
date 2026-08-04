@@ -1,8 +1,4 @@
-import type {
-    DatabaseConnection,
-    DatabaseOperationOptions,
-    DatabaseQueryResult,
-} from '../../storage/database-connection';
+import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult } from '../../storage/database-connection';
 import type { StoreValueReader } from '../../storage/store-value-reader';
 import type { SqlDialect } from '../../sql/sql-dialect';
 import type { ChangeTracker } from '../../tracking/change-tracker';
@@ -16,12 +12,10 @@ import { propagateGeneratedKeys } from './generated-key-propagator';
 import { buildGeneratedValueRefresh } from './generated-value-refresh';
 import { assertGeneratedIdentityAvailable } from './generated-identity-assertion';
 import { writeGeneratedRow } from './generated-value-writer';
-import type {
-    AppliedPropertyValue,
-    GeneratedValueAcceptance,
-} from './applied-generated-value';
+import type { AppliedPropertyValue, GeneratedValueAcceptance } from './applied-generated-value';
 import { GeneratedValueRecorder } from './generated-value-recorder';
 import { applyGeneratedInsertIdentity } from './generated-insert-identity';
+import type { EntityMetadata } from '../../model/entity-metadata';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
     private readonly recorded: GeneratedValueRecorder;
@@ -73,7 +67,7 @@ export class GeneratedValueHydrator {
                 this.mutations,
                 this.valueReader,
             ));
-            this.assertFinalIdentity(entry);
+            this.assertFinalIdentity(entry, plan.metadata, persistedValues);
             return;
         }
 
@@ -114,7 +108,7 @@ export class GeneratedValueHydrator {
                 this.valueReader,
             ));
         }
-        this.assertFinalIdentity(entry);
+        this.assertFinalIdentity(entry, plan.metadata, persistedValues);
     }
 
     public propagateGeneratedKeys(
@@ -135,7 +129,18 @@ export class GeneratedValueHydrator {
         );
     }
 
-    private assertFinalIdentity(entry: SavePlanEntry): void {
-        assertGeneratedIdentityAvailable(this.changeTracker, entry);
+    private assertFinalIdentity(
+        entry: SavePlanEntry,
+        metadata: EntityMetadata,
+        persistedValues: Readonly<Record<string, unknown>>,
+    ): void {
+        const keyValues = metadata.keyProperties.map(propertyName =>
+            this.recorded.find(entry.entity, propertyName)?.persistedValue ??
+            persistedValues[propertyName]);
+        assertGeneratedIdentityAvailable(
+            this.changeTracker,
+            entry,
+            keyValues,
+        );
     }
 }

@@ -143,6 +143,12 @@ describe('generated-value refresh identity snapshots', () => {
     it('uses the recorded generated insert key after a live mutation', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = RefreshContext.create(connection);
+        const existing = Object.assign(new InsertedEntity(), {
+            id: 999,
+            name: 'existing',
+            createdAt: new Date('2026-08-03T09:00:00.000Z'),
+        });
+        db.inserted.attach(existing);
         const target = Object.assign(new InsertedEntity(), {
             id: 0, name: 'inserted',
         });
@@ -169,5 +175,41 @@ describe('generated-value refresh identity snapshots', () => {
         });
         expect(item.id).toBe(999);
         expect(db.entry(item)?.state).toBe(EntityState.Modified);
+    });
+
+    it('reports a persisted generated-key collision instead of the live key', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = RefreshContext.create(connection);
+        const existing = Object.assign(new InsertedEntity(), {
+            id: 42,
+            name: 'existing',
+            createdAt: new Date('2026-08-03T09:00:00.000Z'),
+        });
+        db.inserted.attach(existing);
+        const target = Object.assign(new InsertedEntity(), {
+            id: 0,
+            name: 'inserted',
+        });
+        const item = new Proxy(target, {
+            set(entity, property, value) {
+                const written = Reflect.set(entity, property, value);
+                if (property === 'id' && value === 42) entity.id = 999;
+                return written;
+            },
+        });
+        db.inserted.add(item);
+        connection.queueResult({ rowCount: 1, insertId: 42 });
+        connection.queueResult({
+            rows: [{ created_at: new Date('2026-08-03T12:00:00.000Z') }],
+            rowCount: 1,
+        });
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'An instance of \'InsertedEntity\' with key \'42\' is already tracked.',
+        );
+
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
+        expect(item.id).toBe(0);
+        expect(db.entry(item)?.state).toBe(EntityState.Added);
     });
 });

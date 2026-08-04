@@ -5,6 +5,7 @@ import type { ChangeTracker } from '../../tracking/change-tracker';
 export function assertGeneratedIdentityAvailable(
     changeTracker: ChangeTracker,
     entry: SavePlanEntry,
+    persistedKeyValues: readonly unknown[],
 ): void {
     const tracked = changeTracker.entry(entry.entity);
     if (!tracked) {
@@ -12,11 +13,14 @@ export function assertGeneratedIdentityAvailable(
     }
     const existing = changeTracker.tryGetByIdentityValues(
         tracked.metadata,
-        tracked.metadata.getKeyValues(entry.entity),
+        persistedKeyValues,
     );
     if (existing && existing !== tracked) {
+        const persistedKey = persistedKeyValues.length === 1
+            ? persistedKeyValues[0]
+            : persistedKeyValues;
         throw new Error(
-            `An instance of '${tracked.metadata.entityName}' with key '${String(tracked.keyValue)}' is already tracked.`,
+            `An instance of '${tracked.metadata.entityName}' with key '${String(persistedKey)}' is already tracked.`,
         );
     }
 }
