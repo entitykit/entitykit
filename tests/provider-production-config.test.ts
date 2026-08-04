@@ -66,7 +66,10 @@ describe('production provider configuration', () => {
             connectionTimeoutMillis: 5000,
             maxUses: 500,
         }));
-        expect(pgPool().on).toHaveBeenCalledWith('error', onPoolError);
+        expect(pgPool().on).toHaveBeenCalledWith('error', expect.any(Function));
+        const poolError = new Error('idle client failed');
+        pgPool().errorListener?.(poolError);
+        expect(onPoolError).toHaveBeenCalledWith(poolError);
     });
 
     it('maps MySQL pool settings and applies a per-command timeout', async () => {

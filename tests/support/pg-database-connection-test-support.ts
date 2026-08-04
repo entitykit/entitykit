@@ -7,7 +7,9 @@ jest.mock('pg', () => ({
             query: jest.fn(),
             connect: jest.fn(),
             end: jest.fn(),
-            on: jest.fn(),
+            on: jest.fn((event: 'error', listener: (error: Error) => void) => {
+                pool.errorListener = listener;
+            }),
         };
         mockPools.push(pool);
         return pool;
@@ -25,6 +27,7 @@ export interface MockPgPool {
     readonly connect: jest.Mock;
     readonly end: jest.Mock;
     readonly on: jest.Mock;
+    errorListener?: (error: Error) => void;
 }
 
 export interface MockPgClient {

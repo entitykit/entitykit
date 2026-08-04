@@ -31,7 +31,7 @@
      * When omitted, EntityKit emits a redacted process warning so Node does not
      * treat the pool's background `error` event as unhandled.
      */
-    readonly onError?: (error: Error) => void;
+    readonly onError?: (error: Error) => void | Promise<void>;
 }
 
 /** Configuration for postgres connection. */ export interface PostgresConnectionConfig {
