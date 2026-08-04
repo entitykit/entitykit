@@ -180,6 +180,21 @@ describe('Materializer', () => {
         });
     });
 
+    it('materializes partial rows without identity resolution or tracking', () => {
+        const metadata = createUserMetadata();
+        const materializer = new Materializer();
+        const users = materializer.materializeManyUntracked(metadata, [
+            { display_name: 'First' },
+            { display_name: 'Second' },
+        ]);
+
+        expect(users).toHaveLength(2);
+        expect(users[0]).not.toBe(users[1]);
+        expect(users[0]).toMatchObject({ name: 'First' });
+        expect(users[0].id).toBeUndefined();
+        expect(users[1]).toMatchObject({ name: 'Second' });
+    });
+
     it('reuses identity-map instances without overwriting local changes', () => {
         const metadata = createUserMetadata();
         const tracker = new ChangeTracker();

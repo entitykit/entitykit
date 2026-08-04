@@ -7,6 +7,14 @@ import { applyMaterializedValues } from './complex-value-materializer';
 export class Materializer {
     constructor(private readonly valueReader?: StoreValueReader) {}
 
+    /** Materialize one entity without identity resolution or tracker retention. */
+    public materializeUntracked<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        row: Record<string, unknown>,
+    ): TEntity {
+        return this.createEntity(metadata, row).entity;
+    }
+
     public materialize<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         row: Record<string, unknown>,
@@ -37,6 +45,14 @@ export class Materializer {
         changeTracker: ChangeTracker,
     ): TEntity[] {
         return rows.map(row => this.materialize(metadata, row, changeTracker));
+    }
+
+    /** Materialize entities without requiring or retaining identity keys. */
+    public materializeManyUntracked<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        rows: ReadonlyArray<Record<string, unknown>>,
+    ): TEntity[] {
+        return rows.map(row => this.materializeUntracked(metadata, row));
     }
 
     private createEntity<TEntity extends object>(
