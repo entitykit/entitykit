@@ -6,6 +6,7 @@ import type {
 import type { SavePlanEntry } from '../save-plan';
 import type { TransactionCoordinator } from '../transaction-coordinator';
 import type { SaveStateAcceptance } from './save-state-acceptance';
+import { isTransactionOutcomeUnknown } from '../../storage/transaction-outcome';
 
 export class SaveLifecycle {
     constructor(
@@ -79,11 +80,13 @@ export class SaveLifecycle {
                 provider: this.options.provider.provider,
                 plan,
                 durationMs,
-                durability: error !== undefined
-                    ? 'failed'
-                    : this.transactionCoordinator.depth > 0
-                        ? 'pendingTransaction'
-                        : 'committed',
+                durability: isTransactionOutcomeUnknown(error)
+                    ? 'unknown'
+                    : error !== undefined
+                        ? 'failed'
+                        : this.transactionCoordinator.depth > 0
+                            ? 'pendingTransaction'
+                            : 'committed',
                 affectedEntities,
                 error,
             });

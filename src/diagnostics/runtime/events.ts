@@ -4,6 +4,7 @@ import type { SaveChangesDiagnosticEvent } from './save-events';
 export type {
     SaveChangesDiagnosticEvent,
     SaveChangesDiagnosticPlanEntry,
+    SaveDurability,
 } from './save-events';
 
 /** Diagnostic event emitted for runtime diagnostic. */ export type RuntimeDiagnosticEvent =

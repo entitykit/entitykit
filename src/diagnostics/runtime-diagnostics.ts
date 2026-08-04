@@ -13,5 +13,6 @@ export type {
     RuntimeDiagnosticsHandler,
     SaveChangesDiagnosticEvent,
     SaveChangesDiagnosticPlanEntry,
+    SaveDurability,
     TransactionDiagnosticEvent,
 } from './runtime/events';

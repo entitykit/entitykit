@@ -1,7 +1,10 @@
 import {
+    DatabaseProviderError,
+    DatabaseTransactionCleanupError,
     DbUpdateConcurrencyError,
     type MigrationDiagnosticEvent,
     type SaveChangesDiagnosticEvent,
+    TransactionOutcomeUnknownError,
 } from '../../src';
 import { DbContextOptionsBuilder } from '../../src/core/context-options/db-context-options-builder';
 import { contextMigrations } from '../../src/migrations/api';
@@ -135,6 +138,45 @@ describe('save and migration diagnostics', () => {
         }));
     });
 
+    it.each([
+        {
+            label: 'a direct unknown commit outcome',
+            failure: (): Error => unknownCommitError(),
+        },
+        {
+            label: 'an unknown outcome beneath cleanup failure',
+            failure: (): Error => new DatabaseTransactionCleanupError(
+                'postgres',
+                unknownCommitError(),
+                new DatabaseProviderError(
+                    'Postgres rollback failed.',
+                    undefined,
+                    { provider: 'postgres', operation: 'rollback' },
+                ),
+            ),
+        },
+    ])('marks $label with unknown durability', async ({ failure: createFailure }) => {
+        const db = DiagnosticsContext.create();
+        const user = new User();
+        user.id = 'usr_1';
+        const failure = createFailure();
+
+        db.users.add(user);
+        DiagnosticsContext.connection.queueResult({ rowCount: 1 });
+        DiagnosticsContext.connection.failNextTransactionCommit(failure);
+
+        await expect(db.saveChanges()).rejects.toBe(failure);
+
+        const saveEvent = DiagnosticsContext.events.find(
+            (event): event is SaveChangesDiagnosticEvent =>
+                event.kind === 'saveChanges',
+        );
+        expect(saveEvent).toEqual(containing({
+            durability: 'unknown',
+            error: failure,
+        }));
+    });
+
     it('marks saves as pending until an explicit outer transaction commits', async () => {
         const db = DiagnosticsContext.create();
         const user = new User();
@@ -207,3 +249,14 @@ describe('save and migration diagnostics', () => {
         expect(options.diagnostics).toEqual([]);
     });
 });
+
+function unknownCommitError(): TransactionOutcomeUnknownError {
+    return new TransactionOutcomeUnknownError(
+        'postgres',
+        new DatabaseProviderError(
+            'Postgres commit failed.',
+            undefined,
+            { provider: 'postgres', operation: 'commit' },
+        ),
+    );
+}

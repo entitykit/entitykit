@@ -50,7 +50,7 @@ export type {
 export type { AuditOptions, DbContextOptionsBuilder, LazyLoadingOptions, OutboxMessage, OutboxOptions, TenantScopeOptions } from './core/public-db-context-options';
 export { lazy } from './core/lazy-loading';
 export type { LazyNavigations } from './core/lazy-loading';
-export type { DiagnosticsOptions, IncludeDiagnosticEvent, LazyLoadDiagnosticEvent, MigrationDiagnosticEvent, QueryDiagnosticEvent, QueryPlanDiagnosticEvent, QueryPlanShape, RuntimeDiagnosticEvent, RuntimeDiagnosticsHandler, SaveChangesDiagnosticEvent, SaveChangesDiagnosticPlanEntry, TransactionDiagnosticEvent } from './diagnostics/runtime-diagnostics';
+export type { DiagnosticsOptions, IncludeDiagnosticEvent, LazyLoadDiagnosticEvent, MigrationDiagnosticEvent, QueryDiagnosticEvent, QueryPlanDiagnosticEvent, QueryPlanShape, RuntimeDiagnosticEvent, RuntimeDiagnosticsHandler, SaveChangesDiagnosticEvent, SaveChangesDiagnosticPlanEntry, SaveDurability, TransactionDiagnosticEvent } from './diagnostics/runtime-diagnostics';
 export type { SaveChangesInterceptor, SavingChangesEvent, SavedChangesEvent, SaveChangesFailedEvent } from './interceptors/save-changes-interceptor';
 export { DbContext } from './core/db-context';
 export type { DatabaseFacade } from './core/database-facade-types';

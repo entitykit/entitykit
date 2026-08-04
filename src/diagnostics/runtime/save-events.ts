@@ -1,13 +1,19 @@
 import type { SavePlanEntry } from '../../core/save-plan';
 import type { SqlStatement } from '../../sql/sql-statement';
 
+export type SaveDurability =
+    | 'committed'
+    | 'pendingTransaction'
+    | 'failed'
+    | 'unknown';
+
 /** Diagnostic event emitted for save changes diagnostic. */ export interface SaveChangesDiagnosticEvent {
     /** The kind. */ readonly kind: 'saveChanges';
     /** Name of the configured database provider. */ readonly provider: string;
     /** The plan. */ readonly plan: readonly SaveChangesDiagnosticPlanEntry[];
     /** The duration ms. */ readonly durationMs: number;
     /** Whether the save is durable, still pending an outer transaction, or failed. */
-    readonly durability: 'committed' | 'pendingTransaction' | 'failed';
+    readonly durability: SaveDurability;
     /** The affected entities. */ readonly affectedEntities?: number;
     /** The error. */ readonly error?: unknown;
 }
