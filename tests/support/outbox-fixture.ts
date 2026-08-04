@@ -29,7 +29,7 @@ export class OutboxContext extends DbContext {
         private readonly clearOutboxEvents: (
             entity: object,
             persistedEvents: readonly OutboxMessage[],
-        ) => void = clearPersistedEvents,
+        ) => void | Promise<void> = clearPersistedEvents,
         private readonly dialect?: SqlDialect,
     ) {
         super();
@@ -64,7 +64,7 @@ export class OutboxContext extends DbContext {
         clearEvents?: (
             entity: object,
             persistedEvents: readonly OutboxMessage[],
-        ) => void,
+        ) => void | Promise<void>,
         dialect?: SqlDialect,
     ): OutboxContext {
         return OutboxContext.create(connection, clearEvents, dialect);

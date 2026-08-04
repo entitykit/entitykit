@@ -5,6 +5,51 @@ import {
 } from './support/outbox-fixture';
 
 describe('outbox event clearing', () => {
+    it('waits for asynchronous event clearing before completing the save', async () => {
+        const connection = new RecordingDatabaseConnection();
+        let allowClear: (() => void) | undefined;
+        const clearGate: Promise<void> = new Promise(resolve => {
+            allowClear = resolve;
+        });
+        let reportClearStarted: (() => void) | undefined;
+        const clearStarted: Promise<void> = new Promise(resolve => {
+            reportClearStarted = resolve;
+        });
+        let clearCompleted = false;
+        const db = OutboxContext.createWith(connection, async (entity, events) => {
+            reportClearStarted?.();
+            await clearGate;
+            const persisted = new Set(events);
+            const user = entity as ReturnType<typeof createOutboxUser>;
+            user.domainEvents = user.domainEvents.filter(event => !persisted.has(event));
+            clearCompleted = true;
+        });
+        const user = createOutboxUser([{
+            type: 'UserCreated',
+            payload: { userId: 'usr_1' },
+        }]);
+        db.users.add(user);
+        connection.queueResult({ rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        let saveCompleted = false;
+        const save = db.saveChanges().then(result => {
+            saveCompleted = true;
+            return result;
+        });
+        await clearStarted;
+
+        expect(saveCompleted).toBe(false);
+        expect(clearCompleted).toBe(false);
+        allowClear?.();
+        await expect(save).resolves.toBe(1);
+        await expect(db.saveChanges()).resolves.toBe(0);
+
+        expect(clearCompleted).toBe(true);
+        expect(user.domainEvents).toEqual([]);
+        expect(connection.statements).toHaveLength(2);
+    });
+
     it('suppresses a committed event after clearEvents fails', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = OutboxContext.createWith(connection, () => {

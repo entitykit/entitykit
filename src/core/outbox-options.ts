@@ -28,6 +28,6 @@ export interface OutboxOptions {
     readonly clearEvents: (
         entity: object,
         persistedEvents: readonly OutboxMessage[],
-    ) => void;
+    ) => void | Promise<void>;
     /** The now. */ readonly now?: () => Date;
 }

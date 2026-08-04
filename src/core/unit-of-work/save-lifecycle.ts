@@ -50,7 +50,7 @@ export class SaveLifecycle {
         this.outboxEvents.defer(outboxBatches);
         const callback = async (): Promise<void> => {
             acceptance.commit();
-            this.clearOutboxEvents(outboxBatches);
+            await this.clearOutboxEvents(outboxBatches);
             await this.notifySaved(plan, affectedEntities);
         };
 
@@ -106,7 +106,9 @@ export class SaveLifecycle {
         }
     }
 
-    private clearOutboxEvents(batches: readonly OutboxEventBatch[]): void {
+    private async clearOutboxEvents(
+        batches: readonly OutboxEventBatch[],
+    ): Promise<void> {
         const outbox = this.options.outbox;
         if (!outbox) {
             return;
@@ -114,7 +116,7 @@ export class SaveLifecycle {
 
         for (const batch of batches) {
             try {
-                outbox.clearEvents(batch.entity, batch.events);
+                await outbox.clearEvents(batch.entity, batch.events);
                 this.outboxEvents.release([batch]);
             } catch {
                 // Clearing an in-memory event list is post-commit observation.
