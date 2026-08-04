@@ -13,6 +13,7 @@ import { DbSetBulkWriter } from './db-set-bulk-writer';
 import { DbSetQueryExecutor } from './db-set-query-executor';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { resolveTrackedFind } from './tracked-find-resolver';
+import { applyTenantOnAdd } from './save-time-tenant';
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
 export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
@@ -56,7 +57,26 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
     /** Start tracking a new entity as `Added`. */
     public add(entity: TEntity): EntityEntry<TEntity> {
         this.metadata.assertWritable('add()');
-        return this.context.changeTracker.track(entity, this.metadata, EntityState.Added).useNavigationLoader(this.context);
+        const allowsCrossTenantAccess = this.context.allowsCrossTenantAccess();
+        const rollbackTenant = applyTenantOnAdd(
+            this.metadata,
+            entity,
+            () => this.context.currentTenantIdForWrites(),
+            allowsCrossTenantAccess,
+        );
+
+        let entry: EntityEntry<TEntity>;
+        try {
+            entry = this.context.changeTracker.track(
+                entity,
+                this.metadata,
+                EntityState.Added,
+            );
+        } catch (error) {
+            rollbackTenant();
+            throw error;
+        }
+        return entry.useNavigationLoader(this.context);
     }
 
     /** Start tracking an existing entity as `Unchanged`. */

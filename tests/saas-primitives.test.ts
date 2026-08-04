@@ -291,12 +291,17 @@ describe('SaaS primitives', () => {
         expect(connection.statements[0]?.values).toEqual(['wrk_1', '%draft%', 'wrk_1']);
     });
 
-    it('rejects saves outside the current tenant scope', async () => {
+    it('rejects adds outside the current tenant scope', () => {
         const connection = new RecordingDatabaseConnection();
         const db =  SaaSContext.createWith(connection, new Date('2026-06-01T12:00:00.000Z'));
-        db.users.add(new SaaSUser({ id: 'usr_1', workspaceId: 'wrk_2', email: 'a@example.com' }));
+        const user = new SaaSUser({
+            id: 'usr_1',
+            workspaceId: 'wrk_2',
+            email: 'a@example.com',
+        });
 
-        await expect(db.saveChanges()).rejects.toThrow('must match the current tenant scope');
+        expect(() => db.users.add(user)).toThrow('must match the current tenant scope');
+        expect(db.entry(user)).toBeUndefined();
         expect(connection.statements).toHaveLength(0);
     });
 });

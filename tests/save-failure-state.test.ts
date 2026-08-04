@@ -183,17 +183,19 @@ describe('state after a failed saveChanges()', () => {
         expect(requireDefined(doc).deletedAt).toBeInstanceOf(Date);
     });
 
-    it('does not leave a tenant key from a save that failed', async () => {
+    it('retains tenant identity assigned by add when a later save fails', async () => {
         const orphan = new Doc({
             id: 'd3', title: 'Three', slug: 'three',
             createdAt: stamped, updatedAt: stamped, deletedAt: null,
         });
         (orphan as Partial<Doc>).tenantId = undefined;
         db.docs.add(orphan);
+        expect(orphan.tenantId).toBe('tenant_1');
 
         await db.database.connection.query({ text: 'drop table "docs"', values: [] });
         await expect(db.saveChanges()).rejects.toThrow();
 
-        expect(orphan.tenantId).toBeUndefined();
+        expect(orphan.tenantId).toBe('tenant_1');
+        expect(db.entry(orphan)?.state).toBe(EntityState.Added);
     });
 });

@@ -166,15 +166,60 @@ describe('tenant scope isolation', () => {
 
         const rogue = new Doc({
             id: 'rogue',
-            tenantId: 't9',
             title: 'Rogue',
             deletedAt: null,
         });
-        db.docs.add(rogue);
-        await expect(db.saveChanges()).rejects.toBeInstanceOf(
+        expect(() => db.docs.add(rogue)).toThrow(
             TenantScopeUnavailableError,
         );
-        expect(db.entry(rogue)?.state).toBe('Added');
+        expect(db.entry(rogue)).toBeUndefined();
+        expect(rogue.tenantId).toBeUndefined();
+    });
+
+    it('stamps an added entity before tracking and returns it from find', async () => {
+        const added = new Doc({
+            id: 't1-new',
+            title: 'New',
+            deletedAt: null,
+        });
+
+        const entry = db.docs.add(added);
+
+        expect(added.tenantId).toBe('t1');
+        await expect(db.docs.find('t1-new')).resolves.toBe(added);
+        expect(entry.state).toBe('Added');
+    });
+
+    it('rejects an explicitly mismatched tenant before tracking', () => {
+        const mismatched = new Doc({
+            id: 't2-new',
+            tenantId: 't2',
+            title: 'Wrong tenant',
+            deletedAt: null,
+        });
+
+        expect(() => db.docs.add(mismatched)).toThrow(
+            'tenant key \'tenantId\' must match the current tenant scope',
+        );
+        expect(db.entry(mismatched)).toBeUndefined();
+        expect(mismatched.tenantId).toBe('t2');
+    });
+
+    it('restores a stamped tenant when identity registration fails', () => {
+        db.docs.add(new Doc({
+            id: 'duplicate',
+            title: 'First',
+            deletedAt: null,
+        }));
+        const duplicate = new Doc({
+            id: 'duplicate',
+            title: 'Second',
+            deletedAt: null,
+        });
+
+        expect(() => db.docs.add(duplicate)).toThrow('already tracked');
+        expect(duplicate.tenantId).toBeUndefined();
+        expect(db.entry(duplicate)).toBeUndefined();
     });
 
     it('does not return a cross-tenant entity cached by an administrative query', async () => {
