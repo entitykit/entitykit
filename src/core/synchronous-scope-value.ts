@@ -1,14 +1,8 @@
-import { assertSynchronousCallbackResult } from '../synchronous-callback';
+import { readSynchronousValue } from '../synchronous-value';
 
 export function readSynchronousScopeValue(
     provider: (() => unknown) | undefined,
     operation: string,
 ): unknown {
-    const value = provider?.();
-    assertSynchronousCallbackResult(
-        value,
-        operation,
-        message => new Error(message),
-    );
-    return value;
+    return readSynchronousValue(provider, operation);
 }

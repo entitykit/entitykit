@@ -6,6 +6,7 @@ import type {
 import type { PersistedValueLookup } from '../save-plan-execution';
 import type { EntityEntry } from '../../tracking/entity-entry';
 import { cloneSnapshotValue } from '../../tracking/entity-entry';
+import { readSynchronousDate } from '../../synchronous-value';
 
 export interface PendingOutboxMessage {
     readonly entity: object;
@@ -49,10 +50,11 @@ export function collectPendingOutboxMessages(
                         entry.currentValues()[propertyName],
                     ),
                 ),
-                occurredAt: new Date(
-                    (event.occurredAt ?? options.outbox.now?.() ??
-                        options.currentAuditTimestamp()).getTime(),
-                ),
+                occurredAt: new Date((
+                    event.occurredAt ??
+                    readSynchronousDate(options.outbox.now, 'The outbox clock') ??
+                    options.currentAuditTimestamp()
+                ).getTime()),
             });
         }
     }

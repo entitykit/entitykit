@@ -18,6 +18,7 @@ import type { SqlDialect } from '../sql/sql-dialect';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import { createDbSetContextAdapter } from './db-set-context-adapter';
 import { readSynchronousScopeValue } from './synchronous-scope-value';
+import { readSynchronousDate } from '../synchronous-value';
 export abstract class DbContextRuntime {
     private readonly state = new DbContextState();
     private disposePromise?: Promise<void>;
@@ -116,7 +117,10 @@ export abstract class DbContextRuntime {
         }
     }
     protected currentAuditTimestamp(): Date {
-        return this.options.auditing?.now?.() ?? new Date();
+        return readSynchronousDate(
+            this.options.auditing?.now,
+            'The audit clock',
+        ) ?? new Date();
     }
     protected currentAuditUserId(): unknown {
         return readSynchronousScopeValue(this.options.auditing?.currentUserId,
