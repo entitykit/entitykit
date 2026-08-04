@@ -44,7 +44,10 @@ export class PostgresPooledConnection implements DatabaseConnection {
         return streamPostgresConnectionRows(
             statement,
             options,
-            () => this.activeClient,
+            () => {
+                this.usability.assertUsable();
+                return this.activeClient;
+            },
             async () => await this.connect(),
             () => this.isInTransaction,
         );

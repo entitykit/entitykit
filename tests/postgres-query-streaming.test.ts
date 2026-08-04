@@ -12,12 +12,18 @@ async function collect<T>(rows: AsyncIterable<T>): Promise<T[]> {
 
 function postgresFixture(query: jest.Mock): {
     readonly connection: PostgresPooledConnection;
+    readonly connect: jest.Mock;
     readonly release: jest.Mock;
 } {
     const release = jest.fn();
     const client = { query, release } as unknown as PoolClient;
-    const pool = { connect: jest.fn().mockResolvedValue(client) } as unknown as Pool;
-    return { connection: new PostgresPooledConnection(pool), release };
+    const connect = jest.fn().mockResolvedValue(client);
+    const pool = { connect } as unknown as Pool;
+    return {
+        connection: new PostgresPooledConnection(pool),
+        connect,
+        release,
+    };
 }
 
 describe('Postgres query streaming', () => {
@@ -190,5 +196,43 @@ describe('Postgres query streaming', () => {
             'commit',
         ]);
         expect(release).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not start a deferred stream after commit outcome becomes unknown', async () => {
+        const commitFailure = Object.assign(
+            new Error('commit acknowledgement lost'),
+            { code: 'ECONNRESET' },
+        );
+        const query = jest.fn(async (text: string) => {
+            await Promise.resolve();
+            if (text === 'commit') {
+                throw commitFailure;
+            }
+            return { rows: [], rowCount: 0 };
+        });
+        const { connection, connect } = postgresFixture(query);
+        const rows = connection.stream({
+            text: 'select id from widgets',
+            values: [],
+        });
+
+        let failure: unknown;
+        try {
+            await connection.transaction(() => undefined);
+        } catch (error) {
+            failure = error;
+        }
+
+        expect(failure).toMatchObject({
+            name: 'TransactionOutcomeUnknownError',
+            provider: 'postgres',
+        });
+        await expect(collect(rows)).rejects.toBe(failure);
+        expect(connect).toHaveBeenCalledTimes(1);
+        expect(query.mock.calls.map(call => call[0])).toEqual([
+            'begin',
+            'commit',
+            'rollback',
+        ]);
     });
 });
