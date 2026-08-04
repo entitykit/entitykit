@@ -61,7 +61,10 @@ export class GuardedDatabaseConnection implements DatabaseConnection {
         }
         queryStreamBatchSize(options);
         return this.operations.stream(
-            () => this.createInnerStream<TRow>(statement, options),
+            () => {
+                this.assertUsable();
+                return this.createInnerStream<TRow>(statement, options);
+            },
         );
     }
 
