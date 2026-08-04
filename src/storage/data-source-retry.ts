@@ -1,6 +1,7 @@
 import type { DatabaseOperationOptions } from './database-connection';
 import { OperationCanceledError } from '../errors/runtime-errors';
 import { throwIfOperationAborted } from './operation-cancellation';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
 
 /** Bounded policy for retrying an entire caller-owned operation. */
 export interface RetryPolicyOptions {
@@ -72,6 +73,22 @@ export function retryDelayMs(policy: ResolvedRetryPolicy, failedAttempt: number)
         policy.initialDelayMs * policy.backoffFactor ** (failedAttempt - 1),
     );
     return policy.jitter ? Math.floor(Math.random() * (exponential + 1)) : exponential;
+}
+
+export function evaluateRetryDecision(
+    policy: ResolvedRetryPolicy,
+    error: unknown,
+): boolean {
+    const decision: unknown = policy.shouldRetry(error);
+    assertSynchronousCallbackResult(
+        decision,
+        'Retry shouldRetry callback',
+        message => new TypeError(message),
+    );
+    if (typeof decision !== 'boolean') {
+        throw new TypeError('Retry shouldRetry callback must return a boolean.');
+    }
+    return decision;
 }
 
 export async function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<void> {

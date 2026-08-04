@@ -163,6 +163,65 @@ describe('EntityKitDataSource retries', () => {
         }, {})).toThrow('isTransientError must be a function');
     });
 
+    it('rejects an asynchronous retry classifier without replaying work', async () => {
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        const source = createDataSource(retryProvider, {}, {
+            retry: {
+                maxAttempts: 3,
+                initialDelayMs: 0,
+                maxDelayMs: 0,
+                jitter: false,
+                shouldRetry: (async () => {
+                    await Promise.resolve();
+                    throw new Error('classifier failed');
+                }) as unknown as (error: unknown) => boolean,
+            },
+        });
+        const operation = jest.fn().mockRejectedValue(transientFailure);
+
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            await expect(source.executeWithRetry(operation)).rejects.toThrow(
+                'Retry shouldRetry callback must be synchronous and must not return a Promise.',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+
+            expect(operation).toHaveBeenCalledTimes(1);
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+            await source.dispose();
+        }
+    });
+
+    it('rejects an asynchronous provider retry classifier', async () => {
+        const provider: DatabaseProviderServices = {
+            ...retryProvider,
+            isTransientError: (async () => {
+                await Promise.resolve();
+                return true;
+            }) as unknown as (error: unknown) => boolean,
+        };
+        const source = createDataSource(provider, {}, {
+            retry: {
+                maxAttempts: 2,
+                initialDelayMs: 0,
+                maxDelayMs: 0,
+                jitter: false,
+            },
+        });
+        const operation = jest.fn().mockRejectedValue(transientFailure);
+
+        await expect(source.executeWithRetry(operation)).rejects.toThrow(
+            'Retry shouldRetry callback must be synchronous',
+        );
+        expect(operation).toHaveBeenCalledTimes(1);
+        await source.dispose();
+    });
+
     it('preserves a failed shutdown result across repeated disposal', async () => {
         const failure = new Error('pool shutdown failed');
         const dispose = jest.fn().mockRejectedValue(failure);

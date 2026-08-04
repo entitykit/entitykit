@@ -7,6 +7,7 @@ import type {
 import { DataSourceConnectionLease } from './data-source-connection-lease';
 import {
     abortableDelay,
+    evaluateRetryDecision,
     type RetryAttempt,
     type RetryExecutionOptions,
     resolveRetryPolicy,
@@ -111,7 +112,7 @@ class EntityKitDataSourceImplementation<
                     if (
                         isTransactionOutcomeUnknown(error) ||
                         attempt === this.retryPolicy.maxAttempts
-                        || !this.retryPolicy.shouldRetry(error)
+                        || !evaluateRetryDecision(this.retryPolicy, error)
                     ) {
                         throw error;
                     }
