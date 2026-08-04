@@ -3,6 +3,7 @@ import { readStoreValue, type StoreValueReader } from '../storage/store-value-re
 import type { ChangeTracker } from '../tracking/change-tracker';
 import { EntityState } from '../tracking/entity-state';
 import { applyMaterializedValues } from './complex-value-materializer';
+import { assertSynchronousCallbackResult } from '../synchronous-callback';
 
 export class Materializer {
     constructor(private readonly valueReader?: StoreValueReader) {}
@@ -64,11 +65,20 @@ export class Materializer {
             const value = readStoreValue(row[property.columnName], property, this.valueReader);
             originalValues[property.propertyName] = value;
         }
-        const entity = metadata.materializer
-            ? metadata.materializer(
+        let entity: TEntity;
+        if (metadata.materializer) {
+            const created: unknown = metadata.materializer(
                 createMaterializerValues(metadata, originalValues),
-            )
-            : new (metadata.ctor as unknown as new () => TEntity)();
+            );
+            assertSynchronousCallbackResult(
+                created,
+                `Entity materializer for '${metadata.entityName}'`,
+                message => new TypeError(message),
+            );
+            entity = created as TEntity;
+        } else {
+            entity = new (metadata.ctor as unknown as new () => TEntity)();
+        }
         applyMaterializedValues(metadata, entity, originalValues);
         return { entity, originalValues };
     }
