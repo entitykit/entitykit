@@ -71,6 +71,14 @@ async function seed(): Promise<ScopedDbContext> {
     return db;
 }
 
+async function collect<T>(rows: AsyncIterable<T>): Promise<T[]> {
+    const values: T[] = [];
+    for await (const row of rows) {
+        values.push(row);
+    }
+    return values;
+}
+
 describe('tenant scope isolation', () => {
     let db: ScopedDbContext;
 
@@ -88,6 +96,39 @@ describe('tenant scope isolation', () => {
 
     it('scopes an ordinary query to the current tenant and hides deleted rows', async () => {
         expect(await ids(db.docs.toArray())).toEqual(['t1-live']);
+    });
+
+    it('resolves entity stream tenant scope when iteration begins', async () => {
+        const stream = db.docs.stream();
+
+        currentTenant = 't2';
+
+        expect((await collect(stream)).map(doc => doc.id))
+            .toEqual(['t2-live']);
+    });
+
+    it('resolves projection stream tenant scope when iteration begins', async () => {
+        const stream = db.docs
+            .select(doc => ({ title: doc.title }))
+            .stream();
+
+        currentTenant = 't2';
+
+        await expect(collect(stream)).resolves.toEqual([
+            { title: 't2 live' },
+        ]);
+    });
+
+    it('fails aggregate streams closed when tenant scope disappears before iteration', async () => {
+        const stream = db.docs.aggregate(aggregate => ({
+            total: aggregate.count(),
+        })).stream();
+
+        currentTenant = undefined;
+
+        await expect(collect(stream)).rejects.toBeInstanceOf(
+            TenantScopeUnavailableError,
+        );
     });
 
     it('keeps tenant scope when query filters are ignored', async () => {
