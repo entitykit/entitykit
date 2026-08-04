@@ -1,11 +1,9 @@
 import type { OutboxOptions } from '../outbox-options';
 import type { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
+import type { SqlDialect } from '../../sql/sql-dialect';
 import type { EntityEntry } from '../../tracking/entity-entry';
 import { EntityState } from '../../tracking/entity-state';
-import type {
-    OutboxEventBatch,
-    OutboxEventTracker,
-} from '../outbox-event-tracker';
+import type { OutboxEventTracker } from '../outbox-event-tracker';
 import type { SavePlanEntry } from '../save-plan';
 import {
     type PersistedValueLookup,
@@ -13,27 +11,24 @@ import {
 } from '../save-plan-execution';
 import type { SqlStatement } from '../../sql/sql-statement';
 import { cloneSnapshotValue } from '../../tracking/entity-entry';
+import { maxParameterBatchSize } from './parameter-batch-size';
+import {
+    collectPendingOutboxMessages,
+    outboxEventBatches,
+    persistedAggregateId,
+    type PendingOutboxMessage,
+} from './outbox-message';
 
 interface OutboxPlanOptions {
     readonly sql: ModificationSqlBuilder;
+    readonly dialect: SqlDialect;
     readonly outbox: OutboxOptions | undefined;
     readonly entries: ReadonlyArray<EntityEntry<object>>;
     readonly eventTracker: OutboxEventTracker;
     readonly currentAuditTimestamp: () => Date;
 }
 
-interface PendingOutboxMessage {
-    readonly entity: object;
-    readonly keyValue: unknown;
-    readonly entry: EntityEntry<object>;
-    readonly type: string;
-    readonly payload: unknown;
-    readonly aggregateId: unknown;
-    readonly aggregateKeyValues: readonly unknown[];
-    readonly occurredAt: Date;
-}
-
-/** Collect pending domain events and batch them into one outbox plan entry. */
+/** Collect pending domain events into provider-legal outbox plan entries. */
 export function buildOutboxSavePlan(options: OutboxPlanOptions): SavePlanEntry[] {
     const { outbox } = options;
     if (!outbox) {
@@ -45,53 +40,64 @@ export function buildOutboxSavePlan(options: OutboxPlanOptions): SavePlanEntry[]
     const payloadColumn = outbox.payloadColumn ?? 'payload';
     const aggregateIdColumn = outbox.aggregateIdColumn ?? 'aggregate_id';
     const occurredAtColumn = outbox.occurredAtColumn ?? 'occurred_at';
-    const messages: PendingOutboxMessage[] = [];
-    const batches: OutboxEventBatch[] = [];
-    for (const entry of options.entries) {
-        const events = options.eventTracker.pending(
-            entry.entity,
-            outbox.collectEvents(entry.entity),
-        );
-        if (events.length === 0) {
-            continue;
-        }
-
-        batches.push({ entity: entry.entity, events });
-        for (const event of events) {
-            messages.push({
-                entity: entry.entity,
-                keyValue: event.aggregateId ?? entry.keyValue,
-                entry,
-                type: event.type,
-                payload: cloneSnapshotValue(event.payload),
-                aggregateId: cloneSnapshotValue(event.aggregateId),
-                aggregateKeyValues: entry.metadata.keyProperties.map(
-                    propertyName => cloneSnapshotValue(
-                        entry.currentValues()[propertyName],
-                    ),
-                ),
-                occurredAt: new Date(
-                    (event.occurredAt ?? outbox.now?.() ??
-                        options.currentAuditTimestamp()).getTime(),
-                ),
-            });
-        }
-    }
+    const messages = collectPendingOutboxMessages({
+        outbox,
+        entries: options.entries,
+        eventTracker: options.eventTracker,
+        currentAuditTimestamp: options.currentAuditTimestamp,
+    });
 
     if (messages.length === 0) {
         return [];
     }
 
+    const parametersPerMessage = 4;
+    const batchSize = maxParameterBatchSize(
+        options.dialect,
+        parametersPerMessage,
+    );
+    const plan: SavePlanEntry[] = [];
+    for (let index = 0; index < messages.length; index += batchSize) {
+        const batch = messages.slice(index, index + batchSize);
+        const planEntry = buildOutboxPlanEntry(options, {
+            outbox,
+            tableName,
+            typeColumn,
+            payloadColumn,
+            aggregateIdColumn,
+            occurredAtColumn,
+            messages: batch,
+        });
+        options.eventTracker.associate(planEntry, outboxEventBatches(batch));
+        plan.push(planEntry);
+    }
+    return plan;
+}
+
+interface OutboxPlanEntryOptions {
+    readonly outbox: OutboxOptions;
+    readonly tableName: string;
+    readonly typeColumn: string;
+    readonly payloadColumn: string;
+    readonly aggregateIdColumn: string | undefined;
+    readonly occurredAtColumn: string | undefined;
+    readonly messages: readonly PendingOutboxMessage[];
+}
+
+function buildOutboxPlanEntry(
+    options: OutboxPlanOptions,
+    entryOptions: OutboxPlanEntryOptions,
+): SavePlanEntry {
     const buildStatement = (
         persistedValue?: PersistedValueLookup,
     ): SqlStatement => options.sql.buildInsertOutboxMessagesBatch({
-        schemaName: outbox.schemaName,
-        tableName,
-        typeColumn,
-        payloadColumn,
-        aggregateIdColumn,
-        occurredAtColumn,
-        messages: messages.map(message => ({
+        schemaName: entryOptions.outbox.schemaName,
+        tableName: entryOptions.tableName,
+        typeColumn: entryOptions.typeColumn,
+        payloadColumn: entryOptions.payloadColumn,
+        aggregateIdColumn: entryOptions.aggregateIdColumn,
+        occurredAtColumn: entryOptions.occurredAtColumn,
+        messages: entryOptions.messages.map(message => ({
             type: message.type,
             payload: cloneSnapshotValue(message.payload),
             aggregateId: cloneSnapshotValue(
@@ -104,27 +110,16 @@ export function buildOutboxSavePlan(options: OutboxPlanOptions): SavePlanEntry[]
         })),
     });
     const planEntry: SavePlanEntry = {
-        entity: messages[0].entity,
+        entity: entryOptions.messages[0].entity,
         entityName: 'OutboxMessage',
-        keyValue: messages.length === 1 ? messages[0].keyValue : `${String(messages.length)} messages`,
+        keyValue: entryOptions.messages.length === 1
+            ? entryOptions.messages[0].keyValue
+            : `${String(entryOptions.messages.length)} messages`,
         state: EntityState.Added,
         statement: buildStatement(),
-        expectedAffectedRows: messages.length,
+        expectedAffectedRows: entryOptions.messages.length,
         isSystemGenerated: true,
     };
     registerSavePlanExecution(planEntry, { buildStatement });
-    options.eventTracker.associate(planEntry, batches);
-    return [planEntry];
-}
-
-function persistedAggregateId(
-    message: PendingOutboxMessage,
-    persistedValue?: PersistedValueLookup,
-): unknown {
-    const keyValues = message.entry.metadata.keyProperties.map(
-        (propertyName, index) =>
-            persistedValue?.(message.entity, propertyName)?.persistedValue ??
-                message.aggregateKeyValues[index],
-    );
-    return keyValues.length === 1 ? keyValues[0] : keyValues;
+    return planEntry;
 }

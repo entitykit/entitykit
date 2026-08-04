@@ -56,8 +56,9 @@ export class SavePlanBuilder {
       entry.state === EntityState.Deleted,
         ));
 
-        const sql = new ModificationSqlBuilder(this.deps.getDialect());
-        const entityPlan = buildEntitySavePlan(sql, this.deps.getDialect(), pending);
+        const dialect = this.deps.getDialect();
+        const sql = new ModificationSqlBuilder(dialect);
+        const entityPlan = buildEntitySavePlan(sql, dialect, pending);
         const manyToManyPlan = this.deps.manyToMany.buildSavePlan(sql);
         const unlinkPlan = manyToManyPlan.filter(entry => entry.state === EntityState.Deleted);
         const linkPlan = manyToManyPlan.filter(entry => entry.state === EntityState.Added);
@@ -65,6 +66,7 @@ export class SavePlanBuilder {
         const entityDeletes = entityPlan.filter(entry => entry.state === EntityState.Deleted);
         const outboxPlan = buildOutboxSavePlan({
             sql,
+            dialect,
             outbox: this.deps.getOptions().outbox,
             entries: tracked,
             eventTracker: this.deps.outboxEvents,

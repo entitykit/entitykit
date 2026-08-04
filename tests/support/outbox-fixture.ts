@@ -6,6 +6,7 @@ import type {
 import {
     DbContext,
 } from '../../src';
+import type { SqlDialect } from '../../src/sql/sql-dialect';
 import type { RecordingDatabaseConnection } from '../../src/testing';
 
 export interface DomainEvent {
@@ -29,13 +30,16 @@ export class OutboxContext extends DbContext {
             entity: object,
             persistedEvents: readonly OutboxMessage[],
         ) => void = clearPersistedEvents,
+        private readonly dialect?: SqlDialect,
     ) {
         super();
     }
 
     protected override configure(options: DbContextOptionsBuilder): void {
         options
-            .useConnection(this.connection)
+            .useConnection(this.connection, this.dialect
+                ? { provider: this.dialect.name, dialect: this.dialect }
+                : {})
             .useOutbox({
                 tableName: 'app_outbox',
                 now: () => new Date('2026-06-01T12:00:00.000Z'),
@@ -61,11 +65,9 @@ export class OutboxContext extends DbContext {
             entity: object,
             persistedEvents: readonly OutboxMessage[],
         ) => void,
+        dialect?: SqlDialect,
     ): OutboxContext {
-        const context = clearEvents
-            ? OutboxContext.create(connection, clearEvents)
-            : OutboxContext.create(connection);
-        return context;
+        return OutboxContext.create(connection, clearEvents, dialect);
     }
 }
 
