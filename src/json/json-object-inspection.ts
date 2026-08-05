@@ -59,7 +59,11 @@ export function consumeThenable(
     then: (...args: unknown[]) => unknown,
 ): void {
     try {
-        Reflect.apply(then, value, [undefined, (): undefined => undefined]);
+        const settled = (): undefined => undefined;
+        const result: unknown = Reflect.apply(then, value, [settled, settled]);
+        if (result !== value) {
+            void Promise.resolve(result).catch(() => undefined);
+        }
     } catch {
         // Validation still rejects the thenable. A broken then() implementation
         // cannot be made safer by invoking it again.

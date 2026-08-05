@@ -41,11 +41,12 @@ function normalize(
         }
         return value;
     }
+    if (typeof value === 'function') {
+        normalizeFunction(value, path, state);
+        return null;
+    }
     if (typeof value !== 'object') {
         rejectJson(state, path, typeof value);
-        if (typeof value === 'function') {
-            drainUnsupportedObject(value, path, state);
-        }
         return null;
     }
     if (state.ancestors.has(value)) {
@@ -90,13 +91,22 @@ function normalize(
     return null;
 }
 
-function drainUnsupportedObject(
+function normalizeFunction(
     value: object,
     path: string,
     state: JsonNormalizationState,
 ): void {
     const inspection = inspectJsonObject(value, path, state);
-    if (inspection) {
-        drainJsonDescriptors(value, inspection.descriptors, path, state, normalize);
+    if (!inspection) {
+        return;
     }
+    const then = ownThenFunction(inspection.descriptors) ??
+        readInheritedThen(value, inspection.descriptors);
+    if (typeof then === 'function') {
+        consumeThenable(value, then as (...args: unknown[]) => unknown);
+        rejectJson(state, path, 'Promise or thenable');
+    } else {
+        rejectJson(state, path, 'function');
+    }
+    drainJsonDescriptors(value, inspection.descriptors, path, state, normalize);
 }

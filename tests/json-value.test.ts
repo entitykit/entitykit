@@ -114,6 +114,30 @@ describe('JSON value contract', () => {
         );
     });
 
+    it('consumes rejections returned by callable thenables', async () => {
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            const thenable = Object.assign(
+                (): void => undefined,
+                {
+                    then: async (): Promise<never> =>
+                        Promise.reject(new Error('returned rejection')),
+                },
+            );
+            expect(() => normalizeJsonValue(thenable, 'Document.data')).toThrow(
+                'Unsupported JSON value at \'Document.data\' (Promise or thenable)',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
+
     it('consumes rejected Promises beyond the first invalid path', async () => {
         const unhandled: unknown[] = [];
         const observeUnhandled = (reason: unknown): void => {
