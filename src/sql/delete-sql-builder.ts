@@ -4,7 +4,13 @@ import type { PredicateNode } from '../query/expression/predicate-node';
 import { PredicateSqlCompiler } from './predicate-sql-compiler';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
-import { buildKeyAndConcurrencyWhere, requirePostgres, joinEndpointValues, type ManyToManyEndpointKey } from './modification-sql-helpers';
+import {
+    buildKeyAndConcurrencyWhere,
+    buildKeyAndConcurrencyWhereFromValues,
+    joinEndpointValues,
+    requirePostgres,
+    type ManyToManyEndpointKey,
+} from './modification-sql-helpers';
 
 export interface PostgresDeleteSqlOptions {
     readonly predicate: PredicateNode;
@@ -72,6 +78,26 @@ export class DeleteSqlBuilder {
     ): SqlStatement {
         const parameters = new SqlParameterBag(this.dialect);
         const where = buildKeyAndConcurrencyWhere(this.dialect, metadata, entity, originalValues, parameters);
+
+        return {
+            text: `delete from ${this.dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} where ${where}`,
+            values: parameters.values,
+        };
+    }
+
+    public buildDeleteFromValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        values: Readonly<Record<string, unknown>>,
+        originalValues: Readonly<Record<string, unknown>> = {},
+    ): SqlStatement {
+        const parameters = new SqlParameterBag(this.dialect);
+        const where = buildKeyAndConcurrencyWhereFromValues(
+            this.dialect,
+            metadata,
+            values,
+            originalValues,
+            parameters,
+        );
 
         return {
             text: `delete from ${this.dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} where ${where}`,

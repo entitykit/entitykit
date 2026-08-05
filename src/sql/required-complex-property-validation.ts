@@ -26,3 +26,22 @@ export function validateRequiredComplexProperties<TEntity extends object>(
         }
     }
 }
+
+/** Enforce required complex roots from values captured by a save plan. */
+export function validateRequiredComplexPropertyValues<
+    TEntity extends object,
+>(
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+): void {
+    for (const complex of metadata.complexProperties) {
+        if (
+            complex.isRequired &&
+            values[complex.propertyName] == null
+        ) {
+            throw new DbValidationError(
+                `Required complex property '${metadata.entityName}.${complex.propertyName}' must have a value.`,
+            );
+        }
+    }
+}

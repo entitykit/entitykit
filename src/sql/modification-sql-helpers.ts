@@ -59,6 +59,36 @@ export function validateRequiredProperties<TEntity extends object>(
     }
 }
 
+export function validateRequiredPropertyValues<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+    options: {
+        readonly forInsert?: boolean;
+        readonly allowMissingProperties?: readonly string[];
+    } = {},
+): void {
+    const allowedMissing = new Set(options.allowMissingProperties);
+    for (const property of metadata.properties) {
+        if (!property.isRequired) {
+            continue;
+        }
+        if (options.forInsert && isGeneratedOnAdd(property.valueGenerated)) {
+            continue;
+        }
+        if (!options.forInsert && isGeneratedOnUpdate(property.valueGenerated)) {
+            continue;
+        }
+        if (allowedMissing.has(property.propertyName)) {
+            continue;
+        }
+        if (values[property.propertyName] == null) {
+            throw new DbValidationError(
+                `Required property '${metadata.entityName}.${property.propertyName}' must have a value.`,
+            );
+        }
+    }
+}
+
 /**
  * The `where` clause that targets a single entity row: every key column, plus a
  * comparison per concurrency token against its original value. Callers pass a
@@ -79,6 +109,38 @@ export function buildKeyAndConcurrencyWhere<TEntity extends object>(
         ));
 
     for (const property of metadata.properties.filter(item => item.isConcurrencyToken)) {
+        conditions.push(compareProperty(
+            dialect,
+            property,
+            originalValues[property.propertyName],
+            parameters,
+            metadata.entityName,
+        ));
+    }
+
+    return conditions.join(' and ');
+}
+
+export function buildKeyAndConcurrencyWhereFromValues<
+    TEntity extends object,
+>(
+    dialect: SqlDialect,
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+    originalValues: Readonly<Record<string, unknown>>,
+    parameters: SqlParameterBag,
+): string {
+    const conditions = metadata.keyPropertiesMetadata.map(keyProperty =>
+        compareProperty(
+            dialect,
+            keyProperty,
+            values[keyProperty.propertyName],
+            parameters,
+            metadata.entityName,
+        ));
+
+    for (const property of metadata.properties.filter(item =>
+        item.isConcurrencyToken)) {
         conditions.push(compareProperty(
             dialect,
             property,

@@ -4,7 +4,10 @@ import {
     buildEntityInsert,
     buildEntityInsertFromValues,
 } from './entity-insert-sql';
-import { buildEntityInsertBatch } from './entity-insert-batch-sql';
+import {
+    buildEntityInsertBatch,
+    buildEntityInsertBatchFromValues,
+} from './entity-insert-batch-sql';
 import {
     buildManyToManyInsert,
     buildManyToManyInsertBatch,
@@ -50,8 +53,21 @@ export class InsertSqlBuilder {
     public buildInsertFromValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         values: Readonly<Record<string, unknown>>,
+        allowMissingProperties: readonly string[] = [],
     ): SqlStatement {
-        return buildEntityInsertFromValues(this.dialect, metadata, values);
+        return buildEntityInsertFromValues(
+            this.dialect,
+            metadata,
+            values,
+            allowMissingProperties,
+        );
+    }
+
+    public buildInsertBatchFromValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+    ): SqlStatement {
+        return buildEntityInsertBatchFromValues(this.dialect, metadata, rows);
     }
 
     public buildInsertManyToMany<TEntity extends object>(

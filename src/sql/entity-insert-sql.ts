@@ -1,12 +1,14 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
-import { validateRequiredProperties } from './modification-sql-helpers';
+import {
+    validateRequiredProperties,
+    validateRequiredPropertyValues,
+} from './modification-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { isGeneratedOnAdd } from '../model/value-generated';
 import { readPropertyValue } from '../model/property-value-access';
 import type { PropertyMetadata } from '../model/property-metadata';
-import { DbValidationError } from '../errors/entity-kit-error';
 
 export function buildEntityInsert<TEntity extends object>(
     dialect: SqlDialect,
@@ -31,18 +33,12 @@ export function buildEntityInsertFromValues<TEntity extends object>(
     dialect: SqlDialect,
     metadata: EntityMetadata<TEntity>,
     valuesByProperty: Readonly<Record<string, unknown>>,
+    allowMissingProperties: readonly string[] = [],
 ): SqlStatement {
-    for (const property of metadata.properties) {
-        if (
-            property.isRequired &&
-            !isGeneratedOnAdd(property.valueGenerated) &&
-            valuesByProperty[property.propertyName] == null
-        ) {
-            throw new DbValidationError(
-                `Required property '${metadata.entityName}.${property.propertyName}' must have a value.`,
-            );
-        }
-    }
+    validateRequiredPropertyValues(metadata, valuesByProperty, {
+        forInsert: true,
+        allowMissingProperties,
+    });
 
     return buildEntityInsertFromReader(
         dialect,

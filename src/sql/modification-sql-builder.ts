@@ -48,8 +48,20 @@ export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
     public buildInsertFromValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         values: Readonly<Record<string, unknown>>,
+        allowMissingProperties: readonly string[] = [],
     ): SqlStatement {
-        return this.insertBuilder.buildInsertFromValues(metadata, values);
+        return this.insertBuilder.buildInsertFromValues(
+            metadata,
+            values,
+            allowMissingProperties,
+        );
+    }
+
+    public buildInsertBatchFromValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+    ): SqlStatement {
+        return this.insertBuilder.buildInsertBatchFromValues(metadata, rows);
     }
 
     public buildUpsertBatch<TEntity extends object>(
@@ -105,6 +117,20 @@ export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
         return this.updateBuilder.buildUpdate(metadata, entity, modifiedProperties, originalValues);
     }
 
+    public buildUpdateFromValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        values: Readonly<Record<string, unknown>>,
+        modifiedProperties: readonly string[],
+        originalValues: Readonly<Record<string, unknown>> = {},
+    ): SqlStatement | undefined {
+        return this.updateBuilder.buildUpdateFromValues(
+            metadata,
+            values,
+            modifiedProperties,
+            originalValues,
+        );
+    }
+
     public buildInsertManyToMany<TEntity extends object>(
         relationship: ManyToManyMetadata<TEntity>,
         sourceKeyValues: ManyToManyEndpointKey,
@@ -141,5 +167,17 @@ export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
         originalValues: Readonly<Record<string, unknown>> = {},
     ): SqlStatement {
         return this.deleteBuilder.buildDelete(metadata, entity, originalValues);
+    }
+
+    public buildDeleteFromValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        values: Readonly<Record<string, unknown>>,
+        originalValues: Readonly<Record<string, unknown>> = {},
+    ): SqlStatement {
+        return this.deleteBuilder.buildDeleteFromValues(
+            metadata,
+            values,
+            originalValues,
+        );
     }
 }
