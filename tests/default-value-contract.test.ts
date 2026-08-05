@@ -75,4 +75,24 @@ describe('default value contract', () => {
         expect(() => snapshotWithDefault(cyclic))
             .toThrow('defaultValue.self (cyclic reference)');
     });
+
+    it('consumes rejected nested default Promises during validation', async () => {
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            const failed = Promise.reject(new Error('default failed'));
+
+            expect(() => snapshotWithDefault({ nested: failed })).toThrow(
+                'defaultValue.nested (Promise or thenable)',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
 });
