@@ -14,8 +14,15 @@ class GeneratedAggregate {
     public events: DomainEvent[] = [];
 }
 
+class GeneratedCompositeAggregate {
+    public id!: number;
+    public tenantId!: string;
+    public events: DomainEvent[] = [];
+}
+
 class GeneratedOutboxContext extends DbContext {
     public aggregates = this.set(GeneratedAggregate);
+    public compositeAggregates = this.set(GeneratedCompositeAggregate);
 
     constructor(private readonly connection: RecordingDatabaseConnection) {
         super();
@@ -30,9 +37,15 @@ class GeneratedOutboxContext extends DbContext {
             .useOutbox({
                 tableName: 'app_outbox',
                 collectEvents: entity =>
-                    entity instanceof GeneratedAggregate ? entity.events : [],
+                    entity instanceof GeneratedAggregate ||
+                    entity instanceof GeneratedCompositeAggregate
+                        ? entity.events
+                        : [],
                 clearEvents: (entity, events) => {
-                    if (entity instanceof GeneratedAggregate) {
+                    if (
+                        entity instanceof GeneratedAggregate ||
+                        entity instanceof GeneratedCompositeAggregate
+                    ) {
                         const persisted = new Set(events);
                         entity.events = entity.events.filter(event =>
                             !persisted.has(event));
@@ -48,6 +61,15 @@ class GeneratedOutboxContext extends DbContext {
             entity.property(aggregate => aggregate.id).hasColumnType('integer')
                 .isRequired().valueGeneratedOnAdd();
             entity.property(aggregate => aggregate.name).hasColumnType('text').isRequired();
+            entity.ignore(aggregate => aggregate.events);
+        });
+        model.entity(GeneratedCompositeAggregate, entity => {
+            entity.toTable('generated_composite_aggregates');
+            entity.hasKey(aggregate => [aggregate.id, aggregate.tenantId]);
+            entity.property(aggregate => aggregate.id).hasColumnType('integer')
+                .isRequired().valueGeneratedOnAdd();
+            entity.property(aggregate => aggregate.tenantId).hasColumnType('text')
+                .isRequired();
             entity.ignore(aggregate => aggregate.events);
         });
     }
@@ -110,5 +132,29 @@ describe('generated outbox aggregate identities', () => {
         ]);
         expect(db.entry(aggregate)?.originalValues.id).toBe(41);
         expect(db.entry(aggregate)?.state).toBe(EntityState.Modified);
+    });
+
+    it('defers a composite identity until every generated part is hydrated', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = GeneratedOutboxContext.create(connection);
+        const aggregate = Object.assign(new GeneratedCompositeAggregate(), {
+            tenantId: 'acme',
+            events: [{ type: 'Created', payload: { source: 'test' } }],
+        });
+        db.compositeAggregates.add(aggregate);
+
+        expect(db.getSavePlan()[1]?.statement.values[2]).toBeUndefined();
+        connection.queueResult({ rows: [{ id: 41 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+        await expect(db.saveChanges()).resolves.toBe(1);
+
+        expect(connection.statements[1]?.values).toEqual([
+            'Created',
+            '{"source":"test"}',
+            '["entitykit:composite:v1",["number",41],["string","acme"]]',
+            expect.any(Date),
+        ]);
+        expect(aggregate.id).toBe(41);
+        expect(aggregate.events).toEqual([]);
     });
 });
