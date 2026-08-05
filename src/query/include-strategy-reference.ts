@@ -4,11 +4,11 @@ import type { IncludeFilterModel } from './query-model';
 import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader-context';
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import { IncludeStrategyBase } from './include-strategy-base';
+import { isCompleteTuple } from './include-key-helpers';
 import {
-    isCompleteTuple,
     propertyTupleLookupKey,
     uniquePropertyTuples,
-} from './include-key-helpers';
+} from './include-property-key-helpers';
 import { uniqueEntityInstances } from './include-navigation-helpers';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import {

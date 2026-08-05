@@ -4,10 +4,8 @@ import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import type { IncludeStitcher } from './include-loader-stitch';
 import { IncludeStrategyBase } from './include-strategy-base';
-import {
-    isCompleteTuple,
-    uniquePropertyTuples,
-} from './include-key-helpers';
+import { isCompleteTuple } from './include-key-helpers';
+import { uniquePropertyTuples } from './include-property-key-helpers';
 import { IncludeOneToManyFilteredLoader } from './include-one-to-many-filtered-loader';
 import type { IncludeFilterModel } from './query-model';
 import { RelationshipCardinality } from '../model/relationship-metadata';

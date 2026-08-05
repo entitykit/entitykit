@@ -8,9 +8,9 @@ import type { StoreValueReader } from '../storage/store-value-reader';
 import type { ManyToManyRelationshipInfo } from './include-loader-context';
 import { parentKeyAliasAt } from './include-loader-sql';
 import {
-    propertyTupleLookupKey,
     readKeyColumn,
 } from './include-key-helpers';
+import { propertyTupleLookupKey } from './include-property-key-helpers';
 
 export function principalStitchKey<
     TDependent extends object,

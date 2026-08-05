@@ -3,7 +3,7 @@ import type { RelationshipMetadata } from '../model/relationship-metadata';
 import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader-context';
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import type { IncludeStitcher } from './include-loader-stitch';
-import { uniquePropertyValues } from './include-key-helpers';
+import { uniquePropertyValues } from './include-property-key-helpers';
 import { uniqueEntityInstances } from './include-navigation-helpers';
 import { buildOneToManyWindowStatement } from './include-one-to-many-window-sql';
 import { IncludeStrategyBase } from './include-strategy-base';

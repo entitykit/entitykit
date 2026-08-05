@@ -3,10 +3,8 @@ import type { IncludeStitcher } from './include-loader-stitch';
 import { IncludeStrategyBase } from './include-strategy-base';
 import { buildManyToManyBatchStatement } from './include-many-to-many-batch-sql';
 import { buildManyToManyWindowStatement } from './include-many-to-many-window-sql';
-import {
-    isCompleteTuple,
-    uniquePropertyTuples,
-} from './include-key-helpers';
+import { isCompleteTuple } from './include-key-helpers';
+import { uniquePropertyTuples } from './include-property-key-helpers';
 import { uniqueEntityInstances } from './include-navigation-helpers';
 import type { IncludeFilterModel } from './query-model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
