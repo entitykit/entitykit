@@ -5,6 +5,8 @@ import type {
 } from './many-to-many-change-validator';
 import { encodeSaveIdentityTuple } from './save-key-values';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import type { PersistedValueLookup } from './save-plan-execution';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 export interface CapturedManyToManyChange {
     readonly change: ManyToManyChange;
@@ -56,13 +58,20 @@ export function coalesceManyToManyChanges(
 
 export function buildValidatedManyToManyPairs(
     group: readonly CapturedManyToManyChange[],
+    persistedValue?: PersistedValueLookup,
 ): Array<readonly [unknown, unknown]> {
     const seenPairs: Set<string> = new Set();
     const pairs: Array<readonly [unknown, unknown]> = [];
 
     for (const captured of group) {
-        const sourceKey = captured.source.providerKeyValues;
-        const targetKey = captured.target.providerKeyValues;
+        const sourceKey = resolvedProviderKeyValues(
+            captured.source,
+            persistedValue,
+        );
+        const targetKey = resolvedProviderKeyValues(
+            captured.target,
+            persistedValue,
+        );
         const pairKey = encodeSaveIdentityTuple([
             sourceKey,
             targetKey,
@@ -75,4 +84,32 @@ export function buildValidatedManyToManyPairs(
     }
 
     return pairs;
+}
+
+function resolvedProviderKeyValues(
+    endpoint: CapturedRelationshipEndpoint,
+    persistedValue?: PersistedValueLookup,
+): readonly unknown[] {
+    return endpoint.metadata.keyPropertiesMetadata.map((property, index) => {
+        const generated = persistedValue?.(
+            endpoint.entity,
+            property.propertyName,
+        );
+        if (generated) {
+            return toBoundPropertyValue(
+                generated.persistedValue,
+                property,
+                endpoint.metadata.entityName,
+            );
+        }
+        if (
+            persistedValue !== undefined &&
+            endpoint.temporaryPropertyNames.has(property.propertyName)
+        ) {
+            throw new Error(
+                `Many-to-many endpoint '${endpoint.metadata.entityName}' still has a temporary generated key '${property.propertyName}' after its insert.`,
+            );
+        }
+        return endpoint.providerKeyValues[index];
+    });
 }

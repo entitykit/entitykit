@@ -7,11 +7,17 @@ import {
     toProviderKeyValues,
 } from './save-key-values';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import {
+    temporaryGeneratedIdentity,
+} from '../tracking/temporary-generated-identity';
 
 export interface CapturedRelationshipEndpoint {
+    readonly entity: object;
+    readonly metadata: EntityMetadata;
     readonly modelKeyValues: readonly unknown[];
     readonly providerKeyValues: readonly unknown[];
     readonly encodedIdentity: string;
+    readonly temporaryPropertyNames: ReadonlySet<string>;
 }
 
 export class ManyToManyChangeValidator {
@@ -73,10 +79,17 @@ export class ManyToManyChangeValidator {
             modelKeyValues,
             metadata,
         );
+        const temporary = temporaryGeneratedIdentity(snapshot.entry);
         const endpoint = {
+            entity,
+            metadata,
             modelKeyValues,
             providerKeyValues,
-            encodedIdentity: encodeSaveIdentityTuple(providerKeyValues),
+            encodedIdentity: temporary?.identityKey ??
+                encodeSaveIdentityTuple(providerKeyValues),
+            temporaryPropertyNames: new Set(
+                temporary?.properties.map(property => property.propertyName),
+            ),
         };
         endpoints.set(entity, endpoint);
         return endpoint;

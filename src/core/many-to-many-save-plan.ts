@@ -10,6 +10,11 @@ import {
 } from './many-to-many-key-pairs';
 import type { SavePlanEntry } from './save-plan';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import type { SqlStatement } from '../sql/sql-statement';
+import {
+    registerSavePlanExecution,
+    type PersistedValueLookup,
+} from './save-plan-execution';
 
 export function buildManyToManySavePlan(
     changes: readonly ManyToManyChange[],
@@ -59,7 +64,7 @@ function buildGroupSavePlan(
         ? `${String(pairs[0][0])}->${String(pairs[0][1])}`
         : `${String(pairs.length)} changes`;
 
-    return {
+    const entry: SavePlanEntry = {
         entity: first.source,
         entityName:
       `${first.sourceMetadata.entityName}.${
@@ -74,4 +79,24 @@ function buildGroupSavePlan(
         skipAffectedRowsCheck: true,
         isSystemGenerated: true,
     };
+    registerSavePlanExecution(entry, {
+        buildStatement: persistedValue => buildGroupStatement(
+            group,
+            sql,
+            persistedValue,
+        ),
+    });
+    return entry;
+}
+
+function buildGroupStatement(
+    group: readonly CapturedManyToManyChange[],
+    sql: ModificationSqlBuilder,
+    persistedValue?: PersistedValueLookup,
+): SqlStatement {
+    const first = group[0].change;
+    const pairs = buildValidatedManyToManyPairs(group, persistedValue);
+    return first.action === 'link'
+        ? sql.buildInsertManyToManyBatch(first.relationship, pairs)
+        : sql.buildDeleteManyToManyBatch(first.relationship, pairs);
 }
