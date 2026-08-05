@@ -43,6 +43,20 @@ describe('JSON value contract', () => {
         );
     });
 
+    it('preserves own keys that overlap Object prototype mechanics', () => {
+        const source: unknown = JSON.parse(
+            '{"constructor":"domain","__proto__":{"polluted":true}}',
+        );
+
+        const normalized = normalizeJsonValue(source) as Record<string, unknown>;
+        expect(Object.getPrototypeOf(normalized)).toBe(Object.prototype);
+        expect(Object.prototype.hasOwnProperty.call(normalized, '__proto__')).toBe(true);
+        expect(normalized.__proto__).toEqual({ polluted: true });
+        expect(serializeJsonValue(source)).toBe(
+            '{"__proto__":{"polluted":true},"constructor":"domain"}',
+        );
+    });
+
     it.each([
         ['Map', new Map([['key', 'value']])],
         ['Set', new Set([1])],

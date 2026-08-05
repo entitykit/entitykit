@@ -56,3 +56,13 @@ export function isJsonArrayIndex(key: PropertyKey, length: number): boolean {
     const index = Number(key);
     return Number.isSafeInteger(index) && index >= 0 && index < length;
 }
+
+export function defineJsonProperty(
+    target: Record<string, JsonValue>,
+    key: string,
+    value: JsonValue,
+): void {
+    Object.defineProperty(target, key, {
+        configurable: true, enumerable: true, value, writable: true,
+    });
+}

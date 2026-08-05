@@ -1,6 +1,7 @@
 import type { JsonValue } from '../json-value';
 import { compareJsonKeys } from './canonical-json';
 import {
+    defineJsonProperty,
     jsonChildPath,
     jsonChildPropertyPath,
     isJsonArrayIndex,
@@ -64,9 +65,9 @@ export function normalizeJsonObject(
                 typeof key === 'string' && descriptors[key].enumerable === true)
             .sort(compareJsonKeys);
         for (const key of propertyNames) {
-            normalized[key] = normalizeDescriptor(
+            defineJsonProperty(normalized, key, normalizeDescriptor(
                 descriptors[key], jsonChildPath(path, key), state, normalize,
-            );
+            ));
         }
         state.snapshots.set(value, normalized);
         return normalized;
