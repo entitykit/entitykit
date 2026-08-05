@@ -1,5 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { BinaryOperator, PredicateNode, QueryFieldRef } from '../query/expression/predicate-node';
 import { compileInPredicate, isSqlNull, readInPredicateValues } from './predicate-null-semantics';
 import { assertNever, likeEscapeClause, metadataForSource, normalizeSourceAlias, sqlBinaryOperator, stringPatternValue } from './select-sql-helpers';
@@ -64,14 +64,17 @@ export class JoinedPredicateSqlCompiler {
                     `The 'in' operator for '${propertyName}' requires an array value.`,
                 ),
                 item => parameters.add(
-                    toProviderValue(item, property.converter as never),
+                    toBoundPropertyValue(item, property, source.entityName),
                 ),
                 () => this.dialect.falsePredicate(),
             );
         }
 
         const sqlOperator = sqlBinaryOperator(operator);
-        const parameterValue = stringPatternValue(operator, toProviderValue(value, property.converter as never));
+        const parameterValue = stringPatternValue(
+            operator,
+            toBoundPropertyValue(value, property, source.entityName),
+        );
         return `${column} ${sqlOperator} ${parameters.add(parameterValue)}${likeEscapeClause(operator)}`;
     }
 

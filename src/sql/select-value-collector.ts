@@ -1,5 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { BinaryOperator, PredicateNode } from '../query/expression/predicate-node';
 import type { QueryModel } from '../query/query-model';
 import type { ProjectionSqlNode } from '../query/projection';
@@ -79,9 +79,10 @@ function collectProjectionValues<TEntity extends object>(
                     const property = metadata.getProperty(
                         coalesceField.propertyName,
                     );
-                    values.push(toProviderValue(
+                    values.push(toBoundPropertyValue(
                         operand.value,
-                        property.converter as never,
+                        property,
+                        metadata.entityName,
                     ));
                 } else {
                     collectProjectionValues(metadata, operand, values);
@@ -134,10 +135,13 @@ function collectBinaryValues<TEntity extends object>(
             `The 'in' operator for '${propertyName}' requires an array value.`,
         );
         for (const item of inValues.values) {
-            values.push(toProviderValue(item, property.converter as never));
+            values.push(toBoundPropertyValue(item, property, metadata.entityName));
         }
         return;
     }
 
-    values.push(stringPatternValue(operator, toProviderValue(value, property.converter as never)));
+    values.push(stringPatternValue(
+        operator,
+        toBoundPropertyValue(value, property, metadata.entityName),
+    ));
 }
