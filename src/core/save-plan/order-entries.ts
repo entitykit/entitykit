@@ -1,34 +1,38 @@
-import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { EntityConstructor } from '../../types';
 import { findPrincipalEntry } from './find-principal-entry';
 
 /** Order dependencies, then unrelated modified, added, and deleted entries. */
 export function orderSaveEntries(
-    entries: ReadonlyArray<EntityEntry<object>>,
-): Array<EntityEntry<object>> {
-    const outgoing: Map<EntityEntry<object>, Set<EntityEntry<object>>> = new Map();
-    const incoming: Map<EntityEntry<object>, number> = new Map();
-    const originalIndex: Map<EntityEntry<object>, number> = new Map();
-    const entriesByEntity: Map<object, EntityEntry<object>> = new Map();
+    entries: readonly PersistedEntrySnapshot[],
+): PersistedEntrySnapshot[] {
+    const outgoing: Map<
+        PersistedEntrySnapshot,
+        Set<PersistedEntrySnapshot>
+    > = new Map();
+    const incoming: Map<PersistedEntrySnapshot, number> = new Map();
+    const originalIndex: Map<PersistedEntrySnapshot, number> = new Map();
+    const entriesByEntity: Map<object, PersistedEntrySnapshot> = new Map();
     const entriesByType: Map<
         EntityConstructor<object>,
-        Array<EntityEntry<object>>
+        PersistedEntrySnapshot[]
     > = new Map();
 
-    entries.forEach((entry, index) => {
-        outgoing.set(entry, new Set());
-        incoming.set(entry, 0);
-        originalIndex.set(entry, index);
-        entriesByEntity.set(entry.entity, entry);
+    entries.forEach((snapshot, index) => {
+        const { entry } = snapshot;
+        outgoing.set(snapshot, new Set());
+        incoming.set(snapshot, 0);
+        originalIndex.set(snapshot, index);
+        entriesByEntity.set(entry.entity, snapshot);
         const typed = entriesByType.get(entry.metadata.ctor) ?? [];
-        typed.push(entry);
+        typed.push(snapshot);
         entriesByType.set(entry.metadata.ctor, typed);
     });
 
     const addEdge = (
-        before: EntityEntry<object>,
-        after: EntityEntry<object>,
+        before: PersistedEntrySnapshot,
+        after: PersistedEntrySnapshot,
     ): void => {
         if (before === after || outgoing.get(before)?.has(after)) {
             return;
@@ -38,11 +42,12 @@ export function orderSaveEntries(
     };
 
     for (const dependent of entries) {
-        for (const relationship of dependent.metadata.relationships) {
-            if (dependent.state === EntityState.Deleted) {
+        const { entry } = dependent;
+        for (const relationship of entry.metadata.relationships) {
+            if (entry.state === EntityState.Deleted) {
                 const principal = findPrincipalEntry(
                     relationship,
-                    dependent.originalValues,
+                    entry.originalValues,
                     entriesByType,
                     entriesByEntity,
                 );
@@ -54,7 +59,10 @@ export function orderSaveEntries(
 
             const principal = findPrincipalEntry(
                 relationship,
-                dependent.entity as Record<string, unknown>,
+                {
+                    ...dependent.values,
+                    ...dependent.relationshipValues,
+                },
                 entriesByType,
                 entriesByEntity,
             );
@@ -62,10 +70,10 @@ export function orderSaveEntries(
                 addEdge(principal, dependent);
             }
 
-            if (dependent.state === EntityState.Modified) {
+            if (entry.state === EntityState.Modified) {
                 const previousPrincipal = findPrincipalEntry(
                     relationship,
-                    dependent.originalValues,
+                    entry.originalValues,
                     entriesByType,
                     entriesByEntity,
                 );
@@ -80,14 +88,20 @@ export function orderSaveEntries(
 }
 
 function stableTopologicalOrder(
-    entries: ReadonlyArray<EntityEntry<object>>,
-    outgoing: ReadonlyMap<EntityEntry<object>, ReadonlySet<EntityEntry<object>>>,
-    incoming: Map<EntityEntry<object>, number>,
-    originalIndex: ReadonlyMap<EntityEntry<object>, number>,
-): Array<EntityEntry<object>> {
+    entries: readonly PersistedEntrySnapshot[],
+    outgoing: ReadonlyMap<
+        PersistedEntrySnapshot,
+        ReadonlySet<PersistedEntrySnapshot>
+    >,
+    incoming: Map<PersistedEntrySnapshot, number>,
+    originalIndex: ReadonlyMap<PersistedEntrySnapshot, number>,
+): PersistedEntrySnapshot[] {
     const remaining = new Set(entries);
-    const ordered: Array<EntityEntry<object>> = [];
-    const compare = (left: EntityEntry<object>, right: EntityEntry<object>): number =>
+    const ordered: PersistedEntrySnapshot[] = [];
+    const compare = (
+        left: PersistedEntrySnapshot,
+        right: PersistedEntrySnapshot,
+    ): number =>
         statePriority(left.state) - statePriority(right.state) ||
     (originalIndex.get(left) ?? 0) - (originalIndex.get(right) ?? 0);
 

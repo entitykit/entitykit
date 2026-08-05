@@ -1,10 +1,14 @@
 import type { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { SqlDialect } from '../../sql/sql-dialect';
 import type { SqlStatement } from '../../sql/sql-statement';
-import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { SavePlanEntry } from '../save-plan';
-import { buildInsertSavePlanEntry, maxInsertBatchSize } from './insert-plan';
+import {
+    buildInsertSavePlanEntry,
+    maxInsertBatchSize,
+    persistedKeyValue,
+} from './insert-plan';
 import { isGeneratedOnAdd } from '../../model/value-generated';
 import {
     type GeneratedKeyPropagation,
@@ -13,16 +17,19 @@ import {
 } from '../save-plan-execution';
 import { relationshipPrincipalKeyProperties } from '../../model/relationship-key';
 import { assertNoKeyModifications } from './immutable-key-change';
-import { capturePersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
+import { validateRequiredComplexPropertyValues } from '../../sql/required-complex-property-validation';
 
 export function buildEntitySavePlan(
     sql: ModificationSqlBuilder,
     dialect: SqlDialect,
-    pending: ReadonlyArray<EntityEntry<object>>,
+    pending: readonly PersistedEntrySnapshot[],
 ): SavePlanEntry[] {
     const plan: SavePlanEntry[] = [];
-    let insertGroup: Array<EntityEntry<object>> = [];
-    const entriesByEntity = new Map(pending.map(entry => [entry.entity, entry]));
+    let insertGroup: PersistedEntrySnapshot[] = [];
+    const entriesByEntity = new Map(pending.map(snapshot => [
+        snapshot.entry.entity,
+        snapshot,
+    ]));
 
     const flushInsertGroup = (): void => {
         if (insertGroup.length === 0) {
@@ -38,40 +45,41 @@ export function buildEntitySavePlan(
         insertGroup = [];
     };
 
-    for (const entry of pending) {
-        const propagations = generatedKeyPropagations(entry, entriesByEntity);
+    for (const snapshot of pending) {
+        const propagations = generatedKeyPropagations(snapshot, entriesByEntity);
+        const { entry } = snapshot;
         if (
-            entry.state === EntityState.Added &&
+            snapshot.state === EntityState.Added &&
             propagations === undefined &&
             insertGroup.length > 0 &&
             generatedKeyPropagations(insertGroup[0], entriesByEntity) === undefined &&
-            insertGroup[0]?.metadata === entry.metadata &&
+            insertGroup[0]?.entry.metadata === entry.metadata &&
             insertGroup.length < maxInsertBatchSize(dialect, entry.metadata)
         ) {
-            insertGroup.push(entry);
+            insertGroup.push(snapshot);
             continue;
         }
 
         flushInsertGroup();
 
-        if (entry.state === EntityState.Added) {
-            insertGroup.push(entry);
+        if (snapshot.state === EntityState.Added) {
+            insertGroup.push(snapshot);
             continue;
         }
 
-        const statement = buildSaveStatement(sql, entry);
+        const statement = buildSaveStatement(sql, snapshot);
         if (statement) {
             const planEntry: SavePlanEntry = {
                 entity: entry.entity,
                 entityName: entry.metadata.entityName,
-                keyValue: entry.keyValue,
-                state: entry.state,
+                keyValue: persistedKeyValue(snapshot),
+                state: snapshot.state,
                 statement,
             };
             registerSavePlanExecution(planEntry, {
                 metadata: entry.metadata,
                 generatedValues: generatedValuesForUpdate(entry),
-                persistedEntries: [capturePersistedEntrySnapshot(entry)],
+                persistedEntries: [snapshot],
             });
             plan.push(planEntry);
         }
@@ -82,39 +90,43 @@ export function buildEntitySavePlan(
 }
 
 function generatedKeyPropagations(
-    dependent: EntityEntry<object>,
-    entriesByEntity: ReadonlyMap<object, EntityEntry<object>>,
+    dependent: PersistedEntrySnapshot,
+    entriesByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,
 ): readonly GeneratedKeyPropagation[] | undefined {
     if (dependent.state !== EntityState.Added) {
         return undefined;
     }
 
-    const values = dependent.entity as Record<string, unknown>;
-    const propagations = dependent.metadata.relationships.flatMap(relationship => {
-        const principal = entriesByEntity.get(values[relationship.navigationProperty] as object);
+    const { entry } = dependent;
+    const propagations = entry.metadata.relationships.flatMap(relationship => {
+        const principal = entriesByEntity.get(
+            dependent.relationshipValues[
+                String(relationship.navigationProperty)
+            ] as object,
+        );
         const principalKeyProperties = principal
             ? relationshipPrincipalKeyProperties(
                 relationship,
-                principal.metadata,
+                principal.entry.metadata,
             )
             : [];
         if (
             principal?.state !== EntityState.Added ||
             !principalKeyProperties.some(propertyName =>
                 isGeneratedOnAdd(
-                    principal.metadata.getProperty(propertyName).valueGenerated,
+                    principal.entry.metadata.getProperty(propertyName).valueGenerated,
                 )) ||
             !relationship.foreignKeyProperties.some(propertyName =>
-                isEmpty(values[propertyName]))
+                isEmpty(dependent.values[propertyName]))
         ) {
             return [];
         }
         return [{
-            principal: principal.entity,
-            principalMetadata: principal.metadata,
+            principal: principal.entry.entity,
+            principalMetadata: principal.entry.metadata,
             principalKeyProperties: principalKeyProperties.map(String),
             principalKeyValues: principalKeyProperties.map(propertyName =>
-                principal.currentValues()[propertyName]),
+                principal.values[propertyName]),
             foreignKeyProperties: relationship.foreignKeyProperties.map(String),
         }];
     });
@@ -127,20 +139,40 @@ function isEmpty(value: unknown): boolean {
 
 function buildSaveStatement(
     sql: ModificationSqlBuilder,
-    entry: EntityEntry<object>,
+    snapshot: PersistedEntrySnapshot,
 ): SqlStatement | undefined {
-    if (entry.state === EntityState.Added) {
-        return sql.buildInsert(entry.metadata, entry.entity);
+    const { entry } = snapshot;
+    if (snapshot.state === EntityState.Added) {
+        validateRequiredComplexPropertyValues(
+            entry.metadata,
+            snapshot.complexPropertyValues,
+        );
+        return sql.buildInsertFromValues(entry.metadata, snapshot.values);
     }
 
-    if (entry.state === EntityState.Modified) {
-        const modifiedProperties = entry.modifiedProperties();
+    if (snapshot.state === EntityState.Modified) {
+        validateRequiredComplexPropertyValues(
+            entry.metadata,
+            snapshot.complexPropertyValues,
+        );
+        const modifiedProperties = entry.modifiedPropertiesFromValues(
+            snapshot.values,
+        );
         assertNoKeyModifications(entry, modifiedProperties);
-        return sql.buildUpdate(entry.metadata, entry.entity, modifiedProperties, entry.originalValues);
+        return sql.buildUpdateFromValues(
+            entry.metadata,
+            snapshot.values,
+            modifiedProperties,
+            entry.originalValues,
+        );
     }
 
-    if (entry.state === EntityState.Deleted) {
-        return sql.buildDelete(entry.metadata, entry.entity, entry.originalValues);
+    if (snapshot.state === EntityState.Deleted) {
+        return sql.buildDeleteFromValues(
+            entry.metadata,
+            snapshot.values,
+            entry.originalValues,
+        );
     }
 
     return undefined;

@@ -1,7 +1,7 @@
 import type { EntityMetadata } from '../../model/entity-metadata';
 import type { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { SqlDialect } from '../../sql/sql-dialect';
-import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { SavePlanEntry } from '../save-plan';
 import { isGeneratedOnAdd } from '../../model/value-generated';
@@ -10,8 +10,8 @@ import {
     type GeneratedValuesPlan,
     registerSavePlanExecution,
 } from '../save-plan-execution';
-import { capturePersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { maxParameterBatchSize } from './parameter-batch-size';
+import { validateRequiredComplexPropertyValues } from '../../sql/required-complex-property-validation';
 
 /** Maximum rows that fit in one provider-legal multi-row insert statement. */
 export function maxInsertBatchSize(
@@ -35,51 +35,68 @@ export function maxInsertBatchSize(
 /** Build one save-plan entry from a non-empty group of compatible inserts. */
 export function buildInsertSavePlanEntry(
     sql: ModificationSqlBuilder,
-    entries: ReadonlyArray<EntityEntry<object>>,
+    entries: readonly PersistedEntrySnapshot[],
     generatedKeyPropagations?: readonly GeneratedKeyPropagation[],
 ): SavePlanEntry {
     if (entries.length === 0) {
         throw new Error('Insert save-plan group cannot be empty.');
     }
+    for (const snapshot of entries) {
+        validateRequiredComplexPropertyValues(
+            snapshot.entry.metadata,
+            snapshot.complexPropertyValues,
+        );
+    }
 
     if (entries.length === 1) {
-        const entry = entries[0];
+        const persisted = entries[0];
+        const { entry } = persisted;
+        const allowMissingProperties = generatedKeyPropagations?.flatMap(
+            propagation => propagation.foreignKeyProperties,
+        );
         const planEntry: SavePlanEntry = {
             entity: entry.entity,
             entityName: entry.metadata.entityName,
-            keyValue: entry.keyValue,
-            state: entry.state,
-            statement: sql.buildInsert(
+            keyValue: persistedKeyValue(persisted),
+            state: persisted.state,
+            statement: sql.buildInsertFromValues(
                 entry.metadata,
-                entry.entity,
-                generatedKeyPropagations?.flatMap(
-                    propagation => propagation.foreignKeyProperties,
-                ),
+                persisted.values,
+                allowMissingProperties,
             ),
         };
         registerSavePlanExecution(planEntry, {
             metadata: entry.metadata,
             generatedValues: generatedValuesForInsert(entry.metadata),
             generatedKeyPropagations,
-            persistedEntries: [capturePersistedEntrySnapshot(entry)],
+            persistedEntries: [persisted],
         });
         return planEntry;
     }
 
     const first = entries[0];
     const planEntry: SavePlanEntry = {
-        entity: first.entity,
-        entityName: first.metadata.entityName,
+        entity: first.entry.entity,
+        entityName: first.entry.metadata.entityName,
         keyValue: `${String(entries.length)} entities`,
         state: EntityState.Added,
-        statement: sql.buildInsertBatch(first.metadata, entries.map(entry => entry.entity)),
+        statement: sql.buildInsertBatchFromValues(
+            first.entry.metadata,
+            entries.map(entry => entry.values),
+        ),
         affectedEntityCount: entries.length,
         expectedAffectedRows: entries.length,
     };
     registerSavePlanExecution(planEntry, {
-        persistedEntries: entries.map(capturePersistedEntrySnapshot),
+        persistedEntries: entries,
     });
     return planEntry;
+}
+
+export function persistedKeyValue(snapshot: PersistedEntrySnapshot): unknown {
+    const values = snapshot.entry.metadata.keyProperties.map(propertyName =>
+        snapshot.values[propertyName]);
+    return snapshot.entry.metadata.hasCompositeKey ? values : values[0];
 }
 
 function generatedValuesForInsert(

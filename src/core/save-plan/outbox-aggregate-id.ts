@@ -1,5 +1,5 @@
 import type { PersistedValueLookup } from '../save-plan-execution';
-import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import type { PropertyMetadata } from '../../model/property-metadata';
 import { isGeneratedOnAdd } from '../../model/value-generated';
 import { toProviderValue } from '../../model/value-converter/store-value';
@@ -27,8 +27,10 @@ export function formatExplicitAggregateId(value: unknown, path: string): unknown
     return aggregateIdPart(value, path).value;
 }
 
-export function captureAggregateId(entry: EntityEntry<object>): PendingAggregateId {
-    const values = entry.currentValues();
+export function captureAggregateId(
+    snapshot: PersistedEntrySnapshot,
+): PendingAggregateId {
+    const { entry, values } = snapshot;
     return {
         entity: entry.entity,
         entityName: entry.metadata.entityName,

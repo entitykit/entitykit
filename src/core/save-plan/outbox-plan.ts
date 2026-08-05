@@ -1,7 +1,7 @@
 import type { OutboxOptions } from '../outbox-options';
 import type { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { SqlDialect } from '../../sql/sql-dialect';
-import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { OutboxEventTracker } from '../outbox-event-tracker';
 import type { SavePlanEntry } from '../save-plan';
@@ -22,7 +22,7 @@ interface OutboxPlanOptions {
     readonly sql: ModificationSqlBuilder;
     readonly dialect: SqlDialect;
     readonly outbox: OutboxOptions | undefined;
-    readonly entries: ReadonlyArray<EntityEntry<object>>;
+    readonly entries: readonly PersistedEntrySnapshot[];
     readonly eventTracker: OutboxEventTracker;
     readonly currentAuditTimestamp: () => Date;
 }

@@ -1,6 +1,6 @@
 import type { RelationshipMetadata } from '../../model/relationship-metadata';
 import type { EntityConstructor } from '../../types';
-import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { formatSaveIdentityValue } from '../save-key-values';
 
 export function findPrincipalEntry(
@@ -8,10 +8,10 @@ export function findPrincipalEntry(
     values: Readonly<Record<string, unknown>>,
     entriesByType: ReadonlyMap<
         EntityConstructor<object>,
-        ReadonlyArray<EntityEntry<object>>
+        readonly PersistedEntrySnapshot[]
     >,
-    entriesByEntity: ReadonlyMap<object, EntityEntry<object>>,
-): EntityEntry<object> | undefined {
+    entriesByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,
+): PersistedEntrySnapshot | undefined {
     const principalByNavigation = entriesByEntity.get(
         values[relationship.navigationProperty] as object,
     );
@@ -30,11 +30,12 @@ export function findPrincipalEntry(
             : foreignKeyValues,
     );
     return entriesByType.get(relationship.principalEntity)
-        ?.find(entry => {
+        ?.find(snapshot => {
+            const { entry } = snapshot;
             const propertyNames = relationship.principalKeyProperties ??
                 entry.metadata.keyProperties;
-            const principal = entry.entity as Record<string, unknown>;
-            const keyValues = propertyNames.map(property => principal[property]);
+            const keyValues = propertyNames.map(property =>
+                snapshot.values[property]);
             return formatSaveIdentityValue(
                 keyValues.length === 1 ? keyValues[0] : keyValues,
             ) === target;

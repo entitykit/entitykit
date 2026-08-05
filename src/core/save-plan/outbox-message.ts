@@ -3,7 +3,7 @@ import type {
     OutboxEventBatch,
     OutboxEventTracker,
 } from '../outbox-event-tracker';
-import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import {
     readSynchronousDate,
     readSynchronousValue,
@@ -22,7 +22,6 @@ export interface PendingOutboxMessage {
     readonly entity: object;
     readonly event: OutboxMessage;
     readonly keyValue: unknown;
-    readonly entry: EntityEntry<object>;
     readonly type: string;
     readonly serializedPayload: string;
     readonly hasExplicitAggregateId: boolean;
@@ -33,7 +32,7 @@ export interface PendingOutboxMessage {
 
 interface CollectionOptions {
     readonly outbox: OutboxOptions;
-    readonly entries: ReadonlyArray<EntityEntry<object>>;
+    readonly entries: readonly PersistedEntrySnapshot[];
     readonly eventTracker: OutboxEventTracker;
     readonly currentAuditTimestamp: () => Date;
 }
@@ -42,7 +41,8 @@ export function collectPendingOutboxMessages(
     options: CollectionOptions,
 ): PendingOutboxMessage[] {
     const messages: PendingOutboxMessage[] = [];
-    for (const entry of options.entries) {
+    for (const snapshot of options.entries) {
+        const { entry } = snapshot;
         const collectedEvents = readSynchronousValue(
             () => options.outbox.collectEvents(entry.entity),
             'The outbox collectEvents callback',
@@ -63,7 +63,6 @@ export function collectPendingOutboxMessages(
                 keyValue: event.aggregateId === undefined
                     ? entry.keyValue
                     : event.aggregateId,
-                entry,
                 type: event.type,
                 serializedPayload: serializeJsonValue(
                     event.payload,
@@ -77,7 +76,7 @@ export function collectPendingOutboxMessages(
                         outboxValuePath(event, 'aggregateId'),
                     ),
                 pendingAggregateId: event.aggregateId === undefined
-                    ? captureAggregateId(entry)
+                    ? captureAggregateId(snapshot)
                     : undefined,
                 occurredAt: outboxOccurredAt(event, options),
             });

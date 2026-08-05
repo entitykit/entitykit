@@ -12,6 +12,7 @@ import { formatSavePlanDebug } from './save-plan/format-debug-view';
 import { freezeSavePlan } from './save-plan/freeze-plan';
 import { buildOutboxSavePlan } from './save-plan/outbox-plan';
 import { orderSaveEntries } from './save-plan/order-entries';
+import { capturePersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 /** Dependencies the save-plan coordinator receives from its context. */
 export interface SavePlanBuilderDeps {
@@ -50,10 +51,11 @@ export class SavePlanBuilder {
         this.prepareEntriesForSave();
 
         const tracked = this.deps.changeTracker.entries();
-        const pending = orderSaveEntries(tracked.filter(entry =>
-            entry.state === EntityState.Added ||
-      entry.state === EntityState.Modified ||
-      entry.state === EntityState.Deleted,
+        const snapshots = tracked.map(capturePersistedEntrySnapshot);
+        const pending = orderSaveEntries(snapshots.filter(snapshot =>
+            snapshot.state === EntityState.Added ||
+            snapshot.state === EntityState.Modified ||
+            snapshot.state === EntityState.Deleted,
         ));
 
         const dialect = this.deps.getDialect();
@@ -68,7 +70,7 @@ export class SavePlanBuilder {
             sql,
             dialect,
             outbox: this.deps.getOptions().outbox,
-            entries: tracked,
+            entries: snapshots,
             eventTracker: this.deps.outboxEvents,
             currentAuditTimestamp: this.deps.currentAuditTimestamp,
         });
