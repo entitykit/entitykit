@@ -95,8 +95,8 @@ describe('many-to-many executable endpoint snapshots', () => {
         db.posts.attach(post);
         db.tags.attach(tag);
         db.link(post, item => item.tags, tag);
-        post.resetKeyReads(2);
-        tag.resetKeyReads(2);
+        post.resetKeyReads(1);
+        tag.resetKeyReads(1);
 
         await db.saveChanges();
 
@@ -108,8 +108,8 @@ describe('many-to-many executable endpoint snapshots', () => {
             values: [],
         });
         expect(rows.rows).toEqual([{ post_id: 1, tag_id: 1 }]);
-        expect(post.observedKeyReads).toBe(2);
-        expect(tag.observedKeyReads).toBe(2);
+        expect(post.observedKeyReads).toBe(1);
+        expect(tag.observedKeyReads).toBe(1);
         await db.dispose();
     });
 
@@ -125,8 +125,8 @@ describe('many-to-many executable endpoint snapshots', () => {
         db.posts.attach(post);
         db.tags.attach(tag);
         db.unlink(post, item => item.tags, tag);
-        post.resetKeyReads(2);
-        tag.resetKeyReads(2);
+        post.resetKeyReads(1);
+        tag.resetKeyReads(1);
 
         await db.saveChanges();
 
@@ -138,8 +138,8 @@ describe('many-to-many executable endpoint snapshots', () => {
             values: [],
         });
         expect(rows.rows).toEqual([{ post_id: 2, tag_id: 2 }]);
-        expect(post.observedKeyReads).toBe(2);
-        expect(tag.observedKeyReads).toBe(2);
+        expect(post.observedKeyReads).toBe(1);
+        expect(tag.observedKeyReads).toBe(1);
         await db.dispose();
     });
 });

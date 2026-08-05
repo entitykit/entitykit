@@ -28,7 +28,6 @@ export class EntityEntry<TEntity extends object> {
     public get state(): EntityState {
         return this.trackedState.state;
     }
-
     public set state(state: EntityState) {
         this.trackedState.state = state;
     }
@@ -40,9 +39,13 @@ export class EntityEntry<TEntity extends object> {
             ? this.metadata.getKeyValues(this.entity)
             : this.metadata.getKeyValue(this.entity);
     }
-
     public currentValues(): Record<string, unknown> {
         return this.trackedState.currentValues();
+    }
+    public setStateFromCapturedValues(
+        values: Readonly<Record<string, unknown>>,
+    ): EntityState {
+        return this.trackedState.setStateFromCapturedValues(values);
     }
     public modifiedProperties(): string[] {
         return this.trackedState.modifiedProperties();
@@ -68,7 +71,6 @@ export class EntityEntry<TEntity extends object> {
             state,
         );
     }
-
     public restoreTrackedValues(
         values: Record<string, unknown>,
         navigations: NavigationSnapshotValues,
@@ -81,11 +83,9 @@ export class EntityEntry<TEntity extends object> {
             state,
         );
     }
-
     public markDeleted(): void {
         this.state = EntityState.Deleted;
     }
-
     public markNavigationLoaded(navigationProperty: string): void {
         this.trackedState.markNavigationLoaded(
             this as unknown as EntityEntry<object>,

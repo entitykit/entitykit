@@ -1,9 +1,9 @@
 import { DbValidationError } from '../errors/entity-kit-error';
 import type { EntityMetadata } from '../model/entity-metadata';
-import type { EntityEntry } from '../tracking/entity-entry';
 import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 interface TenantWriteScope {
     readonly entityName: string;
@@ -13,14 +13,16 @@ interface TenantWriteScope {
     readonly tenantId: unknown;
     readonly allowsCrossTenantAccess: boolean;
     readonly recordMutation: () => void;
+    readonly mirrorMutation?: (value: unknown) => void;
 }
 
 export function applyTenantWrite(
-    entry: EntityEntry<object>,
+    snapshot: PersistedEntrySnapshot,
     tenantId: unknown,
     allowsCrossTenantAccess: boolean,
     mutations: SaveTimeMutationLog,
 ): void {
+    const { entry } = snapshot;
     const configuredProperty: unknown = entry.metadata.tenantKeyProperty;
     const tenantProperty = typeof configuredProperty === 'string'
         ? configuredProperty
@@ -28,16 +30,23 @@ export function applyTenantWrite(
     if (!tenantProperty) {
         return;
     }
-    const values = entry.entity as Record<string, unknown>;
+    const liveValues = entry.entity as Record<string, unknown>;
     applyTenantWriteScope({
         entityName: entry.metadata.entityName,
         tenantProperty,
-        values,
-        isAdded: entry.state === EntityState.Added,
+        values: snapshot.values,
+        isAdded: snapshot.state === EntityState.Added,
         tenantId,
         allowsCrossTenantAccess,
         recordMutation: () => {
-            mutations.record(values, tenantProperty);
+            mutations.recordCaptured(
+                liveValues,
+                tenantProperty,
+                snapshot.values[tenantProperty],
+            );
+        },
+        mirrorMutation: value => {
+            liveValues[tenantProperty] = value;
         },
     });
 }
@@ -89,6 +98,7 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
         tenantId,
         allowsCrossTenantAccess,
         recordMutation,
+        mirrorMutation,
     } = scope;
     if (allowsCrossTenantAccess) {
         return;
@@ -100,6 +110,7 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
     if (isAdded && isEmptyTenantValue(values[tenantProperty])) {
         recordMutation();
         values[tenantProperty] = tenantId;
+        mirrorMutation?.(tenantId);
     }
 
     if (!scopedValuesEqual(values[tenantProperty], tenantId)) {

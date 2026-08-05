@@ -80,12 +80,17 @@ export class ChangeTracker {
     }
 
     public detectChanges(): void {
+        this.detectSaveRelationships();
+        for (const entry of this.registry.entries()) {
+            entry.detectChanges();
+        }
+    }
+
+    /** Apply tracked graph fix-up before one executable value capture. */
+    public detectSaveRelationships(): void {
         const configuredModel = changeTrackerModel(this);
         if (configuredModel) {
             detectRelationshipChanges(this, configuredModel);
-        }
-        for (const entry of this.registry.entries()) {
-            entry.detectChanges();
         }
     }
     public acceptAllChanges(): void {

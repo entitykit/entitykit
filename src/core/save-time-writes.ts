@@ -1,9 +1,9 @@
-import type { EntityEntry } from '../tracking/entity-entry';
 import { applyAuditWrites } from './save-time-audit';
 import { SaveTimeMutationLog } from './save-time-mutations';
 import type { SaveTimeScope } from './save-time-scope';
 import { applySoftDeleteWrite } from './save-time-soft-delete';
 import { applyTenantWrite } from './save-time-tenant';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 /**
  * The writes a save makes into entities before persisting them: audit
@@ -33,14 +33,12 @@ export class SaveTimeWrites {
     }
 
     /**
-   * Apply every save-time write to the tracked entries.
-   *
-   * Returns whether any entry could have been touched, so the caller knows
-   * whether re-running change detection is worth it.
-   */
-    public applyTo(entries: Iterable<EntityEntry<object>>): boolean {
-        let mayHaveWritten = false;
-
+     * Apply policy writes to the captured values and mirror them into the live
+     * entities under the rollback journal.
+     */
+    public applyTo(
+        snapshots: readonly PersistedEntrySnapshot[],
+    ): PersistedEntrySnapshot[] {
         const currentTime = (): Date => {
             this.now ??= this.scope.now();
             return this.now;
@@ -60,24 +58,26 @@ export class SaveTimeWrites {
             return this.tenantId;
         };
 
-        for (const entry of entries) {
-            const tenantKeyProperty: unknown = entry.metadata.tenantKeyProperty;
-            mayHaveWritten ||= Boolean(
-                tenantKeyProperty ??
-                entry.metadata.softDelete ??
-                entry.metadata.audit,
-            );
+        return snapshots.map(snapshot => {
             applyTenantWrite(
-                entry,
+                snapshot,
                 currentTenant(),
                 this.scope.allowsCrossTenantAccess(),
                 this.mutations,
             );
-            applySoftDeleteWrite(entry, currentTime, this.mutations);
-            applyAuditWrites(entry, currentTime, currentUser, this.mutations);
-        }
-
-        return mayHaveWritten;
+            const prepared = applySoftDeleteWrite(
+                snapshot,
+                currentTime,
+                this.mutations,
+            );
+            applyAuditWrites(
+                prepared,
+                currentTime,
+                currentUser,
+                this.mutations,
+            );
+            return prepared;
+        });
     }
 
     /** Undo the writes, newest first, so an entity survives a failure unchanged. */

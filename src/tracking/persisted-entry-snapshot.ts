@@ -4,8 +4,7 @@ import {
     type NavigationSnapshotValues,
 } from './navigation-snapshot';
 import { readPropertyPath } from '../model/property-value-access';
-import { hasEntityValueModifications } from './entity-entry-snapshot';
-import { EntityState } from './entity-state';
+import type { EntityState } from './entity-state';
 
 /** Exact tracked state represented by one executable save plan. */
 export interface PersistedEntrySnapshot {
@@ -21,21 +20,10 @@ export function capturePersistedEntrySnapshot(
     entry: EntityEntry<object>,
 ): PersistedEntrySnapshot {
     const values = entry.currentValues();
-    if (
-        entry.state === EntityState.Unchanged ||
-        entry.state === EntityState.Modified
-    ) {
-        entry.state = hasEntityValueModifications(
-            entry.metadata,
-            values,
-            entry.originalValues,
-        )
-            ? EntityState.Modified
-            : EntityState.Unchanged;
-    }
+    const state = entry.setStateFromCapturedValues(values);
     return {
         entry,
-        state: entry.state,
+        state,
         values,
         relationshipValues: Object.fromEntries(
             entry.metadata.relationships.map(relationship => [

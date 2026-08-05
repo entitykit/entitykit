@@ -1,22 +1,29 @@
-import type { EntityEntry } from '../tracking/entity-entry';
 import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 export function applySoftDeleteWrite(
-    entry: EntityEntry<object>,
+    snapshot: PersistedEntrySnapshot,
     now: () => Date,
     mutations: SaveTimeMutationLog,
-): void {
+): PersistedEntrySnapshot {
+    const { entry } = snapshot;
     const softDelete = entry.metadata.softDelete;
-    if (!softDelete || entry.state !== EntityState.Deleted) {
-        return;
+    if (!softDelete || snapshot.state !== EntityState.Deleted) {
+        return snapshot;
     }
 
     const value =
         softDelete.deletedValue !== undefined ? softDelete.deletedValue : now();
-    const values = entry.entity as Record<string, unknown>;
-    mutations.record(values, softDelete.propertyName);
-    values[softDelete.propertyName] = value;
+    const liveValues = entry.entity as Record<string, unknown>;
+    mutations.recordCaptured(
+        liveValues,
+        softDelete.propertyName,
+        snapshot.values[softDelete.propertyName],
+    );
+    snapshot.values[softDelete.propertyName] = value;
+    liveValues[softDelete.propertyName] = value;
     mutations.recordState(entry);
     entry.state = EntityState.Modified;
+    return { ...snapshot, state: EntityState.Modified };
 }

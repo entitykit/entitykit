@@ -13,7 +13,15 @@ export class SaveTimeMutationLog {
     }
 
     public record(values: Record<string, unknown>, property: string): void {
-        const previous = values[property];
+        this.recordCaptured(values, property, values[property]);
+    }
+
+    /** Record a value already read by the executable entity capture. */
+    public recordCaptured(
+        values: Record<string, unknown>,
+        property: string,
+        previous: unknown,
+    ): void {
         this.mutations.push({
             restore: () => {
                 values[property] = previous;

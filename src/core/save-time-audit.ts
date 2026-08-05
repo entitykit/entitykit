@@ -1,21 +1,22 @@
-import type { EntityEntry } from '../tracking/entity-entry';
 import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 export function applyAuditWrites(
-    entry: EntityEntry<object>,
+    snapshot: PersistedEntrySnapshot,
     now: () => Date,
     userId: () => unknown,
     mutations: SaveTimeMutationLog,
 ): void {
+    const { entry } = snapshot;
     const audit = entry.metadata.audit;
     if (!audit) {
         return;
     }
 
-    const values = entry.entity as Record<string, unknown>;
+    const liveValues = entry.entity as Record<string, unknown>;
 
-    if (entry.state === EntityState.Added) {
+    if (snapshot.state === EntityState.Added) {
         for (const [configuredProperty, value, onlyIfMissing] of [
             [audit.createdAtProperty, now, true],
             [audit.updatedAtProperty, now, false],
@@ -24,23 +25,41 @@ export function applyAuditWrites(
         ] as const) {
             const property = readPropertyName(configuredProperty);
             if (property) {
-                mutations.record(values, property);
-                setIfConfigured(values, property, value(), onlyIfMissing);
+                setIfConfigured(
+                    snapshot,
+                    liveValues,
+                    property,
+                    value(),
+                    onlyIfMissing,
+                    mutations,
+                );
             }
         }
         return;
     }
 
-    if (entry.state === EntityState.Modified) {
+    if (snapshot.state === EntityState.Modified) {
         const updatedAtProperty = readPropertyName(audit.updatedAtProperty);
         if (updatedAtProperty) {
-            mutations.record(values, updatedAtProperty);
-            setIfConfigured(values, updatedAtProperty, now(), false);
+            setIfConfigured(
+                snapshot,
+                liveValues,
+                updatedAtProperty,
+                now(),
+                false,
+                mutations,
+            );
         }
         const updatedByProperty = readPropertyName(audit.updatedByProperty);
         if (updatedByProperty) {
-            mutations.record(values, updatedByProperty);
-            setIfConfigured(values, updatedByProperty, userId(), false);
+            setIfConfigured(
+                snapshot,
+                liveValues,
+                updatedByProperty,
+                userId(),
+                false,
+                mutations,
+            );
         }
     }
 }
@@ -50,22 +69,30 @@ function readPropertyName(value: unknown): string | undefined {
 }
 
 function setIfConfigured(
-    values: Record<string, unknown>,
-    propertyName: string | undefined,
+    snapshot: PersistedEntrySnapshot,
+    liveValues: Record<string, unknown>,
+    propertyName: string,
     value: unknown,
     onlyIfMissing: boolean,
+    mutations: SaveTimeMutationLog,
 ): void {
-    if (!propertyName || value === undefined) {
+    if (value === undefined) {
         return;
     }
 
     if (
         onlyIfMissing &&
-    values[propertyName] !== undefined &&
-    values[propertyName] !== null
+        snapshot.values[propertyName] !== undefined &&
+        snapshot.values[propertyName] !== null
     ) {
         return;
     }
 
-    values[propertyName] = value;
+    mutations.recordCaptured(
+        liveValues,
+        propertyName,
+        snapshot.values[propertyName],
+    );
+    snapshot.values[propertyName] = value;
+    liveValues[propertyName] = value;
 }

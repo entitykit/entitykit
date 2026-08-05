@@ -148,7 +148,7 @@ describe('executable save snapshots', () => {
         const item = record('record-1', 'original');
         db.records.attach(item);
         item.name = 'memory-fallback';
-        item.returnOnReads('name', 'detected-value', 'database-value', 'later-value');
+        item.returnOnReads('name', 'database-value', 'later-value');
         connection.queueResult({ rowCount: 1 });
 
         await expect(db.saveChanges()).resolves.toBe(1);
@@ -183,7 +183,7 @@ describe('executable save snapshots', () => {
         const item = record('record-1', 'original');
         db.records.attach(item);
         item.token = 'token-fallback';
-        item.returnOnReads('token', 'detected-token', 'database-token', 'later-token');
+        item.returnOnReads('token', 'database-token', 'later-token');
         connection.queueResult({ rowCount: 1 });
 
         await expect(db.saveChanges()).resolves.toBe(1);

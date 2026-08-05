@@ -48,10 +48,11 @@ export class SavePlanBuilder {
     }
 
     private buildPreparedPlan(): SavePlanEntry[] {
-        this.prepareEntriesForSave();
-
+        this.deps.changeTracker.detectSaveRelationships();
         const tracked = this.deps.changeTracker.entries();
-        const snapshots = tracked.map(capturePersistedEntrySnapshot);
+        const snapshots = this.deps.saveTimeWrites.applyTo(
+            tracked.map(capturePersistedEntrySnapshot),
+        );
         const pending = orderSaveEntries(snapshots.filter(snapshot =>
             snapshot.state === EntityState.Added ||
             snapshot.state === EntityState.Modified ||
@@ -94,15 +95,5 @@ export class SavePlanBuilder {
     /** A human-readable view of the pending save plan, for debugging. */
     public debugView(): string {
         return formatSavePlanDebug(this.build());
-    }
-
-    private prepareEntriesForSave(): void {
-        this.deps.changeTracker.detectChanges();
-
-        // Save-time writes can change what is dirty, so detect again only when an
-        // entity could actually have been touched.
-        if (this.deps.saveTimeWrites.applyTo(this.deps.changeTracker.entries())) {
-            this.deps.changeTracker.detectChanges();
-        }
     }
 }

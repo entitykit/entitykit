@@ -3,6 +3,7 @@ import type { EntityEntry } from './entity-entry';
 import {
     cloneEntityValues,
     hasEntityModifications,
+    hasEntityValueModifications,
     modifiedEntityProperties,
     readEntityValues,
 } from './entity-entry-snapshot';
@@ -66,6 +67,24 @@ export class EntityEntryState<TEntity extends object> {
         this.currentState = hasEntityModifications(this.metadata, this.entity, this.snapshot)
             ? EntityState.Modified
             : EntityState.Unchanged;
+    }
+
+    public setStateFromCapturedValues(
+        values: Readonly<Record<string, unknown>>,
+    ): EntityState {
+        if (
+            this.currentState === EntityState.Unchanged ||
+            this.currentState === EntityState.Modified
+        ) {
+            this.currentState = hasEntityValueModifications(
+                this.metadata,
+                values,
+                this.snapshot,
+            )
+                ? EntityState.Modified
+                : EntityState.Unchanged;
+        }
+        return this.currentState;
     }
 
     public refresh(values?: Record<string, unknown>): void {
