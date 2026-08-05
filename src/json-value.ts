@@ -14,6 +14,7 @@ export function normalizeJsonValue(
     value: unknown,
     path = 'JSON value',
 ): JsonValue {
+    consumeNestedPromiseRejections(value, new Set());
     return normalize(value, path, new Set());
 }
 
@@ -37,7 +38,6 @@ function normalize(
         return value;
     }
     if (isPromiseLike(value)) {
-        void Promise.resolve(value).catch(() => undefined);
         throw unsupportedJson(path, 'Promise or thenable');
     }
     if (Array.isArray(value)) {
@@ -66,6 +66,34 @@ function normalize(
         );
     }
     throw unsupportedJson(path, typeof value);
+}
+
+function consumeNestedPromiseRejections(
+    value: unknown,
+    visited: Set<object>,
+): void {
+    if (isPromiseLike(value)) {
+        void Promise.resolve(value).catch(() => undefined);
+        return;
+    }
+    if (value === null || typeof value !== 'object' || visited.has(value)) {
+        return;
+    }
+    const prototype: unknown = Object.getPrototypeOf(value);
+    if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
+        return;
+    }
+    visited.add(value);
+    const record = value as Record<PropertyKey, unknown>;
+    const children: readonly unknown[] = Array.isArray(value)
+        ? value
+        : [
+            ...Object.keys(record).map(key => record[key]),
+            ...Object.getOwnPropertySymbols(record).map(symbol => record[symbol]),
+        ];
+    for (const child of children) {
+        consumeNestedPromiseRejections(child, visited);
+    }
 }
 
 function withAncestor<TResult>(

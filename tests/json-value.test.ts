@@ -81,4 +81,25 @@ describe('JSON value contract', () => {
             'Unsupported JSON value at \'Document.data[0]\' (Promise or thenable)',
         );
     });
+
+    it('consumes rejected Promises beyond the first invalid path', async () => {
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            const value = {
+                first: Promise.reject(new Error('first failed')),
+                second: { nested: Promise.reject(new Error('second failed')) },
+            };
+            expect(() => normalizeJsonValue(value, 'Document.data')).toThrow(
+                'Document.data.first',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
 });
