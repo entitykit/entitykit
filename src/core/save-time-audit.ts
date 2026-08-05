@@ -1,6 +1,7 @@
 import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import { writeSaveTimeProperty } from './save-time-property-write';
 
 export function applyAuditWrites(
     snapshot: PersistedEntrySnapshot,
@@ -14,8 +15,6 @@ export function applyAuditWrites(
         return;
     }
 
-    const liveValues = entry.entity as Record<string, unknown>;
-
     if (snapshot.state === EntityState.Added) {
         for (const [configuredProperty, value, onlyIfMissing] of [
             [audit.createdAtProperty, now, true],
@@ -27,7 +26,6 @@ export function applyAuditWrites(
             if (property) {
                 setIfConfigured(
                     snapshot,
-                    liveValues,
                     property,
                     value(),
                     onlyIfMissing,
@@ -43,7 +41,6 @@ export function applyAuditWrites(
         if (updatedAtProperty) {
             setIfConfigured(
                 snapshot,
-                liveValues,
                 updatedAtProperty,
                 now(),
                 false,
@@ -54,7 +51,6 @@ export function applyAuditWrites(
         if (updatedByProperty) {
             setIfConfigured(
                 snapshot,
-                liveValues,
                 updatedByProperty,
                 userId(),
                 false,
@@ -70,7 +66,6 @@ function readPropertyName(value: unknown): string | undefined {
 
 function setIfConfigured(
     snapshot: PersistedEntrySnapshot,
-    liveValues: Record<string, unknown>,
     propertyName: string,
     value: unknown,
     onlyIfMissing: boolean,
@@ -88,12 +83,5 @@ function setIfConfigured(
         return;
     }
 
-    mutations.recordApplied(
-        liveValues,
-        propertyName,
-        snapshot.values[propertyName],
-        value,
-    );
-    snapshot.values[propertyName] = value;
-    liveValues[propertyName] = value;
+    writeSaveTimeProperty(snapshot, propertyName, value, mutations);
 }

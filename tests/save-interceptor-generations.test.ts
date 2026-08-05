@@ -167,8 +167,8 @@ describe('save interceptor plan generations', () => {
         expect(original.updatedAt).toEqual(originalTime);
         expect(discarded.createdAt).toBeUndefined();
         expect(discarded.updatedAt).toBeUndefined();
-        expect(final.createdAt).toBe(saveTime);
-        expect(final.updatedAt).toBe(saveTime);
+        expect(final.createdAt).toEqual(saveTime);
+        expect(final.updatedAt).toEqual(saveTime);
         expect(connection.statements[0]?.values).toContain('final');
         expect(connection.statements[0]?.values).not.toContain('discarded');
     });
@@ -190,7 +190,7 @@ describe('save interceptor plan generations', () => {
         });
 
         expect(row.name).toBe('final');
-        expect(row.updatedAt).toBe(saveTime);
+        expect(row.updatedAt).toEqual(saveTime);
         expect(db.entry(row)?.state).toBe(EntityState.Unchanged);
     });
 

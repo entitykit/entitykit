@@ -1,6 +1,7 @@
 import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import { writeSaveTimeProperty } from './save-time-property-write';
 
 export function applySoftDeleteWrite(
     snapshot: PersistedEntrySnapshot,
@@ -15,15 +16,12 @@ export function applySoftDeleteWrite(
 
     const value =
         softDelete.deletedValue !== undefined ? softDelete.deletedValue : now();
-    const liveValues = entry.entity as Record<string, unknown>;
-    mutations.recordApplied(
-        liveValues,
+    writeSaveTimeProperty(
+        snapshot,
         softDelete.propertyName,
-        snapshot.values[softDelete.propertyName],
         value,
+        mutations,
     );
-    snapshot.values[softDelete.propertyName] = value;
-    liveValues[softDelete.propertyName] = value;
     mutations.recordAppliedState(
         entry,
         entry.state,

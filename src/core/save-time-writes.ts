@@ -14,7 +14,7 @@ import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapsho
  */
 export class SaveTimeWrites {
     private readonly mutations = new SaveTimeMutationLog();
-    private now?: Date;
+    private nowMs?: number;
     private userId: unknown;
     private userIdInitialized = false;
     private tenantId: unknown;
@@ -25,7 +25,7 @@ export class SaveTimeWrites {
     /** Start one save attempt and snapshot its request-scoped values lazily. */
     public begin(): void {
         this.mutations.reset();
-        this.now = undefined;
+        this.nowMs = undefined;
         this.userId = undefined;
         this.userIdInitialized = false;
         this.tenantId = undefined;
@@ -45,8 +45,8 @@ export class SaveTimeWrites {
         snapshots: readonly PersistedEntrySnapshot[],
     ): PersistedEntrySnapshot[] {
         const currentTime = (): Date => {
-            this.now ??= this.scope.now();
-            return this.now;
+            this.nowMs ??= this.scope.now().getTime();
+            return new Date(this.nowMs);
         };
         const currentUser = (): unknown => {
             if (!this.userIdInitialized) {
