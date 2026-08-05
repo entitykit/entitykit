@@ -4,6 +4,7 @@ import {
 } from '../src';
 import type { EntityMetadata } from '../src/model/entity-metadata';
 import { cloneSnapshotValue, EntityEntry } from '../src/tracking/entity-entry';
+import { publicEntityEntry } from '../src/tracking/public-entity-entry';
 
 class Document {
     public id!: string;
@@ -116,5 +117,34 @@ describe('EntityEntry', () => {
         expect(cloned).not.toBe(value);
         expect(cloned.name).toBe('before');
         expect(cloned.self).toBe(cloned);
+    });
+
+    it('returns isolated public original values on every read', () => {
+        const document = new Document({
+            id: 'doc_1',
+            title: 'Draft',
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        });
+        const internal = new EntityEntry(
+            document,
+            createDocumentMetadata(),
+            EntityState.Unchanged,
+        );
+        const entry = publicEntityEntry(internal);
+        const first = entry.originalValues;
+        const second = entry.originalValues;
+
+        expect(Object.isFrozen(first)).toBe(true);
+        expect(first).not.toBe(second);
+        expect(first.updatedAt).not.toBe(second.updatedAt);
+        (first.updatedAt as Date).setUTCFullYear(2030);
+
+        expect(second.updatedAt).toEqual(
+            new Date('2026-01-01T00:00:00.000Z'),
+        );
+        expect(entry.modifiedProperties()).toEqual([]);
+        expect(internal.originalValues.updatedAt).toEqual(
+            new Date('2026-01-01T00:00:00.000Z'),
+        );
     });
 });

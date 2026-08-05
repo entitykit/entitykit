@@ -45,6 +45,46 @@ function assignState(
 }
 
 describe('public EntityEntry state contract', () => {
+    it('cannot rewrite the persisted key used by a delete', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: 'insert into state_items (id, name) values (?, ?)',
+            values: ['other', 'other row'],
+        });
+        const item = await db.items.find('victim');
+        if (!item) {
+            throw new Error('Expected the persisted item to load.');
+        }
+        const entry = db.entry(item);
+        if (!entry) {
+            throw new Error('Expected the loaded item to remain tracked.');
+        }
+        const originalValues = entry.originalValues as Record<string, unknown>;
+
+        expect(Object.isFrozen(originalValues)).toBe(true);
+        expect(() => {
+            originalValues.id = 'other';
+        }).toThrow(TypeError);
+        item.id = 'other';
+        db.items.remove(item);
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            /Primary key changes.*property 'id'/,
+        );
+        const result = await db.database.connection.query<{
+            id: string;
+            name: string;
+        }>({
+            text: 'select id, name from state_items order by id',
+            values: [],
+        });
+        expect(result.rows).toEqual([
+            { id: 'other', name: 'other row' },
+            { id: 'victim', name: 'persisted' },
+        ]);
+        await db.dispose();
+    });
+
     it('cannot turn an uninserted object into a delete for an existing row', async () => {
         const db = await open();
         const replacement = Object.assign(new StateItem(), {

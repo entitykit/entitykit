@@ -3,6 +3,7 @@ import type { PropertySelector } from '../model/model-property-selector';
 import type { EntityEntry as InternalEntityEntry } from './entity-entry';
 import type { EntityEntry } from './entity-entry-types';
 import type { EntityDatabaseValues } from './entity-database-values';
+import { cloneEntityValues } from './entity-entry-snapshot';
 import type { ConcurrencyResolutionStrategy } from './entity-entry-concurrency-types';
 import type { EntityState } from './entity-state';
 import type { EntityNavigationLoader } from './navigation-entry';
@@ -39,7 +40,11 @@ class PublicEntityEntry<TEntity extends object> implements EntityEntry<TEntity> 
         return state(this).internal.keyValue;
     }
     public get originalValues(): Readonly<Record<string, unknown>> {
-        return state(this).internal.originalValues;
+        const entry = state(this).internal;
+        return Object.freeze(cloneEntityValues(
+            entry.metadata,
+            { ...entry.originalValues },
+        ));
     }
     public currentValues(): Record<string, unknown> {
         return state(this).internal.currentValues();
