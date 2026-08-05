@@ -53,7 +53,9 @@ export function buildInsertSavePlanEntry(
         const persisted = entries[0];
         const { entry } = persisted;
         const allowMissingProperties = generatedKeyPropagations?.flatMap(
-            propagation => propagation.foreignKeyProperties,
+            propagation => propagation.properties.map(
+                property => property.foreignKeyProperty,
+            ),
         );
         const planEntry: SavePlanEntry = {
             entity: entry.entity,

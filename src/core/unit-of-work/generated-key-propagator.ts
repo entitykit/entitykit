@@ -1,4 +1,3 @@
-import type { PropertyMetadata } from '../../model/property-metadata';
 import type { SavePlanEntry } from '../save-plan';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
@@ -18,36 +17,35 @@ export function propagateGeneratedKeys(
     const liveValues = entry.entity as Record<string, unknown>;
     const applied: AppliedPropertyValue[] = [];
     for (const propagation of propagations) {
-        const keyValues = propagation.principalKeyProperties.map(
-            (propertyName, index) =>
-                generatedValue(propagation.principal, propertyName)
-                    ?.persistedValue ?? propagation.principalKeyValues[index],
-        );
-        propagation.foreignKeyProperties.forEach((propertyName, index) => {
-            if (hasValue(persistedValues, { propertyName })) {
-                return;
+        for (const property of propagation.properties) {
+            if (!Object.is(
+                persistedValues[property.foreignKeyProperty],
+                property.foreignKeyValue,
+            )) {
+                continue;
             }
-            const value = keyValues[index];
+            const value = generatedValue(
+                propagation.principal,
+                property.principalProperty,
+            )?.persistedValue ?? property.principalValue;
             if (value === undefined || value === null || value === '') {
                 throw new Error(
                     `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
                 );
             }
-            if (!hasValue(liveValues, { propertyName })) {
-                mutations.record(liveValues, propertyName);
-                liveValues[propertyName] = value;
+            if (Object.is(
+                liveValues[property.foreignKeyProperty],
+                property.foreignKeyValue,
+            )) {
+                mutations.record(liveValues, property.foreignKeyProperty);
+                liveValues[property.foreignKeyProperty] = value;
             }
-            persistedValues[propertyName] = value;
-            applied.push({ propertyName, persistedValue: value });
-        });
+            persistedValues[property.foreignKeyProperty] = value;
+            applied.push({
+                propertyName: property.foreignKeyProperty,
+                persistedValue: value,
+            });
+        }
     }
     return applied;
-}
-
-function hasValue(
-    entity: object,
-    property: Pick<PropertyMetadata, 'propertyName'>,
-): boolean {
-    const value = (entity as Record<string, unknown>)[property.propertyName];
-    return value !== undefined && value !== null && value !== '';
 }

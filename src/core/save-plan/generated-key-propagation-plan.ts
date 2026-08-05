@@ -3,6 +3,8 @@ import { isGeneratedOnAdd } from '../../model/value-generated';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
+import { temporaryGeneratedProperty } from '../../tracking/temporary-generated-identity';
+import { toProviderValue } from '../../model/value-converter/store-value';
 
 export function generatedKeyPropagations(
     dependent: PersistedEntrySnapshot,
@@ -26,23 +28,68 @@ export function generatedKeyPropagations(
         if (principal?.state !== EntityState.Added ||
             !principalKeyProperties.some(propertyName => isGeneratedOnAdd(
                 principal.entry.metadata.getProperty(propertyName).valueGenerated,
-            )) ||
-            !relationship.foreignKeyProperties.some(propertyName =>
-                isEmpty(dependent.values[propertyName]))) {
+            ))) {
+            return [];
+        }
+        const properties = relationship.foreignKeyProperties.flatMap((
+            foreignKeyProperty,
+            index,
+        ) => {
+            const principalProperty = String(principalKeyProperties[index]);
+            const foreignKeyName = String(foreignKeyProperty);
+            const foreignKeyValue = dependent.values[foreignKeyName];
+            const temporary = temporaryGeneratedProperty(
+                principal.entry,
+                principalProperty,
+            );
+            if (
+                !isMissing(foreignKeyValue) &&
+                !matchesTemporaryValue(
+                    foreignKeyValue,
+                    dependent,
+                    foreignKeyName,
+                    temporary?.providerValue,
+                )
+            ) {
+                return [];
+            }
+            return [{
+                principalProperty,
+                principalValue: principal.values[principalProperty],
+                foreignKeyProperty: foreignKeyName,
+                foreignKeyValue,
+            }];
+        });
+        if (properties.length === 0) {
             return [];
         }
         return [{
             principal: principal.entry.entity,
             principalMetadata: principal.entry.metadata,
-            principalKeyProperties: principalKeyProperties.map(String),
-            principalKeyValues: principalKeyProperties.map(propertyName =>
-                principal.values[propertyName]),
-            foreignKeyProperties: relationship.foreignKeyProperties.map(String),
+            properties,
         }];
     });
     return propagations.length > 0 ? propagations : undefined;
 }
 
-function isEmpty(value: unknown): boolean {
+function isMissing(value: unknown): boolean {
     return value === undefined || value === null || value === '';
+}
+
+function matchesTemporaryValue(
+    value: unknown,
+    dependent: PersistedEntrySnapshot,
+    propertyName: string,
+    temporaryProviderValue: unknown,
+): boolean {
+    if (temporaryProviderValue === undefined) {
+        return false;
+    }
+    const property = dependent.entry.metadata.getProperty(propertyName);
+    const providerValue = toProviderValue(
+        value,
+        property.converter,
+        `${dependent.entry.metadata.entityName}.${propertyName}`,
+    );
+    return Object.is(providerValue, temporaryProviderValue);
 }

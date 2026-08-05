@@ -12,12 +12,17 @@ export interface GeneratedValuesPlan<TEntity extends object = object> {
     readonly operation: 'insert' | 'update';
 }
 
+export interface GeneratedKeyPropertyPropagation {
+    readonly principalProperty: string;
+    readonly principalValue: unknown;
+    readonly foreignKeyProperty: string;
+    readonly foreignKeyValue: unknown;
+}
+
 export interface GeneratedKeyPropagation {
     readonly principal: object;
     readonly principalMetadata: EntityMetadata;
-    readonly principalKeyProperties: readonly string[];
-    readonly principalKeyValues: readonly unknown[];
-    readonly foreignKeyProperties: readonly string[];
+    readonly properties: readonly GeneratedKeyPropertyPropagation[];
 }
 
 export interface PersistedValueFact {
