@@ -11,4 +11,14 @@ function assertEntryStateIsReadonly(
     entry.state = EntityState.Deleted;
 }
 
+const internalEntityEntryMembers: ReadonlyArray<keyof EntityEntry<TypeTestEntity>> = [
+    // @ts-expect-error internal state transitions are not application APIs
+    'transitionToState',
+    // @ts-expect-error deletion is coordinated through DbSet.remove()
+    'markDeleted',
+    // @ts-expect-error acceptance is coordinated by ChangeTracker
+    'acceptChanges',
+];
+
 void assertEntryStateIsReadonly;
+void internalEntityEntryMembers;

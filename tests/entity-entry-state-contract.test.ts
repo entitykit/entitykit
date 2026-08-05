@@ -53,6 +53,30 @@ describe('public EntityEntry state contract', () => {
         });
         const entry = db.items.add(replacement);
 
+        expect(db.entry(replacement)).toBe(entry);
+        expect(db.changeTracker.entry(replacement)).toBe(entry);
+        expect(Object.isFrozen(entry)).toBe(true);
+        expect(Object.isFrozen(db.changeTracker)).toBe(true);
+        expectHiddenRuntimeMethods(entry, [
+            'transitionToState',
+            'markDeleted',
+            'markDetached',
+            'acceptChanges',
+            'acceptPersistedValues',
+            'restoreTrackedValues',
+            'refreshOriginalValues',
+            'setStateFromCapturedValues',
+            'useNavigationLoader',
+        ]);
+        expectHiddenRuntimeMethods(db.changeTracker, [
+            'track',
+            'tryGetByIdentity',
+            'tryGetByIdentityValues',
+            'detectSaveRelationships',
+            'acceptPersistedChanges',
+            'beginSaveExecution',
+        ]);
+
         expect(() => {
             assignState(entry, EntityState.Deleted);
         }).toThrow(TypeError);
@@ -94,3 +118,13 @@ describe('public EntityEntry state contract', () => {
         await db.dispose();
     });
 });
+
+function expectHiddenRuntimeMethods(
+    value: object,
+    methods: readonly string[],
+): void {
+    for (const method of methods) {
+        expect(method in value).toBe(false);
+        expect(Reflect.get(value, method)).toBeUndefined();
+    }
+}
