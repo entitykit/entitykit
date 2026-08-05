@@ -4,10 +4,16 @@ import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import type { PropertyMetadata } from '../model/property-metadata';
+import {
+    snapshotPropertyValueCopies,
+    snapshotPropertyValuesEqual,
+} from '../tracking/snapshot-value';
 
 interface TenantWriteScope {
     readonly entityName: string;
     readonly tenantProperty: string;
+    readonly property: PropertyMetadata;
     readonly values: Record<string, unknown>;
     readonly isAdded: boolean;
     readonly tenantId: unknown;
@@ -31,9 +37,11 @@ export function applyTenantWrite(
         return;
     }
     const liveValues = entry.entity as Record<string, unknown>;
+    const property = entry.metadata.getProperty(tenantProperty);
     applyTenantWriteScope({
         entityName: entry.metadata.entityName,
         tenantProperty,
+        property,
         values: snapshot.values,
         isAdded: snapshot.state === EntityState.Added,
         tenantId,
@@ -73,6 +81,7 @@ export function applyTenantOnAdd<TEntity extends object>(
     applyTenantWriteScope({
         entityName: metadata.entityName,
         tenantProperty,
+        property: metadata.getProperty(tenantProperty),
         values,
         isAdded: true,
         tenantId: currentTenantId(),
@@ -94,6 +103,7 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
     const {
         entityName,
         tenantProperty,
+        property,
         values,
         isAdded,
         tenantId,
@@ -109,12 +119,24 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
     }
 
     if (isAdded && isEmptyTenantValue(values[tenantProperty])) {
-        recordMutation(tenantId);
-        values[tenantProperty] = tenantId;
-        mirrorMutation?.(tenantId);
+        const copies = snapshotPropertyValueCopies(
+            tenantId,
+            property.converter,
+            `${entityName}.${tenantProperty}`,
+        );
+        recordMutation(copies.liveValue);
+        values[tenantProperty] = mirrorMutation
+            ? copies.persistedValue
+            : copies.liveValue;
+        mirrorMutation?.(copies.liveValue);
     }
 
-    if (!scopedValuesEqual(values[tenantProperty], tenantId)) {
+    if (!snapshotPropertyValuesEqual(
+        values[tenantProperty],
+        tenantId,
+        property.converter,
+        `${entityName}.${tenantProperty}`,
+    )) {
         throw new DbValidationError(
             `Entity '${entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
         );
@@ -123,13 +145,4 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
 
 function isEmptyTenantValue(value: unknown): boolean {
     return value === undefined || value === null || value === '';
-}
-
-/** Dates compare by instant; everything else by identity. */
-function scopedValuesEqual(left: unknown, right: unknown): boolean {
-    if (left instanceof Date && right instanceof Date) {
-        return left.getTime() === right.getTime();
-    }
-
-    return left === right;
 }
