@@ -54,3 +54,11 @@ export function capturePersistedEntrySnapshot(
         navigations: captureNavigationSnapshotValues(entry),
     };
 }
+
+export function persistedEntryKeyValue(
+    snapshot: PersistedEntrySnapshot,
+): unknown {
+    const values = snapshot.entry.metadata.keyProperties.map(propertyName =>
+        snapshot.values[propertyName]);
+    return snapshot.entry.metadata.hasCompositeKey ? values : values[0];
+}

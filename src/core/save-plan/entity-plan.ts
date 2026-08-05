@@ -6,8 +6,8 @@ import type { SavePlanEntry } from '../save-plan';
 import {
     buildInsertSavePlanEntry,
     maxInsertBatchSize,
-    persistedKeyValue,
 } from './insert-plan';
+import { persistedEntryKeyValue } from '../../tracking/persisted-entry-snapshot';
 import {
     generatedValuesForUpdate,
     registerSavePlanExecution,
@@ -68,7 +68,7 @@ export function buildEntitySavePlan(
             const planEntry: SavePlanEntry = {
                 entity: entry.entity,
                 entityName: entry.metadata.entityName,
-                keyValue: persistedKeyValue(snapshot),
+                keyValue: persistedEntryKeyValue(snapshot),
                 state: snapshot.state,
                 statement,
             };

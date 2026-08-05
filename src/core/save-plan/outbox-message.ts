@@ -4,6 +4,7 @@ import type {
     OutboxEventTracker,
 } from '../outbox-event-tracker';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
+import { persistedEntryKeyValue } from '../../tracking/persisted-entry-snapshot';
 import {
     readSynchronousDate,
     readSynchronousValue,
@@ -67,7 +68,7 @@ export function collectPendingOutboxMessages(
                 event,
                 keyValue: hasExplicitAggregateId
                     ? aggregateId
-                    : entry.keyValue,
+                    : persistedEntryKeyValue(snapshot),
                 type,
                 serializedPayload: serializeJsonValue(
                     payload,

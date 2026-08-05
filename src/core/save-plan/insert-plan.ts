@@ -2,6 +2,7 @@ import type { EntityMetadata } from '../../model/entity-metadata';
 import type { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { SqlDialect } from '../../sql/sql-dialect';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
+import { persistedEntryKeyValue } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { SavePlanEntry } from '../save-plan';
 import { isGeneratedOnAdd } from '../../model/value-generated';
@@ -57,7 +58,7 @@ export function buildInsertSavePlanEntry(
         const planEntry: SavePlanEntry = {
             entity: entry.entity,
             entityName: entry.metadata.entityName,
-            keyValue: persistedKeyValue(persisted),
+            keyValue: persistedEntryKeyValue(persisted),
             state: persisted.state,
             statement: sql.buildInsertFromValues(
                 entry.metadata,
@@ -91,12 +92,6 @@ export function buildInsertSavePlanEntry(
         persistedEntries: entries,
     });
     return planEntry;
-}
-
-export function persistedKeyValue(snapshot: PersistedEntrySnapshot): unknown {
-    const values = snapshot.entry.metadata.keyProperties.map(propertyName =>
-        snapshot.values[propertyName]);
-    return snapshot.entry.metadata.hasCompositeKey ? values : values[0];
 }
 
 function generatedValuesForInsert(
