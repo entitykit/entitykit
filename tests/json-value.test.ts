@@ -102,4 +102,86 @@ describe('JSON value contract', () => {
             process.off('unhandledRejection', observeUnhandled);
         }
     });
+
+    it('rejects accessors without invoking an unstable getter', async () => {
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            let reads = 0;
+            const value = Object.defineProperty({}, 'nested', {
+                enumerable: true,
+                get: (): unknown => {
+                    reads += 1;
+                    return reads === 1
+                        ? { ok: true }
+                        : Promise.reject(new Error('getter failed'));
+                },
+            });
+
+            expect(() => normalizeJsonValue(value, 'Document.data')).toThrow(
+                'Unsupported JSON value at \'Document.data.nested\' (accessor property)',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+            expect(reads).toBe(0);
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
+
+    it('inspects a proxy once without reading values through get traps', () => {
+        let ownKeyReads = 0;
+        let valueReads = 0;
+        const value = new Proxy({ first: 1, nested: { ok: true } }, {
+            ownKeys: target => {
+                ownKeyReads += 1;
+                if (ownKeyReads > 1) {
+                    throw new Error('ownKeys was read twice');
+                }
+                return Reflect.ownKeys(target);
+            },
+            get: (target, key, receiver) => {
+                valueReads += 1;
+                const result: unknown = Reflect.get(target, key, receiver);
+                return result;
+            },
+        });
+
+        expect(normalizeJsonValue(value, 'Document.data')).toEqual({
+            first: 1,
+            nested: { ok: true },
+        });
+        expect(ownKeyReads).toBe(1);
+        expect(valueReads).toBe(0);
+    });
+
+    it('rejects decorated arrays and consumes their rejected Promises', async () => {
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            const extra = [1] as unknown[] & { extra?: unknown };
+            extra.extra = Promise.reject(new Error('array extra failed'));
+            const symbol = Symbol('hidden');
+            const symbolKey = Object.assign([1], {
+                [symbol]: Promise.reject(new Error('array symbol failed')),
+            });
+
+            expect(() => normalizeJsonValue(extra, 'Document.data')).toThrow(
+                'extra array property \'extra\'',
+            );
+            expect(() => normalizeJsonValue(symbolKey, 'Document.data')).toThrow(
+                'symbol-keyed property',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
 });
