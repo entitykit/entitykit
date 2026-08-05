@@ -1,4 +1,5 @@
 import type { SavePlanEntry } from '../save-plan';
+import { formatDebugValue } from '../../debug-value';
 
 /** Render a human-readable view of a save plan. */
 export function formatSavePlanDebug(plan: readonly SavePlanEntry[]): string {
@@ -7,8 +8,8 @@ export function formatSavePlanDebug(plan: readonly SavePlanEntry[]): string {
     }
 
     return plan.map(entry => [
-        `${entry.entityName} { ${entry.keyValue === undefined ? 'unknown' : JSON.stringify(entry.keyValue)} } ${entry.state}`,
+        `${entry.entityName} { ${entry.keyValue === undefined ? 'unknown' : formatDebugValue(entry.keyValue)} } ${entry.state}`,
         `  ${entry.statement.text}`,
-        `  params: ${JSON.stringify(entry.statement.values)}`,
+        `  params: [${entry.statement.values.map(formatDebugValue).join(', ')}]`,
     ].join('\n')).join('\n');
 }

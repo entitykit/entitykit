@@ -1,4 +1,5 @@
 import type { EntityEntry } from './entity-entry';
+import { formatDebugValue } from '../debug-value';
 
 export function formatChangeTracker(
     entries: ReadonlyArray<EntityEntry<object>>,
@@ -11,7 +12,7 @@ export function formatChangeTracker(
 export function formatTrackedEntry(entry: EntityEntry<object>): string {
     const keyParts = entry.metadata.keyProperties
         .map(propertyName =>
-            `${String(propertyName)}: ${JSON.stringify(
+            `${String(propertyName)}: ${formatDebugValue(
                 (entry.entity as Record<string, unknown>)[propertyName],
             )}`,
         )
@@ -27,7 +28,5 @@ export function formatTrackedEntry(entry: EntityEntry<object>): string {
 }
 
 function formatValue(value: unknown): string {
-    return JSON.stringify(
-        value instanceof Date ? value.toISOString() : value,
-    );
+    return formatDebugValue(value);
 }
