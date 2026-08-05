@@ -2,6 +2,7 @@ import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, EntityState } from '../src';
 import {
     internalChangeTracker,
+    internalEntityEntry,
     setMetadata,
 } from './support/public-api-internals';
 
@@ -68,7 +69,7 @@ describe('ChangeTracker identity map', () => {
         const found = internalChangeTracker(db.changeTracker)
             .tryGetByIdentity(setMetadata(db.users), 'usr_1');
 
-        expect(found).toBe(entry);
+        expect(found).toBe(internalEntityEntry(entry));
         expect(db.entry(user)).toBe(entry);
     });
 
@@ -116,7 +117,7 @@ describe('ChangeTracker identity map', () => {
         expect(entry.originalValues.id).toBe('old');
         expect(internalChangeTracker(db.changeTracker)
             .tryGetByIdentity(setMetadata(db.users), 'old'))
-            .toBe(entry);
+            .toBe(internalEntityEntry(entry));
         expect(internalChangeTracker(db.changeTracker)
             .tryGetByIdentity(setMetadata(db.users), 'new'))
             .toBeUndefined();
@@ -139,7 +140,7 @@ describe('ChangeTracker identity map', () => {
             .toBeUndefined();
         expect(internalChangeTracker(db.changeTracker)
             .tryGetByIdentity(setMetadata(db.users), 'final'))
-            .toBe(entry);
+            .toBe(internalEntityEntry(entry));
     });
 
     it('accepts all changes and detaches deleted entities', () => {
