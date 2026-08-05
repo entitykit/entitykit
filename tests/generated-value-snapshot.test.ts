@@ -202,6 +202,60 @@ describe('generated-value snapshot acceptance', () => {
         expect(db.entry(child)?.state).toBe(EntityState.Modified);
     });
 
+    it('replaces an explicit value on a store-generated graph key', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = GeneratedRaceContext.create(connection);
+        const parent = Object.assign(new GeneratedParent(), {
+            id: 55,
+            name: 'parent',
+        });
+        const child = Object.assign(new GeneratedChild(), {
+            id: 'child_1',
+            name: 'child',
+            parentId: 55,
+            parent,
+        });
+        db.children.add(child);
+        db.parents.add(parent);
+        connection.queueResult({ rows: [{ id: 71 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect(parent.id).toBe(71);
+        expect(child.parentId).toBe(71);
+        expect(connection.statements[1]?.values).toEqual([
+            'child_1', 'child', 71,
+        ]);
+    });
+
+    it('rejects a dependent insert when a generated key is absent', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = GeneratedRaceContext.create(connection);
+        const parent = Object.assign(new GeneratedParent(), {
+            id: 55,
+            name: 'parent',
+        });
+        const child = Object.assign(new GeneratedChild(), {
+            id: 'child_1',
+            name: 'child',
+            parentId: 55,
+            parent,
+        });
+        db.children.add(child);
+        db.parents.add(parent);
+        connection.queueResult({ rows: [{}], rowCount: 1 });
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'database-generated key for \'GeneratedParent\' was not available',
+        );
+
+        expect(connection.statements).toHaveLength(1);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
+        expect(parent.id).toBe(55);
+        expect(child.parentId).toBe(55);
+    });
+
     it('executes dependent inserts from the captured non-key values', async () => {
         const connection = new DelayedQueryConnection(1);
         const db = GeneratedRaceContext.create(connection);

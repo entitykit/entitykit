@@ -114,4 +114,26 @@ describe('generated many-to-many endpoint keys', () => {
         ]);
         await db.dispose();
     });
+
+    it('expires placeholders before a later relationship save', async () => {
+        const db = await start();
+        const post = Object.assign(new GeneratedPost(), { title: 'later-post' });
+        const tag = Object.assign(new GeneratedTag(), { name: 'later-tag' });
+        db.posts.add(post);
+        db.tags.add(tag);
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        db.link(post, item => item.tags, tag);
+        await expect(db.saveChanges()).resolves.toBe(0);
+
+        const rows = await db.database.connection.query<{
+            post_id: number;
+            tag_id: number;
+        }>({
+            text: 'select post_id, tag_id from generated_post_tags',
+            values: [],
+        });
+        expect(rows.rows).toEqual([{ post_id: post.id, tag_id: tag.id }]);
+        await db.dispose();
+    });
 });
