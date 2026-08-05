@@ -121,6 +121,51 @@ describe('version columns keep their in-memory value in step with the database',
 
         await db.dispose();
     });
+
+    it.each([false, true])(
+        'rejects a manually changed number version before SQL (scalar change: %s)',
+        async changeTitle => {
+            const db = await start(DocContext.create());
+            db.docs.add(new Doc({ id: 'd1', title: 'First', version: 1 }));
+            await db.saveChanges();
+
+            const doc = requireDefined(await db.docs.find('d1'));
+            if (changeTitle) {
+                doc.title = 'Second';
+            }
+            doc.version = 100;
+
+            await expect(db.saveChanges()).rejects.toThrow(
+                'Version property \'Doc.version\' is managed by EntityKit and cannot be modified directly.',
+            );
+            const stored = await db.database.connection.query<{
+                title: string;
+                version: number;
+            }>({
+                text: 'select "title", "version" from "docs" where "id" = ?',
+                values: ['d1'],
+            });
+            expect(stored.rows[0]).toEqual({ title: 'First', version: 1 });
+            expect(db.entry(doc)?.state).toBe(EntityState.Modified);
+            await db.dispose();
+        },
+    );
+
+    it('rejects a manually changed converted bigint version', async () => {
+        const db = await start(BigIntDocContext.create());
+        db.docs.add(new BigIntDoc({ id: 'd1', title: 'First', version: 1n }));
+        await db.saveChanges();
+
+        const doc = requireDefined(await db.docs.find('d1'));
+        doc.title = 'Second';
+        doc.version = 100n;
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'Version property \'BigIntDoc.version\' is managed by EntityKit and cannot be modified directly.',
+        );
+        expect(doc.version).toBe(100n);
+        await db.dispose();
+    });
 });
 
 describe('version increment across driver representations', () => {
