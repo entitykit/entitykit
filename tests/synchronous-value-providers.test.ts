@@ -107,4 +107,23 @@ describe('synchronous scoped value providers', () => {
         expect(connection.statements).toEqual([]);
         expect(db.entry(user)?.state).toBe(EntityState.Added);
     });
+
+    it('rejects an invalid audit clock before saving', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = ScopedContext.create(connection, options => {
+            options.useTenantScope(() => 'tenant-1');
+            options.useAuditing({ now: () => new Date(Number.NaN) });
+        });
+        const user = Object.assign(new ScopedUser(), {
+            id: 'user-1',
+            tenantId: 'tenant-1',
+        });
+        db.users.add(user);
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'The audit clock must return a valid Date.',
+        );
+        expect(connection.statements).toEqual([]);
+        expect(db.entry(user)?.state).toBe(EntityState.Added);
+    });
 });

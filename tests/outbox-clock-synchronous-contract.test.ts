@@ -70,6 +70,25 @@ describe('outbox clock synchronous contract', () => {
         expect(aggregate.events).toHaveLength(1);
     });
 
+    it('rejects an invalid clock before executing statements', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = OutboxClockContext.create(
+            connection,
+            undefined,
+            () => new Date(Number.NaN),
+        );
+        const aggregate = Object.assign(new ClockAggregate(), { id: 'aggregate_1' });
+        aggregate.events.push({ type: 'Created', payload: { id: aggregate.id } });
+        db.aggregates.add(aggregate);
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'The outbox clock must return a valid Date.',
+        );
+        expect(connection.statements).toEqual([]);
+        expect(db.entry(aggregate)?.state).toBe(EntityState.Added);
+        expect(aggregate.events).toHaveLength(1);
+    });
+
     it.each(['resolve', 'reject'] as const)(
         'rejects a %s promise from the event collector before executing statements',
         async mode => {

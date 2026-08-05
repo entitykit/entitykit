@@ -21,5 +21,14 @@ export function readSynchronousDate(
     if (value !== undefined && !(value instanceof Date)) {
         throw new TypeError(`${operation} must return a Date.`);
     }
+    if (value !== undefined) {
+        assertValidDate(value, `${operation} must return a valid Date.`);
+    }
     return value;
+}
+
+export function assertValidDate(value: Date, message: string): void {
+    if (Number.isNaN(value.getTime())) {
+        throw new TypeError(message);
+    }
 }
