@@ -1,10 +1,15 @@
 import type { RelationshipMetadata } from '../../model/relationship-metadata';
+import type { EntityMetadata } from '../../model/entity-metadata';
 import type { EntityConstructor } from '../../types';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
-import { encodeSaveIdentityTuple } from '../save-key-values';
+import {
+    dependentRelationshipProviderKey,
+    principalRelationshipProviderKey,
+} from '../../model/relationship-key-codec';
 
 export function findPrincipalEntry(
     relationship: RelationshipMetadata,
+    dependentMetadata: EntityMetadata,
     values: Readonly<Record<string, unknown>>,
     entriesByType: ReadonlyMap<
         EntityConstructor<object>,
@@ -24,14 +29,18 @@ export function findPrincipalEntry(
     if (foreignKeyValues.some(value => value === undefined || value === null)) {
         return undefined;
     }
-    const target = encodeSaveIdentityTuple(foreignKeyValues);
+    const target = dependentRelationshipProviderKey(
+        relationship,
+        dependentMetadata,
+        values,
+    );
     return entriesByType.get(relationship.principalEntity)
         ?.find(snapshot => {
             const { entry } = snapshot;
-            const propertyNames = relationship.principalKeyProperties ??
-                entry.metadata.keyProperties;
-            const keyValues = propertyNames.map(property =>
-                snapshot.values[property]);
-            return encodeSaveIdentityTuple(keyValues) === target;
+            return principalRelationshipProviderKey(
+                relationship,
+                entry.metadata,
+                snapshot.values,
+            ) === target;
         });
 }

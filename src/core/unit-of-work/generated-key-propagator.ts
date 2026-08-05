@@ -7,6 +7,7 @@ import {
     snapshotPropertyValueCopies,
     snapshotPropertyValuesEqual,
 } from '../../tracking/snapshot-value';
+import { translatePropertyValue } from '../../model/property-value-translation';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
@@ -60,8 +61,17 @@ export function propagateGeneratedKeys(
                     `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
                 );
             }
-            const { persistedValue, liveValue } = snapshotPropertyValueCopies(
+            const translatedValue = translatePropertyValue(
                 value,
+                propagation.principalMetadata,
+                propagation.principalMetadata.getProperty(
+                    property.principalProperty,
+                ),
+                propagation.dependentMetadata,
+                foreignKey,
+            );
+            const { persistedValue, liveValue } = snapshotPropertyValueCopies(
+                translatedValue,
                 foreignKey.converter,
                 context,
             );

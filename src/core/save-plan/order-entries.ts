@@ -47,6 +47,7 @@ export function orderSaveEntries(
             if (entry.state === EntityState.Deleted) {
                 const principal = findPrincipalEntry(
                     relationship,
+                    entry.metadata,
                     entry.originalValues,
                     entriesByType,
                     entriesByEntity,
@@ -59,6 +60,7 @@ export function orderSaveEntries(
 
             const principal = findPrincipalEntry(
                 relationship,
+                entry.metadata,
                 {
                     ...dependent.values,
                     ...dependent.relationshipValues,
@@ -73,6 +75,7 @@ export function orderSaveEntries(
             if (entry.state === EntityState.Modified) {
                 const previousPrincipal = findPrincipalEntry(
                     relationship,
+                    entry.metadata,
                     entry.originalValues,
                     entriesByType,
                     entriesByEntity,
