@@ -1,9 +1,8 @@
-import type { JsonValue } from '../json-value';
-
 /** Domain event shape collected for the transactional outbox. */
 export interface OutboxMessage {
     /** The type. */ readonly type: string;
-    /** The payload. */ readonly payload: JsonValue;
+    /** Payload validated as exact JSON when the event is collected. */
+    readonly payload: unknown;
     /** Optional identity override; mapped entity keys are used when omitted. */
     readonly aggregateId?: unknown;
     /** The occurred at. */ readonly occurredAt?: Date;
