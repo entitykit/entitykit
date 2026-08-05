@@ -172,7 +172,7 @@ describe('version increment across driver representations', () => {
         await db.dispose();
     });
 
-    it('rejects an invalid version before SQL and remains retryable', async () => {
+    it('rejects an application-modified version before SQL and remains retryable', async () => {
         class OddVersionDoc {
             public id!: string;
             public title!: string;
@@ -210,7 +210,7 @@ describe('version increment across driver representations', () => {
         requireDefined(doc).version = 'not-a-number';
 
         await expect(db.saveChanges()).rejects.toThrow(
-            'Version property \'OddVersionDoc.version\' holds a non-numeric value',
+            'Version property \'OddVersionDoc.version\' is managed by EntityKit and cannot be modified directly.',
         );
 
         expect(db.entry(requireDefined(doc))?.state).toBe(EntityState.Modified);

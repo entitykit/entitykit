@@ -39,8 +39,14 @@ export class TrackedSaveState {
     }
 
     public validateVersionValues(plan: readonly SavePlanEntry[]): void {
-        this.forEachVersionValue(plan, (_values, _propertyName, value, path) => {
-            incrementVersionValue(value, path);
+        this.forEachVersionValue(plan, (
+            _entity,
+            _property,
+            _capturedValue,
+            originalValue,
+            path,
+        ) => {
+            incrementVersionValue(originalValue, path);
         });
     }
 
@@ -50,12 +56,19 @@ export class TrackedSaveState {
 
     private acceptVersionIncrements(plan: readonly SavePlanEntry[]): () => void {
         const rollback: Array<() => void> = [];
-        this.forEachVersionValue(plan, (entity, property, value, path, values) => {
-            const incremented = incrementVersionValue(value, path);
+        this.forEachVersionValue(plan, (
+            entity,
+            property,
+            capturedValue,
+            originalValue,
+            path,
+            values,
+        ) => {
+            const incremented = incrementVersionValue(originalValue, path);
             values[property.propertyName] = incremented;
-            if (readPropertyValue(entity, property) === value) {
+            if (Object.is(readPropertyValue(entity, property), capturedValue)) {
                 rollback.push(() => {
-                    writePropertyValue(entity, property, value);
+                    writePropertyValue(entity, property, capturedValue);
                 });
                 writePropertyValue(entity, property, incremented);
             }
@@ -86,7 +99,8 @@ export class TrackedSaveState {
         visit: (
             entity: object,
             property: PropertyMetadata,
-            value: unknown,
+            capturedValue: unknown,
+            originalValue: unknown,
             propertyPath: string,
             persistedValues: Record<string, unknown>,
         ) => void,
@@ -102,15 +116,19 @@ export class TrackedSaveState {
                         continue;
                     }
 
-                    const value = persisted.values[property.propertyName];
-                    if (value === null || value === undefined) {
+                    const capturedValue = persisted.values[property.propertyName];
+                    const originalValue = persisted.entry.originalValues[
+                        property.propertyName
+                    ];
+                    if (originalValue === null || originalValue === undefined) {
                         continue;
                     }
 
                     visit(
                         persisted.entry.entity,
                         property,
-                        value,
+                        capturedValue,
+                        originalValue,
                         `${persisted.entry.metadata.entityName}.${property.propertyName}`,
                         persisted.values,
                     );

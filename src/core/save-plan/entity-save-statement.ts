@@ -5,6 +5,7 @@ import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snap
 import { EntityState } from '../../tracking/entity-state';
 import type { SqlStatement } from '../../sql/sql-statement';
 import { assertNoKeyModifications } from './immutable-key-change';
+import { assertNoVersionModifications } from './store-managed-version-change';
 
 export function buildSaveStatement(
     sql: ModificationSqlBuilder,
@@ -25,6 +26,7 @@ export function buildSaveStatement(
             entry.metadata, snapshot.values, entry.originalValues,
         );
         assertNoKeyModifications(entry, modifiedProperties);
+        assertNoVersionModifications(entry, modifiedProperties);
         return sql.buildUpdateFromValues(
             entry.metadata,
             snapshot.values,
