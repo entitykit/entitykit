@@ -8,6 +8,7 @@ export type {
     EntityUpdateValue,
     EntityUpdateValues,
 } from './types';
+export type { JsonPrimitive, JsonValue } from './json-value';
 export type { EntityAuditConfiguration, EntityBuilder } from './model/entity-builder-types';
 export { BaseEntityConfiguration } from './model/entity-type-configuration';
 export type { EntityTypeConfiguration } from './model/entity-type-configuration';
