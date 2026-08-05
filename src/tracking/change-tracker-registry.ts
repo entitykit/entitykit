@@ -36,7 +36,7 @@ export class ChangeTrackerRegistry {
         this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByObject = this.entriesByEntity.get(entity);
         if (existingByObject) {
-            existingByObject.state = state;
+            existingByObject.transitionToState(state);
             if (originalValues) existingByObject.refreshOriginalValues(originalValues);
             registerTemporaryGeneratedIdentity(
                 existingByObject,

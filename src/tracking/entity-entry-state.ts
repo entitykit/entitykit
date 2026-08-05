@@ -37,7 +37,7 @@ export class EntityEntryState<TEntity extends object> {
         return this.currentState;
     }
 
-    public set state(state: EntityState) {
+    public transitionTo(state: EntityState): void {
         if (state !== this.currentState) {
             assertEntityEntryStateMutation(this.owner);
             this.currentState = state;

@@ -106,7 +106,7 @@ export class EntityEntryConcurrency<TEntity extends object> {
             values,
         );
         if (state === EntityState.Deleted) {
-            this.entry.state = EntityState.Deleted;
+            this.entry.transitionToState(EntityState.Deleted);
         } else {
             this.entry.detectChanges();
         }

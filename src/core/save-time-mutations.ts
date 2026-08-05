@@ -53,7 +53,7 @@ export class SaveTimeMutationLog {
         this.mutations.push({
             restore: () => {
                 if (entry.state === applied) {
-                    entry.state = previous;
+                    entry.transitionToState(previous);
                 }
             },
         });

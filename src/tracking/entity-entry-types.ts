@@ -10,7 +10,7 @@ import type {
 /** Application-facing state and recovery operations for one tracked entity. */
 export interface EntityEntry<TEntity extends object> {
     /** The entity. */ readonly entity: TEntity;
-    /** The state. */ state: EntityState;
+    /** The state. */ readonly state: EntityState;
     /** The key value. */ readonly keyValue: unknown;
     /** The original values. */ readonly originalValues: Readonly<Record<string, unknown>>;
     /** Perform the current values operation. */ currentValues(): Record<string, unknown>;

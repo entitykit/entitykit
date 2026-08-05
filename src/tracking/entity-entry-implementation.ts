@@ -28,8 +28,8 @@ export class EntityEntry<TEntity extends object> {
     public get state(): EntityState {
         return this.trackedState.state;
     }
-    public set state(state: EntityState) {
-        this.trackedState.state = state;
+    public transitionToState(state: EntityState): void {
+        this.trackedState.transitionTo(state);
     }
     public get originalValues(): Readonly<Record<string, unknown>> {
         return this.trackedState.originalValues;
@@ -84,7 +84,7 @@ export class EntityEntry<TEntity extends object> {
         );
     }
     public markDeleted(): void {
-        this.state = EntityState.Deleted;
+        this.trackedState.transitionTo(EntityState.Deleted);
     }
     public markNavigationLoaded(navigationProperty: string): void {
         this.trackedState.markNavigationLoaded(

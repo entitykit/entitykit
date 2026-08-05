@@ -27,6 +27,6 @@ export function applySoftDeleteWrite(
         entry.state,
         EntityState.Modified,
     );
-    entry.state = EntityState.Modified;
+    entry.transitionToState(EntityState.Modified);
     return { ...snapshot, state: EntityState.Modified };
 }
