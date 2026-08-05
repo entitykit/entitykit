@@ -22,6 +22,7 @@ export interface GeneratedKeyPropertyPropagation {
 export interface GeneratedKeyPropagation {
     readonly principal: object;
     readonly principalMetadata: EntityMetadata;
+    readonly dependentMetadata: EntityMetadata;
     readonly properties: readonly GeneratedKeyPropertyPropagation[];
 }
 

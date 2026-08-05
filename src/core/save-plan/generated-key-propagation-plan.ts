@@ -8,6 +8,7 @@ import {
     type TemporaryGeneratedProperty,
 } from '../../tracking/temporary-generated-identity';
 import { toProviderValue } from '../../model/value-converter/store-value';
+import { snapshotValuesEqual } from '../../tracking/snapshot-value-equality';
 
 export function generatedKeyPropagations(
     dependent: PersistedEntrySnapshot,
@@ -82,6 +83,7 @@ export function generatedKeyPropagations(
         return [{
             principal: principal.entry.entity,
             principalMetadata: principal.entry.metadata,
+            dependentMetadata: dependent.entry.metadata,
             properties,
         }];
     });
@@ -99,7 +101,7 @@ function matchesPrincipalValue(
     const principalProperty = principal.entry.metadata.getProperty(
         principalPropertyName,
     );
-    return Object.is(
+    return snapshotValuesEqual(
         toProviderValue(
             foreignKeyValue,
             foreignKey.converter,
@@ -132,5 +134,5 @@ function matchesTemporaryValue(
         property.converter,
         `${dependent.entry.metadata.entityName}.${propertyName}`,
     );
-    return Object.is(providerValue, temporary.providerValue);
+    return snapshotValuesEqual(providerValue, temporary.providerValue);
 }

@@ -3,6 +3,7 @@ import type {
     AppliedGeneratedValue,
     AppliedPropertyValue,
 } from './applied-generated-value';
+import { cloneSnapshotValue } from '../../tracking/snapshot-value';
 
 export class GeneratedValueRecorder {
     private readonly values: AppliedGeneratedValue[] = [];
@@ -18,7 +19,11 @@ export class GeneratedValueRecorder {
             throw new Error('Generated values require their entity to remain tracked.');
         }
         for (const value of values) {
-            this.values.push({ entry, ...value });
+            this.values.push({
+                entry,
+                propertyName: value.propertyName,
+                persistedValue: cloneSnapshotValue(value.persistedValue),
+            });
         }
     }
 
@@ -32,7 +37,7 @@ export class GeneratedValueRecorder {
             if (value.entry === entry && value.propertyName === propertyName) {
                 return {
                     propertyName: value.propertyName,
-                    persistedValue: value.persistedValue,
+                    persistedValue: cloneSnapshotValue(value.persistedValue),
                 };
             }
         }

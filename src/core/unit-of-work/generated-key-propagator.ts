@@ -3,6 +3,11 @@ import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
 import type { AppliedPropertyValue } from './applied-generated-value';
 import { isGeneratedOnAdd } from '../../model/value-generated';
+import {
+    cloneSnapshotValue,
+    snapshotPropertyValue,
+    snapshotPropertyValuesEqual,
+} from '../../tracking/snapshot-value';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
@@ -19,9 +24,15 @@ export function propagateGeneratedKeys(
     const applied: AppliedPropertyValue[] = [];
     for (const propagation of propagations) {
         for (const property of propagation.properties) {
-            if (!Object.is(
+            const foreignKey = propagation.dependentMetadata.getProperty(
+                property.foreignKeyProperty,
+            );
+            const context = `${entry.entityName}.${property.foreignKeyProperty}`;
+            if (!snapshotPropertyValuesEqual(
                 persistedValues[property.foreignKeyProperty],
                 property.foreignKeyValue,
+                foreignKey.converter,
+                context,
             )) {
                 continue;
             }
@@ -50,17 +61,25 @@ export function propagateGeneratedKeys(
                     `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
                 );
             }
-            if (Object.is(
+            const persistedValue = snapshotPropertyValue(
+                value,
+                foreignKey.converter,
+                context,
+            );
+            const liveValue = cloneSnapshotValue(persistedValue);
+            if (snapshotPropertyValuesEqual(
                 liveValues[property.foreignKeyProperty],
                 property.foreignKeyValue,
+                foreignKey.converter,
+                context,
             )) {
                 mutations.record(liveValues, property.foreignKeyProperty);
-                liveValues[property.foreignKeyProperty] = value;
+                liveValues[property.foreignKeyProperty] = liveValue;
             }
-            persistedValues[property.foreignKeyProperty] = value;
+            persistedValues[property.foreignKeyProperty] = persistedValue;
             applied.push({
                 propertyName: property.foreignKeyProperty,
-                persistedValue: value,
+                persistedValue,
             });
         }
     }

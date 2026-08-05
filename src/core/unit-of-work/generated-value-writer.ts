@@ -8,6 +8,10 @@ import type { PropertyMetadata } from '../../model/property-metadata';
 import { readStoreValue, type StoreValueReader } from '../../storage/store-value-reader';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { AppliedPropertyValue } from './applied-generated-value';
+import {
+    cloneSnapshotValue,
+    snapshotPropertyValue,
+} from '../../tracking/snapshot-value';
 
 export function writeGeneratedRow(
     entity: object,
@@ -47,7 +51,16 @@ export function writeGeneratedValue(
         valueReader,
         entityName,
     );
-    if (metadata && value !== null && value !== undefined) {
+    const context = entityName
+        ? `${entityName}.${property.propertyName}`
+        : property.propertyName;
+    const persistedValue = snapshotPropertyValue(
+        value,
+        property.converter,
+        context,
+    );
+    const liveValue = cloneSnapshotValue(persistedValue);
+    if (metadata && liveValue !== null && liveValue !== undefined) {
         ensureComplexPropertyPath(
             metadata,
             entity,
@@ -59,6 +72,6 @@ export function writeGeneratedValue(
     }
     const target = propertyValueTarget(entity, property.propertyPath);
     mutations.record(target.target, target.propertyName);
-    writePropertyValue(entity, property, value);
-    return value;
+    writePropertyValue(entity, property, liveValue);
+    return persistedValue;
 }
