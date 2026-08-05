@@ -11,6 +11,7 @@ import {
     type QueryExecutor,
 } from '../src/experimental';
 import { SelectSqlBuilder } from '../src/sql/select-sql-builder';
+import { mySqlDialect } from '../src/providers/mysql';
 
 class JsonDocument {
     public id!: string;
@@ -64,6 +65,25 @@ describe('JSON query parameter binding', () => {
             'true',
             '42',
         ]);
+    });
+
+    it('casts MySQL JSON comparison parameters to the native JSON type', () => {
+        const builder = new SelectSqlBuilder(mySqlDialect);
+        const equality = builder.build(metadata, {
+            ...createQueryModel(JsonDocument),
+            predicate: document.data.eq({ version: 1 }),
+        });
+        const membership = builder.build(metadata, {
+            ...createQueryModel(JsonDocument),
+            predicate: document.data.in([{ version: 1 }, ['active']]),
+        });
+
+        expect(equality.text).toContain('`data` = cast(? as json)');
+        expect(equality.values).toEqual(['{"version":1}']);
+        expect(membership.text).toContain(
+            '`data` in (cast(? as json), cast(? as json))',
+        );
+        expect(membership.values).toEqual(['{"version":1}', '["active"]']);
     });
 
     it('rebinds normalized JSON values on a compiled-query cache hit', () => {
