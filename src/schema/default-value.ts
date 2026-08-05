@@ -2,6 +2,7 @@ import {
     isSerializedBigIntDefault,
     normalizeDefaultValue,
 } from '../model/default-value';
+import { serializeJsonValue } from '../json-value';
 
 export function formatDefaultValue(value: unknown): string {
     if (isSerializedBigIntDefault(value)) {
@@ -22,10 +23,7 @@ export function formatDefaultValue(value: unknown): string {
     }
 
     if (typeof normalized === 'object') {
-        const serialized: unknown = JSON.stringify(normalized);
-        if (typeof serialized !== 'string') {
-            throw new TypeError('Default value objects must be JSON serializable.');
-        }
+        const serialized = serializeJsonValue(normalized, 'defaultValue');
         return quoteLiteral(serialized);
     }
 

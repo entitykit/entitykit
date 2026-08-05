@@ -50,7 +50,7 @@ function entityWithDefault(defaultValue: unknown): EntitySnapshot {
 
 describe('migration default values', () => {
     it.each([
-        [{ source: 'O\'Brien', enabled: true }, '\'{"source":"O\'\'Brien","enabled":true}\''],
+        [{ source: 'O\'Brien', enabled: true }, '\'{"enabled":true,"source":"O\'\'Brien"}\''],
         [new Date('2026-07-29T12:34:56.000Z'), '\'2026-07-29T12:34:56.000Z\''],
         [9007199254740993n, '9007199254740993'],
     ])('uses schema-literal semantics for %#', (defaultValue, expected) => {

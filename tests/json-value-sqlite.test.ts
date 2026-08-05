@@ -100,4 +100,29 @@ describe('mapped JSON contract against SQLite', () => {
             process.off('unhandledRejection', observeUnhandled);
         }
     });
+
+    it('compares recursively reordered objects as the same JSON value', async () => {
+        const record = Object.assign(new JsonRecord(), {
+            id: 'record_1',
+            data: {
+                status: 'active',
+                filters: [{ tenant: 'acme', region: 'us' }],
+            },
+        });
+        db.records.add(record);
+        await db.saveChanges();
+        db.changeTracker.clear();
+
+        const first = await db.records.where(item => item.data.eq({
+            status: 'active',
+            filters: [{ tenant: 'acme', region: 'us' }],
+        })).single();
+        const cacheHit = await db.records.where(item => item.data.eq({
+            filters: [{ region: 'us', tenant: 'acme' }],
+            status: 'active',
+        })).single();
+
+        expect(first.id).toBe('record_1');
+        expect(cacheHit.id).toBe('record_1');
+    });
 });

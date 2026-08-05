@@ -66,7 +66,7 @@ describe('outbox saveChanges', () => {
             'usr_1',
             new Date('2026-06-01T12:00:00.000Z'),
             'WelcomeEmailQueued',
-            '{"userId":"usr_1","template":"welcome"}',
+            '{"template":"welcome","userId":"usr_1"}',
             'usr_1',
             new Date('2026-06-01T12:00:00.000Z'),
         ]);

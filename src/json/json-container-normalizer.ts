@@ -1,4 +1,5 @@
 import type { JsonValue } from '../json-value';
+import { compareJsonKeys } from './canonical-json';
 import {
     jsonChildPath,
     jsonChildPropertyPath,
@@ -49,16 +50,22 @@ export function normalizeJsonObject(
 ): JsonValue {
     return withJsonAncestor(value, state, () => {
         const normalized: Record<string, JsonValue> = {};
-        for (const key of Reflect.ownKeys(descriptors)) {
+        const keys = Reflect.ownKeys(descriptors);
+        for (const key of keys) {
             const descriptor = descriptors[key];
             if (typeof key === 'symbol') {
                 rejectJson(state, path, 'symbol-keyed property');
                 drainJsonDescriptor(descriptor, jsonChildPropertyPath(path, key), state, normalize);
-            } else if (descriptor.enumerable) {
-                normalized[key] = normalizeDescriptor(
-                    descriptor, jsonChildPath(path, key), state, normalize,
-                );
             }
+        }
+        const propertyNames = keys
+            .filter((key): key is string =>
+                typeof key === 'string' && descriptors[key].enumerable === true)
+            .sort(compareJsonKeys);
+        for (const key of propertyNames) {
+            normalized[key] = normalizeDescriptor(
+                descriptors[key], jsonChildPath(path, key), state, normalize,
+            );
         }
         state.snapshots.set(value, normalized);
         return normalized;

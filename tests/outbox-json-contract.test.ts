@@ -107,8 +107,8 @@ describe('outbox JSON contract', () => {
 
             expect(db.getSavePlan()[0]?.statement.values.slice(0, 3)).toEqual([
                 'UserCreated',
-                '{"flags":[true,false],"count":2}',
-                '{"tenant":"acme","id":7}',
+                '{"count":2,"flags":[true,false]}',
+                '{"id":7,"tenant":"acme"}',
             ]);
         },
     );

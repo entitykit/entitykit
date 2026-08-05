@@ -105,7 +105,8 @@ export function normalizeDefaultValue(
 
         return withAncestor(value, path, ancestors, () =>
             Object.fromEntries(
-                Object.entries(record).map(([key, item]) => [
+                Object.entries(record).sort(([left], [right]) =>
+                    compareJsonKeys(left, right)).map(([key, item]) => [
                     key,
                     normalizeDefaultValue(
                         item,
@@ -145,3 +146,4 @@ function unsupportedDefault(path: string, actual: string): TypeError {
     'or a JSON-compatible array/object. Use defaultSql(...) for provider expressions.',
     );
 }
+import { compareJsonKeys } from '../json/canonical-json';

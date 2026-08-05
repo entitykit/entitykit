@@ -1,4 +1,5 @@
 import { normalizeUnknownJson } from './json/normalize-json-value';
+import { serializeCanonicalJson } from './json/canonical-json';
 
 /** A scalar value with an exact JSON representation. */
 export type JsonPrimitive = null | string | number | boolean;
@@ -19,5 +20,5 @@ export function normalizeJsonValue(
 
 /** Validate, snapshot, and serialize an exact JSON value once. */
 export function serializeJsonValue(value: unknown, path = 'JSON value'): string {
-    return JSON.stringify(normalizeJsonValue(value, path));
+    return serializeCanonicalJson(normalizeJsonValue(value, path));
 }

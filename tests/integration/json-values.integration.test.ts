@@ -97,6 +97,48 @@ function defineTests(label: string, configure: (options: DbContextOptionsBuilder
             });
         }
 
+        it('matches recursively reordered objects across query paths', async () => {
+            const stored = {
+                status: 'active',
+                filters: [{ tenant: 'acme', region: 'us' }],
+            };
+            const reordered = {
+                filters: [{ region: 'us', tenant: 'acme' }],
+                status: 'active',
+            };
+            db.docs.add(Object.assign(new Doc(), {
+                id: 'canonical-object', data: stored, label: null,
+            }));
+            await db.saveChanges();
+            db.changeTracker.clear();
+
+            await expect(db.docs.where(doc => doc.data.eq(stored)).single())
+                .resolves.toEqual(expect.objectContaining({ id: 'canonical-object' }));
+            await expect(db.docs.where(doc => doc.data.eq(reordered)).single())
+                .resolves.toEqual(expect.objectContaining({ id: 'canonical-object' }));
+            await expect(db.docs.where(doc => doc.data.in([reordered])).single())
+                .resolves.toEqual(expect.objectContaining({ id: 'canonical-object' }));
+
+            const joined = await db.docs
+                .join('peer', db.docs, ({ root, peer }) => root.id.eq(peer.id))
+                .where(({ peer }) => peer.data.eq(reordered))
+                .select(({ root }) => ({ id: root.id }))
+                .single();
+            expect(joined).toEqual({ id: 'canonical-object' });
+
+            const updated = { version: 2, nested: { second: 2, first: 1 } };
+            await expect(db.docs.where(doc => doc.data.eq(reordered))
+                .executeUpdate({ data: updated })).resolves.toBe(1);
+            await expect(db.docs.where(doc => doc.data.eq({
+                nested: { first: 1, second: 2 }, version: 2,
+            })).single()).resolves.toEqual(
+                expect.objectContaining({ id: 'canonical-object' }),
+            );
+            await expect(db.docs.where(doc => doc.data.eq({
+                nested: { first: 1, second: 2 }, version: 2,
+            })).executeDelete()).resolves.toBe(1);
+        });
+
         it('queries SQL null and JSON membership consistently', async () => {
             await expect(db.docs.where(doc => doc.data.eq(null)).single())
                 .resolves.toEqual(expect.objectContaining({ id: 'sql-null' }));

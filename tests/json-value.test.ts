@@ -21,7 +21,25 @@ describe('JSON value contract', () => {
         });
         expect(normalized).not.toBe(source);
         expect(serializeJsonValue(source, 'Document.data')).toBe(
-            '{"string":"value","number":42,"boolean":true,"nil":null,"nested":[{"ok":false}]}',
+            '{"boolean":true,"nested":[{"ok":false}],"nil":null,"number":42,"string":"value"}',
+        );
+    });
+
+    it('canonically serializes recursively reordered objects', () => {
+        const first = {
+            z: 1,
+            nested: [{ second: 2, first: 1 }],
+            a: { right: true, left: false },
+        };
+        const reordered = {
+            a: { left: false, right: true },
+            nested: [{ first: 1, second: 2 }],
+            z: 1,
+        };
+
+        expect(serializeJsonValue(first)).toBe(serializeJsonValue(reordered));
+        expect(serializeJsonValue(first)).toBe(
+            '{"a":{"left":false,"right":true},"nested":[{"first":1,"second":2}],"z":1}',
         );
     });
 
