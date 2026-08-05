@@ -256,4 +256,36 @@ describe('converted class key identity', () => {
         expect(posts[1].comments).toEqual([comment]);
         await db.dispose();
     });
+
+    it('cascades only through the matching converted principal key', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: 'insert into strong_posts (id, title) values (?, ?), (?, ?)',
+            values: ['post-1', 'first', 'post-2', 'second'],
+        });
+        await db.database.connection.query({
+            text: 'insert into strong_comments (id, post_id, body) values (?, ?, ?)',
+            values: ['comment-1', 'post-1', 'comment'],
+        });
+        const posts = await db.posts.orderBy(post => post.id).toArray();
+        const comment = await db.comments.include(item => item.post).single();
+
+        db.posts.remove(posts[1]);
+        db.changeTracker.detectChanges();
+
+        expect(db.entry(comment)?.state).toBe('Unchanged');
+        await expect(db.saveChanges()).resolves.toBe(1);
+        const stored = await db.database.connection.query<{
+            id: string;
+            post_id: string;
+        }>({
+            text: 'select id, post_id from strong_comments',
+            values: [],
+        });
+        expect(stored.rows).toEqual([{
+            id: 'comment-1',
+            post_id: 'post-1',
+        }]);
+        await db.dispose();
+    });
 });
