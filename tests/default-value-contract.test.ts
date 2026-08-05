@@ -95,4 +95,49 @@ describe('default value contract', () => {
             process.off('unhandledRejection', observeUnhandled);
         }
     });
+
+    it('rejects decorated default arrays and consumes their rejected Promises', async () => {
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            const extra = [1] as unknown[] & { extra?: unknown };
+            extra.extra = Promise.reject(new Error('array extra failed'));
+            const symbol = Symbol('hidden');
+            const symbolKey = Object.assign([1], {
+                [symbol]: Promise.reject(new Error('array symbol failed')),
+            });
+
+            expect(() => snapshotWithDefault(extra)).toThrow(
+                'defaultValue (extra array property \'extra\')',
+            );
+            expect(() => snapshotWithDefault(symbolKey)).toThrow(
+                'defaultValue (symbol-keyed property)',
+            );
+            await new Promise<void>(resolve => setImmediate(resolve));
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
+
+    it('rejects sparse and accessor-backed default arrays', () => {
+        const sparse: unknown[] = [];
+        sparse.length = 2;
+        sparse[1] = 'present';
+        const accessor = [1];
+        Object.defineProperty(accessor, '0', {
+            enumerable: true,
+            get: () => 1,
+        });
+
+        expect(() => snapshotWithDefault(sparse)).toThrow(
+            'defaultValue[0] (missing array element)',
+        );
+        expect(() => snapshotWithDefault(accessor)).toThrow(
+            'defaultValue[0] (accessor property)',
+        );
+    });
 });

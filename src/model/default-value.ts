@@ -1,6 +1,7 @@
 import { compareJsonKeys } from '../json/canonical-json';
 import { consumeDefaultThenable } from './default-value-thenable';
 import { withDefaultAncestor } from './default-value-ancestor';
+import { normalizeDefaultArray } from './default-array-value';
 const serializedDefaultType = '$entitykitDefaultType';
 
 export interface SerializedBigIntDefault {
@@ -91,11 +92,12 @@ export function normalizeDefaultValue(
     }
 
     if (Array.isArray(value)) {
-        return withDefaultAncestor(value, path, ancestors, () =>
-            value.map((item, index) =>
-                normalizeDefaultValue(item, `${path}[${String(index)}]`, true, ancestors),
-            ),
-        cycle => unsupportedDefault(cycle, 'cyclic reference'),
+        return normalizeDefaultArray(
+            value,
+            path,
+            ancestors,
+            normalizeDefaultValue,
+            unsupportedDefault,
         );
     }
 
