@@ -37,9 +37,14 @@ export class ChangeTracker {
         },
     );
     private onTracked?: (entity: object) => void;
+    private onDetached?: (entity: object) => void;
 
     public observeTracked(observer: (entity: object) => void): void {
         this.onTracked = observer;
+    }
+
+    public observeDetached(observer: (entity: object) => void): void {
+        this.onDetached = observer;
     }
 
     public track<TEntity extends object>(
@@ -76,7 +81,11 @@ export class ChangeTracker {
 
     public detach<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         this.saveGuard.assertMutation('Detaching an entity', entity);
-        return this.registry.detach(entity);
+        const entry = this.registry.detach(entity);
+        if (entry) {
+            this.onDetached?.(entity);
+        }
+        return entry;
     }
 
     public detectChanges(): void {
@@ -95,7 +104,13 @@ export class ChangeTracker {
     }
     public acceptAllChanges(): void {
         this.saveGuard.assertMutation('acceptAllChanges()');
+        const entries = this.entries();
         this.acceptance.acceptAll();
+        for (const entry of entries) {
+            if (!this.registry.has(entry)) {
+                this.onDetached?.(entry.entity);
+            }
+        }
     }
 
     /** Accept only the entries and values represented by an executed plan. */
@@ -106,7 +121,11 @@ export class ChangeTracker {
     }
     public clear(): void {
         this.saveGuard.assertMutation('Clearing tracked entities');
+        const entities = this.entries().map(entry => entry.entity);
         this.registry.clear();
+        for (const entity of entities) {
+            this.onDetached?.(entity);
+        }
     }
 
     public debugView(): string {

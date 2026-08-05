@@ -61,7 +61,7 @@ export class ManyToManyChangeSet {
         };
     }
 
-    /** Drop queued join work whose source or target was a canceled addition. */
+    /** Drop queued join work whose source or target left the context. */
     public cancelFor(entity: object): void {
         for (let index = this.changes.length - 1; index >= 0; index -= 1) {
             const change = this.changes[index];

@@ -13,6 +13,13 @@ export abstract class DbContextRelationships extends DbContextRawSql {
         this.manyToMany,
     );
 
+    protected constructor() {
+        super();
+        this.changeTracker.observeDetached(entity => {
+            this.manyToMany.cancelFor(entity);
+        });
+    }
+
     public link<TEntity extends object, TTarget extends object>(
         source: TEntity,
         navigationSelector: PropertySelector<
