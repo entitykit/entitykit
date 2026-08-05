@@ -97,12 +97,10 @@ export abstract class DbContext {
     public clearChanges(): void {
         this.contextHost.clearChanges();
     }
-
     /** Describe the writes the next `saveChanges()` call would attempt. */
     public getSavePlan(): readonly SavePlanEntry[] {
         return this.contextHost.getSavePlan();
     }
-
     /** Render a human-readable, redacted view of the pending save plan. */
     public getSavePlanDebugView(): string {
         return this.contextHost.getSavePlanDebugView();

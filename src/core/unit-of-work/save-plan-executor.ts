@@ -21,11 +21,9 @@ export class SavePlanExecutor {
         private readonly changeTracker: ChangeTracker,
         private readonly navigationLoader: EntityNavigationLoader,
     ) {}
-
     private get database(): DatabaseConnection {
         return this.getDatabase();
     }
-
     public async run(
         plan: readonly SavePlanEntry[],
         beforeCommit: () => void,
