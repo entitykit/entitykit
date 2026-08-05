@@ -1,6 +1,11 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import type {
+    DbContextOptionsBuilder,
+    ModelBuilder,
+    ValueConverter,
+} from '../src';
+import { DbContext, valueConverter } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
+import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 abstract class UnstableKeyEntity {
     private key = 0;
@@ -141,5 +146,98 @@ describe('many-to-many executable endpoint snapshots', () => {
         expect(post.observedKeyReads).toBe(1);
         expect(tag.observedKeyReads).toBe(1);
         await db.dispose();
+    });
+});
+
+class ConverterProbe {
+    private stableReads = Number.POSITIVE_INFINITY;
+    public reads = 0;
+
+    public readonly converter: ValueConverter<string, number> = valueConverter({
+        toProvider: value => {
+            this.reads += 1;
+            const converted = Number(value);
+            return this.reads <= this.stableReads
+                ? converted
+                : converted + 1;
+        },
+        fromProvider: value => String(value),
+    });
+
+    public reset(stableReads: number): void {
+        this.reads = 0;
+        this.stableReads = stableReads;
+    }
+}
+
+const postKeyConverter = new ConverterProbe();
+const tagKeyConverter = new ConverterProbe();
+
+class ConvertedSnapshotPost {
+    public id!: string;
+    public tenantId!: string;
+    public tags: ConvertedSnapshotTag[] = [];
+}
+
+class ConvertedSnapshotTag {
+    public id!: string;
+    public posts: ConvertedSnapshotPost[] = [];
+}
+
+class ConvertedRelationshipSnapshotContext extends DbContext {
+    public posts = this.set(ConvertedSnapshotPost);
+    public tags = this.set(ConvertedSnapshotTag);
+
+    constructor(private readonly connection: RecordingDatabaseConnection) {
+        super();
+    }
+
+    protected override configure(options: DbContextOptionsBuilder): void {
+        options.useConnection(this.connection);
+    }
+
+    protected override model(model: ModelBuilder): void {
+        model.entity(ConvertedSnapshotPost, entity => {
+            entity.toTable('converted_snapshot_posts');
+            entity.hasKey(post => [post.id, post.tenantId]);
+            entity.property(post => post.id).hasColumnType('integer').isRequired()
+                .hasConversion(postKeyConverter.converter);
+            entity.property(post => post.tenantId).hasColumnType('text').isRequired();
+            entity.hasManyToMany(ConvertedSnapshotTag, post => post.tags)
+                .withMany(tag => tag.posts)
+                .usingJoinTable('converted_snapshot_post_tags', join => {
+                    join.sourceForeignKey(['post_id', 'tenant_id']);
+                    join.targetForeignKey('tag_id');
+                });
+        });
+        model.entity(ConvertedSnapshotTag, entity => {
+            entity.toTable('converted_snapshot_tags');
+            entity.hasKey(tag => tag.id);
+            entity.property(tag => tag.id).hasColumnType('integer').isRequired()
+                .hasConversion(tagKeyConverter.converter);
+        });
+    }
+}
+
+describe('many-to-many captured endpoint conversion', () => {
+    it('converts each captured composite endpoint once for the whole plan', () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = ConvertedRelationshipSnapshotContext.create(connection);
+        const post = Object.assign(new ConvertedSnapshotPost(), {
+            id: '1',
+            tenantId: 'tenant-a',
+        });
+        const tag = Object.assign(new ConvertedSnapshotTag(), { id: '1' });
+        db.posts.attach(post);
+        db.tags.attach(tag);
+        db.link(post, item => item.tags, tag);
+        postKeyConverter.reset(4);
+        tagKeyConverter.reset(4);
+
+        const plan = db.getSavePlan();
+
+        expect(plan[0]?.statement.values).toEqual([1, 'tenant-a', 1]);
+        expect(postKeyConverter.reads).toBe(4);
+        expect(tagKeyConverter.reads).toBe(4);
     });
 });
