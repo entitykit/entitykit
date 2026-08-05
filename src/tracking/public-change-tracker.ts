@@ -3,6 +3,7 @@ import type { ChangeTracker as InternalChangeTracker } from './change-tracker';
 import type { ChangeTracker } from './change-tracker-types';
 import type { EntityEntry } from './entity-entry-types';
 import { publicEntityEntry } from './public-entity-entry';
+import { EntityState } from './entity-state';
 
 interface PublicTrackerState {
     readonly internal: InternalChangeTracker;
@@ -37,7 +38,13 @@ class PublicChangeTracker implements ChangeTracker {
         state(this).internal.detectChanges();
     }
     public acceptAllChanges(): void {
-        state(this).internal.acceptAllChanges();
+        const tracker = state(this).internal;
+        if (tracker.entries().some(entry => entry.state === EntityState.Added)) {
+            throw new Error(
+                'acceptAllChanges() cannot accept Added entries because they have no persisted baseline. Save or detach them first.',
+            );
+        }
+        tracker.acceptAllChanges();
     }
     public clear(): void {
         state(this).internal.clear();

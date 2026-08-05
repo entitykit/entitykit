@@ -123,7 +123,7 @@ describe('ChangeTracker identity map', () => {
             .toBeUndefined();
     });
 
-    it('atomically registers the final key of an added entity', () => {
+    it('does not manufacture a persisted identity for an added entity', () => {
         const db =  AppDbContext.create();
         const user = new User({
             id: 'temporary',
@@ -133,14 +133,19 @@ describe('ChangeTracker identity map', () => {
         const entry = db.users.add(user);
         user.id = 'final';
 
-        db.changeTracker.acceptAllChanges();
+        expect(() => {
+            db.changeTracker.acceptAllChanges();
+        }).toThrow(
+            'acceptAllChanges() cannot accept Added entries because they have no persisted baseline.',
+        );
 
         expect(internalChangeTracker(db.changeTracker)
             .tryGetByIdentity(setMetadata(db.users), 'temporary'))
-            .toBeUndefined();
+            .toBe(internalEntityEntry(entry));
         expect(internalChangeTracker(db.changeTracker)
             .tryGetByIdentity(setMetadata(db.users), 'final'))
-            .toBe(internalEntityEntry(entry));
+            .toBeUndefined();
+        expect(entry.state).toBe(EntityState.Added);
     });
 
     it('accepts all changes and detaches deleted entities', () => {

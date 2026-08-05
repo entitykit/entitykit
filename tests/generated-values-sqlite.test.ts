@@ -105,7 +105,7 @@ describe('SQLite database-generated values', () => {
         expect(() => {
             db.changeTracker.acceptAllChanges();
         }).toThrow(
-            'unresolved store-generated identity',
+            'acceptAllChanges() cannot accept Added entries because they have no persisted baseline.',
         );
         expect(entry.state).toBe(EntityState.Added);
         await expect(db.rows.find(0)).resolves.toMatchObject({

@@ -121,6 +121,11 @@ describe('public EntityEntry state contract', () => {
             assignState(entry, EntityState.Deleted);
         }).toThrow(TypeError);
         expect(entry.state).toBe(EntityState.Added);
+        expect(() => {
+            db.changeTracker.acceptAllChanges();
+        }).toThrow(
+            'acceptAllChanges() cannot accept Added entries because they have no persisted baseline.',
+        );
         db.items.remove(replacement);
         await expect(db.saveChanges()).resolves.toBe(0);
 
