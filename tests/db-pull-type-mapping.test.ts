@@ -23,7 +23,7 @@ describe('db pull type mapping', () => {
             ['date', 'Date', false],
             ['time(6)', 'string', false],
             ['timetz', 'string', false],
-            ['jsonb', 'Record<string, unknown>', false],
+            ['jsonb', 'JsonValue', false],
             ['bytea', 'Buffer', false],
             ['varbinary(255)', 'Buffer', false],
             ['uuid', 'string', false],
@@ -61,7 +61,7 @@ describe('db pull type mapping', () => {
             needsReview: true,
         });
         expect(mapStoreTypeToTypeScript('jsonb[]')).toEqual({
-            type: 'Array<Record<string, unknown>>',
+            type: 'JsonValue[]',
             needsReview: false,
         });
     });

@@ -57,7 +57,8 @@ describe('db pull code generation for MySQL', () => {
         expect(readingFile).toContain('isActive!: boolean;');   // tinyint(1), not a small int
         expect(readingFile).toContain('recordedAt!: Date;');    // datetime(3)
         expect(readingFile).toContain('seenOn?: Date | null;'); // bare datetime (also a SQLite spelling)
-        expect(readingFile).toContain('payload!: Record<string, unknown>;');
+        expect(readingFile).toContain('import type { JsonValue } from "entitykit";');
+        expect(readingFile).toContain('payload!: JsonValue;');
         expect(readingFile).toContain('score!: number;');       // int, previously mapped to unknown
         expect(readingFile).toContain('counter?: number | null;');  // int unsigned
         expect(readingFile).toContain('quantity?: number | null;'); // mediumint

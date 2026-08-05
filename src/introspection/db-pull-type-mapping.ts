@@ -62,7 +62,7 @@ export function mapStoreTypeToTypeScript(storeType: string): TypeScriptTypeMappi
         return knownType('Date');
     }
     if (normalized.includes('json')) {
-        return knownType('Record<string, unknown>');
+        return knownType('JsonValue');
     }
     if (isBinaryStoreType(normalized)) {
         return knownType('Buffer');
