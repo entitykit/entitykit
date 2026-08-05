@@ -1,4 +1,9 @@
 import { compareJsonKeys } from '../json/canonical-json';
+import {
+    consumeThenable,
+    ownThenFunction,
+    readInheritedThen,
+} from '../json/json-object-inspection';
 const serializedDefaultType = '$entitykitDefaultType';
 
 export interface SerializedBigIntDefault {
@@ -82,6 +87,10 @@ export function normalizeDefaultValue(
         return value.toISOString();
     }
 
+    if (typeof value === 'object' || typeof value === 'function') {
+        consumeDefaultThenable(value, path);
+    }
+
     if (Array.isArray(value)) {
         return withAncestor(value, path, ancestors, () =>
             value.map((item, index) =>
@@ -121,6 +130,22 @@ export function normalizeDefaultValue(
     }
 
     throw unsupportedDefault(path, typeof value);
+}
+
+function consumeDefaultThenable(value: object, path: string): void {
+    let descriptors: PropertyDescriptorMap;
+    try {
+        descriptors = Object.getOwnPropertyDescriptors(value);
+    } catch {
+        return;
+    }
+    const then = ownThenFunction(descriptors) ??
+        readInheritedThen(value, descriptors);
+    if (typeof then !== 'function') {
+        return;
+    }
+    consumeThenable(value, then as (...args: unknown[]) => unknown);
+    throw unsupportedDefault(path, 'Promise or thenable');
 }
 
 function withAncestor<TResult>(
