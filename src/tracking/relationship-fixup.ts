@@ -2,7 +2,7 @@ import { DbValidationError } from '../errors/entity-kit-error';
 import type { Model } from '../model/model';
 import type { PropertyMetadata } from '../model/property-metadata';
 import { DeleteBehavior } from '../model/relationship-metadata';
-import { relationshipPrincipalKeyValues } from '../model/relationship-key';
+import { principalValuesForDependent } from '../model/relationship-key-translation';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
@@ -34,8 +34,9 @@ export function linkDependent(
     const principalMetadata = model.getEntity<Record<string, unknown>>(
         relationship.principalEntity,
     );
-    const key = relationshipPrincipalKeyValues(
+    const key = principalValuesForDependent(
         relationship,
+        dependent.metadata,
         principalMetadata,
         principal as Record<string, unknown>,
     );

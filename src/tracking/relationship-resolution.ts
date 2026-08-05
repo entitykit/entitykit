@@ -1,8 +1,7 @@
 import type { Model } from '../model/model';
-import { relationshipPrincipalKeyValues } from '../model/relationship-key';
+import { relationshipKeyValuesEqual } from '../model/relationship-key-codec';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
-import { snapshotPropertyValuesEqual } from './snapshot-value';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 
 export function findTrackedPrincipal(
@@ -23,13 +22,12 @@ export function findTrackedPrincipal(
     );
     return tracker.entries().find(entry =>
         entry.metadata === principalMetadata &&
-        tuplesEqual(
-            foreignKey,
-            relationshipPrincipalKeyValues(
-                relationship,
-                principalMetadata,
-                entry.entity as Record<string, unknown>,
-            ),
+        relationshipKeyValuesEqual(
+            relationship,
+            dependent.metadata,
+            values,
+            principalMetadata,
+            entry.entity as Record<string, unknown>,
         ));
 }
 
@@ -47,20 +45,13 @@ export function relationshipConnects(
         property => values[property],
     );
     return !foreignKey.some(value => value === null || value === undefined) &&
-        tuplesEqual(
-            foreignKey,
-            relationshipPrincipalKeyValues(
-                relationship,
-                model.getEntity<Record<string, unknown>>(
-                    relationship.principalEntity,
-                ),
-                principal.entity as Record<string, unknown>,
+        relationshipKeyValuesEqual(
+            relationship,
+            dependent.metadata,
+            values,
+            model.getEntity<Record<string, unknown>>(
+                relationship.principalEntity,
             ),
+            principal.entity as Record<string, unknown>,
         );
-}
-
-function tuplesEqual(left: readonly unknown[], right: readonly unknown[]): boolean {
-    return left.length === right.length &&
-        left.every((value, index) =>
-            snapshotPropertyValuesEqual(value, right[index]));
 }
