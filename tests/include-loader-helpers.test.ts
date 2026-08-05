@@ -109,7 +109,9 @@ describe('include loader helpers', () => {
         const duplicate = ['a|b', 'c\\d'];
         const second = ['a', 'b|c'];
 
-        expect(tupleLookupKey(first)).toBe('a\\|b|c\\\\d');
+        expect(tupleLookupKey(first)).toBe(
+            '["entitykit:identity:v1",["string","a|b"],["string","c\\\\d"]]',
+        );
         expect(tupleLookupKey(first)).not.toBe(tupleLookupKey(second));
         expect(uniqueTuples([first, duplicate, second])).toEqual([first, second]);
         expect(uniqueValues([
@@ -121,7 +123,9 @@ describe('include loader helpers', () => {
             new Date('2026-01-01T00:00:00.000Z'),
             { id: 1 },
         ]);
-        expect(lookupKey({ id: 1 })).toBe('{"id":1}');
+        expect(lookupKey({ id: 1 })).toBe(
+            '["entitykit:identity:v1",["object",["id",["number","1"]]]]',
+        );
     });
 
     it('recognizes complete keys and applies provider reads before converters', () => {
