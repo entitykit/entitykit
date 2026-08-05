@@ -144,7 +144,8 @@ maybe('MySQL schema introspection', () => {
         expect(contextFile).toContain('entity.toTable("ek_pull_reading");');
         const readingFile = entityFileContaining(files, 'isActive!: boolean;');
         expect(readingFile).toContain('recordedAt!: Date;');
-        expect(readingFile).toContain('payload!: Record<string, unknown>;');
+        expect(readingFile).toContain('import type { JsonValue } from "entitykit";');
+        expect(readingFile).toContain('payload!: JsonValue;');
         expect(readingFile).toContain('score!: number;');
         expect(readingFile).toContain('big!: string;');
         expect(diagnostics.length).toBeGreaterThan(0);
