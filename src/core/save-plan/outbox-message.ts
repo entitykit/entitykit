@@ -10,6 +10,11 @@ import {
     readSynchronousDate,
     readSynchronousValue,
 } from '../../synchronous-value';
+import {
+    normalizeJsonValue,
+    serializeJsonValue,
+    type JsonPrimitive,
+} from '../../json-value';
 
 export interface PendingOutboxMessage {
     readonly entity: object;
@@ -17,7 +22,8 @@ export interface PendingOutboxMessage {
     readonly keyValue: unknown;
     readonly entry: EntityEntry<object>;
     readonly type: string;
-    readonly payload: unknown;
+    readonly serializedPayload: string;
+    readonly hasExplicitAggregateId: boolean;
     readonly aggregateId: unknown;
     readonly aggregateKeyValues: readonly unknown[];
     readonly occurredAt: Date;
@@ -52,11 +58,22 @@ export function collectPendingOutboxMessages(
             messages.push({
                 entity: entry.entity,
                 event,
-                keyValue: event.aggregateId ?? entry.keyValue,
+                keyValue: event.aggregateId === undefined
+                    ? entry.keyValue
+                    : event.aggregateId,
                 entry,
                 type: event.type,
-                payload: cloneSnapshotValue(event.payload),
-                aggregateId: cloneSnapshotValue(event.aggregateId),
+                serializedPayload: serializeJsonValue(
+                    event.payload,
+                    outboxValuePath(event, 'payload'),
+                ),
+                hasExplicitAggregateId: event.aggregateId !== undefined,
+                aggregateId: event.aggregateId === undefined
+                    ? undefined
+                    : normalizeAggregateId(
+                        event.aggregateId,
+                        outboxValuePath(event, 'aggregateId'),
+                    ),
                 aggregateKeyValues: entry.metadata.keyProperties.map(
                     propertyName => cloneSnapshotValue(
                         entry.currentValues()[propertyName],
@@ -71,6 +88,23 @@ export function collectPendingOutboxMessages(
         }
     }
     return messages;
+}
+
+export function normalizeAggregateId(
+    value: unknown,
+    path: string,
+): JsonPrimitive {
+    const normalized = normalizeJsonValue(value, path);
+    return typeof normalized === 'object' && normalized !== null
+        ? JSON.stringify(normalized)
+        : normalized;
+}
+
+function outboxValuePath(
+    event: OutboxMessage,
+    field: 'payload' | 'aggregateId',
+): string {
+    return `Outbox event "${event.type}" ${field}`;
 }
 
 export function outboxEventBatches(

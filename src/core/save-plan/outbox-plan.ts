@@ -10,12 +10,12 @@ import {
     registerSavePlanExecution,
 } from '../save-plan-execution';
 import type { SqlStatement } from '../../sql/sql-statement';
-import { cloneSnapshotValue } from '../../tracking/entity-entry';
 import { maxParameterBatchSize } from './parameter-batch-size';
 import {
     collectPendingOutboxMessages,
     outboxEventBatches,
     persistedAggregateId,
+    normalizeAggregateId,
     type PendingOutboxMessage,
 } from './outbox-message';
 
@@ -97,17 +97,22 @@ function buildOutboxPlanEntry(
         payloadColumn: entryOptions.payloadColumn,
         aggregateIdColumn: entryOptions.aggregateIdColumn,
         occurredAtColumn: entryOptions.occurredAtColumn,
-        messages: entryOptions.messages.map(message => ({
-            type: message.type,
-            payload: cloneSnapshotValue(message.payload),
-            aggregateId: cloneSnapshotValue(
-                message.aggregateId ?? persistedAggregateId(
-                    message,
-                    persistedValue,
-                ),
-            ),
-            occurredAt: new Date(message.occurredAt.getTime()),
-        })),
+        messages: entryOptions.messages.map(message => {
+            const aggregateId = message.hasExplicitAggregateId
+                ? message.aggregateId
+                : persistedAggregateId(message, persistedValue);
+            return {
+                type: message.type,
+                serializedPayload: message.serializedPayload,
+                aggregateId: aggregateId === undefined
+                    ? undefined
+                    : normalizeAggregateId(
+                        aggregateId,
+                        `Outbox event "${message.type}" aggregateId`,
+                    ),
+                occurredAt: new Date(message.occurredAt.getTime()),
+            };
+        }),
     });
     const planEntry: SavePlanEntry = {
         entity: entryOptions.messages[0].entity,

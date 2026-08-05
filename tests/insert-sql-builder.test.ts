@@ -93,10 +93,10 @@ describe('insert SQL builder', () => {
             typeColumn: 'event_type',
             payloadColumn: 'payload',
             type: 'UserCreated',
-            payload: { id: 'usr_1' },
+            serializedPayload: '{"id":"usr_1"}',
         })).toEqual({
             text: 'insert into "outbox" ("event_type", "payload") values ($1, $2)',
-            values: ['UserCreated', { id: 'usr_1' }],
+            values: ['UserCreated', '{"id":"usr_1"}'],
         });
     });
 
@@ -112,11 +112,11 @@ describe('insert SQL builder', () => {
             aggregateIdColumn: 'aggregate_id',
             occurredAtColumn: 'occurred_at',
             type: 'UserCreated',
-            payload: { id: 'usr_1' },
+            serializedPayload: '{"id":"usr_1"}',
             aggregateId: 'usr_1',
         })).toEqual({
             text: 'insert into "app"."outbox" ("event_type", "payload", "aggregate_id", "occurred_at") values ($1, $2, $3, $4)',
-            values: ['UserCreated', { id: 'usr_1' }, 'usr_1', now],
+            values: ['UserCreated', '{"id":"usr_1"}', 'usr_1', now],
         });
     });
 });

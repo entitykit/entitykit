@@ -27,7 +27,7 @@ describe('outbox saveChanges', () => {
         expect(connection.statements[1]?.text).toContain('insert into "app_outbox"');
         expect(connection.statements[1]?.values).toEqual([
             'UserCreated',
-            { userId: 'usr_1' },
+            '{"userId":"usr_1"}',
             'usr_1',
             new Date('2026-06-01T12:00:00.000Z'),
         ]);
@@ -62,11 +62,11 @@ describe('outbox saveChanges', () => {
         );
         expect(connection.statements[1]?.values).toEqual([
             'UserCreated',
-            { userId: 'usr_1' },
+            '{"userId":"usr_1"}',
             'usr_1',
             new Date('2026-06-01T12:00:00.000Z'),
             'WelcomeEmailQueued',
-            { userId: 'usr_1', template: 'welcome' },
+            '{"userId":"usr_1","template":"welcome"}',
             'usr_1',
             new Date('2026-06-01T12:00:00.000Z'),
         ]);

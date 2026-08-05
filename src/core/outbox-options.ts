@@ -1,8 +1,10 @@
+import type { JsonValue } from '../json-value';
+
 /** Domain event shape collected for the transactional outbox. */
 export interface OutboxMessage {
     /** The type. */ readonly type: string;
-    /** The payload. */ readonly payload: unknown;
-    /** The aggregate id. */ readonly aggregateId?: unknown;
+    /** The payload. */ readonly payload: JsonValue;
+    /** The aggregate id. */ readonly aggregateId?: JsonValue;
     /** The occurred at. */ readonly occurredAt?: Date;
 }
 

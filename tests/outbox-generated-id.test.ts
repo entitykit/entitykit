@@ -1,11 +1,11 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, JsonValue, ModelBuilder } from '../src';
 import { DbContext, EntityState } from '../src';
 import { postgresDialect } from '../src/providers/postgres';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 interface DomainEvent {
     readonly type: string;
-    readonly payload: unknown;
+    readonly payload: JsonValue;
 }
 
 class GeneratedAggregate {
@@ -69,7 +69,7 @@ describe('generated outbox aggregate identities', () => {
 
         expect(connection.statements[1]?.values).toEqual([
             'Created',
-            { source: 'test' },
+            '{"source":"test"}',
             41,
             expect.any(Date),
         ]);
@@ -104,7 +104,7 @@ describe('generated outbox aggregate identities', () => {
 
         expect(connection.statements[1]?.values).toEqual([
             'Created',
-            { source: 'captured' },
+            '{"source":"captured"}',
             41,
             expect.any(Date),
         ]);

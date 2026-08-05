@@ -3,7 +3,7 @@ import { SqlParameterBag, type SqlStatement } from './sql-statement';
 
 export interface OutboxInsertMessage {
     readonly type: string;
-    readonly payload: unknown;
+    readonly serializedPayload: string;
     readonly aggregateId?: unknown;
     readonly occurredAt?: Date;
 }
@@ -41,7 +41,7 @@ export function buildOutboxInsertBatch(
     const rows = options.messages.map(message => {
         const values = [
             parameters.add(message.type),
-            parameters.add(message.payload),
+            parameters.add(message.serializedPayload),
         ];
         if (options.aggregateIdColumn) {
             values.push(parameters.add(message.aggregateId));

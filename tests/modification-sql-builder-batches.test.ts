@@ -141,8 +141,8 @@ describe('ModificationSqlBuilder batches', () => {
     it('compiles batched outbox messages with optional columns parameterized', () => {
         const firstDate = new Date('2026-01-01T00:00:00.000Z');
         const secondDate = new Date('2026-01-02T00:00:00.000Z');
-        const firstPayload = { email: 'a@example.com' };
-        const secondPayload = { email: 'b@example.com' };
+        const firstPayload = '{"email":"a@example.com"}';
+        const secondPayload = '{"email":"b@example.com"}';
 
         expect(
             new ModificationSqlBuilder().buildInsertOutboxMessagesBatch({
@@ -155,13 +155,13 @@ describe('ModificationSqlBuilder batches', () => {
                 messages: [
                     {
                         type: 'UserCreated',
-                        payload: firstPayload,
+                        serializedPayload: firstPayload,
                         aggregateId: 'usr_1',
                         occurredAt: firstDate,
                     },
                     {
                         type: 'UserCreated',
-                        payload: secondPayload,
+                        serializedPayload: secondPayload,
                         aggregateId: 'usr_2',
                         occurredAt: secondDate,
                     },

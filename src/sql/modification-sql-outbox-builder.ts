@@ -23,7 +23,7 @@ export abstract class ModificationSqlOutboxBuilder {
         readonly aggregateIdColumn?: string;
         readonly occurredAtColumn?: string;
         readonly type: string;
-        readonly payload: unknown;
+        readonly serializedPayload: string;
         readonly aggregateId?: unknown;
         readonly occurredAt?: Date;
     }): SqlStatement {
@@ -39,7 +39,7 @@ export abstract class ModificationSqlOutboxBuilder {
         readonly occurredAtColumn?: string;
         readonly messages: ReadonlyArray<{
             readonly type: string;
-            readonly payload: unknown;
+            readonly serializedPayload: string;
             readonly aggregateId?: unknown;
             readonly occurredAt?: Date;
         }>;

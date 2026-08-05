@@ -1,5 +1,6 @@
 import type {
     DbContextOptionsBuilder,
+    JsonValue,
     ModelBuilder,
 } from '../src';
 import {
@@ -11,7 +12,7 @@ import { RecordingDatabaseConnection } from '../src/testing';
 
 interface DomainEvent {
     readonly type: string;
-    readonly payload: Record<string, unknown>;
+    readonly payload: JsonValue;
 }
 
 class PlainItem {

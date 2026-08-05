@@ -86,7 +86,7 @@ export class InsertSqlBuilder {
             occurredAtColumn: options.occurredAtColumn,
             messages: [{
                 type: options.type,
-                payload: options.payload,
+                serializedPayload: options.serializedPayload,
                 aggregateId: options.aggregateId,
                 occurredAt: options.occurredAt,
             }],

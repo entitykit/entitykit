@@ -1,5 +1,6 @@
 import type {
     DbContextOptionsBuilder,
+    JsonValue,
     ModelBuilder,
     OutboxMessage,
 } from '../../src';
@@ -11,8 +12,8 @@ import type { RecordingDatabaseConnection } from '../../src/testing';
 
 export interface DomainEvent {
     type: string;
-    payload: Record<string, unknown>;
-    aggregateId?: string;
+    payload: JsonValue;
+    aggregateId?: JsonValue;
 }
 
 export class OutboxUser {
