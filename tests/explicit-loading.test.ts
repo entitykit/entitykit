@@ -59,6 +59,95 @@ function createDb(connection: RecordingDatabaseConnection): LoadingContext {
 }
 
 describe('explicit loading', () => {
+    it('rejects an entry owned by another context before querying', async () => {
+        const firstConnection = new RecordingDatabaseConnection();
+        const secondConnection = new RecordingDatabaseConnection();
+        const first = createDb(firstConnection);
+        const second = createDb(secondConnection);
+        const post = new Post({
+            id: 'post_1',
+            title: 'One',
+            authorId: 'usr_1',
+        });
+        const entry = first.posts.attach(post);
+
+        await expect(second.loadNavigation(entry, 'author')).rejects.toThrow(
+            'EntityEntry belongs to another DbContext or is no longer tracked.',
+        );
+        expect(firstConnection.statements).toEqual([]);
+        expect(secondConnection.statements).toEqual([]);
+    });
+
+    it('rejects a detached navigation entry before querying', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const post = new Post({
+            id: 'post_1',
+            title: 'One',
+            authorId: 'usr_1',
+        });
+        const reference = db.posts.attach(post).reference(item => item.author);
+        db.posts.detach(post);
+
+        await expect(reference.load()).rejects.toThrow(
+            'EntityEntry belongs to another DbContext or is no longer tracked.',
+        );
+        expect(connection.statements).toEqual([]);
+    });
+
+    it('rejects a navigation entry retained after tracker clear', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const post = new Post({
+            id: 'post_1',
+            title: 'One',
+            authorId: 'usr_1',
+        });
+        const reference = db.posts.attach(post).reference(item => item.author);
+        db.changeTracker.clear();
+
+        await expect(reference.load()).rejects.toThrow(
+            'EntityEntry belongs to another DbContext or is no longer tracked.',
+        );
+        expect(connection.statements).toEqual([]);
+    });
+
+    it('rejects an obsolete entry after the same object is reattached', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const post = new Post({
+            id: 'post_1',
+            title: 'One',
+            authorId: 'usr_1',
+        });
+        const oldReference = db.posts.attach(post)
+            .reference(item => item.author);
+        db.posts.detach(post);
+        const current = db.posts.attach(post);
+
+        await expect(oldReference.load()).rejects.toThrow(
+            'EntityEntry belongs to another DbContext or is no longer tracked.',
+        );
+        expect(db.entry(post)).toBe(current);
+        expect(connection.statements).toEqual([]);
+    });
+
+    it('rejects an Added entity before querying', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const post = new Post({
+            id: 'post_1',
+            title: 'One',
+            authorId: 'usr_1',
+        });
+        const reference = db.posts.add(post).reference(item => item.author);
+
+        await expect(reference.load()).rejects.toThrow(
+            'Navigation loading is unavailable for an Added entity because it has no persisted identity.',
+        );
+        expect(connection.statements).toEqual([]);
+    });
+
     it('loads reference navigations from db.entry(entity)', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({ rows: [{ id: 'usr_1', email: 'a@example.com' }], rowCount: 1 });

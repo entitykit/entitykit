@@ -287,6 +287,23 @@ describe('lazy loading', () => {
             await db.dispose();
         });
 
+        it('when the entity is Added', async () => {
+            const db = await open();
+            const post = new Post({
+                id: 'new-post',
+                authorId: 'a1',
+                title: 'Pending',
+            });
+            db.posts.add(post);
+            db.connection.statements.length = 0;
+
+            await expect(lazy(post).author).rejects.toThrow(
+                'Navigation loading is unavailable for an Added entity because it has no persisted identity.',
+            );
+            expect(db.connection.statements).toEqual([]);
+            await db.dispose();
+        });
+
         it('when the context is disposed', async () => {
             const db = await open();
             const post = await db.posts.find('p1');

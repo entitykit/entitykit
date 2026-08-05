@@ -4,6 +4,7 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { QueryFilterApplier } from './query-filter-applier';
 import { DbContextConcurrency } from './db-context-concurrency';
+import { assertNavigationLoadableEntry } from './navigation-load-guard';
 
 /** Query filters and explicit navigation loading for a context. */
 export abstract class DbContextQuery extends DbContextConcurrency {
@@ -16,6 +17,7 @@ export abstract class DbContextQuery extends DbContextConcurrency {
         entry: EntityEntry<TEntity>,
         navigationProperty: string,
     ): Promise<unknown> {
+        assertNavigationLoadableEntry(this.changeTracker, entry);
         const loader = new IncludeLoader(
             this.modelMetadata,
             this.databaseConnection,
