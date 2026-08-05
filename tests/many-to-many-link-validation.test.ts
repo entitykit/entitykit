@@ -50,7 +50,14 @@ describe('many-to-many link validation', () => {
         expect(connection.transactionEvents).toEqual([]);
     });
 
-    it('rejects queued join rows when an endpoint is detached before saveChanges', async () => {
+    it.each([
+        ['change tracker', (db: ManyToManyContext, tag: Tag) =>
+            db.changeTracker.detach(tag)],
+        ['DbSet', (db: ManyToManyContext, tag: Tag) => db.tags.detach(tag)],
+    ] as const)('cancels queued join rows when detached through the %s', async (
+        _label,
+        detach,
+    ) => {
         const connection = new RecordingDatabaseConnection();
         const db =  ManyToManyContext.createWith(connection);
         const post = createPost();
@@ -59,19 +66,10 @@ describe('many-to-many link validation', () => {
         db.posts.attach(post);
         db.tags.attach(tag);
         db.link(post, p => p.tags, tag);
-        db.changeTracker.detach(tag);
+        expect(detach(db, tag)).toBeDefined();
 
-        await expect(db.saveChanges()).rejects.toMatchObject({
-            name: 'DbValidationError',
-            message: 'Cannot link many-to-many relationship \'Post.tags\' because the target entity \'Tag\' with key \'tag_1\' is not tracked by this DbContext.',
-            details: {
-                action: 'link',
-                relationship: 'Post.tags',
-                side: 'target',
-                entity: 'Tag',
-                keyValue: 'tag_1',
-            },
-        });
+        expect(db.getSavePlan()).toEqual([]);
+        await expect(db.saveChanges()).resolves.toBe(0);
         expect(post.tags).toEqual([tag]);
         expect(connection.statements).toEqual([]);
         expect(connection.transactionEvents).toEqual([]);
