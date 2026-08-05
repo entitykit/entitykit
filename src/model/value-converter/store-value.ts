@@ -6,6 +6,7 @@ import type { PropertyMetadata } from '../property-metadata';
 export function toProviderValue<TProperty>(
     value: TProperty,
     converter?: ValueConverter<TProperty>,
+    context?: string,
 ): unknown {
     if (value === null || value === undefined || !converter) {
         return value;
@@ -14,7 +15,7 @@ export function toProviderValue<TProperty>(
     const converted = converter.toProvider(value);
     assertSynchronousCallbackResult(
         converted,
-        'ValueConverter.toProvider()',
+        converterOperation('toProvider', context),
         message => new TypeError(message),
     );
     return converted;
@@ -26,7 +27,7 @@ export function toStoreValue<TProperty>(
     converter?: ValueConverter<TProperty>,
     context = 'mapped JSON property',
 ): unknown {
-    const converted = toProviderValue(value, converter);
+    const converted = toProviderValue(value, converter, context);
     if (converted === null || converted === undefined) {
         return converted;
     }
@@ -57,6 +58,7 @@ export function toBoundPropertyValue(
 export function fromProviderValue<TProperty>(
     value: unknown,
     converter?: ValueConverter<TProperty>,
+    context?: string,
 ): unknown {
     if (value === null || value === undefined || !converter) {
         return value;
@@ -65,8 +67,17 @@ export function fromProviderValue<TProperty>(
     const converted = converter.fromProvider(value);
     assertSynchronousCallbackResult(
         converted,
-        'ValueConverter.fromProvider()',
+        converterOperation('fromProvider', context),
         message => new TypeError(message),
     );
     return converted;
+}
+
+function converterOperation(
+    direction: 'toProvider' | 'fromProvider',
+    context?: string,
+): string {
+    return context
+        ? `Value converter for '${context}' ${direction}()`
+        : `ValueConverter.${direction}()`;
 }

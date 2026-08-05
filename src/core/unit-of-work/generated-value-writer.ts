@@ -39,8 +39,14 @@ export function writeGeneratedValue(
     mutations: SaveTimeMutationLog,
     valueReader?: StoreValueReader,
     metadata?: EntityMetadata,
+    entityName = metadata?.entityName,
 ): unknown {
-    const value = readStoreValue(storeValue, property, valueReader);
+    const value = readStoreValue(
+        storeValue,
+        property,
+        valueReader,
+        entityName,
+    );
     if (metadata && value !== null && value !== undefined) {
         ensureComplexPropertyPath(
             metadata,

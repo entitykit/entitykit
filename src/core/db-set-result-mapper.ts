@@ -34,14 +34,16 @@ export class DbSetResultMapper<TEntity extends object> {
             model,
             rows,
             (sourceAlias, propertyName, value) => {
-                const property = this.projectionMetadataFor(
+                const source = this.projectionMetadataFor(
                     model,
                     sourceAlias,
-                ).getProperty(propertyName);
+                );
+                const property = source.getProperty(propertyName);
                 return readStoreValue(
                     value,
                     property,
                     this.context.valueReader,
+                    source.entityName,
                 );
             },
         );
@@ -68,8 +70,11 @@ export class DbSetResultMapper<TEntity extends object> {
                 continue;
             }
 
-            const property = this.projectionMetadataFor(model, item.sourceAlias).getProperty(item.propertyName);
-            output[item.alias] = readStoreValue(row[item.alias], property, this.context.valueReader);
+            const source = this.projectionMetadataFor(model, item.sourceAlias);
+            const property = source.getProperty(item.propertyName);
+            output[item.alias] = readStoreValue(
+                row[item.alias], property, this.context.valueReader, source.entityName,
+            );
         }
 
         for (const item of model.aggregateProjection ?? []) {
@@ -98,8 +103,11 @@ export class DbSetResultMapper<TEntity extends object> {
                 continue;
             }
 
-            const property = this.projectionMetadataFor(model, item.sourceAlias).getProperty(item.propertyName);
-            output[item.alias] = readStoreValue(value, property, this.context.valueReader);
+            const source = this.projectionMetadataFor(model, item.sourceAlias);
+            const property = source.getProperty(item.propertyName);
+            output[item.alias] = readStoreValue(
+                value, property, this.context.valueReader, source.entityName,
+            );
         }
         return output;
     }

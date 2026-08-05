@@ -29,6 +29,8 @@ export function applyGeneratedInsertIdentity(
         insertId,
         mutations,
         valueReader,
+        undefined,
+        entry.entityName,
     );
     recorder.record(entry.entity, [{
         propertyName: property.propertyName,

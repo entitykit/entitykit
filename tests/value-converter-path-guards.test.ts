@@ -114,13 +114,13 @@ describe('value converter path guards', () => {
     it('guards primary-key and foreign-key conversion', () => {
         id.toAsync = true;
         expect(() => modification.buildDelete(metadata, record())).toThrow(
-            'ValueConverter.toProvider() must be synchronous',
+            'Value converter for \'ConverterRecord.id\' toProvider()',
         );
 
         id.toAsync = false;
         parentId.toAsync = true;
         expect(() => modification.buildInsert(metadata, record())).toThrow(
-            'ValueConverter.toProvider() must be synchronous',
+            'Value converter for \'ConverterRecord.parentId\' toProvider()',
         );
     });
 
@@ -133,7 +133,7 @@ describe('value converter path guards', () => {
         code.toAsync = true;
 
         expect(() => new SelectSqlBuilder().build(metadata, query)).toThrow(
-            'ValueConverter.toProvider() must be synchronous',
+            'Value converter for \'ConverterRecord.code\' toProvider()',
         );
     });
 
@@ -145,7 +145,7 @@ describe('value converter path guards', () => {
             record(),
             ['code'],
             { version: 'v1' },
-        )).toThrow('ValueConverter.toProvider() must be synchronous');
+        )).toThrow('Value converter for \'ConverterRecord.version\' toProvider()');
     });
 
     it('guards bulk-update and upsert conversion', () => {
@@ -154,12 +154,12 @@ describe('value converter path guards', () => {
         expect(() => modification.buildBulkUpdate(metadata, {
             values: { code: 'archived' },
             predicate: proxy.id.eq('record_1').node,
-        })).toThrow('ValueConverter.toProvider() must be synchronous');
+        })).toThrow('Value converter for \'ConverterRecord.code\' toProvider()');
 
         code.toAsync = false;
         parentId.toAsync = true;
         expect(() => modification.buildUpsertBatch(metadata, [record()]))
-            .toThrow('ValueConverter.toProvider() must be synchronous');
+            .toThrow('Value converter for \'ConverterRecord.parentId\' toProvider()');
     });
 
     it('guards generated-value conversion before mutating the entity', () => {
@@ -171,7 +171,9 @@ describe('value converter path guards', () => {
             metadata.getProperty('generated'),
             'generated:database',
             new SaveTimeMutationLog(),
-        )).toThrow('ValueConverter.fromProvider() must be synchronous');
+            undefined,
+            metadata as unknown as EntityMetadata,
+        )).toThrow('Value converter for \'ConverterRecord.generated\' fromProvider()');
         expect(entity.generated).toBe('server');
     });
 });

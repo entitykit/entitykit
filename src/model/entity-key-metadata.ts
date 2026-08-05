@@ -59,7 +59,9 @@ export class EntityKeyMetadata<TEntity extends object> {
         valueReader?: StoreValueReader,
     ): unknown[] {
         return this.keyPropertiesMetadata.map(property =>
-            readStoreValue(row[property.columnName], property, valueReader),
+            readStoreValue(
+                row[property.columnName], property, valueReader, this.entityName,
+            ),
         );
     }
 
@@ -71,6 +73,7 @@ export class EntityKeyMetadata<TEntity extends object> {
             value,
             this.keyPropertyMetadata,
             valueReader,
+            this.entityName,
         );
     }
 

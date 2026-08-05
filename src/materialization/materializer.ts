@@ -62,7 +62,9 @@ export class Materializer {
     ): { entity: TEntity; originalValues: Record<string, unknown> } {
         const originalValues: Record<string, unknown> = {};
         for (const property of metadata.properties) {
-            const value = readStoreValue(row[property.columnName], property, this.valueReader);
+            const value = readStoreValue(
+                row[property.columnName], property, this.valueReader, metadata.entityName,
+            );
             originalValues[property.propertyName] = value;
         }
         let entity: TEntity;

@@ -71,5 +71,6 @@ export function readKeyColumn(
         value,
         metadata.keyPropertiesMetadata[columnIndex],
         valueReader,
+        metadata.entityName,
     );
 }

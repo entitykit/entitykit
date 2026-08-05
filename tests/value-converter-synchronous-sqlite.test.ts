@@ -99,7 +99,7 @@ describe('value converter synchronous contract against SQLite', () => {
             writeMode = mode;
 
             await expect(db.saveChanges()).rejects.toThrow(
-                'ValueConverter.toProvider() must be synchronous',
+                'Value converter for \'ConvertedRecord.secret\' toProvider() must be synchronous',
             );
             await new Promise<void>(resolve => setImmediate(resolve));
 
@@ -132,7 +132,7 @@ describe('value converter synchronous contract against SQLite', () => {
             readMode = mode;
 
             await expect(db.records.toArray()).rejects.toThrow(
-                'ValueConverter.fromProvider() must be synchronous',
+                'Value converter for \'ConvertedRecord.secret\' fromProvider() must be synchronous',
             );
             await new Promise<void>(resolve => setImmediate(resolve));
 

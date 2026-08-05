@@ -31,6 +31,7 @@ export interface StoreValueReader {
 
 /** The mapped-property fields needed to read a stored value. */
 export interface StoreValueProperty {
+    readonly propertyName?: string;
     readonly columnType: string;
     readonly converter?: unknown;
 }
@@ -41,7 +42,12 @@ export interface StoreValueProperty {
  * This is the single place row values become entity/projection values, so every
  * read path — materialization, projections, and aggregates — stays consistent.
  */
-export function readStoreValue(value: unknown, property: StoreValueProperty, reader?: StoreValueReader): unknown {
+export function readStoreValue(
+    value: unknown,
+    property: StoreValueProperty,
+    reader?: StoreValueReader,
+    entityName?: string,
+): unknown {
     let stored = value;
     if (reader && value !== null && value !== undefined) {
         stored = reader.readValue(value, property.columnType);
@@ -52,5 +58,14 @@ export function readStoreValue(value: unknown, property: StoreValueProperty, rea
         );
     }
 
-    return fromProviderValue(stored, property.converter as ValueConverter | undefined);
+    const context = property.propertyName === undefined
+        ? undefined
+        : entityName
+            ? `${entityName}.${property.propertyName}`
+            : property.propertyName;
+    return fromProviderValue(
+        stored,
+        property.converter as ValueConverter | undefined,
+        context,
+    );
 }
