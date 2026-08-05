@@ -21,6 +21,7 @@ export class UnitOfWorkSaver {
             () => deps.getOptions().dialect,
             () => deps.getOptions().valueReader,
             deps.changeTracker,
+            deps.navigationLoader,
         );
         this.lifecycle = new SaveLifecycle(
             deps.getOptions,

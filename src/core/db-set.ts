@@ -6,7 +6,9 @@ import { Queryable } from '../query/queryable';
 import { UnsafeRawSqlQueryable } from '../query/unsafe-raw-sql-queryable';
 import { EntityState } from '../tracking/entity-state';
 import { buildRawSql } from '../sql/raw-sql';
-import type { EntityEntry } from '../tracking/entity-entry';
+import type { EntityEntry as InternalEntityEntry } from '../tracking/entity-entry';
+import type { EntityEntry } from '../tracking/entity-entry-types';
+import { publicEntityEntry } from '../tracking/public-entity-entry';
 import { DbSetQueryBuilder } from './db-set-query-builder';
 import { DbSetDiagnostics } from './db-set-diagnostics';
 import { DbSetBulkWriter } from './db-set-bulk-writer';
@@ -66,7 +68,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
             allowsCrossTenantAccess,
         );
 
-        let entry: EntityEntry<TEntity>;
+        let entry: InternalEntityEntry<TEntity>;
         try {
             entry = this.context.changeTracker.track(
                 entity,
@@ -77,30 +79,43 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
             rollbackTenant();
             throw error;
         }
-        return entry.useNavigationLoader(this.context);
+        return publicEntityEntry(entry, this.context);
     }
 
     /** Start tracking an existing entity as `Unchanged`. */
     public attach(entity: TEntity): EntityEntry<TEntity> {
         this.metadata.assertWritable('attach()');
-        return this.context.changeTracker.track(entity, this.metadata, EntityState.Unchanged).useNavigationLoader(this.context);
+        return publicEntityEntry(
+            this.context.changeTracker.track(
+                entity,
+                this.metadata,
+                EntityState.Unchanged,
+            ),
+            this.context,
+        );
     }
 
     /** Mark an entity as deleted, or cancel it when it was just added. */
     public remove(entity: TEntity): EntityEntry<TEntity> {
         this.metadata.assertWritable('remove()');
-        const entry = this.context.changeTracker.entry(entity) ?? this.attach(entity);
+        const entry = this.context.changeTracker.entry(entity) ??
+            this.context.changeTracker.track(
+                entity,
+                this.metadata,
+                EntityState.Unchanged,
+            );
         if (entry.state === EntityState.Added) {
             this.cancelAddedEntity(entity);
-            return entry.useNavigationLoader(this.context);
+            return publicEntityEntry(entry, this.context);
         }
         entry.markDeleted();
-        return entry.useNavigationLoader(this.context);
+        return publicEntityEntry(entry, this.context);
     }
 
     /** Stop tracking an entity instance. */
     public detach(entity: TEntity): EntityEntry<TEntity> | undefined {
-        return this.context.changeTracker.detach(entity);
+        const entry = this.context.changeTracker.detach(entity);
+        return entry ? publicEntityEntry(entry, this.context) : undefined;
     }
 
     /**

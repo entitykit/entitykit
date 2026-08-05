@@ -5,6 +5,7 @@ import type { ManyToManyChangeSet } from '../many-to-many-change-set';
 import type { OutboxEventTracker } from '../outbox-event-tracker';
 import type { SaveTimeWrites } from '../save-time-writes';
 import type { TransactionCoordinator } from '../transaction-coordinator';
+import type { EntityNavigationLoader } from '../../tracking/navigation-entry';
 
 export interface UnitOfWorkSaverDeps {
     readonly changeTracker: ChangeTracker;
@@ -12,6 +13,7 @@ export interface UnitOfWorkSaverDeps {
     readonly manyToMany: ManyToManyChangeSet;
     readonly outboxEvents: OutboxEventTracker;
     readonly transactionCoordinator: TransactionCoordinator;
+    readonly navigationLoader: EntityNavigationLoader;
     readonly getDatabase: () => DatabaseConnection;
     readonly getOptions: () => DbContextOptions;
 }

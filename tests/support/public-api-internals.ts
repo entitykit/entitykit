@@ -6,6 +6,12 @@ import type { ChangeTracker as ChangeTrackerImplementation } from '../../src/tra
 import type { ChangeTracker } from '../../src/tracking/change-tracker-types';
 import type { EntityEntry as EntityEntryImplementation } from '../../src/tracking/entity-entry';
 import type { EntityEntry } from '../../src/tracking/entity-entry-types';
+import {
+    internalChangeTracker as unwrapChangeTracker,
+} from '../../src/tracking/public-change-tracker';
+import {
+    internalEntityEntry as unwrapEntityEntry,
+} from '../../src/tracking/public-entity-entry';
 
 /** Test-only access to metadata intentionally hidden from the application API. */
 export function setMetadata<TEntity extends object>(set: DbSet<TEntity>): EntityMetadata<TEntity> {
@@ -26,14 +32,14 @@ export function contextModel(context: object): Model {
 
 /** Test-only access to identity-map operations hidden from applications. */
 export function internalChangeTracker(tracker: ChangeTracker): ChangeTrackerImplementation {
-    return tracker as ChangeTrackerImplementation;
+    return unwrapChangeTracker(tracker);
 }
 
 /** Test-only access to tracked-entry bookkeeping hidden from applications. */
 export function internalEntityEntry<TEntity extends object>(
     entry: EntityEntry<TEntity>,
 ): EntityEntryImplementation<TEntity> {
-    return entry as EntityEntryImplementation<TEntity>;
+    return unwrapEntityEntry(entry);
 }
 
 function contextHost(context: object): {

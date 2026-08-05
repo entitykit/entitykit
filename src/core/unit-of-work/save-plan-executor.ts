@@ -4,6 +4,8 @@ import type { SqlDialect } from '../../sql/sql-dialect';
 import type { ChangeTracker } from '../../tracking/change-tracker';
 import { DbUpdateConcurrencyError } from '../db-update-concurrency-error';
 import type { SavePlanEntry } from '../save-plan';
+import { publicEntityEntry } from '../../tracking/public-entity-entry';
+import type { EntityNavigationLoader } from '../../tracking/navigation-entry';
 import { savePlanExecution } from '../save-plan-execution';
 import { GeneratedValueHydrator } from './generated-value-hydrator';
 import { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
@@ -17,6 +19,7 @@ export class SavePlanExecutor {
         private readonly getDialect: () => SqlDialect,
         private readonly getValueReader: () => StoreValueReader | undefined,
         private readonly changeTracker: ChangeTracker,
+        private readonly navigationLoader: EntityNavigationLoader,
     ) {}
 
     private get database(): DatabaseConnection {
@@ -73,6 +76,7 @@ export class SavePlanExecutor {
                         entry,
                         result.rowCount,
                         this.changeTracker,
+                        this.navigationLoader,
                     );
                 }
                 await this.generatedValues?.hydrate(
@@ -120,6 +124,7 @@ function ensureAffectedRows(
     entry: SavePlanEntry,
     rowCount: number,
     changeTracker: ChangeTracker,
+    navigationLoader: EntityNavigationLoader,
 ): void {
     if (rowCount !== (entry.expectedAffectedRows ?? 1)) {
         throw new DbUpdateConcurrencyError(
@@ -127,7 +132,20 @@ function ensureAffectedRows(
             entry.keyValue,
             entry.state,
             rowCount,
-            changeTracker.entry(entry.entity),
+            publicConcurrencyEntry(
+                changeTracker,
+                navigationLoader,
+                entry.entity,
+            ),
         );
     }
+}
+
+function publicConcurrencyEntry(
+    changeTracker: ChangeTracker,
+    navigationLoader: EntityNavigationLoader,
+    entity: object,
+): ReturnType<typeof publicEntityEntry> | undefined {
+    const entry = changeTracker.entry(entity);
+    return entry ? publicEntityEntry(entry, navigationLoader) : undefined;
 }

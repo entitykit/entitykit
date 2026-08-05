@@ -38,6 +38,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         manyToMany: this.manyToMany,
         outboxEvents: this.outboxEvents,
         transactionCoordinator: this.transactionCoordinator,
+        navigationLoader: this,
         getDatabase: () => this.databaseConnection,
         getOptions: () => this.options,
     });

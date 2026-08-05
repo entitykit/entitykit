@@ -11,6 +11,7 @@ import type { EntityConstructor } from '../types';
 import type { DbSet } from './db-set-types';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
+import { DbContextPublicTracking } from './db-context-public-tracking';
 
 export type { RelationshipSavePlanPair, SavePlanEntry } from './save-plan';
 
@@ -26,6 +27,7 @@ export type { RelationshipSavePlanPair, SavePlanEntry } from './save-plan';
  */
 export abstract class DbContext {
     private readonly contextHost: DbContextHost;
+    private readonly publicTracking: DbContextPublicTracking;
     private databaseFacade?: DatabaseFacade;
 
     constructor() {
@@ -33,6 +35,7 @@ export abstract class DbContext {
             options => this.configure(options),
             model => this.model(model),
         );
+        this.publicTracking = new DbContextPublicTracking(this.contextHost);
         registerContextMigrationHost(this, this.contextHost);
     }
     /** Create and initialize a context; setup runs here because constructors stay synchronous. */
@@ -56,7 +59,7 @@ export abstract class DbContext {
     }
     /** Inspect and manage entities tracked by this context. */
     public get changeTracker(): ChangeTracker {
-        return this.contextHost.changeTracker;
+        return this.publicTracking.changeTracker;
     }
     /** High-level database operations and the explicit connection escape hatch. */
     public get database(): DatabaseFacade {
@@ -74,14 +77,17 @@ export abstract class DbContext {
     public entry<TEntity extends object>(
         entity: TEntity,
     ): EntityEntry<TEntity> | undefined {
-        return this.contextHost.entry(entity);
+        return this.publicTracking.entry(entity);
     }
     /** Explicitly load one configured navigation for a tracked entity. */
     public async loadNavigation<TEntity extends object>(
         entry: EntityEntry<TEntity>,
         navigationProperty: string,
     ): Promise<unknown> {
-        return this.contextHost.loadNavigation(entry as never, navigationProperty);
+        return this.contextHost.loadNavigation(
+            this.publicTracking.internalEntry(entry),
+            navigationProperty,
+        );
     }
     /** Persist tracked changes and return the affected row count. */
     public async saveChanges(options?: DatabaseOperationOptions): Promise<number> {
