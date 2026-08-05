@@ -3,19 +3,20 @@ import type {
     OutboxEventBatch,
     OutboxEventTracker,
 } from '../outbox-event-tracker';
-import type { PersistedValueLookup } from '../save-plan-execution';
 import type { EntityEntry } from '../../tracking/entity-entry';
-import { cloneSnapshotValue } from '../../tracking/entity-entry';
 import {
     readSynchronousDate,
     readSynchronousValue,
     assertValidDate,
 } from '../../synchronous-value';
 import {
-    normalizeJsonValue,
     serializeJsonValue,
-    type JsonPrimitive,
 } from '../../json-value';
+import {
+    captureAggregateId,
+    formatExplicitAggregateId,
+    type PendingAggregateId,
+} from './outbox-aggregate-id';
 
 export interface PendingOutboxMessage {
     readonly entity: object;
@@ -26,7 +27,7 @@ export interface PendingOutboxMessage {
     readonly serializedPayload: string;
     readonly hasExplicitAggregateId: boolean;
     readonly aggregateId: unknown;
-    readonly aggregateKeyValues: readonly unknown[];
+    readonly pendingAggregateId?: PendingAggregateId;
     readonly occurredAt: Date;
 }
 
@@ -71,15 +72,13 @@ export function collectPendingOutboxMessages(
                 hasExplicitAggregateId: event.aggregateId !== undefined,
                 aggregateId: event.aggregateId === undefined
                     ? undefined
-                    : normalizeAggregateId(
+                    : formatExplicitAggregateId(
                         event.aggregateId,
                         outboxValuePath(event, 'aggregateId'),
                     ),
-                aggregateKeyValues: entry.metadata.keyProperties.map(
-                    propertyName => cloneSnapshotValue(
-                        entry.currentValues()[propertyName],
-                    ),
-                ),
+                pendingAggregateId: event.aggregateId === undefined
+                    ? captureAggregateId(entry)
+                    : undefined,
                 occurredAt: outboxOccurredAt(event, options),
             });
         }
@@ -101,16 +100,6 @@ function outboxOccurredAt(
     return new Date(value.getTime());
 }
 
-export function normalizeAggregateId(
-    value: unknown,
-    path: string,
-): JsonPrimitive {
-    const normalized = normalizeJsonValue(value, path);
-    return typeof normalized === 'object' && normalized !== null
-        ? JSON.stringify(normalized)
-        : normalized;
-}
-
 function outboxValuePath(
     event: OutboxMessage,
     field: 'payload' | 'aggregateId',
@@ -128,16 +117,4 @@ export function outboxEventBatches(
         eventsByEntity.set(message.entity, events);
     }
     return [...eventsByEntity].map(([entity, events]) => ({ entity, events }));
-}
-
-export function persistedAggregateId(
-    message: PendingOutboxMessage,
-    persistedValue?: PersistedValueLookup,
-): unknown {
-    const keyValues = message.entry.metadata.keyProperties.map(
-        (propertyName, index) =>
-            persistedValue?.(message.entity, propertyName)?.persistedValue ??
-                message.aggregateKeyValues[index],
-    );
-    return keyValues.length === 1 ? keyValues[0] : keyValues;
 }

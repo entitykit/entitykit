@@ -14,10 +14,9 @@ import { maxParameterBatchSize } from './parameter-batch-size';
 import {
     collectPendingOutboxMessages,
     outboxEventBatches,
-    persistedAggregateId,
-    normalizeAggregateId,
     type PendingOutboxMessage,
 } from './outbox-message';
+import { formatPendingAggregateId } from './outbox-aggregate-id';
 
 interface OutboxPlanOptions {
     readonly sql: ModificationSqlBuilder;
@@ -100,16 +99,14 @@ function buildOutboxPlanEntry(
         messages: entryOptions.messages.map(message => {
             const aggregateId = message.hasExplicitAggregateId
                 ? message.aggregateId
-                : persistedAggregateId(message, persistedValue);
+                : formatPendingAggregateId(
+                    requirePendingAggregateId(message),
+                    persistedValue,
+                );
             return {
                 type: message.type,
                 serializedPayload: message.serializedPayload,
-                aggregateId: aggregateId === undefined
-                    ? undefined
-                    : normalizeAggregateId(
-                        aggregateId,
-                        `Outbox event "${message.type}" aggregateId`,
-                    ),
+                aggregateId,
                 occurredAt: new Date(message.occurredAt.getTime()),
             };
         }),
@@ -127,4 +124,13 @@ function buildOutboxPlanEntry(
     };
     registerSavePlanExecution(planEntry, { buildStatement });
     return planEntry;
+}
+
+function requirePendingAggregateId(
+    message: PendingOutboxMessage,
+): NonNullable<PendingOutboxMessage['pendingAggregateId']> {
+    if (!message.pendingAggregateId) {
+        throw new Error('Automatic outbox aggregate identity metadata is missing.');
+    }
+    return message.pendingAggregateId;
 }

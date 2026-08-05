@@ -13,7 +13,7 @@ import type { RecordingDatabaseConnection } from '../../src/testing';
 export interface DomainEvent {
     type: string;
     payload: JsonValue;
-    aggregateId?: JsonValue;
+    aggregateId?: unknown;
 }
 
 export class OutboxUser {

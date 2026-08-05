@@ -4,7 +4,8 @@ import type { JsonValue } from '../json-value';
 export interface OutboxMessage {
     /** The type. */ readonly type: string;
     /** The payload. */ readonly payload: JsonValue;
-    /** The aggregate id. */ readonly aggregateId?: JsonValue;
+    /** Optional identity override; mapped entity keys are used when omitted. */
+    readonly aggregateId?: unknown;
     /** The occurred at. */ readonly occurredAt?: Date;
 }
 
