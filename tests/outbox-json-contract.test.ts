@@ -35,6 +35,60 @@ async function expectPreSqlFailure(
 }
 
 describe('outbox JSON contract', () => {
+    it('captures every event envelope field exactly once', async () => {
+        const reads = {
+            type: 0,
+            payload: 0,
+            aggregateId: 0,
+            occurredAt: 0,
+        };
+        const occurredAt = new Date('2026-08-05T12:34:56.000Z');
+        const event = {
+            get type(): string {
+                reads.type += 1;
+                return reads.type === 1 ? 'Captured' : 'WrongType';
+            },
+            get payload(): { source: string } {
+                reads.payload += 1;
+                return {
+                    source: reads.payload === 1 ? 'captured' : 'wrong',
+                };
+            },
+            get aggregateId(): string | undefined {
+                reads.aggregateId += 1;
+                return reads.aggregateId === 1 ? undefined : 'wrong-id';
+            },
+            get occurredAt(): Date {
+                reads.occurredAt += 1;
+                return reads.occurredAt === 1
+                    ? occurredAt
+                    : new Date(Number.NaN);
+            },
+        };
+        const connection = new RecordingDatabaseConnection();
+        const db = OutboxContext.createWith(connection);
+        const user = createOutboxUser([event]);
+        db.users.add(user);
+        connection.queueResult({ rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.saveChanges()).resolves.toBe(1);
+
+        expect(reads).toEqual({
+            type: 1,
+            payload: 1,
+            aggregateId: 1,
+            occurredAt: 1,
+        });
+        expect(connection.statements[1]?.values).toEqual([
+            'Captured',
+            '{"source":"captured"}',
+            'usr_1',
+            occurredAt,
+        ]);
+        expect(user.domainEvents).toEqual([]);
+    });
+
     it.each([
         ['Promise payload', invalidEvent(Promise.resolve({ ok: true }))],
         ['nested Promise', invalidEvent({ nested: Promise.resolve(true) })],
