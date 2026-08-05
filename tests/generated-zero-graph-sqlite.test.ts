@@ -111,4 +111,42 @@ describe('generated numeric zero graph keys', () => {
         expect(stored.rows).toEqual([{ parent_id: 0 }]);
         await db.dispose();
     });
+
+    it('keeps repeated zero placeholders associated with their own principals', async () => {
+        const db = GeneratedZeroGraphContext.create();
+        await db.database.connection.query({
+            text: db.database.createScript(),
+            values: [],
+        });
+        const firstParent = Object.assign(new ZeroParent(), { name: 'first' });
+        const secondParent = Object.assign(new ZeroParent(), { name: 'second' });
+        const firstChild = Object.assign(new ZeroChild(), {
+            id: 'first-child', parent: firstParent,
+        });
+        const secondChild = Object.assign(new ZeroChild(), {
+            id: 'second-child', parent: secondParent,
+        });
+        db.children.add(firstChild);
+        db.children.add(secondChild);
+        db.parents.add(firstParent);
+        db.parents.add(secondParent);
+
+        await expect(db.saveChanges()).resolves.toBe(4);
+
+        expect(firstChild.parentId).toBe(firstParent.id);
+        expect(secondChild.parentId).toBe(secondParent.id);
+        expect(firstParent.id).not.toBe(secondParent.id);
+        const rows = await db.database.connection.query<{
+            id: string;
+            parent_id: number;
+        }>({
+            text: 'select id, parent_id from zero_children order by id',
+            values: [],
+        });
+        expect(rows.rows).toEqual([
+            { id: 'first-child', parent_id: firstParent.id },
+            { id: 'second-child', parent_id: secondParent.id },
+        ]);
+        await db.dispose();
+    });
 });
