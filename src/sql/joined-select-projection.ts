@@ -7,7 +7,7 @@ import {
     normalizeSourceAlias,
 } from './select-sql-helpers';
 import { projectionColumnSql } from './projection-expression-sql';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 export function buildJoinedSelectColumns<TEntity extends object>(
     dialect: SqlDialect,
@@ -30,9 +30,10 @@ export function buildJoinedSelectColumns<TEntity extends object>(
                 const alias = normalizeSourceAlias(sourceAlias);
                 const source = metadataForSource(sourceMetadata, alias);
                 const property = source.getProperty(propertyName);
-                return toProviderValue(
+                return toBoundPropertyValue(
                     value,
-                    property.converter as never,
+                    property,
+                    source.entityName,
                 );
             },
         ))

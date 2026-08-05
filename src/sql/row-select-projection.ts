@@ -4,7 +4,7 @@ import type { SelectFragmentHost } from './select-fragment-host';
 import type { SqlDialect } from './sql-dialect';
 import type { SqlParameterBag } from './sql-statement';
 import { projectionColumnSql } from './projection-expression-sql';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 export function buildRowSelectColumns<TEntity extends object>(
     dialect: SqlDialect,
@@ -28,9 +28,10 @@ export function buildRowSelectColumns<TEntity extends object>(
                 },
                 (_sourceAlias, propertyName, value) => {
                     const property = metadata.getProperty(propertyName);
-                    return toProviderValue(
+                    return toBoundPropertyValue(
                         value,
-                        property.converter as never,
+                        property,
+                        metadata.entityName,
                     );
                 },
             ))

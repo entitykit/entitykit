@@ -1,11 +1,21 @@
 import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
 import type { EntityMetadata } from '../src/model/entity-metadata';
-import { createQueryModel, createQueryProxy } from '../src/experimental';
+import type { JsonValue } from '../src';
+import {
+    createProjectionBuilder,
+    createProjectionExpression,
+    createProjectionProxy,
+    createQueryModel,
+    createQueryProxy,
+    Queryable,
+    type QueryExecutor,
+} from '../src/experimental';
 import { SelectSqlBuilder } from '../src/sql/select-sql-builder';
 
 class JsonDocument {
     public id!: string;
-    public data!: unknown;
+    public data!: JsonValue | null;
+    public label!: string | null;
 }
 
 function createMetadata(): EntityMetadata<JsonDocument> {
@@ -17,6 +27,8 @@ function createMetadata(): EntityMetadata<JsonDocument> {
             .hasColumnName('id').hasColumnType('text').isRequired();
         entity.property(document => document.data)
             .hasColumnName('data').hasColumnType('jsonb');
+        entity.property(document => document.label)
+            .hasColumnName('label').hasColumnType('jsonb');
     });
     return model.build().getEntity(JsonDocument);
 }
@@ -68,5 +80,42 @@ describe('JSON query parameter binding', () => {
         expect(second.text).toBe(first.text);
         expect(first.values).toEqual(['"first"']);
         expect(second.values).toEqual(['"second"']);
+    });
+
+    it('normalizes a coalesce fallback on initial and cached compilation', () => {
+        const builder = new SelectSqlBuilder();
+        const projection = (
+            fallback: string,
+        ): ReturnType<typeof createProjectionExpression> => {
+            const sql = createProjectionBuilder();
+            const fields = createProjectionProxy<JsonDocument>();
+            return createProjectionExpression({
+                data: sql.coalesce(fields.label, sql.literal(fallback)),
+            });
+        };
+        const first = builder.build(metadata, {
+            ...createQueryModel(JsonDocument),
+            projection: projection('first'),
+        });
+        const second = builder.build(metadata, {
+            ...createQueryModel(JsonDocument),
+            projection: projection('second'),
+        });
+
+        expect(second.text).toBe(first.text);
+        expect(first.values).toEqual(['"first"']);
+        expect(second.values).toEqual(['"second"']);
+    });
+
+    it('normalizes group-key values in having predicates', () => {
+        const query = new Queryable(
+            metadata,
+            {} as QueryExecutor<JsonDocument>,
+        )
+            .groupBy(item => ({ data: item.data }))
+            .having(group => group.key.data.eq({ status: 'active' }))
+            .select(group => ({ data: group.key.data, count: group.count() }));
+
+        expect(query.toSql().values).toEqual(['{"status":"active"}']);
     });
 });

@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../../model/entity-metadata';
 import {
-    toProviderValue,
+    toBoundPropertyValue,
 } from '../../model/value-converter/store-value';
 import type {
     GroupKeyExpression,
@@ -58,15 +58,19 @@ export class AggregateExpressionRenderer {
                 return value;
             }
 
-            const property = this.metadataForSource(metadata, operand.sourceAlias, sourceMetadata)
-                .getProperty(operand.propertyName);
-            return toProviderValue(value, property.converter as never);
+            const source = this.metadataForSource(
+                metadata, operand.sourceAlias, sourceMetadata,
+            );
+            const property = source.getProperty(operand.propertyName);
+            return toBoundPropertyValue(value, property, source.entityName);
         }
 
         if (operand.function === 'min' || operand.function === 'max') {
-            const property = this.metadataForSource(metadata, operand.sourceAlias, sourceMetadata)
-                .getProperty(operand.propertyName as never);
-            return toProviderValue(value, property.converter as never);
+            const source = this.metadataForSource(
+                metadata, operand.sourceAlias, sourceMetadata,
+            );
+            const property = source.getProperty(operand.propertyName as never);
+            return toBoundPropertyValue(value, property, source.entityName);
         }
 
         return value;
