@@ -1,4 +1,5 @@
 import { postgresDialect, type SqlDialect } from './sql-dialect';
+import { isPromiseLike } from '../promise-like';
 
 /** Public contract for sql statement. */ export interface SqlStatement {
     /** The text. */ readonly text: string;
@@ -16,6 +17,12 @@ export class SqlParameterBag {
     }
 
     public add(value: unknown): string {
+        if (isPromiseLike(value)) {
+            void Promise.resolve(value).catch(() => undefined);
+            throw new TypeError(
+                'SQL parameters cannot be Promises. Await the value before constructing the query.',
+            );
+        }
         this.parameterValues.push(value);
 
         // Every statement EntityKit builds passes through here, so one check
