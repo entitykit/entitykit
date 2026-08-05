@@ -181,3 +181,99 @@ describe('converted bigint many-to-many save plans', () => {
         expect(db.getSavePlan()[0]?.statement.values).toEqual([10n, 20n]);
     });
 });
+
+class CompositePost {
+    public id!: bigint;
+    public tenantId!: string;
+    public title!: string;
+    public dateTags: DateTag[] = [];
+    public binaryTags: BinaryTag[] = [];
+}
+
+class DateTag {
+    public id!: Date;
+    public posts: CompositePost[] = [];
+}
+
+class BinaryTag {
+    public id!: Uint8Array;
+    public posts: CompositePost[] = [];
+}
+
+class RichKeyManyToManyContext extends DbContext {
+    public posts = this.set(CompositePost);
+    public dateTags = this.set(DateTag);
+    public binaryTags = this.set(BinaryTag);
+
+    constructor(private readonly connection: RecordingDatabaseConnection) {
+        super();
+    }
+
+    protected override configure(options: DbContextOptionsBuilder): void {
+        options.useConnection(this.connection);
+    }
+
+    protected override model(model: ModelBuilder): void {
+        model.entity(CompositePost, entity => {
+            entity.toTable('composite_posts');
+            entity.hasKey(post => [post.id, post.tenantId]);
+            entity.property(post => post.id).hasColumnType('bigint').isRequired();
+            entity.property(post => post.tenantId).hasColumnType('text').isRequired();
+            entity.property(post => post.title).hasColumnType('text').isRequired();
+            entity.hasManyToMany(DateTag, post => post.dateTags)
+                .withMany(tag => tag.posts)
+                .usingJoinTable('post_date_tags', join => {
+                    join.sourceForeignKey(['post_id', 'tenant_id']);
+                    join.targetForeignKey('tag_id');
+                });
+            entity.hasManyToMany(BinaryTag, post => post.binaryTags)
+                .withMany(tag => tag.posts)
+                .usingJoinTable('post_binary_tags', join => {
+                    join.sourceForeignKey(['post_id', 'tenant_id']);
+                    join.targetForeignKey('tag_id');
+                });
+        });
+        model.entity(DateTag, entity => {
+            entity.toTable('date_tags');
+            entity.hasKey(tag => tag.id);
+            entity.property(tag => tag.id).hasColumnType('timestamp').isRequired();
+        });
+        model.entity(BinaryTag, entity => {
+            entity.toTable('binary_tags');
+            entity.hasKey(tag => tag.id);
+            entity.property(tag => tag.id).hasColumnType('blob').isRequired();
+        });
+    }
+}
+
+describe('rich many-to-many key save plans', () => {
+    it('persists composite bigint, date, and binary endpoint tuples', () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = RichKeyManyToManyContext.create(connection);
+        const post = Object.assign(new CompositePost(), {
+            id: 1n,
+            tenantId: 'tenant-a',
+            title: 'post',
+        });
+        const dateTag = Object.assign(new DateTag(), {
+            id: new Date('2026-08-05T12:34:56.000Z'),
+        });
+        const binaryTag = Object.assign(new BinaryTag(), {
+            id: new Uint8Array([0, 127, 255]),
+        });
+        db.posts.attach(post);
+        db.dateTags.attach(dateTag);
+        db.binaryTags.attach(binaryTag);
+
+        db.link(post, entity => entity.dateTags, dateTag);
+        db.link(post, entity => entity.binaryTags, binaryTag);
+
+        const plan = db.getSavePlan();
+        expect(plan.find(entry =>
+            entry.entityName === 'CompositePost.dateTags')?.statement.values)
+            .toEqual([1n, 'tenant-a', dateTag.id]);
+        expect(plan.find(entry =>
+            entry.entityName === 'CompositePost.binaryTags')?.statement.values)
+            .toEqual([1n, 'tenant-a', binaryTag.id]);
+    });
+});
