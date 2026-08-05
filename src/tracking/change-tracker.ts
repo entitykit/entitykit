@@ -38,6 +38,7 @@ export class ChangeTracker {
     );
     private onTracked?: (entity: object) => void;
     private onDetached?: (entity: object) => void;
+    private onAcceptedAll?: () => void;
 
     public observeTracked(observer: (entity: object) => void): void {
         this.onTracked = observer;
@@ -45,6 +46,10 @@ export class ChangeTracker {
 
     public observeDetached(observer: (entity: object) => void): void {
         this.onDetached = observer;
+    }
+
+    public observeAcceptedAll(observer: () => void): void {
+        this.onAcceptedAll = observer;
     }
 
     public track<TEntity extends object>(
@@ -111,6 +116,7 @@ export class ChangeTracker {
                 this.onDetached?.(entry.entity);
             }
         }
+        this.onAcceptedAll?.();
     }
 
     /** Accept only the entries and values represented by an executed plan. */

@@ -18,6 +18,9 @@ export abstract class DbContextRelationships extends DbContextRawSql {
         this.changeTracker.observeDetached(entity => {
             this.manyToMany.cancelFor(entity);
         });
+        this.changeTracker.observeAcceptedAll(() => {
+            this.manyToMany.clear();
+        });
     }
 
     public link<TEntity extends object, TTarget extends object>(
