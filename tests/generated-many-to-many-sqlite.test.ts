@@ -60,7 +60,7 @@ describe('generated many-to-many endpoint keys', () => {
 
         const preview = relationshipEntry(db.getSavePlan());
         expect(preview).toMatchObject({
-            affectedEntityCount: 2,
+            relationshipChangeCount: 2,
             isDeferred: true,
         });
         expect(preview.statement.text).toContain(
@@ -83,6 +83,7 @@ describe('generated many-to-many endpoint keys', () => {
         for (const plan of observedPlans) {
             const relationship = relationshipEntry(plan);
             expect(relationship.relationshipPairs).toHaveLength(2);
+            expect(relationship.relationshipChangeCount).toBe(2);
             expect(relationship.statement.values).toHaveLength(4);
             expect(relationship.isDeferred).toBe(true);
         }
