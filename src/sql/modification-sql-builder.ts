@@ -2,14 +2,12 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
 import type { SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
-import { UpdateSqlBuilder } from './update-sql-builder';
-import { DeleteSqlBuilder } from './delete-sql-builder';
 import { UpsertSqlBuilder } from './upsert-sql-builder';
 import type { PostgresUpdateSqlOptions, BulkUpdateSqlOptions } from './update-sql-builder';
 import type { PostgresDeleteSqlOptions, BulkDeleteSqlOptions } from './delete-sql-builder';
 import type { PostgresUpsertSqlOptions, UpsertSqlOptions } from './upsert-sql-builder';
 import type { ManyToManyEndpointKey } from './modification-sql-helpers';
-import { ModificationSqlOutboxBuilder } from './modification-sql-outbox-builder';
+import { ModificationSqlCapturedBuilder } from './modification-sql-captured-builder';
 
 // Keep the facade's historical operation types importable from this module.
 export type { PostgresUpdateSqlOptions, BulkUpdateSqlOptions } from './update-sql-builder';
@@ -18,15 +16,11 @@ export type { PostgresUpsertSqlOptions, UpsertSqlOptions } from './upsert-sql-bu
 export type { ManyToManyEndpointKey } from './modification-sql-helpers';
 
 /** Compatibility facade delegating DML to its per-verb builders. */
-export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
-    private readonly updateBuilder: UpdateSqlBuilder;
-    private readonly deleteBuilder: DeleteSqlBuilder;
+export class ModificationSqlBuilder extends ModificationSqlCapturedBuilder {
     private readonly upsertBuilder: UpsertSqlBuilder;
 
     constructor(dialect: SqlDialect = postgresDialect) {
         super(dialect);
-        this.updateBuilder = new UpdateSqlBuilder(dialect);
-        this.deleteBuilder = new DeleteSqlBuilder(dialect);
         this.upsertBuilder = new UpsertSqlBuilder(dialect);
     }
 
@@ -43,25 +37,6 @@ export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
         entities: readonly TEntity[],
     ): SqlStatement {
         return this.insertBuilder.buildInsertBatch(metadata, entities);
-    }
-
-    public buildInsertFromValues<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        values: Readonly<Record<string, unknown>>,
-        allowMissingProperties: readonly string[] = [],
-    ): SqlStatement {
-        return this.insertBuilder.buildInsertFromValues(
-            metadata,
-            values,
-            allowMissingProperties,
-        );
-    }
-
-    public buildInsertBatchFromValues<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
-    ): SqlStatement {
-        return this.insertBuilder.buildInsertBatchFromValues(metadata, rows);
     }
 
     public buildUpsertBatch<TEntity extends object>(
@@ -117,20 +92,6 @@ export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
         return this.updateBuilder.buildUpdate(metadata, entity, modifiedProperties, originalValues);
     }
 
-    public buildUpdateFromValues<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        values: Readonly<Record<string, unknown>>,
-        modifiedProperties: readonly string[],
-        originalValues: Readonly<Record<string, unknown>> = {},
-    ): SqlStatement | undefined {
-        return this.updateBuilder.buildUpdateFromValues(
-            metadata,
-            values,
-            modifiedProperties,
-            originalValues,
-        );
-    }
-
     public buildInsertManyToMany<TEntity extends object>(
         relationship: ManyToManyMetadata<TEntity>,
         sourceKeyValues: ManyToManyEndpointKey,
@@ -169,15 +130,4 @@ export class ModificationSqlBuilder extends ModificationSqlOutboxBuilder {
         return this.deleteBuilder.buildDelete(metadata, entity, originalValues);
     }
 
-    public buildDeleteFromValues<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        values: Readonly<Record<string, unknown>>,
-        originalValues: Readonly<Record<string, unknown>> = {},
-    ): SqlStatement {
-        return this.deleteBuilder.buildDeleteFromValues(
-            metadata,
-            values,
-            originalValues,
-        );
-    }
 }

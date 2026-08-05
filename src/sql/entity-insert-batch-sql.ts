@@ -8,7 +8,7 @@ import {
     buildEntityInsert,
     buildEntityInsertFromValues,
 } from './entity-insert-sql';
-import { validateRequiredPropertyValues } from './modification-sql-helpers';
+import { validateRequiredPropertyValues } from './captured-value-sql-helpers';
 
 export function buildEntityInsertBatch<TEntity extends object>(
     dialect: SqlDialect,

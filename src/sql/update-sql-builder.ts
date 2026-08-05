@@ -6,11 +6,10 @@ import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import {
     buildKeyAndConcurrencyWhere,
-    buildKeyAndConcurrencyWhereFromValues,
     requirePostgres,
     validateRequiredProperties,
-    validateRequiredPropertyValues,
 } from './modification-sql-helpers';
+import { buildCapturedEntityUpdate } from './captured-update-sql';
 import { isGeneratedOnUpdate } from '../model/value-generated';
 import { readPropertyValue } from '../model/property-value-access';
 import { mappedUpdateValues } from './mapped-update-values';
@@ -26,14 +25,7 @@ export interface BulkUpdateSqlOptions<TEntity extends object> {
     readonly predicate: PredicateNode;
 }
 
-/**
- * Builds UPDATE statements in the ORM's two update shapes: the entity update
- * keyed by primary key plus optimistic-concurrency tokens (`buildUpdate`), and
- * the predicate-driven `set ... where` update behind both `buildBulkUpdate` and
- * `buildPostgresUpdate`. Kept apart from insert and delete because only updates
- * bind assignment values *before* the `where` predicate, so that ordering lives
- * in one place and cannot drift against the other verbs.
- */
+/** Builds entity and predicate-driven UPDATE statements. */
 export class UpdateSqlBuilder {
     constructor(private readonly dialect: SqlDialect = postgresDialect) {}
 
@@ -146,49 +138,12 @@ export class UpdateSqlBuilder {
         modifiedProperties: readonly string[],
         originalValues: Readonly<Record<string, unknown>> = {},
     ): SqlStatement | undefined {
-        validateRequiredPropertyValues(metadata, values);
-
-        const versionProperties = metadata.properties.filter(property =>
-            property.isVersion);
-        const keyProperties: Set<string> = new Set(metadata.keyProperties);
-        const writableProperties = modifiedProperties
-            .filter(propertyName => !keyProperties.has(propertyName))
-            .map(propertyName => metadata.getProperty(propertyName as never))
-            .filter(property =>
-                !property.isVersion &&
-                !isGeneratedOnUpdate(property.valueGenerated),
-            );
-
-        if (writableProperties.length === 0 && versionProperties.length === 0) {
-            return undefined;
-        }
-
-        const parameters = new SqlParameterBag(this.dialect);
-        const assignments = [
-            ...writableProperties.map(property =>
-                `${this.dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toBoundPropertyValue(values[property.propertyName], property, metadata.entityName))}`),
-            ...versionProperties.map(property =>
-                `${this.dialect.quoteIdentifier(property.columnName)} = ${this.dialect.quoteIdentifier(property.columnName)} + 1`),
-        ].join(', ');
-        const where = buildKeyAndConcurrencyWhereFromValues(
+        return buildCapturedEntityUpdate(
             this.dialect,
             metadata,
             values,
+            modifiedProperties,
             originalValues,
-            parameters,
         );
-
-        const generatedProperties = metadata.properties.filter(property =>
-            isGeneratedOnUpdate(property.valueGenerated));
-        const returning = generatedProperties.length > 0
-            ? this.dialect.returningClause?.(
-                generatedProperties.map(property => property.columnName),
-            )
-            : undefined;
-
-        return {
-            text: `update ${this.dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} set ${assignments} where ${where}${returning ? ` ${returning}` : ''}`,
-            values: parameters.values,
-        };
     }
 }

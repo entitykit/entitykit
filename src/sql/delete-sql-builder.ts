@@ -6,11 +6,11 @@ import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import {
     buildKeyAndConcurrencyWhere,
-    buildKeyAndConcurrencyWhereFromValues,
     joinEndpointValues,
     requirePostgres,
     type ManyToManyEndpointKey,
 } from './modification-sql-helpers';
+import { buildKeyAndConcurrencyWhereFromValues } from './captured-value-sql-helpers';
 
 export interface PostgresDeleteSqlOptions {
     readonly predicate: PredicateNode;

@@ -2,8 +2,8 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import {
     validateRequiredProperties,
-    validateRequiredPropertyValues,
 } from './modification-sql-helpers';
+import { validateRequiredPropertyValues } from './captured-value-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { isGeneratedOnAdd } from '../model/value-generated';

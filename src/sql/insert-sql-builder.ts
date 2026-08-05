@@ -1,13 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
-import {
-    buildEntityInsert,
-    buildEntityInsertFromValues,
-} from './entity-insert-sql';
-import {
-    buildEntityInsertBatch,
-    buildEntityInsertBatchFromValues,
-} from './entity-insert-batch-sql';
+import { buildEntityInsert, buildEntityInsertFromValues } from './entity-insert-sql';
+import { buildEntityInsertBatch, buildEntityInsertBatchFromValues } from './entity-insert-batch-sql';
 import {
     buildManyToManyInsert,
     buildManyToManyInsertBatch,
@@ -21,12 +15,7 @@ import {
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import type { SqlStatement } from './sql-statement';
 
-/**
- * Builds every INSERT the ORM emits: single- and multi-row entity inserts,
- * many-to-many link rows, and outbox messages. Separated from the other DML
- * verbs because inserts are the family that writes full column tuples with no
- * `where` clause, so their parameter layout is column-by-column, row after row
- */
+/** Builds entity, relationship, and outbox INSERT statements. */
 export class InsertSqlBuilder {
     constructor(private readonly dialect: SqlDialect = postgresDialect) {}
 
