@@ -1,9 +1,9 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import { DbContext, EntityState } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 
 class SqliteGeneratedRow {
-    public id!: number;
+    public id = 0;
     public label!: string;
     public createdAt!: Date;
 }
@@ -76,4 +76,57 @@ describe('SQLite database-generated values', () => {
         expect(inserted.rows[0]?.id).toBe(2);
         await db.dispose();
     });
+
+    it('rejects attaching an added generated-key instance', async () => {
+        const db = await openWithZeroRow();
+        const pending = Object.assign(new SqliteGeneratedRow(), {
+            label: 'pending',
+        });
+        const entry = db.rows.add(pending);
+
+        expect(() => db.rows.attach(pending)).toThrow(
+            'already tracked as Added',
+        );
+        expect(entry.state).toBe(EntityState.Added);
+        const stored = await db.rows.find(0);
+        expect(stored).not.toBe(pending);
+        expect(stored).toMatchObject({ id: 0, label: 'stored' });
+        expect(db.changeTracker.entries()).toHaveLength(2);
+        await db.dispose();
+    });
+
+    it('rejects manual acceptance of an unresolved generated identity', async () => {
+        const db = await openWithZeroRow();
+        const pending = Object.assign(new SqliteGeneratedRow(), {
+            label: 'pending',
+        });
+        const entry = db.rows.add(pending);
+
+        expect(() => {
+            db.changeTracker.acceptAllChanges();
+        }).toThrow(
+            'unresolved store-generated identity',
+        );
+        expect(entry.state).toBe(EntityState.Added);
+        await expect(db.rows.find(0)).resolves.toMatchObject({
+            id: 0,
+            label: 'stored',
+        });
+        expect(db.changeTracker.entries()).toHaveLength(2);
+        await db.dispose();
+    });
 });
+
+async function openWithZeroRow(): Promise<SqliteGeneratedContext> {
+    const db = SqliteGeneratedContext.create();
+    await db.database.connection.query({
+        text: db.database.createScript(),
+        values: [],
+    });
+    await db.database.connection.query({
+        text: `insert into generated_rows (id, label, created_at)
+            values (?, ?, current_timestamp)`,
+        values: [0, 'stored'],
+    });
+    return db;
+}
