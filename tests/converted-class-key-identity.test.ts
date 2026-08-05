@@ -1,5 +1,5 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, valueConverter } from '../src';
+import { DbContext, DeleteBehavior, valueConverter } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 
 class StrongId {
@@ -78,7 +78,8 @@ class StrongIdentityContext extends DbContext {
             entity.property(comment => comment.body).hasColumnType('text').isRequired();
             entity.hasOne(StrongPost, comment => comment.post)
                 .withMany(post => post.comments)
-                .hasForeignKey(comment => comment.postId);
+                .hasForeignKey(comment => comment.postId)
+                .onDelete(DeleteBehavior.Cascade);
         });
     }
 }
@@ -286,6 +287,34 @@ describe('converted class key identity', () => {
             id: 'comment-1',
             post_id: 'post-1',
         }]);
+        await db.dispose();
+    });
+
+    it('detects required orphans through converted relationship keys', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: 'insert into strong_posts (id, title) values (?, ?)',
+            values: ['post-1', 'post'],
+        });
+        await db.database.connection.query({
+            text: 'insert into strong_comments (id, post_id, body) values (?, ?, ?)',
+            values: ['comment-1', 'post-1', 'comment'],
+        });
+        const post = await db.posts.include(item => item.comments).single();
+        const comment = post.comments[0];
+
+        post.comments.splice(0, 1);
+        db.changeTracker.detectChanges();
+
+        expect(db.entry(comment)?.state).toBe('Deleted');
+        await expect(db.saveChanges()).resolves.toBe(1);
+        const stored = await db.database.connection.query<{
+            count: number;
+        }>({
+            text: 'select count(*) as count from strong_comments',
+            values: [],
+        });
+        expect(stored.rows).toEqual([{ count: 0 }]);
         await db.dispose();
     });
 });
