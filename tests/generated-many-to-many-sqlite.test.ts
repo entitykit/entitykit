@@ -3,6 +3,17 @@ import {
     GeneratedTag,
     startGeneratedManyToManyContext,
 } from './support/generated-many-to-many-context';
+import type { SavePlanEntry } from '../src';
+
+function relationshipEntry(
+    plan: readonly SavePlanEntry[],
+): SavePlanEntry {
+    const entry = plan.find(candidate => candidate.isSystemGenerated);
+    if (!entry) {
+        throw new Error('Expected a generated relationship save-plan entry.');
+    }
+    return entry;
+}
 
 describe('generated many-to-many endpoint keys', () => {
     it('links hydrated keys instead of existing zero rows', async () => {
@@ -29,7 +40,15 @@ describe('generated many-to-many endpoint keys', () => {
     });
 
     it('keeps distinct links that share zero placeholders', async () => {
-        const db = await startGeneratedManyToManyContext();
+        const observedPlans: Array<readonly SavePlanEntry[]> = [];
+        const db = await startGeneratedManyToManyContext({
+            savingChanges: event => {
+                observedPlans.push(event.plan);
+            },
+            savedChanges: event => {
+                observedPlans.push(event.plan);
+            },
+        });
         const first = Object.assign(new GeneratedPost(), { title: 'first' });
         const second = Object.assign(new GeneratedPost(), { title: 'second' });
         const tag = Object.assign(new GeneratedTag(), { name: 'shared' });
@@ -39,7 +58,34 @@ describe('generated many-to-many endpoint keys', () => {
         db.link(first, item => item.tags, tag);
         db.link(second, item => item.tags, tag);
 
+        const preview = relationshipEntry(db.getSavePlan());
+        expect(preview).toMatchObject({
+            affectedEntityCount: 2,
+            isDeferred: true,
+        });
+        expect(preview.statement.text).toContain(
+            'values (?, ?), (?, ?)',
+        );
+        expect(preview.statement.values).toEqual([0, 0, 0, 0]);
+        expect(preview.relationshipPairs).toEqual([
+            { source: first, target: tag },
+            { source: second, target: tag },
+        ]);
+        expect(Object.isFrozen(preview.relationshipPairs)).toBe(true);
+        expect(Object.isFrozen(preview.relationshipPairs?.[0])).toBe(true);
+        expect(db.getSavePlanDebugView()).toContain(
+            'relationships: 2 (deferred)',
+        );
+
         await expect(db.saveChanges()).resolves.toBe(3);
+
+        expect(observedPlans).toHaveLength(2);
+        for (const plan of observedPlans) {
+            const relationship = relationshipEntry(plan);
+            expect(relationship.relationshipPairs).toHaveLength(2);
+            expect(relationship.statement.values).toHaveLength(4);
+            expect(relationship.isDeferred).toBe(true);
+        }
 
         expect(first.id).not.toBe(second.id);
         const rows = await db.database.connection.query<{

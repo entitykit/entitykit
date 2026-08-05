@@ -1,4 +1,8 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
+import type {
+    DbContextOptionsBuilder,
+    ModelBuilder,
+    SaveChangesInterceptor,
+} from '../../src';
 import { DbContext } from '../../src';
 import { sqliteProviderServices } from '../../src/providers/sqlite';
 
@@ -18,8 +22,15 @@ export class GeneratedManyToManyContext extends DbContext {
     public posts = this.set(GeneratedPost);
     public tags = this.set(GeneratedTag);
 
+    constructor(private readonly interceptor?: SaveChangesInterceptor) {
+        super();
+    }
+
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useProvider(sqliteProviderServices, ':memory:');
+        if (this.interceptor) {
+            options.useSaveInterceptor(this.interceptor);
+        }
     }
 
     protected override model(model: ModelBuilder): void {
@@ -47,8 +58,9 @@ export class GeneratedManyToManyContext extends DbContext {
 }
 
 export async function startGeneratedManyToManyContext(
+    interceptor?: SaveChangesInterceptor,
 ): Promise<GeneratedManyToManyContext> {
-    const db = GeneratedManyToManyContext.create();
+    const db = GeneratedManyToManyContext.create(interceptor);
     await db.database.connection.query({
         text: db.database.createScript(),
         values: [],
