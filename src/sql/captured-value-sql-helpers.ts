@@ -5,6 +5,7 @@ import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { isGeneratedOnAdd, isGeneratedOnUpdate } from '../model/value-generated';
 import type { SqlDialect } from './sql-dialect';
 import type { SqlParameterBag } from './sql-statement';
+import { propertyComparisonParameter } from './property-comparison-parameter';
 
 export function validateRequiredPropertyValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
@@ -64,7 +65,10 @@ function compareCapturedProperty<TEntity extends object>(
     const column = dialect.quoteIdentifier(property.columnName);
     return value === null || value === undefined
         ? `${column} is null`
-        : `${column} = ${parameters.add(toBoundPropertyValue(
-            value, property, entityName,
-        ))}`;
+        : `${column} = ${propertyComparisonParameter(
+            dialect,
+            parameters,
+            property,
+            toBoundPropertyValue(value, property, entityName),
+        )}`;
 }

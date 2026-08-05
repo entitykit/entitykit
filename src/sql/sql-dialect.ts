@@ -78,6 +78,8 @@ export interface SqlDialect extends SchemaSqlDialect {
     /** Perform the quote identifier operation. */ quoteIdentifier(identifier: string): string;
     /** Perform the quote qualified identifier operation. */ quoteQualifiedIdentifier(...identifiers: ReadonlyArray<string | undefined>): string;
     /** Perform the parameter operation. */ parameter(index: number): string;
+    /** Cast a bound JSON value for equality/membership comparisons when needed. */
+    jsonComparisonParameter?(parameterSql: string): string;
     /** Perform the count all expression operation. */ countAllExpression(): string;
     /** Optional full-width row-count expression for count terminal queries. */
     countRowsExpression?(): string;

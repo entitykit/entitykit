@@ -11,6 +11,7 @@ import {
 } from '../model/value-generated';
 import { readPropertyValue } from '../model/property-value-access';
 import { validateRequiredComplexProperties } from './required-complex-property-validation';
+import { propertyComparisonParameter } from './property-comparison-parameter';
 
 /**
  * Fragment helpers shared across the DML strategy builders (insert, update,
@@ -103,7 +104,12 @@ function compareProperty<TEntity extends object>(
         return `${column} is null`;
     }
 
-    return `${column} = ${parameters.add(toBoundPropertyValue(value, property, entityName))}`;
+    return `${column} = ${propertyComparisonParameter(
+        dialect,
+        parameters,
+        property,
+        toBoundPropertyValue(value, property, entityName),
+    )}`;
 }
 
 export function requirePostgres(dialect: SqlDialect, message: string): void {

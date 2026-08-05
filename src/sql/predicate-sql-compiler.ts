@@ -9,6 +9,7 @@ import {
 } from './predicate-null-semantics';
 import type { SqlParameterBag } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
+import { propertyComparisonParameter } from './property-comparison-parameter';
 
 export class PredicateSqlCompiler<TEntity extends object> {
     constructor(
@@ -50,8 +51,15 @@ export class PredicateSqlCompiler<TEntity extends object> {
                     value,
                     `The 'in' operator for '${propertyName}' requires an array value.`,
                 ),
-                item => this.parameters.add(
-                    toBoundPropertyValue(item, property, this.metadata.entityName),
+                item => propertyComparisonParameter(
+                    this.dialect,
+                    this.parameters,
+                    property,
+                    toBoundPropertyValue(
+                        item,
+                        property,
+                        this.metadata.entityName,
+                    ),
                 ),
                 () => this.dialect.falsePredicate(),
             );
@@ -63,7 +71,13 @@ export class PredicateSqlCompiler<TEntity extends object> {
             operator,
             toBoundPropertyValue(value, property, this.metadata.entityName),
         );
-        return `${column} ${sqlOperator} ${this.parameters.add(parameterValue)}${likeEscapeClause(operator)}`;
+        const parameter = propertyComparisonParameter(
+            this.dialect,
+            this.parameters,
+            property,
+            parameterValue,
+        );
+        return `${column} ${sqlOperator} ${parameter}${likeEscapeClause(operator)}`;
     }
 
     private column(propertyName: string): string {

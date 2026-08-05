@@ -7,7 +7,6 @@ import {
 } from './mysql-identifiers';
 import { mysqlStoreGenerationClause } from './mysql-store-generation';
 import { mysqlProjectionExpressions } from './mysql-projection-expressions';
-
 /** MySQL runtime SQL dialect. */
 export const mySqlDialect: SqlDialect = Object.freeze({
     name: 'mysql',
@@ -120,6 +119,7 @@ export const mySqlDialect: SqlDialect = Object.freeze({
     parameter(): string {
         return '?';
     },
+    jsonComparisonParameter: (parameterSql: string): string => `cast(${parameterSql} as json)`,
     countAllExpression(): string {
         return 'count(*)';
     },

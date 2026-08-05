@@ -5,6 +5,7 @@ import { compileInPredicate, isSqlNull, readInPredicateValues } from './predicat
 import { assertNever, likeEscapeClause, metadataForSource, normalizeSourceAlias, sqlBinaryOperator, stringPatternValue } from './select-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import type { SqlParameterBag } from './sql-statement';
+import { propertyComparisonParameter } from './property-comparison-parameter';
 
 /**
  * The multi-source (joined) mirror of {@link PredicateSqlCompiler}: it resolves
@@ -63,7 +64,10 @@ export class JoinedPredicateSqlCompiler {
                     value,
                     `The 'in' operator for '${propertyName}' requires an array value.`,
                 ),
-                item => parameters.add(
+                item => propertyComparisonParameter(
+                    this.dialect,
+                    parameters,
+                    property,
                     toBoundPropertyValue(item, property, source.entityName),
                 ),
                 () => this.dialect.falsePredicate(),
@@ -75,7 +79,13 @@ export class JoinedPredicateSqlCompiler {
             operator,
             toBoundPropertyValue(value, property, source.entityName),
         );
-        return `${column} ${sqlOperator} ${parameters.add(parameterValue)}${likeEscapeClause(operator)}`;
+        const parameter = propertyComparisonParameter(
+            this.dialect,
+            parameters,
+            property,
+            parameterValue,
+        );
+        return `${column} ${sqlOperator} ${parameter}${likeEscapeClause(operator)}`;
     }
 
     private column(
