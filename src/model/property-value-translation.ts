@@ -4,6 +4,7 @@ import {
     fromProviderValue,
     toProviderValue,
 } from './value-converter/store-value';
+import { cloneSnapshotValue } from '../tracking/snapshot-value';
 
 /** Translate one model value through its shared provider representation. */
 export function translatePropertyValue<
@@ -16,13 +17,13 @@ export function translatePropertyValue<
     targetMetadata: EntityMetadata<TTarget>,
     targetProperty: PropertyMetadata,
 ): unknown {
-    const providerValue = toProviderValue(
+    const providerValue = cloneSnapshotValue(toProviderValue(
         value,
         sourceProperty.converter,
         `${sourceMetadata.entityName}.${sourceProperty.propertyName}`,
-    );
+    ));
     return fromProviderValue(
-        providerValue,
+        cloneSnapshotValue(providerValue),
         targetProperty.converter,
         `${targetMetadata.entityName}.${targetProperty.propertyName}`,
     );

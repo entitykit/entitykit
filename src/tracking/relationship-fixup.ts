@@ -3,6 +3,7 @@ import type { Model } from '../model/model';
 import type { PropertyMetadata } from '../model/property-metadata';
 import { DeleteBehavior } from '../model/relationship-metadata';
 import { principalValuesForDependent } from '../model/relationship-key-translation';
+import { writePropertyValue } from '../model/property-value-access';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
@@ -41,7 +42,11 @@ export function linkDependent(
         principal as Record<string, unknown>,
     );
     relationship.foreignKeyProperties.forEach((property, index) => {
-        values[property] = key[index];
+        writePropertyValue(
+            dependent.entity,
+            dependent.metadata.getProperty(property),
+            key[index],
+        );
     });
     values[relationship.navigationProperty] = principal;
     addToRelationshipInverse(
@@ -75,10 +80,10 @@ export function severDependent(
             dependent.markDeleted();
         }
     } else {
-        const values = dependent.entity as Record<string, unknown>;
         for (const property of relationship.foreignKeyProperties) {
-            if (!foreignKeyProperty(dependent, property).isRequired) {
-                values[property] = null;
+            const metadata = foreignKeyProperty(dependent, property);
+            if (!metadata.isRequired) {
+                writePropertyValue(dependent.entity, metadata, null);
             }
         }
     }
