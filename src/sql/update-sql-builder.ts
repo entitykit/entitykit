@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { PredicateNode } from '../query/expression/predicate-node';
-import { toStoreValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { PredicateSqlCompiler } from './predicate-sql-compiler';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
@@ -80,7 +80,7 @@ export class UpdateSqlBuilder {
                 throw new Error(`${label} cannot update primary key property '${metadata.entityName}.${property.propertyName}'.`);
             }
 
-            return `${this.dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toStoreValue(value, property.columnType, property.converter as never))}`;
+            return `${this.dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toBoundPropertyValue(value, property, metadata.entityName))}`;
         });
         const where = new PredicateSqlCompiler(metadata, parameters, undefined, this.dialect).compile(options.predicate);
 
@@ -114,7 +114,7 @@ export class UpdateSqlBuilder {
 
         const parameters = new SqlParameterBag(this.dialect);
         const assignments = [
-            ...writableProperties.map(property => `${this.dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toStoreValue(readPropertyValue(entity, property), property.columnType, property.converter as never))}`),
+            ...writableProperties.map(property => `${this.dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toBoundPropertyValue(readPropertyValue(entity, property), property, metadata.entityName))}`),
             ...versionProperties.map(property => `${this.dialect.quoteIdentifier(property.columnName)} = ${this.dialect.quoteIdentifier(property.columnName)} + 1`),
         ].join(', ');
         const where = buildKeyAndConcurrencyWhere(this.dialect, metadata, entity, originalValues, parameters);

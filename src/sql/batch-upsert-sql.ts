@@ -1,5 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toStoreValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { EntityPropertyKey } from '../types';
 import { validateRequiredProperties } from './modification-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
@@ -78,10 +78,10 @@ export function buildBatchUpsert<TEntity extends object>(
     const rows = entities.map(entity => {
         validateRequiredProperties(metadata, entity);
         const values = metadata.properties
-            .map(property => parameters.add(toStoreValue(
+            .map(property => parameters.add(toBoundPropertyValue(
                 readPropertyValue(entity, property),
-                property.columnType,
-                property.converter as never,
+                property,
+                metadata.entityName,
             )))
             .join(', ');
         return `(${values})`;

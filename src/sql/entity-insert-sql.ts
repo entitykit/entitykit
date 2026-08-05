@@ -1,5 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toStoreValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { validateRequiredProperties } from './modification-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
@@ -68,10 +68,10 @@ function buildEntityInsertFromReader<TEntity extends object>(
         .map(property => dialect.quoteIdentifier(property.columnName))
         .join(', ');
     const values = writeProperties
-        .map(property => parameters.add(toStoreValue(
+        .map(property => parameters.add(toBoundPropertyValue(
             readValue(property),
-            property.columnType,
-            property.converter as never,
+            property,
+            metadata.entityName,
         )))
         .join(', ');
 

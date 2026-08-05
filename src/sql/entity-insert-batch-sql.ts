@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { readPropertyValue } from '../model/property-value-access';
-import { toStoreValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { validateRequiredProperties } from './modification-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
@@ -25,10 +25,10 @@ export function buildEntityInsertBatch<TEntity extends object>(
     const rows = entities.map(entity => {
         validateRequiredProperties(metadata, entity, { forInsert: true });
         const values = metadata.properties
-            .map(property => parameters.add(toStoreValue(
+            .map(property => parameters.add(toBoundPropertyValue(
                 readPropertyValue(entity, property),
-                property.columnType,
-                property.converter as never,
+                property,
+                metadata.entityName,
             )))
             .join(', ');
         return `(${values})`;

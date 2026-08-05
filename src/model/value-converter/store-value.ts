@@ -1,6 +1,7 @@
 import type { ValueConverter } from './converter';
 import { assertSynchronousCallbackResult } from '../../synchronous-callback';
 import { serializeJsonValue } from '../../json-value';
+import type { PropertyMetadata } from '../property-metadata';
 
 export function toProviderValue<TProperty>(
     value: TProperty,
@@ -36,6 +37,21 @@ export function toStoreValue<TProperty>(
     }
 
     return converted;
+}
+
+/** Convert a mapped model value to the exact representation bound to its column. */
+export function toBoundPropertyValue(
+    value: unknown,
+    property: PropertyMetadata,
+    entityName?: string,
+): unknown {
+    const propertyName = property.propertyName;
+    return toStoreValue(
+        value,
+        property.columnType,
+        property.converter,
+        entityName ? `${entityName}.${propertyName}` : propertyName,
+    );
 }
 
 export function fromProviderValue<TProperty>(
