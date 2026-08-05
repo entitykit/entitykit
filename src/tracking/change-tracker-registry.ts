@@ -7,6 +7,7 @@ import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
 import { TrackingIdentityFactory } from './tracking-identity-factory';
 import { registerTemporaryGeneratedIdentity } from './temporary-generated-identity';
+import { reuseTrackedEntry } from './tracked-entry-reuse';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -31,19 +32,22 @@ export class ChangeTrackerRegistry {
         originalValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
         metadata.assertWritable('Tracking');
+        const existingByObject = this.entriesByEntity.get(entity);
+        if (existingByObject) {
+            const registeredIdentity = this.identities.keyFor(existingByObject);
+            this.assertMutation(
+                'Tracking an entity',
+                entity,
+                registeredIdentity,
+            );
+            reuseTrackedEntry(existingByObject, state);
+            this.assertInvariant();
+            return existingByObject as unknown as EntityEntry<TEntity>;
+        }
+
         const identity = this.identityFactory.create(entity, metadata, state);
         const { identityKey } = identity;
         this.assertMutation('Tracking an entity', entity, identityKey);
-        const existingByObject = this.entriesByEntity.get(entity);
-        if (existingByObject) {
-            existingByObject.transitionToState(state);
-            if (originalValues) existingByObject.refreshOriginalValues(originalValues);
-            registerTemporaryGeneratedIdentity(
-                existingByObject,
-                identity.temporaryGeneratedIdentity,
-            );
-            return existingByObject as unknown as EntityEntry<TEntity>;
-        }
         const existingByIdentity = this.identities.get(identityKey);
         if (existingByIdentity) {
             if (state === EntityState.Unchanged) {
