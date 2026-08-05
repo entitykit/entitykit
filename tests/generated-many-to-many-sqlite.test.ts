@@ -1,71 +1,12 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-
-class GeneratedPost {
-    public id = 0;
-    public title = '';
-    public tags: GeneratedTag[] = [];
-}
-
-class GeneratedTag {
-    public id = 0;
-    public name = '';
-    public posts: GeneratedPost[] = [];
-}
-
-class GeneratedManyToManyContext extends DbContext {
-    public posts = this.set(GeneratedPost);
-    public tags = this.set(GeneratedTag);
-
-    protected override configure(options: DbContextOptionsBuilder): void {
-        options.useProvider(sqliteProviderServices, ':memory:');
-    }
-
-    protected override model(model: ModelBuilder): void {
-        model.entity(GeneratedPost, entity => {
-            entity.toTable('generated_posts');
-            entity.hasKey(post => post.id);
-            entity.property(post => post.id).hasColumnType('integer')
-                .isRequired().useSqliteRowId();
-            entity.property(post => post.title).hasColumnType('text').isRequired();
-            entity.hasManyToMany(GeneratedTag, post => post.tags)
-                .withMany(tag => tag.posts)
-                .usingJoinTable('generated_post_tags', join => {
-                    join.sourceForeignKey('post_id');
-                    join.targetForeignKey('tag_id');
-                });
-        });
-        model.entity(GeneratedTag, entity => {
-            entity.toTable('generated_tags');
-            entity.hasKey(tag => tag.id);
-            entity.property(tag => tag.id).hasColumnType('integer')
-                .isRequired().useSqliteRowId();
-            entity.property(tag => tag.name).hasColumnType('text').isRequired();
-        });
-    }
-}
-
-async function start(): Promise<GeneratedManyToManyContext> {
-    const db = GeneratedManyToManyContext.create();
-    await db.database.connection.query({
-        text: db.database.createScript(),
-        values: [],
-    });
-    await db.database.connection.query({
-        text: 'insert into generated_posts (id, title) values (?, ?)',
-        values: [0, 'existing-post'],
-    });
-    await db.database.connection.query({
-        text: 'insert into generated_tags (id, name) values (?, ?)',
-        values: [0, 'existing-tag'],
-    });
-    return db;
-}
+import {
+    GeneratedPost,
+    GeneratedTag,
+    startGeneratedManyToManyContext,
+} from './support/generated-many-to-many-context';
 
 describe('generated many-to-many endpoint keys', () => {
     it('links hydrated keys instead of existing zero rows', async () => {
-        const db = await start();
+        const db = await startGeneratedManyToManyContext();
         const post = Object.assign(new GeneratedPost(), { title: 'new-post' });
         const tag = Object.assign(new GeneratedTag(), { name: 'new-tag' });
         db.posts.add(post);
@@ -88,7 +29,7 @@ describe('generated many-to-many endpoint keys', () => {
     });
 
     it('keeps distinct links that share zero placeholders', async () => {
-        const db = await start();
+        const db = await startGeneratedManyToManyContext();
         const first = Object.assign(new GeneratedPost(), { title: 'first' });
         const second = Object.assign(new GeneratedPost(), { title: 'second' });
         const tag = Object.assign(new GeneratedTag(), { name: 'shared' });
@@ -116,7 +57,7 @@ describe('generated many-to-many endpoint keys', () => {
     });
 
     it('expires placeholders before a later relationship save', async () => {
-        const db = await start();
+        const db = await startGeneratedManyToManyContext();
         const post = Object.assign(new GeneratedPost(), { title: 'later-post' });
         const tag = Object.assign(new GeneratedTag(), { name: 'later-tag' });
         db.posts.add(post);

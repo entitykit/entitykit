@@ -102,6 +102,16 @@ describe('temporary generated identity', () => {
         expect(db.changeTracker.entries()).toHaveLength(2);
     });
 
+    it('tracks repeated converted pending placeholders independently', () => {
+        const db = TemporaryIdentityContext.create(
+            new RecordingDatabaseConnection(),
+        );
+        db.converted.add(Object.assign(new ConvertedItem(), { id: 'pending' }));
+        db.converted.add(Object.assign(new ConvertedItem(), { id: 'pending' }));
+
+        expect(db.changeTracker.entries()).toHaveLength(2);
+    });
+
     it('tracks repeated composite placeholders independently', () => {
         const db = TemporaryIdentityContext.create(
             new RecordingDatabaseConnection(),
