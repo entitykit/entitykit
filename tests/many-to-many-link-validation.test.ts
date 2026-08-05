@@ -94,4 +94,24 @@ describe('many-to-many link validation', () => {
         expect(connection.statements).toEqual([]);
         expect(connection.transactionEvents).toEqual([]);
     });
+
+    it('accepts queued many-to-many changes with all tracked changes', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = ManyToManyContext.createWith(connection);
+        const post = createPost();
+        const tag = createTag();
+        db.posts.attach(post);
+        db.tags.attach(tag);
+        db.link(post, item => item.tags, tag);
+        expect(db.getSavePlan()).toHaveLength(1);
+
+        db.changeTracker.acceptAllChanges();
+
+        expect(db.getSavePlan()).toEqual([]);
+        expect(db.getSavePlanDebugView()).toBe('No pending changes.');
+        await expect(db.saveChanges()).resolves.toBe(0);
+        expect(post.tags).toEqual([tag]);
+        expect(connection.statements).toEqual([]);
+        expect(connection.transactionEvents).toEqual([]);
+    });
 });
