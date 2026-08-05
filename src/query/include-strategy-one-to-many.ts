@@ -10,9 +10,8 @@ import { IncludeOneToManyFilteredLoader } from './include-one-to-many-filtered-l
 import type { IncludeFilterModel } from './query-model';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import {
-    relationshipPrincipalKeyProperties,
-    relationshipPrincipalKeyValues,
-} from '../model/relationship-key';
+    principalValuesForDependent,
+} from '../model/relationship-key-translation';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 
 /**
@@ -53,18 +52,15 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const principalKeyProperties = relationshipPrincipalKeyProperties(
-            relationship,
-            principalMetadata,
-        ).map(String);
         const principalKeys = uniquePropertyTuples(
-            principalMetadata,
-            principalKeyProperties,
+            dependentMetadata,
+            relationship.foreignKeyProperties.map(String),
             principals
-                .map(principal => relationshipPrincipalKeyValues(
+                .map(principal => principalValuesForDependent(
                     relationship,
+                    dependentMetadata,
                     principalMetadata,
-                    principal,
+                    principal as Record<string, unknown>,
                 ))
                 .filter(isCompleteTuple),
         );

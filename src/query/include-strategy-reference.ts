@@ -5,16 +5,17 @@ import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import { IncludeStrategyBase } from './include-strategy-base';
 import { isCompleteTuple } from './include-key-helpers';
-import {
-    propertyTupleLookupKey,
-    uniquePropertyTuples,
-} from './include-property-key-helpers';
+import { uniquePropertyTuples } from './include-property-key-helpers';
 import { uniqueEntityInstances } from './include-navigation-helpers';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import {
     relationshipPrincipalKeyProperties,
-    relationshipPrincipalKeyValues,
 } from '../model/relationship-key';
+import {
+    dependentRelationshipProviderKey,
+    principalRelationshipProviderKey,
+} from '../model/relationship-key-codec';
+import { dependentValuesForPrincipal } from '../model/relationship-key-translation';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 
 /**
@@ -49,10 +50,15 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
             principalMetadata,
         );
         const foreignKeyTuples = uniquePropertyTuples(
-            metadata,
-            foreignKeyProperties.map(String),
+            principalMetadata,
+            principalKeyProperties.map(String),
             entities
-                .map(entity => foreignKeyProperties.map(propertyName => (entity as Record<string, unknown>)[propertyName]))
+                .map(entity => dependentValuesForPrincipal(
+                    relationship,
+                    metadata,
+                    principalMetadata,
+                    entity as Record<string, unknown>,
+                ))
                 .filter(isCompleteTuple),
         );
 
@@ -73,14 +79,10 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         );
         const principalsByKey = new Map(
             principals.map(principal => [
-                propertyTupleLookupKey(
+                principalRelationshipProviderKey(
+                    relationship,
                     principalMetadata,
-                    principalKeyProperties.map(String),
-                    relationshipPrincipalKeyValues(
-                        relationship,
-                        principalMetadata,
-                        principal,
-                    ),
+                    principal as Record<string, unknown>,
                 ),
                 principal,
             ]),
@@ -90,10 +92,10 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         for (const entity of entities) {
             const foreignKeyTuple = foreignKeyProperties.map(propertyName => (entity as Record<string, unknown>)[propertyName]);
             const principal = isCompleteTuple(foreignKeyTuple)
-                ? principalsByKey.get(propertyTupleLookupKey(
+                ? principalsByKey.get(dependentRelationshipProviderKey(
+                    relationship,
                     metadata,
-                    foreignKeyProperties.map(String),
-                    foreignKeyTuple,
+                    entity as Record<string, unknown>,
                 )) ?? null
                 : null;
             (entity as Record<string, unknown>)[relationship.navigationProperty] = principal;

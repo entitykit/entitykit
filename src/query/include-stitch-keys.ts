@@ -1,9 +1,9 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import {
-    relationshipPrincipalKeyProperties,
-    relationshipPrincipalKeyValues,
-} from '../model/relationship-key';
+    dependentRelationshipProviderKey,
+    principalRelationshipProviderKey,
+} from '../model/relationship-key-codec';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import type { ManyToManyRelationshipInfo } from './include-loader-context';
 import { parentKeyAliasAt } from './include-loader-sql';
@@ -20,10 +20,10 @@ export function principalStitchKey<
     relationship: RelationshipMetadata<TDependent, TPrincipal>,
     principal: TPrincipal,
 ): string {
-    return propertyTupleLookupKey(
+    return principalRelationshipProviderKey(
+        relationship,
         metadata,
-        relationshipPrincipalKeyProperties(relationship, metadata).map(String),
-        relationshipPrincipalKeyValues(relationship, metadata, principal),
+        principal as Record<string, unknown>,
     );
 }
 
@@ -35,12 +35,10 @@ export function dependentStitchKey<
     relationship: RelationshipMetadata<TDependent, TPrincipal>,
     dependent: TDependent,
 ): string {
-    const properties = relationship.foreignKeyProperties.map(String);
-    return propertyTupleLookupKey(
+    return dependentRelationshipProviderKey(
+        relationship,
         metadata,
-        properties,
-        properties.map(property =>
-            (dependent as Record<string, unknown>)[property]),
+        dependent as Record<string, unknown>,
     );
 }
 

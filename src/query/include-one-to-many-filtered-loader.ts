@@ -8,7 +8,7 @@ import { uniqueEntityInstances } from './include-navigation-helpers';
 import { buildOneToManyWindowStatement } from './include-one-to-many-window-sql';
 import { IncludeStrategyBase } from './include-strategy-base';
 import type { IncludeFilterModel } from './query-model';
-import { relationshipPrincipalKeyProperties, relationshipPrincipalKeyValues } from '../model/relationship-key';
+import { principalValuesForDependent } from '../model/relationship-key-translation';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 
 export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
@@ -61,7 +61,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         const elapsed = startElapsedTimer();
         const allDependents: object[] = [];
         for (const principal of principals) {
-            const principalKey = relationshipPrincipalKeyValues(relationship, principalMetadata, principal);
+            const principalKey = principalValuesForDependent(relationship, dependentMetadata, principalMetadata, principal as Record<string, unknown>);
             const dependents = await this.propertyLoader.loadByProperties(
                 dependentMetadata,
                 relationship.foreignKeyProperties,
@@ -103,13 +103,12 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const principalProperty = relationshipPrincipalKeyProperties(relationship, principalMetadata)[0];
+        const foreignKeyProperty = relationship.foreignKeyProperties[0];
         const principalKeys = uniquePropertyValues(
-            principalMetadata,
-            principalProperty,
+            dependentMetadata,
+            foreignKeyProperty,
             principals
-                .map(principal =>
-                    relationshipPrincipalKeyValues(relationship, principalMetadata, principal)[0])
+                .map(principal => principalValuesForDependent(relationship, dependentMetadata, principalMetadata, principal as Record<string, unknown>)[0])
                 .filter(value => value !== undefined && value !== null),
         );
         const statement = buildOneToManyWindowStatement(
