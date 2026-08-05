@@ -1,5 +1,8 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { formatIdentityValue } from '../model/identity-value';
+import {
+    encodeIdentityTuple,
+    formatIdentityValue,
+} from '../model/identity-value';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 /**
@@ -12,6 +15,10 @@ import { toBoundPropertyValue } from '../model/value-converter/store-value';
  */
 export function formatSaveIdentityValue(value: unknown): string {
     return formatIdentityValue(value);
+}
+
+export function encodeSaveIdentityTuple(values: readonly unknown[]): string {
+    return encodeIdentityTuple(values);
 }
 
 export /**

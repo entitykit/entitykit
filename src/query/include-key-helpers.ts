@@ -1,5 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { formatIdentityValue } from '../model/identity-value';
+import {
+    encodeIdentityTuple,
+} from '../model/identity-value';
 import {
     readStoreValue,
     type StoreValueReader,
@@ -27,11 +29,7 @@ export function uniqueValues(values: readonly unknown[]): unknown[] {
  * produce the same key.
  */
 export function tupleLookupKey(values: readonly unknown[]): string {
-    return values
-        .map(value =>
-            lookupKey(value).replace(/[\\|]/g, character => `\\${character}`),
-        )
-        .join('|');
+    return encodeIdentityTuple(values);
 }
 
 export function uniqueTuples(
@@ -57,7 +55,7 @@ export function isCompleteTuple(values: readonly unknown[]): boolean {
 }
 
 export function lookupKey(value: unknown): string {
-    return formatIdentityValue(value);
+    return encodeIdentityTuple([value]);
 }
 
 /** Convert one raw key column value from a join row into its model form. */

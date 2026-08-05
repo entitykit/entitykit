@@ -1,5 +1,5 @@
 import type { EntityPropertyKey } from '../types';
-import { formatIdentityValue } from './identity-value';
+import { encodeIdentityTuple } from './identity-value';
 import {
     readStoreValue,
     type StoreValueReader,
@@ -104,7 +104,7 @@ export class EntityKeyMetadata<TEntity extends object> {
             );
         }
 
-        const parts = keyValues.map((keyValue, index) => {
+        keyValues.forEach((keyValue, index) => {
             if (
                 keyValue === undefined ||
         keyValue === null ||
@@ -114,14 +114,9 @@ export class EntityKeyMetadata<TEntity extends object> {
                     `Entity '${this.entityName}' has an empty key value for '${this.keyProperties[index]}'.`,
                 );
             }
-
-            return formatIdentityValue(keyValue).replace(
-                /[\\|]/g,
-                character => `\\${character}`,
-            );
         });
 
-        return `${this.entityName}:${parts.join('|')}`;
+        return `${this.entityName}:${encodeIdentityTuple(keyValues)}`;
     }
 
     private getProperty(

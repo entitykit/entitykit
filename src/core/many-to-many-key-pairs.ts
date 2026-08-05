@@ -1,7 +1,7 @@
 import type { ManyToManyChange } from './many-to-many-change';
 import type { ManyToManyChangeValidator } from './many-to-many-change-validator';
 import {
-    formatSaveIdentityValue,
+    encodeSaveIdentityTuple,
     toProviderKeyValues,
 } from './save-key-values';
 
@@ -30,8 +30,8 @@ export function coalesceManyToManyChanges(
             relationship.joinTableName,
             relationship.sourceForeignKeyColumns,
             relationship.targetForeignKeyColumns,
-            formatSaveIdentityValue(sourceKey),
-            formatSaveIdentityValue(targetKey),
+            encodeSaveIdentityTuple(sourceKey),
+            encodeSaveIdentityTuple(targetKey),
         ]);
         latest.set(key, change);
     }
@@ -56,9 +56,9 @@ export function buildValidatedManyToManyPairs(
             validator.validatedKey(change, 'target', endpointKeys),
             change.targetMetadata,
         );
-        const pairKey = JSON.stringify([
-            formatSaveIdentityValue(sourceKey),
-            formatSaveIdentityValue(targetKey),
+        const pairKey = encodeSaveIdentityTuple([
+            sourceKey,
+            targetKey,
         ]);
 
         if (!seenPairs.has(pairKey)) {
