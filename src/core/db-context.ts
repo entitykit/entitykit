@@ -12,7 +12,7 @@ import type { DbSet } from './db-set-types';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
 
-export type { SavePlanEntry } from './save-plan';
+export type { RelationshipSavePlanPair, SavePlanEntry } from './save-plan';
 
 /**
  * Base class for an EntityKit unit of work.

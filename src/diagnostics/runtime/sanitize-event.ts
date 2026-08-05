@@ -48,6 +48,7 @@ function sanitizeSavePlanEntry(
             values: entry.statement.values.map(() => redactedValue),
         },
         affectedEntityCount: entry.affectedEntityCount,
+        ...entry.isDeferred ? { isDeferred: true } : {},
         expectedAffectedRows: entry.expectedAffectedRows,
         skipAffectedRowsCheck: entry.skipAffectedRowsCheck,
         isSystemGenerated: entry.isSystemGenerated,

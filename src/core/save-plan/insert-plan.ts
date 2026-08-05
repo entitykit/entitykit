@@ -67,6 +67,9 @@ export function buildInsertSavePlanEntry(
                 persisted.values,
                 allowMissingProperties,
             ),
+            ...generatedKeyPropagations?.length
+                ? { isDeferred: true }
+                : {},
         };
         registerSavePlanExecution(planEntry, {
             metadata: entry.metadata,

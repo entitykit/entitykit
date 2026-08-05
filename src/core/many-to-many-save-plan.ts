@@ -3,7 +3,7 @@ import { EntityState } from '../tracking/entity-state';
 import type { ManyToManyChange } from './many-to-many-change';
 import type { ManyToManyChangeValidator } from './many-to-many-change-validator';
 import {
-    buildValidatedManyToManyPairs,
+    buildManyToManyPairs,
     captureManyToManyChanges,
     type CapturedManyToManyChange,
     coalesceManyToManyChanges,
@@ -59,7 +59,7 @@ function buildGroupSavePlan(
         throw new Error('Many-to-many save group cannot be empty.');
     }
     const { change: first } = firstCaptured;
-    const pairs = buildValidatedManyToManyPairs(group);
+    const pairs = buildManyToManyPairs(group);
     const keyValue = pairs.length === 1
         ? `${String(pairs[0][0])}->${String(pairs[0][1])}`
         : `${String(pairs.length)} changes`;
@@ -76,6 +76,12 @@ function buildGroupSavePlan(
         statement: first.action === 'link'
             ? sql.buildInsertManyToManyBatch(first.relationship, pairs)
             : sql.buildDeleteManyToManyBatch(first.relationship, pairs),
+        affectedEntityCount: group.length,
+        relationshipPairs: group.map(({ change }) => ({
+            source: change.source,
+            target: change.target,
+        })),
+        ...hasDeferredEndpoint(group) ? { isDeferred: true } : {},
         skipAffectedRowsCheck: true,
         isSystemGenerated: true,
     };
@@ -95,8 +101,16 @@ function buildGroupStatement(
     persistedValue?: PersistedValueLookup,
 ): SqlStatement {
     const first = group[0].change;
-    const pairs = buildValidatedManyToManyPairs(group, persistedValue);
+    const pairs = buildManyToManyPairs(group, persistedValue);
     return first.action === 'link'
         ? sql.buildInsertManyToManyBatch(first.relationship, pairs)
         : sql.buildDeleteManyToManyBatch(first.relationship, pairs);
+}
+
+function hasDeferredEndpoint(
+    group: readonly CapturedManyToManyChange[],
+): boolean {
+    return group.some(({ source, target }) =>
+        source.generatedOnAddPropertyNames.size > 0 ||
+        target.generatedOnAddPropertyNames.size > 0);
 }

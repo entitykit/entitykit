@@ -1,4 +1,7 @@
-import type { SavePlanEntry } from '../../core/save-plan';
+import type {
+    RelationshipSavePlanPair,
+    SavePlanEntry,
+} from '../../core/save-plan';
 import type { SqlStatement } from '../../sql/sql-statement';
 
 export type SaveDurability =
@@ -23,6 +26,10 @@ export type SaveDurability =
     /** The state. */ readonly state: SavePlanEntry['state'];
     /** Parameterized SQL statement associated with this operation. */ readonly statement: SqlStatement;
     /** The affected entity count. */ readonly affectedEntityCount?: number;
+    /** The logical relationship endpoints, when sensitive data is enabled. */
+    readonly relationshipPairs?: readonly RelationshipSavePlanPair[];
+    /** Whether final statement values are resolved during execution. */
+    readonly isDeferred?: boolean;
     /** The expected affected rows. */ readonly expectedAffectedRows?: number;
     /** The skip affected rows check. */ readonly skipAffectedRowsCheck?: boolean;
     /** Whether system generated. */ readonly isSystemGenerated?: boolean;

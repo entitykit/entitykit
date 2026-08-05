@@ -3,7 +3,6 @@ import type {
     CapturedRelationshipEndpoint,
     ManyToManyChangeValidator,
 } from './many-to-many-change-validator';
-import { encodeSaveIdentityTuple } from './save-key-values';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { PersistedValueLookup } from './save-plan-execution';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
@@ -56,34 +55,14 @@ export function coalesceManyToManyChanges(
     return [...latest.values()];
 }
 
-export function buildValidatedManyToManyPairs(
+export function buildManyToManyPairs(
     group: readonly CapturedManyToManyChange[],
     persistedValue?: PersistedValueLookup,
 ): Array<readonly [unknown, unknown]> {
-    const seenPairs: Set<string> = new Set();
-    const pairs: Array<readonly [unknown, unknown]> = [];
-
-    for (const captured of group) {
-        const sourceKey = resolvedProviderKeyValues(
-            captured.source,
-            persistedValue,
-        );
-        const targetKey = resolvedProviderKeyValues(
-            captured.target,
-            persistedValue,
-        );
-        const pairKey = encodeSaveIdentityTuple([
-            sourceKey,
-            targetKey,
-        ]);
-
-        if (!seenPairs.has(pairKey)) {
-            seenPairs.add(pairKey);
-            pairs.push([sourceKey, targetKey]);
-        }
-    }
-
-    return pairs;
+    return group.map(captured => [
+        resolvedProviderKeyValues(captured.source, persistedValue),
+        resolvedProviderKeyValues(captured.target, persistedValue),
+    ]);
 }
 
 function resolvedProviderKeyValues(

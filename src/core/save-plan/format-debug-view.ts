@@ -9,6 +9,9 @@ export function formatSavePlanDebug(plan: readonly SavePlanEntry[]): string {
 
     return plan.map(entry => [
         `${entry.entityName} { ${entry.keyValue === undefined ? 'unknown' : formatDebugValue(entry.keyValue)} } ${entry.state}`,
+        ...entry.relationshipPairs
+            ? [`  relationships: ${String(entry.relationshipPairs.length)}${entry.isDeferred ? ' (deferred)' : ''}`]
+            : [],
         `  ${entry.statement.text}`,
         `  params: [${entry.statement.values.map(formatDebugValue).join(', ')}]`,
     ].join('\n')).join('\n');

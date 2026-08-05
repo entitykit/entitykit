@@ -9,6 +9,12 @@ import type { SavePlanEntry } from '../save-plan';
  */
 export function freezeSavePlan(plan: SavePlanEntry[]): SavePlanEntry[] {
     for (const entry of plan) {
+        if (entry.relationshipPairs) {
+            for (const pair of entry.relationshipPairs) {
+                Object.freeze(pair);
+            }
+            Object.freeze(entry.relationshipPairs);
+        }
         Object.freeze(entry.statement.values);
         Object.freeze(entry.statement);
         Object.freeze(entry);
