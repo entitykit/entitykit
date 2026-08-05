@@ -6,12 +6,15 @@ import type { IncludeStitcher } from './include-loader-stitch';
 import { IncludeStrategyBase } from './include-strategy-base';
 import {
     isCompleteTuple,
-    uniqueTuples,
+    uniquePropertyTuples,
 } from './include-key-helpers';
 import { IncludeOneToManyFilteredLoader } from './include-one-to-many-filtered-loader';
 import type { IncludeFilterModel } from './query-model';
 import { RelationshipCardinality } from '../model/relationship-metadata';
-import { relationshipPrincipalKeyValues } from '../model/relationship-key';
+import {
+    relationshipPrincipalKeyProperties,
+    relationshipPrincipalKeyValues,
+} from '../model/relationship-key';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 
 /**
@@ -52,7 +55,13 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const principalKeys = uniqueTuples(
+        const principalKeyProperties = relationshipPrincipalKeyProperties(
+            relationship,
+            principalMetadata,
+        ).map(String);
+        const principalKeys = uniquePropertyTuples(
+            principalMetadata,
+            principalKeyProperties,
             principals
                 .map(principal => relationshipPrincipalKeyValues(
                     relationship,

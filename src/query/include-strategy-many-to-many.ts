@@ -5,7 +5,7 @@ import { buildManyToManyBatchStatement } from './include-many-to-many-batch-sql'
 import { buildManyToManyWindowStatement } from './include-many-to-many-window-sql';
 import {
     isCompleteTuple,
-    uniqueTuples,
+    uniquePropertyTuples,
 } from './include-key-helpers';
 import { uniqueEntityInstances } from './include-navigation-helpers';
 import type { IncludeFilterModel } from './query-model';
@@ -36,7 +36,9 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const currentKeys = uniqueTuples(
+        const currentKeys = uniquePropertyTuples(
+            info.currentMetadata,
+            info.currentMetadata.keyProperties.map(String),
             currentEntities
                 .map(entity => info.currentMetadata.getKeyValues(entity))
                 .filter(isCompleteTuple),

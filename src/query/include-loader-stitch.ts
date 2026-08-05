@@ -2,11 +2,6 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import type { IncludeLoaderContext, ManyToManyRelationshipInfo } from './include-loader-context';
-import { parentKeyAliasAt } from './include-loader-sql';
-import {
-    readKeyColumn,
-    tupleLookupKey,
-} from './include-key-helpers';
 import {
     getUniqueObjectList,
     mergeNavigationItems,
@@ -15,18 +10,20 @@ import {
     uniqueEntityInstances,
     type UniqueObjectList,
 } from './include-navigation-helpers';
-import { relationshipPrincipalKeyValues } from '../model/relationship-key';
+import {
+    dependentStitchKey,
+    manyToManyEntityStitchKey,
+    manyToManyRowStitchKey,
+    principalStitchKey,
+} from './include-stitch-keys';
 
 /**
  * Wire freshly loaded rows onto the navigation properties of their parents
  * (and, where configured, the inverse navigation on the children), then mark
  * those navigations loaded.
  *
- * Stitching is a distinct step from fetching: the strategies decide *which*
- * rows to load and how, while assignment is the same key-matching, identity-
- * preserving wiring no matter how the rows arrived. Keeping it here lets the
- * batched, windowed, and per-parent strategies share one assignment path and
- * one definition of "loaded".
+ * Strategies decide which rows to load; this class owns their shared,
+ * identity-preserving assignment path.
  */
 export class IncludeStitcher {
     constructor(private readonly ctx: IncludeLoaderContext) {}
@@ -34,24 +31,24 @@ export class IncludeStitcher {
     public assignDependentsToPrincipals<TPrincipal extends object>(
         principalMetadata: EntityMetadata<TPrincipal>,
         principals: readonly TPrincipal[],
-        _dependentMetadata: EntityMetadata,
+        dependentMetadata: EntityMetadata,
         relationship: RelationshipMetadata<object, TPrincipal>,
         dependents: readonly object[],
     ): object[] {
         const dependentsByPrincipalKey: Map<string, object[]> = new Map();
         const principalsByKey = new Map(
             principals.map(principal => [
-                tupleLookupKey(relationshipPrincipalKeyValues(
-                    relationship, principalMetadata, principal,
-                )),
+                principalStitchKey(principalMetadata, relationship, principal),
                 principal,
             ]),
         );
 
         for (const dependent of dependents) {
-            const foreignKeyTuple = relationship.foreignKeyProperties
-                .map(propertyName => (dependent as Record<string, unknown>)[propertyName]);
-            const key = tupleLookupKey(foreignKeyTuple);
+            const key = dependentStitchKey(
+                dependentMetadata,
+                relationship,
+                dependent,
+            );
             const group = dependentsByPrincipalKey.get(key) ?? [];
             pushUnique(group, dependent);
             dependentsByPrincipalKey.set(key, group);
@@ -69,9 +66,11 @@ export class IncludeStitcher {
             );
         }
         for (const principal of principals) {
-            const key = tupleLookupKey(relationshipPrincipalKeyValues(
-                relationship, principalMetadata, principal,
-            ));
+            const key = principalStitchKey(
+                principalMetadata,
+                relationship,
+                principal,
+            );
             const group = dependentsByPrincipalKey.get(key) ?? [];
             if (
                 relationship.cardinality === RelationshipCardinality.OneToOne &&
@@ -108,19 +107,22 @@ export class IncludeStitcher {
                 continue;
             }
 
-            // The join row carries the parent key in its stored form; the entities it
-            // is matched against below are keyed by their model form.
             const row = rows.at(index);
             if (!row) {
                 continue;
             }
-            const parentKey = tupleLookupKey(info.currentJoinColumns.map((_, columnIndex) =>
-                readKeyColumn(info.currentMetadata, columnIndex, row[parentKeyAliasAt(columnIndex)], this.ctx.valueReader)));
+            const parentKey = manyToManyRowStitchKey(
+                info,
+                row,
+                this.ctx.valueReader,
+            );
             pushUniqueObject(getUniqueObjectList(relatedByParentKey, parentKey), related);
         }
 
         for (const entity of currentEntities) {
-            const group = relatedByParentKey.get(tupleLookupKey(info.currentMetadata.getKeyValues(entity)))?.items ?? [];
+            const group = relatedByParentKey.get(
+                manyToManyEntityStitchKey(info, entity),
+            )?.items ?? [];
             (entity as Record<string, unknown>)[info.navigationProperty] = group;
             this.markLoaded(entity, info.navigationProperty);
 

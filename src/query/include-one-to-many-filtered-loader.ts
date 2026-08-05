@@ -3,15 +3,14 @@ import type { RelationshipMetadata } from '../model/relationship-metadata';
 import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader-context';
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import type { IncludeStitcher } from './include-loader-stitch';
-import { uniqueValues } from './include-key-helpers';
+import { uniquePropertyValues } from './include-key-helpers';
 import { uniqueEntityInstances } from './include-navigation-helpers';
 import { buildOneToManyWindowStatement } from './include-one-to-many-window-sql';
 import { IncludeStrategyBase } from './include-strategy-base';
 import type { IncludeFilterModel } from './query-model';
-import { relationshipPrincipalKeyValues } from '../model/relationship-key';
+import { relationshipPrincipalKeyProperties, relationshipPrincipalKeyValues } from '../model/relationship-key';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 
-/** Loads a paged one-to-many include with the best strategy the provider supports. */
 export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
     constructor(
         ctx: IncludeLoaderContext,
@@ -32,7 +31,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         const supportsWindowBatch =
             this.ctx.dialect.supportsWindowFunctions?.() === true &&
             relationship.foreignKeyProperties.length === 1;
-        const result = await (supportsWindowBatch
+        return supportsWindowBatch
             ? this.loadWindowedBatch(
                 principalMetadata,
                 principals,
@@ -48,8 +47,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
                 relationship,
                 inverseNavigation,
                 filter,
-            ));
-        return result;
+            );
     }
 
     private async loadPerPrincipal<TPrincipal extends object>(
@@ -62,7 +60,6 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
         const allDependents: object[] = [];
-
         for (const principal of principals) {
             const principalKey = relationshipPrincipalKeyValues(relationship, principalMetadata, principal);
             const dependents = await this.propertyLoader.loadByProperties(
@@ -106,7 +103,10 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const principalKeys = uniqueValues(
+        const principalProperty = relationshipPrincipalKeyProperties(relationship, principalMetadata)[0];
+        const principalKeys = uniquePropertyValues(
+            principalMetadata,
+            principalProperty,
             principals
                 .map(principal =>
                     relationshipPrincipalKeyValues(relationship, principalMetadata, principal)[0])

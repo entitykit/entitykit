@@ -5,6 +5,7 @@ import {
     type StoreValueReader,
 } from '../storage/store-value-reader';
 import type { PropertyMetadata } from './property-metadata';
+import { toProviderValue } from './value-converter/store-value';
 
 export class EntityKeyMetadata<TEntity extends object> {
     constructor(
@@ -104,7 +105,13 @@ export class EntityKeyMetadata<TEntity extends object> {
             );
         }
 
-        keyValues.forEach((keyValue, index) => {
+        const providerValues = keyValues.map((keyValue, index) =>
+            toProviderValue(
+                keyValue,
+                this.keyPropertiesMetadata[index].converter,
+                `${this.entityName}.${this.keyProperties[index]}`,
+            ));
+        providerValues.forEach((keyValue, index) => {
             if (
                 keyValue === undefined ||
         keyValue === null ||
@@ -116,7 +123,7 @@ export class EntityKeyMetadata<TEntity extends object> {
             }
         });
 
-        return `${this.entityName}:${encodeIdentityTuple(keyValues)}`;
+        return `${this.entityName}:${encodeIdentityTuple(providerValues)}`;
     }
 
     private getProperty(

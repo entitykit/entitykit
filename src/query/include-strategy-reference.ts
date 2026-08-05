@@ -6,8 +6,8 @@ import type { IncludePropertyLoader } from './include-loader-key-batch';
 import { IncludeStrategyBase } from './include-strategy-base';
 import {
     isCompleteTuple,
-    tupleLookupKey,
-    uniqueTuples,
+    propertyTupleLookupKey,
+    uniquePropertyTuples,
 } from './include-key-helpers';
 import { uniqueEntityInstances } from './include-navigation-helpers';
 import { RelationshipCardinality } from '../model/relationship-metadata';
@@ -41,15 +41,19 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
         const foreignKeyProperties = relationship.foreignKeyProperties;
-        const foreignKeyTuples = uniqueTuples(
-            entities
-                .map(entity => foreignKeyProperties.map(propertyName => (entity as Record<string, unknown>)[propertyName]))
-                .filter(isCompleteTuple),
+        const principalMetadata = this.ctx.model.getEntity(
+            relationship.principalEntity,
         );
-        const principalMetadata = this.ctx.model.getEntity(relationship.principalEntity);
         const principalKeyProperties = relationshipPrincipalKeyProperties(
             relationship,
             principalMetadata,
+        );
+        const foreignKeyTuples = uniquePropertyTuples(
+            metadata,
+            foreignKeyProperties.map(String),
+            entities
+                .map(entity => foreignKeyProperties.map(propertyName => (entity as Record<string, unknown>)[propertyName]))
+                .filter(isCompleteTuple),
         );
 
         if (foreignKeyTuples.length === 0) {
@@ -69,11 +73,15 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         );
         const principalsByKey = new Map(
             principals.map(principal => [
-                tupleLookupKey(relationshipPrincipalKeyValues(
-                    relationship,
+                propertyTupleLookupKey(
                     principalMetadata,
-                    principal,
-                )),
+                    principalKeyProperties.map(String),
+                    relationshipPrincipalKeyValues(
+                        relationship,
+                        principalMetadata,
+                        principal,
+                    ),
+                ),
                 principal,
             ]),
         );
@@ -82,7 +90,11 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         for (const entity of entities) {
             const foreignKeyTuple = foreignKeyProperties.map(propertyName => (entity as Record<string, unknown>)[propertyName]);
             const principal = isCompleteTuple(foreignKeyTuple)
-                ? principalsByKey.get(tupleLookupKey(foreignKeyTuple)) ?? null
+                ? principalsByKey.get(propertyTupleLookupKey(
+                    metadata,
+                    foreignKeyProperties.map(String),
+                    foreignKeyTuple,
+                )) ?? null
                 : null;
             (entity as Record<string, unknown>)[relationship.navigationProperty] = principal;
             if (principal) {
