@@ -5,6 +5,7 @@ import {
     jsonChildPath,
     jsonChildPropertyPath,
     isJsonArrayIndex,
+    jsonArrayLength,
     rejectJson,
     withJsonAncestor,
     type JsonNormalizationState,
@@ -24,8 +25,9 @@ export function normalizeJsonArray(
     normalize: NormalizeJsonChild,
 ): JsonValue {
     return withJsonAncestor(value, state, () => {
+        const length = jsonArrayLength(descriptors);
         const normalized: JsonValue[] = [];
-        for (let index = 0; index < value.length; index += 1) {
+        for (let index = 0; index < length; index += 1) {
             const key = String(index);
             if (!Object.prototype.hasOwnProperty.call(descriptors, key)) {
                 rejectJson(state, `${path}[${key}]`, 'missing array element');
@@ -37,7 +39,7 @@ export function normalizeJsonArray(
             ));
         }
 
-        drainArrayProperties(value, descriptors, path, state, normalize);
+        drainArrayProperties(length, descriptors, path, state, normalize);
         state.snapshots.set(value, normalized);
         return normalized;
     });
@@ -94,14 +96,14 @@ export function drainJsonDescriptors(
 }
 
 function drainArrayProperties(
-    value: unknown[],
+    length: number,
     descriptors: PropertyDescriptorMap,
     path: string,
     state: JsonNormalizationState,
     normalize: NormalizeJsonChild,
 ): void {
     for (const key of Reflect.ownKeys(descriptors)) {
-        if (key === 'length' || isJsonArrayIndex(key, value.length)) {
+        if (key === 'length' || isJsonArrayIndex(key, length)) {
             continue;
         }
         const descriptor = descriptors[key];

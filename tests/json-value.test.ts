@@ -190,6 +190,26 @@ describe('JSON value contract', () => {
         expect(valueReads).toBe(0);
     });
 
+    it('snapshots an array proxy without reading its length through get', () => {
+        let ownKeyReads = 0;
+        let valueReads = 0;
+        const value = new Proxy([1, { ok: true }], {
+            ownKeys: target => {
+                ownKeyReads += 1;
+                return Reflect.ownKeys(target);
+            },
+            get: (target, key, receiver) => {
+                valueReads += 1;
+                const result: unknown = Reflect.get(target, key, receiver);
+                return result;
+            },
+        });
+
+        expect(normalizeJsonValue(value, 'Document.data')).toEqual([1, { ok: true }]);
+        expect(ownKeyReads).toBe(1);
+        expect(valueReads).toBe(0);
+    });
+
     it('rejects decorated arrays and consumes their rejected Promises', async () => {
         const unhandled: unknown[] = [];
         const observeUnhandled = (reason: unknown): void => {

@@ -57,6 +57,13 @@ export function isJsonArrayIndex(key: PropertyKey, length: number): boolean {
     return Number.isSafeInteger(index) && index >= 0 && index < length;
 }
 
+export function jsonArrayLength(descriptors: PropertyDescriptorMap): number {
+    const descriptor = descriptors.length;
+    return 'value' in descriptor && typeof descriptor.value === 'number'
+        ? descriptor.value
+        : 0;
+}
+
 export function defineJsonProperty(
     target: Record<string, JsonValue>,
     key: string,
