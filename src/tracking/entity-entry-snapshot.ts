@@ -53,6 +53,23 @@ export function modifiedEntityProperties<TEntity extends object>(
         .map(property => property.propertyName);
 }
 
+export function modifiedEntityValueProperties<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+    snapshot: Readonly<Record<string, unknown>>,
+): string[] {
+    return metadata.properties
+        .filter(property =>
+            !isGeneratedOnUpdate(property.valueGenerated) &&
+            !snapshotPropertyValuesEqual(
+                values[property.propertyName],
+                snapshot[property.propertyName],
+                property.converter as never,
+            ),
+        )
+        .map(property => property.propertyName);
+}
+
 export function hasEntityModifications<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entity: TEntity,
@@ -62,6 +79,21 @@ export function hasEntityModifications<TEntity extends object>(
         !isGeneratedOnUpdate(property.valueGenerated) &&
         !snapshotPropertyValuesEqual(
             readPropertyValue(entity, property),
+            snapshot[property.propertyName],
+            property.converter,
+        ),
+    );
+}
+
+export function hasEntityValueModifications<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+    snapshot: Readonly<Record<string, unknown>>,
+): boolean {
+    return metadata.properties.some(property =>
+        !isGeneratedOnUpdate(property.valueGenerated) &&
+        !snapshotPropertyValuesEqual(
+            values[property.propertyName],
             snapshot[property.propertyName],
             property.converter,
         ),

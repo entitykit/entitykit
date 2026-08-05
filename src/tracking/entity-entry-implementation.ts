@@ -47,8 +47,18 @@ export class EntityEntry<TEntity extends object> {
     public modifiedProperties(): string[] {
         return this.trackedState.modifiedProperties();
     }
+    public modifiedPropertiesFromValues(
+        values: Readonly<Record<string, unknown>>,
+    ): string[] {
+        return this.trackedState.modifiedPropertiesFromValues(values);
+    }
     public detectChanges(): void {
         this.trackedState.detectChanges();
+    }
+    public detectChangesFromValues(
+        values: Readonly<Record<string, unknown>>,
+    ): void {
+        this.trackedState.detectChangesFromValues(values);
     }
     public refreshOriginalValues(values?: Record<string, unknown>): void {
         this.trackedState.refresh(values);
