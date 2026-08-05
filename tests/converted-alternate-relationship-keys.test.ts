@@ -129,6 +129,7 @@ describe('converted alternate relationship keys', () => {
             .include(item => item.orders)
             .single();
         expect(loadedAccount.orders.map(item => item.id)).toEqual(['order-1']);
+        const movedOrder = loadedAccount.orders[0];
 
         const replacement = Object.assign(new ConvertedAccount(), {
             id: 'account-2',
@@ -138,11 +139,13 @@ describe('converted alternate relationship keys', () => {
         });
         db.accounts.add(replacement);
         await db.saveChanges();
-        loadedAccount.orders[0].account = replacement;
+        movedOrder.account = replacement;
 
         await expect(db.saveChanges()).resolves.toBe(1);
-        expect(loadedAccount.orders[0].tenantId).toBeInstanceOf(DependentKey);
-        expect(loadedAccount.orders[0].accountCode.value).toBe('SOUTH');
+        expect(movedOrder.tenantId).toBeInstanceOf(DependentKey);
+        expect(movedOrder.accountCode.value).toBe('SOUTH');
+        expect(loadedAccount.orders).toEqual([]);
+        expect(replacement.orders).toEqual([movedOrder]);
         const stored = await db.database.connection.query<{
             tenant_id: string;
             account_code: string;
