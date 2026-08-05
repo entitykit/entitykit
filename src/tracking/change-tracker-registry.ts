@@ -6,7 +6,11 @@ import { EntityState } from './entity-state';
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
 import { TrackingIdentityFactory } from './tracking-identity-factory';
-import { registerTemporaryGeneratedIdentity } from './temporary-generated-identity';
+import {
+    assertTemporaryIdentityRegistration,
+    clearTemporaryGeneratedIdentity,
+    registerTemporaryGeneratedIdentity,
+} from './temporary-generated-identity';
 import { reuseTrackedEntry } from './tracked-entry-reuse';
 
 export class ChangeTrackerRegistry {
@@ -99,6 +103,9 @@ export class ChangeTrackerRegistry {
         const entry = this.entry(entity);
         if (!entry) return undefined;
         entry.markDetached();
+        clearTemporaryGeneratedIdentity(
+            entry as unknown as EntityEntry<object>,
+        );
         this.entriesByEntity.delete(entity);
         this.identities.remove(entry as unknown as EntityEntry<object>);
         this.trackedEntries.delete(entry as unknown as EntityEntry<object>);
@@ -112,7 +119,10 @@ export class ChangeTrackerRegistry {
     }
 
     public clear(): void {
-        for (const entry of this.trackedEntries) entry.markDetached();
+        for (const entry of this.trackedEntries) {
+            entry.markDetached();
+            clearTemporaryGeneratedIdentity(entry);
+        }
         this.entriesByEntity = new WeakMap<object, EntityEntry<object>>();
         this.identities.clear();
         this.trackedEntries.clear();
@@ -121,5 +131,11 @@ export class ChangeTrackerRegistry {
 
     public assertInvariant(): void {
         this.identities.assertConsistent(this.trackedEntries);
+        for (const entry of this.trackedEntries) {
+            assertTemporaryIdentityRegistration(
+                entry,
+                this.identities.keyFor(entry),
+            );
+        }
     }
 }

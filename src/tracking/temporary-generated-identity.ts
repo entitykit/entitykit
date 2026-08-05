@@ -1,6 +1,7 @@
 import type { PropertyMetadata } from '../model/property-metadata';
 import { toProviderValue } from '../model/value-converter/store-value';
 import type { EntityEntry } from './entity-entry';
+import { EntityState } from './entity-state';
 
 export interface TemporaryGeneratedProperty {
     readonly propertyName: string;
@@ -43,6 +44,45 @@ export function registerTemporaryGeneratedIdentity(
         temporaryByEntry.set(entry, identity);
     } else {
         temporaryByEntry.delete(entry);
+    }
+}
+
+export function clearTemporaryGeneratedIdentity(
+    entry: EntityEntry<object>,
+): void {
+    temporaryByEntry.delete(entry);
+}
+
+export function assertNoUnresolvedGeneratedIdentities(
+    entries: ReadonlyArray<EntityEntry<object>>,
+): void {
+    const unresolved = entries.find(entry =>
+        entry.state === EntityState.Added && temporaryByEntry.has(entry));
+    if (!unresolved) return;
+
+    throw new Error(
+        `Cannot accept all changes while '${unresolved.metadata.entityName}' ` +
+        'has an unresolved store-generated identity. Save or detach it first.',
+    );
+}
+
+export function assertTemporaryIdentityRegistration(
+    entry: EntityEntry<object>,
+    registeredKey: string | undefined,
+): void {
+    const temporary = temporaryByEntry.get(entry);
+    if (!temporary) return;
+    const expectedKey = entry.state === EntityState.Added
+        ? temporary.identityKey
+        : entry.metadata.createIdentityKeyFromValues(
+            entry.metadata.keyProperties.map(propertyName =>
+                entry.originalValues[propertyName]),
+        );
+    if (registeredKey !== expectedKey) {
+        throw new Error(
+            'Temporary identity invariant failed for tracked ' +
+            `'${entry.metadata.entityName}'.`,
+        );
     }
 }
 

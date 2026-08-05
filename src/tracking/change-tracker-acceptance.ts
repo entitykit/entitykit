@@ -10,6 +10,7 @@ import {
     TrackedAcceptanceJournal,
     type TrackedAcceptance,
 } from './tracked-acceptance-journal';
+import { assertNoUnresolvedGeneratedIdentities } from './temporary-generated-identity';
 
 export class ChangeTrackerAcceptance {
     constructor(
@@ -27,6 +28,7 @@ export class ChangeTrackerAcceptance {
 
     public acceptAll(): void {
         const entries = this.entries();
+        assertNoUnresolvedGeneratedIdentities(entries);
         this.identities.prepareAccept(entries);
         for (const entry of entries) {
             if (entry.state === EntityState.Deleted) {
