@@ -8,6 +8,11 @@ import { snapshotValuesEqual } from './snapshot-value-equality';
 
 export { cloneSnapshotValue } from './snapshot-value-clone';
 
+export interface SnapshotPropertyValueCopies {
+    readonly persistedValue: unknown;
+    readonly liveValue: unknown;
+}
+
 export function snapshotPropertyValue(
     value: unknown,
     converter?: ValueConverter,
@@ -17,10 +22,31 @@ export function snapshotPropertyValue(
         return cloneSnapshotValue(value);
     }
 
-    const providerSnapshot = cloneSnapshotValue(
-        toProviderValue(value, converter, context),
-    );
-    return fromProviderValue(providerSnapshot, converter, context);
+    const providerSnapshot = snapshotProviderValue(value, converter, context);
+    return modelValueFromSnapshot(providerSnapshot, converter, context);
+}
+
+/** Reconstruct independent persisted and live model values through a converter. */
+export function snapshotPropertyValueCopies(
+    value: unknown,
+    converter?: ValueConverter,
+    context?: string,
+): SnapshotPropertyValueCopies {
+    if (value === null || value === undefined || !converter) {
+        return {
+            persistedValue: cloneSnapshotValue(value),
+            liveValue: cloneSnapshotValue(value),
+        };
+    }
+    const providerSnapshot = snapshotProviderValue(value, converter, context);
+    return {
+        persistedValue: modelValueFromSnapshot(
+            providerSnapshot,
+            converter,
+            context,
+        ),
+        liveValue: modelValueFromSnapshot(providerSnapshot, converter, context),
+    };
 }
 
 export function snapshotPropertyValuesEqual(
@@ -43,4 +69,24 @@ function comparableValue(
     return value === null || value === undefined || !converter
         ? value
         : toProviderValue(value, converter, context);
+}
+
+function snapshotProviderValue(
+    value: unknown,
+    converter: ValueConverter,
+    context?: string,
+): unknown {
+    return cloneSnapshotValue(toProviderValue(value, converter, context));
+}
+
+function modelValueFromSnapshot(
+    providerSnapshot: unknown,
+    converter: ValueConverter,
+    context?: string,
+): unknown {
+    return fromProviderValue(
+        cloneSnapshotValue(providerSnapshot),
+        converter,
+        context,
+    );
 }

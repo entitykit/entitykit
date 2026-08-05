@@ -4,8 +4,7 @@ import type { GeneratedKeyPropagation } from '../save-plan-execution';
 import type { AppliedPropertyValue } from './applied-generated-value';
 import { isGeneratedOnAdd } from '../../model/value-generated';
 import {
-    cloneSnapshotValue,
-    snapshotPropertyValue,
+    snapshotPropertyValueCopies,
     snapshotPropertyValuesEqual,
 } from '../../tracking/snapshot-value';
 
@@ -61,12 +60,11 @@ export function propagateGeneratedKeys(
                     `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
                 );
             }
-            const persistedValue = snapshotPropertyValue(
+            const { persistedValue, liveValue } = snapshotPropertyValueCopies(
                 value,
                 foreignKey.converter,
                 context,
             );
-            const liveValue = cloneSnapshotValue(persistedValue);
             if (snapshotPropertyValuesEqual(
                 liveValues[property.foreignKeyProperty],
                 property.foreignKeyValue,

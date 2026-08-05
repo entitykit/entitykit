@@ -1,7 +1,4 @@
-import {
-    cloneSnapshotValue,
-    snapshotPropertyValue,
-} from '../tracking/snapshot-value';
+import { snapshotPropertyValueCopies } from '../tracking/snapshot-value';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 
@@ -14,12 +11,11 @@ export function writeSaveTimeProperty(
 ): void {
     const { entry } = snapshot;
     const property = entry.metadata.getProperty(propertyName);
-    const persistedValue = snapshotPropertyValue(
+    const { persistedValue, liveValue } = snapshotPropertyValueCopies(
         suppliedValue,
         property.converter,
         `${entry.metadata.entityName}.${propertyName}`,
     );
-    const liveValue = cloneSnapshotValue(persistedValue);
     const liveValues = entry.entity as Record<string, unknown>;
     mutations.recordApplied(
         liveValues,
