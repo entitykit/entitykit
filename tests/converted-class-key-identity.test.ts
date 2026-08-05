@@ -227,4 +227,33 @@ describe('converted class key identity', () => {
         expect(stored.rows).toEqual([{ post_id: 'post-3' }]);
         await db.dispose();
     });
+
+    it('fixes up converted relationships after reload', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: 'insert into strong_posts (id, title) values (?, ?), (?, ?)',
+            values: ['post-1', 'first', 'post-2', 'second'],
+        });
+        await db.database.connection.query({
+            text: 'insert into strong_comments (id, post_id, body) values (?, ?, ?)',
+            values: ['comment-1', 'post-1', 'before'],
+        });
+        const posts = await db.posts.orderBy(post => post.id).toArray();
+        const comment = await db.comments.include(item => item.post).single();
+        const entry = db.entry(comment);
+        if (!entry) throw new Error('Expected the comment to be tracked.');
+        await db.database.connection.query({
+            text: 'update strong_comments set post_id = ?, body = ? where id = ?',
+            values: ['post-2', 'after', 'comment-1'],
+        });
+
+        await expect(entry.reload()).resolves.toBe(true);
+
+        expect(comment.body).toBe('after');
+        expect(comment.postId.value).toBe('post-2');
+        expect(comment.post).toBe(posts[1]);
+        expect(posts[0].comments).toEqual([]);
+        expect(posts[1].comments).toEqual([comment]);
+        await db.dispose();
+    });
 });
