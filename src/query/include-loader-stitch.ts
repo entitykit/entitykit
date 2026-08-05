@@ -56,6 +56,7 @@ export class IncludeStitcher {
             const principal = principalsByKey.get(key);
             if (principal) {
                 (dependent as Record<string, unknown>)[relationship.navigationProperty] = principal;
+                this.markLoaded(dependent, relationship.navigationProperty);
             }
         }
 
