@@ -1,7 +1,18 @@
 import { DbValidationError } from '../errors/entity-kit-error';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { ManyToManyChange } from './many-to-many-change';
-import { formatSaveIdentityValue } from './save-key-values';
+import {
+    encodeSaveIdentityTuple,
+    formatSaveIdentityValue,
+    toProviderKeyValues,
+} from './save-key-values';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+
+export interface CapturedRelationshipEndpoint {
+    readonly modelKeyValues: readonly unknown[];
+    readonly providerKeyValues: readonly unknown[];
+    readonly encodedIdentity: string;
+}
 
 export class ManyToManyChangeValidator {
     constructor(private readonly isTracked: (entity: object) => boolean) {}
@@ -24,28 +35,51 @@ export class ManyToManyChangeValidator {
         );
     }
 
-    public validatedKey(
+    public capturedEndpoint(
         change: ManyToManyChange,
         side: 'source' | 'target',
-        endpointKeys: WeakMap<object, readonly unknown[]>,
-    ): readonly unknown[] {
+        snapshotsByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,
+        endpoints: WeakMap<object, CapturedRelationshipEndpoint>,
+    ): CapturedRelationshipEndpoint {
         const entity = side === 'source' ? change.source : change.target;
         const metadata =
             side === 'source' ? change.sourceMetadata : change.targetMetadata;
-        const cached = endpointKeys.get(entity);
+        const cached = endpoints.get(entity);
         if (cached) {
             return cached;
         }
 
-        const keyValue = this.validateEndpoint(
+        const snapshot = snapshotsByEntity.get(entity);
+        if (!snapshot) {
+            this.validateEndpoint(
+                change,
+                side,
+                this.relationshipName(change),
+                entity,
+                metadata,
+            );
+            throw new Error('Tracked relationship endpoint snapshot is unavailable.');
+        }
+        const modelKeyValues = metadata.keyProperties.map(propertyName =>
+            snapshot.values[propertyName]);
+        this.validateKeyValues(
             change,
             side,
             this.relationshipName(change),
-            entity,
+            metadata,
+            modelKeyValues,
+        );
+        const providerKeyValues = toProviderKeyValues(
+            modelKeyValues,
             metadata,
         );
-        endpointKeys.set(entity, keyValue);
-        return keyValue;
+        const endpoint = {
+            modelKeyValues,
+            providerKeyValues,
+            encodedIdentity: encodeSaveIdentityTuple(providerKeyValues),
+        };
+        endpoints.set(entity, endpoint);
+        return endpoint;
     }
 
     private validateEndpoint(
@@ -56,21 +90,13 @@ export class ManyToManyChangeValidator {
         metadata: EntityMetadata,
     ): readonly unknown[] {
         const keyValues = metadata.getKeyValues(entity);
-        const emptyIndex = keyValues.findIndex(
-            value => value === undefined || value === null || value === '',
+        this.validateKeyValues(
+            change,
+            side,
+            relationshipName,
+            metadata,
+            keyValues,
         );
-        if (emptyIndex >= 0) {
-            throw new DbValidationError(
-                `Cannot ${change.action} many-to-many relationship '${relationshipName}' because the ${side} entity '${metadata.entityName}' has an empty key '${String(metadata.keyProperties[emptyIndex])}'.`,
-                {
-                    action: change.action,
-                    relationship: relationshipName,
-                    side,
-                    entity: metadata.entityName,
-                    keyProperty: metadata.keyProperties[emptyIndex],
-                },
-            );
-        }
 
         if (!this.isTracked(entity)) {
             const identity = keyValues.length === 1 ? keyValues[0] : keyValues;
@@ -87,6 +113,30 @@ export class ManyToManyChangeValidator {
         }
 
         return keyValues;
+    }
+
+    private validateKeyValues(
+        change: ManyToManyChange,
+        side: 'source' | 'target',
+        relationshipName: string,
+        metadata: EntityMetadata,
+        keyValues: readonly unknown[],
+    ): void {
+        const emptyIndex = keyValues.findIndex(
+            value => value === undefined || value === null || value === '',
+        );
+        if (emptyIndex >= 0) {
+            throw new DbValidationError(
+                `Cannot ${change.action} many-to-many relationship '${relationshipName}' because the ${side} entity '${metadata.entityName}' has an empty key '${String(metadata.keyProperties[emptyIndex])}'.`,
+                {
+                    action: change.action,
+                    relationship: relationshipName,
+                    side,
+                    entity: metadata.entityName,
+                    keyProperty: metadata.keyProperties[emptyIndex],
+                },
+            );
+        }
     }
 
     private relationshipName(change: ManyToManyChange): string {

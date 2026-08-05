@@ -1,28 +1,43 @@
 import type { ManyToManyChange } from './many-to-many-change';
-import type { ManyToManyChangeValidator } from './many-to-many-change-validator';
-import {
-    encodeSaveIdentityTuple,
-    toProviderKeyValues,
-} from './save-key-values';
+import type {
+    CapturedRelationshipEndpoint,
+    ManyToManyChangeValidator,
+} from './many-to-many-change-validator';
+import { encodeSaveIdentityTuple } from './save-key-values';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+
+export interface CapturedManyToManyChange {
+    readonly change: ManyToManyChange;
+    readonly source: CapturedRelationshipEndpoint;
+    readonly target: CapturedRelationshipEndpoint;
+}
+
+export function captureManyToManyChanges(
+    changes: readonly ManyToManyChange[],
+    validator: ManyToManyChangeValidator,
+    snapshotsByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,
+): CapturedManyToManyChange[] {
+    const endpoints: WeakMap<object, CapturedRelationshipEndpoint> = new WeakMap();
+    return changes.map(change => ({
+        change,
+        source: validator.capturedEndpoint(
+            change, 'source', snapshotsByEntity, endpoints,
+        ),
+        target: validator.capturedEndpoint(
+            change, 'target', snapshotsByEntity, endpoints,
+        ),
+    }));
+}
 
 /** Keep only the last requested action for each concrete join-table row. */
 export function coalesceManyToManyChanges(
-    changes: readonly ManyToManyChange[],
-    validator: ManyToManyChangeValidator,
-): ManyToManyChange[] {
-    const endpointKeys: WeakMap<object, readonly unknown[]> = new WeakMap();
-    const latest: Map<string, ManyToManyChange> = new Map();
+    changes: readonly CapturedManyToManyChange[],
+): CapturedManyToManyChange[] {
+    const latest: Map<string, CapturedManyToManyChange> = new Map();
 
-    for (const change of changes) {
-        const sourceKey = toProviderKeyValues(
-            validator.validatedKey(change, 'source', endpointKeys),
-            change.sourceMetadata,
-        );
-        const targetKey = toProviderKeyValues(
-            validator.validatedKey(change, 'target', endpointKeys),
-            change.targetMetadata,
-        );
-        const relationship = change.relationship;
+    for (const captured of changes) {
+        const { change } = captured;
+        const relationship = captured.change.relationship;
         const key = JSON.stringify([
             change.sourceMetadata.entityName,
             String(relationship.navigationProperty),
@@ -30,32 +45,24 @@ export function coalesceManyToManyChanges(
             relationship.joinTableName,
             relationship.sourceForeignKeyColumns,
             relationship.targetForeignKeyColumns,
-            encodeSaveIdentityTuple(sourceKey),
-            encodeSaveIdentityTuple(targetKey),
+            captured.source.encodedIdentity,
+            captured.target.encodedIdentity,
         ]);
-        latest.set(key, change);
+        latest.set(key, captured);
     }
 
     return [...latest.values()];
 }
 
 export function buildValidatedManyToManyPairs(
-    group: readonly ManyToManyChange[],
-    validator: ManyToManyChangeValidator,
+    group: readonly CapturedManyToManyChange[],
 ): Array<readonly [unknown, unknown]> {
-    const endpointKeys: WeakMap<object, readonly unknown[]> = new WeakMap();
     const seenPairs: Set<string> = new Set();
     const pairs: Array<readonly [unknown, unknown]> = [];
 
-    for (const change of group) {
-        const sourceKey = toProviderKeyValues(
-            validator.validatedKey(change, 'source', endpointKeys),
-            change.sourceMetadata,
-        );
-        const targetKey = toProviderKeyValues(
-            validator.validatedKey(change, 'target', endpointKeys),
-            change.targetMetadata,
-        );
+    for (const captured of group) {
+        const sourceKey = captured.source.providerKeyValues;
+        const targetKey = captured.target.providerKeyValues;
         const pairKey = encodeSaveIdentityTuple([
             sourceKey,
             targetKey,

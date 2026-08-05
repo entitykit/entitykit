@@ -4,18 +4,28 @@ import type { ManyToManyChange } from './many-to-many-change';
 import type { ManyToManyChangeValidator } from './many-to-many-change-validator';
 import {
     buildValidatedManyToManyPairs,
+    captureManyToManyChanges,
+    type CapturedManyToManyChange,
     coalesceManyToManyChanges,
 } from './many-to-many-key-pairs';
 import type { SavePlanEntry } from './save-plan';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 export function buildManyToManySavePlan(
     changes: readonly ManyToManyChange[],
     validator: ManyToManyChangeValidator,
     sql: ModificationSqlBuilder,
+    snapshotsByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,
 ): SavePlanEntry[] {
-    const groups: Map<string, ManyToManyChange[]> = new Map();
+    const groups: Map<string, CapturedManyToManyChange[]> = new Map();
+    const capturedChanges = captureManyToManyChanges(
+        changes,
+        validator,
+        snapshotsByEntity,
+    );
 
-    for (const change of coalesceManyToManyChanges(changes, validator)) {
+    for (const captured of coalesceManyToManyChanges(capturedChanges)) {
+        const { change } = captured;
         const key = [
             change.action,
             change.sourceMetadata.entityName,
@@ -26,25 +36,25 @@ export function buildManyToManySavePlan(
             change.relationship.targetForeignKeyColumn,
         ].join(':');
         const group = groups.get(key) ?? [];
-        group.push(change);
+        group.push(captured);
         groups.set(key, group);
     }
 
     return Array.from(groups.values()).map(group =>
-        buildGroupSavePlan(group, validator, sql),
+        buildGroupSavePlan(group, sql),
     );
 }
 
 function buildGroupSavePlan(
-    group: readonly ManyToManyChange[],
-    validator: ManyToManyChangeValidator,
+    group: readonly CapturedManyToManyChange[],
     sql: ModificationSqlBuilder,
 ): SavePlanEntry {
-    const first = group.at(0);
-    if (!first) {
+    const firstCaptured = group.at(0);
+    if (!firstCaptured) {
         throw new Error('Many-to-many save group cannot be empty.');
     }
-    const pairs = buildValidatedManyToManyPairs(group, validator);
+    const { change: first } = firstCaptured;
+    const pairs = buildValidatedManyToManyPairs(group);
     const keyValue = pairs.length === 1
         ? `${String(pairs[0][0])}->${String(pairs[0][1])}`
         : `${String(pairs.length)} changes`;

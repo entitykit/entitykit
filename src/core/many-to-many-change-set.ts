@@ -4,6 +4,7 @@ import { ManyToManyChangeValidator } from './many-to-many-change-validator';
 import { buildManyToManySavePlan } from './many-to-many-save-plan';
 import type { SavePlanEntry } from './save-plan';
 import { registerSavePlanExecution } from './save-plan-execution';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 export type { ManyToManyChange } from './many-to-many-change';
 
@@ -69,11 +70,15 @@ export class ManyToManyChangeSet {
         }
     }
 
-    public buildSavePlan(sql: ModificationSqlBuilder): SavePlanEntry[] {
+    public buildSavePlan(
+        sql: ModificationSqlBuilder,
+        snapshotsByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,
+    ): SavePlanEntry[] {
         const plan = buildManyToManySavePlan(
             this.changes,
             this.validator,
             sql,
+            snapshotsByEntity,
         );
         if (plan[0]) {
             registerSavePlanExecution(plan[0], {

@@ -61,7 +61,14 @@ export class SavePlanBuilder {
         const dialect = this.deps.getDialect();
         const sql = new ModificationSqlBuilder(dialect);
         const entityPlan = buildEntitySavePlan(sql, dialect, pending);
-        const manyToManyPlan = this.deps.manyToMany.buildSavePlan(sql);
+        const snapshotsByEntity = new Map(snapshots.map(snapshot => [
+            snapshot.entry.entity,
+            snapshot,
+        ]));
+        const manyToManyPlan = this.deps.manyToMany.buildSavePlan(
+            sql,
+            snapshotsByEntity,
+        );
         const unlinkPlan = manyToManyPlan.filter(entry => entry.state === EntityState.Deleted);
         const linkPlan = manyToManyPlan.filter(entry => entry.state === EntityState.Added);
         const entityNonDeletes = entityPlan.filter(entry => entry.state !== EntityState.Deleted);
