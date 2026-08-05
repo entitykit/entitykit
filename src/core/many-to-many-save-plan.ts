@@ -76,7 +76,7 @@ function buildGroupSavePlan(
         statement: first.action === 'link'
             ? sql.buildInsertManyToManyBatch(first.relationship, pairs)
             : sql.buildDeleteManyToManyBatch(first.relationship, pairs),
-        affectedEntityCount: group.length,
+        relationshipChangeCount: group.length,
         relationshipPairs: group.map(({ change }) => ({
             source: change.source,
             target: change.target,

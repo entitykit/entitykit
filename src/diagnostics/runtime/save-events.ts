@@ -26,6 +26,8 @@ export type SaveDurability =
     /** The state. */ readonly state: SavePlanEntry['state'];
     /** Parameterized SQL statement associated with this operation. */ readonly statement: SqlStatement;
     /** The affected entity count. */ readonly affectedEntityCount?: number;
+    /** The number of logical relationship changes. */
+    readonly relationshipChangeCount?: number;
     /** The logical relationship endpoints, when sensitive data is enabled. */
     readonly relationshipPairs?: readonly RelationshipSavePlanPair[];
     /** Whether final statement values are resolved during execution. */
