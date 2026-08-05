@@ -6,6 +6,7 @@ import { EntityState } from './entity-state';
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
 import { TrackingIdentityFactory } from './tracking-identity-factory';
+import { registerTemporaryGeneratedIdentity } from './temporary-generated-identity';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -30,12 +31,17 @@ export class ChangeTrackerRegistry {
         originalValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
         metadata.assertWritable('Tracking');
-        const identityKey = this.identityFactory.create(entity, metadata, state);
+        const identity = this.identityFactory.create(entity, metadata, state);
+        const { identityKey } = identity;
         this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByObject = this.entriesByEntity.get(entity);
         if (existingByObject) {
             existingByObject.state = state;
             if (originalValues) existingByObject.refreshOriginalValues(originalValues);
+            registerTemporaryGeneratedIdentity(
+                existingByObject,
+                identity.temporaryGeneratedIdentity,
+            );
             return existingByObject as unknown as EntityEntry<TEntity>;
         }
         const existingByIdentity = this.identities.get(identityKey);
@@ -47,6 +53,10 @@ export class ChangeTrackerRegistry {
         }
 
         const entry = new EntityEntry(entity, metadata, state, originalValues);
+        registerTemporaryGeneratedIdentity(
+            entry as unknown as EntityEntry<object>,
+            identity.temporaryGeneratedIdentity,
+        );
         configureTrackedEntry(
             this.owner,
             entry as unknown as EntityEntry<object>,

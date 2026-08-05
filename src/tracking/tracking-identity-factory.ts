@@ -1,6 +1,15 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { isGeneratedOnAdd } from '../model/value-generated';
 import { EntityState } from './entity-state';
+import {
+    captureTemporaryGeneratedProperty,
+    type TemporaryGeneratedIdentity,
+} from './temporary-generated-identity';
+
+export interface CapturedTrackingIdentity {
+    readonly identityKey: string;
+    readonly temporaryGeneratedIdentity?: TemporaryGeneratedIdentity;
+}
 
 /** Creates stable or temporary identity-map keys for newly tracked entities. */
 export class TrackingIdentityFactory {
@@ -10,22 +19,30 @@ export class TrackingIdentityFactory {
         entity: TEntity,
         metadata: EntityMetadata<TEntity>,
         state: EntityState,
-    ): string {
-        if (
-            state === EntityState.Added &&
-            metadata.keyPropertiesMetadata.some((property, index) =>
-                isGeneratedOnAdd(property.valueGenerated) &&
-                isEmptyGeneratedValue(metadata.getKeyValues(entity)[index]))
-        ) {
-            return `\0entitykit:${metadata.entityName}:${
+    ): CapturedTrackingIdentity {
+        const keyValues = metadata.getKeyValues(entity);
+        const properties = state === EntityState.Added
+            ? metadata.keyPropertiesMetadata.flatMap((property, index) => {
+                if (!isGeneratedOnAdd(property.valueGenerated)) {
+                    return [];
+                }
+                const temporary = captureTemporaryGeneratedProperty(
+                    keyValues[index],
+                    property,
+                    metadata.entityName,
+                );
+                return temporary ? [temporary] : [];
+            })
+            : [];
+        if (properties.length > 0) {
+            const identityKey = `\0entitykit:${metadata.entityName}:${
                 String(this.nextTemporaryIdentity++)
             }`;
+            return {
+                identityKey,
+                temporaryGeneratedIdentity: { identityKey, properties },
+            };
         }
-        return metadata.createIdentityKey(entity);
+        return { identityKey: metadata.createIdentityKeyFromValues(keyValues) };
     }
-}
-
-function isEmptyGeneratedValue(value: unknown): boolean {
-    return value === undefined || value === null || value === '' ||
-        value === 0 || value === 0n;
 }
