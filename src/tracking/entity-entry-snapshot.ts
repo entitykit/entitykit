@@ -17,6 +17,7 @@ export function readEntityValues<TEntity extends object>(
         values[property.propertyName] = snapshotPropertyValue(
             readPropertyValue(entity, property),
             property.converter,
+            `${metadata.entityName}.${property.propertyName}`,
         );
     }
     return values;
@@ -31,6 +32,7 @@ export function cloneEntityValues<TEntity extends object>(
         cloned[key] = snapshotPropertyValue(
             value,
             metadata.tryGetProperty(key)?.converter,
+            `${metadata.entityName}.${key}`,
         );
     }
     return cloned;
@@ -48,6 +50,7 @@ export function modifiedEntityProperties<TEntity extends object>(
                 readPropertyValue(entity, property),
                 snapshot[property.propertyName],
                 property.converter as never,
+                `${metadata.entityName}.${property.propertyName}`,
             ),
         )
         .map(property => property.propertyName);
@@ -65,6 +68,7 @@ export function modifiedEntityValueProperties<TEntity extends object>(
                 values[property.propertyName],
                 snapshot[property.propertyName],
                 property.converter as never,
+                `${metadata.entityName}.${property.propertyName}`,
             ),
         )
         .map(property => property.propertyName);
@@ -81,6 +85,7 @@ export function hasEntityModifications<TEntity extends object>(
             readPropertyValue(entity, property),
             snapshot[property.propertyName],
             property.converter,
+            `${metadata.entityName}.${property.propertyName}`,
         ),
     );
 }
@@ -96,6 +101,7 @@ export function hasEntityValueModifications<TEntity extends object>(
             values[property.propertyName],
             snapshot[property.propertyName],
             property.converter,
+            `${metadata.entityName}.${property.propertyName}`,
         ),
     );
 }
