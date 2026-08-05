@@ -3,7 +3,6 @@ import {
     type JoinTarget,
     type DatabaseOperationOptions,
     type ModelPropertySelector,
-    type OutboxMessage,
     type PropertyBuilder,
     type QueryStreamOptions,
     type Queryable,
@@ -39,19 +38,6 @@ class Order {
     public paidAt!: Date | null;
     public createdAt!: Date;
 }
-
-interface DomainPayload {
-    readonly userId: string;
-    readonly count: number;
-}
-
-const domainPayload: DomainPayload = { userId: 'usr_1', count: 1 };
-const domainEvent: OutboxMessage = {
-    type: 'Created',
-    payload: domainPayload,
-    aggregateId: 9007199254740993n,
-};
-void domainEvent;
 
 type HasMember<TValue, TKey extends PropertyKey> =
     TKey extends keyof TValue ? true : false;

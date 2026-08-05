@@ -48,3 +48,11 @@ export function jsonChildPath(path: string, key: string): string {
         ? `${path}.${key}`
         : `${path}[${JSON.stringify(key)}]`;
 }
+
+export function isJsonArrayIndex(key: PropertyKey, length: number): boolean {
+    if (typeof key !== 'string' || !/^(?:0|[1-9]\d*)$/.test(key)) {
+        return false;
+    }
+    const index = Number(key);
+    return Number.isSafeInteger(index) && index >= 0 && index < length;
+}

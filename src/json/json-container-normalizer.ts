@@ -3,6 +3,7 @@ import { compareJsonKeys } from './canonical-json';
 import {
     jsonChildPath,
     jsonChildPropertyPath,
+    isJsonArrayIndex,
     rejectJson,
     withJsonAncestor,
     type JsonNormalizationState,
@@ -99,7 +100,7 @@ function drainArrayProperties(
     normalize: NormalizeJsonChild,
 ): void {
     for (const key of Reflect.ownKeys(descriptors)) {
-        if (key === 'length' || isArrayIndex(key, value.length)) {
+        if (key === 'length' || isJsonArrayIndex(key, value.length)) {
             continue;
         }
         const descriptor = descriptors[key];
@@ -141,12 +142,4 @@ function drainJsonDescriptor(
     if ('value' in descriptor) {
         normalize(descriptor.value, path, state);
     }
-}
-
-function isArrayIndex(key: PropertyKey, length: number): boolean {
-    if (typeof key !== 'string' || !/^(?:0|[1-9]\d*)$/.test(key)) {
-        return false;
-    }
-    const index = Number(key);
-    return Number.isSafeInteger(index) && index >= 0 && index < length;
 }
