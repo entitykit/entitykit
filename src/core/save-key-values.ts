@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { formatIdentityValue } from '../model/identity-value';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 /**
  * Key handling shared by the save plan and the many-to-many change set.
@@ -20,5 +20,5 @@ export /**
  */
 function toProviderKeyValues(keyValues: readonly unknown[], metadata: EntityMetadata): unknown[] {
     return metadata.keyPropertiesMetadata.map((property, index) =>
-        toProviderValue(keyValues[index], property.converter as never));
+        toBoundPropertyValue(keyValues[index], property, metadata.entityName));
 }

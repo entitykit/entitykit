@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../../model/entity-metadata';
 import type { PropertyMetadata } from '../../model/property-metadata';
-import { toProviderValue } from '../../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../../model/value-converter/store-value';
 import type { SqlDialect } from '../../sql/sql-dialect';
 import { SqlParameterBag, type SqlStatement } from '../../sql/sql-statement';
 
@@ -20,7 +20,11 @@ export function buildGeneratedValueRefresh(
             );
         }
         return `${dialect.quoteIdentifier(property.columnName)} = ${
-            parameters.add(toProviderValue(value, property.converter as never))
+            parameters.add(toBoundPropertyValue(
+                value,
+                property,
+                metadata.entityName,
+            ))
         }`;
     });
     return {

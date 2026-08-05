@@ -1,7 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { PropertyMetadata } from '../model/property-metadata';
 import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { DbValidationError } from '../errors/entity-kit-error';
 import type { SqlParameterBag } from './sql-statement';
 import type { SqlDialect } from './sql-dialect';
@@ -74,10 +74,18 @@ export function buildKeyAndConcurrencyWhere<TEntity extends object>(
 ): string {
     const keyValues = metadata.getKeyValues(entity);
     const conditions = metadata.keyPropertiesMetadata.map((keyProperty, index) =>
-        compareProperty(dialect, keyProperty, keyValues[index], parameters));
+        compareProperty(
+            dialect, keyProperty, keyValues[index], parameters, metadata.entityName,
+        ));
 
     for (const property of metadata.properties.filter(item => item.isConcurrencyToken)) {
-        conditions.push(compareProperty(dialect, property, originalValues[property.propertyName], parameters));
+        conditions.push(compareProperty(
+            dialect,
+            property,
+            originalValues[property.propertyName],
+            parameters,
+            metadata.entityName,
+        ));
     }
 
     return conditions.join(' and ');
@@ -88,13 +96,14 @@ function compareProperty<TEntity extends object>(
     property: PropertyMetadata<TEntity>,
     value: unknown,
     parameters: SqlParameterBag,
+    entityName: string,
 ): string {
     const column = dialect.quoteIdentifier(property.columnName);
     if (value === null || value === undefined) {
         return `${column} is null`;
     }
 
-    return `${column} = ${parameters.add(toProviderValue(value, property.converter as never))}`;
+    return `${column} = ${parameters.add(toBoundPropertyValue(value, property, entityName))}`;
 }
 
 export function requirePostgres(dialect: SqlDialect, message: string): void {

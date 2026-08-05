@@ -1,4 +1,4 @@
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { PredicateSqlCompiler } from '../sql/predicate-sql-compiler';
 import type { SqlDialect } from '../sql/sql-dialect';
 import {
@@ -54,7 +54,11 @@ export function buildManyToManyWindowStatement(
     const keyParameters = currentKeys
         .map(tuple =>
             parameters.add(
-                toProviderValue(tuple[0], keyProperty.converter as never),
+                toBoundPropertyValue(
+                    tuple[0],
+                    keyProperty,
+                    info.currentMetadata.entityName,
+                ),
             ),
         )
         .join(', ');

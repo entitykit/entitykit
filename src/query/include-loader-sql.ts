@@ -1,4 +1,4 @@
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { OrderExpression } from './expression/order-expression';
 import type { SqlDialect } from '../sql/sql-dialect';
@@ -50,7 +50,11 @@ export function joinKeyPredicate(
 ): string {
     const keyProperties = info.currentMetadata.keyPropertiesMetadata;
     const bind = (tuple: readonly unknown[], index: number): string =>
-        parameters.add(toProviderValue(tuple[index], keyProperties[index].converter as never));
+        parameters.add(toBoundPropertyValue(
+            tuple[index],
+            keyProperties[index],
+            info.currentMetadata.entityName,
+        ));
 
     if (info.currentJoinColumns.length === 1) {
         const column = `${dialect.quoteIdentifier('j')}.${dialect.quoteIdentifier(info.currentJoinColumns[0])}`;
