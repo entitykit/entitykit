@@ -11,7 +11,7 @@ import { SelectSqlCache } from './select/select-sql-cache';
 import { buildSelectSqlCacheKey } from './select-sql-cache-key';
 import { collectSelectValues } from './select-value-collector';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
-import type { SqlStatement } from './sql-statement';
+import { SqlParameterBag, type SqlStatement } from './sql-statement';
 
 export interface SelectSqlBuilderOptions {
     readonly maxCacheEntries?: number;
@@ -58,7 +58,11 @@ export class SelectSqlBuilder {
         const cacheKey = buildSelectSqlCacheKey(metadata, query, this.dialect);
         const cached = this.cache.get(cacheKey);
         if (cached) {
-            return { text: cached.text, values: collectSelectValues(metadata, query) };
+            const parameters = new SqlParameterBag(this.dialect);
+            for (const value of collectSelectValues(metadata, query)) {
+                parameters.add(value);
+            }
+            return { text: cached.text, values: parameters.values };
         }
 
         const statement = this.row.build(metadata, query);

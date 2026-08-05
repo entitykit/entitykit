@@ -77,6 +77,76 @@ describe('SelectSqlBuilder query cache', () => {
         ]);
     });
 
+    it('rejects Promise values recovered for cached predicates', async () => {
+        const metadata = createUserMetadata();
+        const user = createQueryProxy<User>();
+        const builder = new SelectSqlBuilder();
+        builder.build(metadata, {
+            ...createQueryModel(User),
+            predicate: user.email.eq('first@example.com'),
+        });
+        const unhandled: unknown[] = [];
+        const observeUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', observeUnhandled);
+        try {
+            const rejected = Promise.reject(new Error('forgot await'));
+            expect(() => builder.build(metadata, {
+                ...createQueryModel(User),
+                predicate: user.email.eq(rejected as never),
+            })).toThrow('SQL parameters cannot be Promises');
+            await new Promise<void>(resolve => setImmediate(resolve));
+            expect(unhandled).toEqual([]);
+        } finally {
+            process.off('unhandledRejection', observeUnhandled);
+        }
+    });
+
+    it('rejects invalid Dates recovered for cached predicates', () => {
+        const metadata = createUserMetadata();
+        const user = createQueryProxy<User>();
+        const builder = new SelectSqlBuilder();
+        builder.build(metadata, {
+            ...createQueryModel(User),
+            predicate: user.createdAt.eq(new Date('2026-01-01T00:00:00.000Z')),
+        });
+
+        expect(() => builder.build(metadata, {
+            ...createQueryModel(User),
+            predicate: user.createdAt.eq(new Date(Number.NaN)),
+        })).toThrow('Invalid Date at \'User.createdAt\'');
+    });
+
+    it('validates cached literal and coalesce projection values', () => {
+        const metadata = createUserMetadata();
+        const builder = new SelectSqlBuilder();
+        const projection = (value: unknown): ReturnType<typeof createProjectionExpression> => {
+            const sql = createProjectionBuilder();
+            const fields = createProjectionProxy<User>();
+            return createProjectionExpression({
+                literal: sql.literal(value as string),
+                fallback: sql.coalesce(
+                    fields.name,
+                    sql.literal(value as string),
+                ),
+            });
+        };
+        builder.build(metadata, {
+            ...createQueryModel(User),
+            projection: projection('valid'),
+        });
+
+        expect(() => builder.build(metadata, {
+            ...createQueryModel(User),
+            projection: projection(Promise.resolve('invalid')),
+        })).toThrow('SQL parameters cannot be Promises');
+        expect(() => builder.build(metadata, {
+            ...createQueryModel(User),
+            projection: projection(new Date(Number.NaN)),
+        })).toThrow('SQL parameters cannot contain an invalid Date');
+    });
+
     it('keeps in-list cardinality in the cache key because SQL text changes', () => {
         const metadata = createUserMetadata();
         const u = createQueryProxy<User>();
