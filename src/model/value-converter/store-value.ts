@@ -1,5 +1,6 @@
 import type { ValueConverter } from './converter';
 import { assertSynchronousCallbackResult } from '../../synchronous-callback';
+import { serializeJsonValue } from '../../json-value';
 
 export function toProviderValue<TProperty>(
     value: TProperty,
@@ -22,6 +23,7 @@ export function toStoreValue<TProperty>(
     value: TProperty,
     columnType: string,
     converter?: ValueConverter<TProperty>,
+    context = 'mapped JSON property',
 ): unknown {
     const converted = toProviderValue(value, converter);
     if (converted === null || converted === undefined) {
@@ -30,7 +32,7 @@ export function toStoreValue<TProperty>(
 
     const normalized = columnType.trim().toLowerCase();
     if (normalized === 'json' || normalized === 'jsonb') {
-        return JSON.stringify(converted);
+        return serializeJsonValue(converted, context);
     }
 
     return converted;

@@ -146,4 +146,21 @@ describe('toStoreValue JSON serialization', () => {
         // A native Postgres array column is a different type; it must not be JSON'd.
         expect(toStoreValue([1, 2, 3], 'text[]')).toEqual([1, 2, 3]);
     });
+
+    it('rejects lossy JSON values with mapped-property context', () => {
+        expect(() => toStoreValue(
+            { user: { profile: new Map([['name', 'Ada']]) } },
+            'jsonb',
+            undefined,
+            'Document.data',
+        )).toThrow(
+            'Unsupported JSON value at \'Document.data.user.profile\' (Map)',
+        );
+        expect(() => toStoreValue(
+            { score: Number.NaN },
+            'json',
+            undefined,
+            'Document.data',
+        )).toThrow('Unsupported JSON value at \'Document.data.score\' (NaN)');
+    });
 });
