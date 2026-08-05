@@ -6,6 +6,11 @@ function cloneValue(value: unknown, seen: WeakMap<object, unknown>): unknown {
     if (typeof value !== 'object' || value === null) {
         return value;
     }
+    if (value instanceof Promise) {
+        // Promises are unsupported persisted values. Preserve the original so
+        // the owning validator can consume a rejection and report its path.
+        return value;
+    }
     if (value instanceof Date) {
         return new Date(value.getTime());
     }
