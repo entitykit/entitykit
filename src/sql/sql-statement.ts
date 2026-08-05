@@ -23,6 +23,9 @@ export class SqlParameterBag {
                 'SQL parameters cannot be Promises. Await the value before constructing the query.',
             );
         }
+        if (value instanceof Date && Number.isNaN(value.getTime())) {
+            throw new TypeError('SQL parameters cannot contain an invalid Date.');
+        }
         this.parameterValues.push(value);
 
         // Every statement EntityKit builds passes through here, so one check

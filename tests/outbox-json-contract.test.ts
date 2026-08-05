@@ -18,13 +18,16 @@ function invalidEvent(payload: unknown, aggregateId: unknown = 'usr_1'): DomainE
     } as unknown as DomainEvent;
 }
 
-async function expectPreSqlFailure(event: DomainEvent): Promise<void> {
+async function expectPreSqlFailure(
+    event: DomainEvent,
+    expected = 'Unsupported JSON value',
+): Promise<void> {
     const connection = new RecordingDatabaseConnection();
     const db = OutboxContext.createWith(connection);
     const user = createOutboxUser([event]);
     db.users.add(user);
 
-    await expect(db.saveChanges()).rejects.toThrow('Unsupported JSON value');
+    await expect(db.saveChanges()).rejects.toThrow(expected);
     expect(connection.statements).toEqual([]);
     expect(connection.transactionEvents).toEqual([]);
     expect(user.domainEvents).toEqual([event]);
@@ -71,6 +74,19 @@ describe('outbox JSON contract', () => {
         } finally {
             process.off('unhandledRejection', observeUnhandled);
         }
+    });
+
+    it('rejects an invalid event timestamp before starting SQL', async () => {
+        const event: DomainEvent = {
+            type: 'UserCreated',
+            payload: { ok: true },
+        };
+        (event as DomainEvent & { occurredAt: Date }).occurredAt =
+            new Date(Number.NaN);
+        await expectPreSqlFailure(
+            event,
+            'Outbox event "UserCreated" occurredAt must be a valid Date.',
+        );
     });
 
     it.each([

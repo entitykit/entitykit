@@ -22,6 +22,14 @@ describe('SQL parameter contract', () => {
         )).toThrow('SQL parameters cannot be Promises');
     });
 
+    it('rejects an invalid Date before adding it to the statement', () => {
+        const parameters = new SqlParameterBag();
+        expect(() => parameters.add(new Date(Number.NaN))).toThrow(
+            'SQL parameters cannot contain an invalid Date.',
+        );
+        expect(parameters.values).toEqual([]);
+    });
+
     it('consumes a rejected parameter Promise', async () => {
         const unhandled: unknown[] = [];
         const observeUnhandled = (reason: unknown): void => {

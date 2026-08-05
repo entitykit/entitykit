@@ -31,6 +31,9 @@ export function toStoreValue<TProperty>(
     if (converted === null || converted === undefined) {
         return converted;
     }
+    if (converted instanceof Date && Number.isNaN(converted.getTime())) {
+        throw new TypeError(`Invalid Date at '${context}'. Mapped Date values must be valid.`);
+    }
 
     const normalized = columnType.trim().toLowerCase();
     if (normalized === 'json' || normalized === 'jsonb') {

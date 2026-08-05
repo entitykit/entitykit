@@ -147,6 +147,17 @@ describe('toStoreValue JSON serialization', () => {
         expect(toStoreValue([1, 2, 3], 'text[]')).toEqual([1, 2, 3]);
     });
 
+    it('rejects invalid mapped Date values with property context', () => {
+        expect(() => toStoreValue(
+            new Date(Number.NaN),
+            'timestamptz',
+            undefined,
+            'AuditRecord.createdAt',
+        )).toThrow(
+            'Invalid Date at \'AuditRecord.createdAt\'. Mapped Date values must be valid.',
+        );
+    });
+
     it('rejects lossy JSON values with mapped-property context', () => {
         expect(() => toStoreValue(
             { user: { profile: new Map([['name', 'Ada']]) } },

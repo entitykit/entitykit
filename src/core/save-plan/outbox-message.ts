@@ -9,6 +9,7 @@ import { cloneSnapshotValue } from '../../tracking/entity-entry';
 import {
     readSynchronousDate,
     readSynchronousValue,
+    assertValidDate,
 } from '../../synchronous-value';
 import {
     normalizeJsonValue,
@@ -79,15 +80,25 @@ export function collectPendingOutboxMessages(
                         entry.currentValues()[propertyName],
                     ),
                 ),
-                occurredAt: new Date((
-                    event.occurredAt ??
-                    readSynchronousDate(options.outbox.now, 'The outbox clock') ??
-                    options.currentAuditTimestamp()
-                ).getTime()),
+                occurredAt: outboxOccurredAt(event, options),
             });
         }
     }
     return messages;
+}
+
+function outboxOccurredAt(
+    event: OutboxMessage,
+    options: CollectionOptions,
+): Date {
+    const value = event.occurredAt ??
+        readSynchronousDate(options.outbox.now, 'The outbox clock') ??
+        options.currentAuditTimestamp();
+    assertValidDate(
+        value,
+        `Outbox event "${event.type}" occurredAt must be a valid Date.`,
+    );
+    return new Date(value.getTime());
 }
 
 export function normalizeAggregateId(
