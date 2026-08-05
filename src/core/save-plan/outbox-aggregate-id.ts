@@ -27,9 +27,7 @@ export function formatExplicitAggregateId(value: unknown, path: string): unknown
     return aggregateIdPart(value, path).value;
 }
 
-export function captureAggregateId(
-    snapshot: PersistedEntrySnapshot,
-): PendingAggregateId {
+export function captureAggregateId(snapshot: PersistedEntrySnapshot): PendingAggregateId {
     const { entry, values } = snapshot;
     return {
         entity: entry.entity,

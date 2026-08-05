@@ -1,6 +1,5 @@
 import type { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { SqlDialect } from '../../sql/sql-dialect';
-import type { SqlStatement } from '../../sql/sql-statement';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { SavePlanEntry } from '../save-plan';
@@ -9,15 +8,12 @@ import {
     maxInsertBatchSize,
     persistedKeyValue,
 } from './insert-plan';
-import { isGeneratedOnAdd } from '../../model/value-generated';
 import {
-    type GeneratedKeyPropagation,
     generatedValuesForUpdate,
     registerSavePlanExecution,
 } from '../save-plan-execution';
-import { relationshipPrincipalKeyProperties } from '../../model/relationship-key';
-import { assertNoKeyModifications } from './immutable-key-change';
-import { validateRequiredComplexPropertyValues } from '../../sql/required-complex-property-validation';
+import { generatedKeyPropagations } from './generated-key-propagation-plan';
+import { buildSaveStatement } from './entity-save-statement';
 
 export function buildEntitySavePlan(
     sql: ModificationSqlBuilder,
@@ -87,93 +83,4 @@ export function buildEntitySavePlan(
 
     flushInsertGroup();
     return plan;
-}
-
-function generatedKeyPropagations(
-    dependent: PersistedEntrySnapshot,
-    entriesByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,
-): readonly GeneratedKeyPropagation[] | undefined {
-    if (dependent.state !== EntityState.Added) {
-        return undefined;
-    }
-
-    const { entry } = dependent;
-    const propagations = entry.metadata.relationships.flatMap(relationship => {
-        const principal = entriesByEntity.get(
-            dependent.relationshipValues[
-                String(relationship.navigationProperty)
-            ] as object,
-        );
-        const principalKeyProperties = principal
-            ? relationshipPrincipalKeyProperties(
-                relationship,
-                principal.entry.metadata,
-            )
-            : [];
-        if (
-            principal?.state !== EntityState.Added ||
-            !principalKeyProperties.some(propertyName =>
-                isGeneratedOnAdd(
-                    principal.entry.metadata.getProperty(propertyName).valueGenerated,
-                )) ||
-            !relationship.foreignKeyProperties.some(propertyName =>
-                isEmpty(dependent.values[propertyName]))
-        ) {
-            return [];
-        }
-        return [{
-            principal: principal.entry.entity,
-            principalMetadata: principal.entry.metadata,
-            principalKeyProperties: principalKeyProperties.map(String),
-            principalKeyValues: principalKeyProperties.map(propertyName =>
-                principal.values[propertyName]),
-            foreignKeyProperties: relationship.foreignKeyProperties.map(String),
-        }];
-    });
-    return propagations.length > 0 ? propagations : undefined;
-}
-
-function isEmpty(value: unknown): boolean {
-    return value === undefined || value === null || value === '';
-}
-
-function buildSaveStatement(
-    sql: ModificationSqlBuilder,
-    snapshot: PersistedEntrySnapshot,
-): SqlStatement | undefined {
-    const { entry } = snapshot;
-    if (snapshot.state === EntityState.Added) {
-        validateRequiredComplexPropertyValues(
-            entry.metadata,
-            snapshot.complexPropertyValues,
-        );
-        return sql.buildInsertFromValues(entry.metadata, snapshot.values);
-    }
-
-    if (snapshot.state === EntityState.Modified) {
-        validateRequiredComplexPropertyValues(
-            entry.metadata,
-            snapshot.complexPropertyValues,
-        );
-        const modifiedProperties = entry.modifiedPropertiesFromValues(
-            snapshot.values,
-        );
-        assertNoKeyModifications(entry, modifiedProperties);
-        return sql.buildUpdateFromValues(
-            entry.metadata,
-            snapshot.values,
-            modifiedProperties,
-            entry.originalValues,
-        );
-    }
-
-    if (snapshot.state === EntityState.Deleted) {
-        return sql.buildDeleteFromValues(
-            entry.metadata,
-            snapshot.values,
-            entry.originalValues,
-        );
-    }
-
-    return undefined;
 }

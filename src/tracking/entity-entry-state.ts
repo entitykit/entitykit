@@ -3,9 +3,7 @@ import type { EntityEntry } from './entity-entry';
 import {
     cloneEntityValues,
     hasEntityModifications,
-    hasEntityValueModifications,
     modifiedEntityProperties,
-    modifiedEntityValueProperties,
     readEntityValues,
 } from './entity-entry-snapshot';
 import { EntityState } from './entity-state';
@@ -57,12 +55,6 @@ export class EntityEntryState<TEntity extends object> {
         return modifiedEntityProperties(this.metadata, this.entity, this.snapshot);
     }
 
-    public modifiedPropertiesFromValues(
-        values: Readonly<Record<string, unknown>>,
-    ): string[] {
-        return modifiedEntityValueProperties(this.metadata, values, this.snapshot);
-    }
-
     public detectChanges(): void {
         if (
             this.currentState !== EntityState.Unchanged &&
@@ -72,25 +64,6 @@ export class EntityEntryState<TEntity extends object> {
         }
 
         this.currentState = hasEntityModifications(this.metadata, this.entity, this.snapshot)
-            ? EntityState.Modified
-            : EntityState.Unchanged;
-    }
-
-    public detectChangesFromValues(
-        values: Readonly<Record<string, unknown>>,
-    ): void {
-        if (
-            this.currentState !== EntityState.Unchanged &&
-            this.currentState !== EntityState.Modified
-        ) {
-            return;
-        }
-
-        this.currentState = hasEntityValueModifications(
-            this.metadata,
-            values,
-            this.snapshot,
-        )
             ? EntityState.Modified
             : EntityState.Unchanged;
     }
