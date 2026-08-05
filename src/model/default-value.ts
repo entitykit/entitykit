@@ -1,3 +1,4 @@
+import { compareJsonKeys } from '../json/canonical-json';
 const serializedDefaultType = '$entitykitDefaultType';
 
 export interface SerializedBigIntDefault {
@@ -146,4 +147,3 @@ function unsupportedDefault(path: string, actual: string): TypeError {
     'or a JSON-compatible array/object. Use defaultSql(...) for provider expressions.',
     );
 }
-import { compareJsonKeys } from '../json/canonical-json';
