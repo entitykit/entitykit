@@ -3,7 +3,10 @@ import { isGeneratedOnAdd } from '../../model/value-generated';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import { EntityState } from '../../tracking/entity-state';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
-import { temporaryGeneratedProperty } from '../../tracking/temporary-generated-identity';
+import {
+    temporaryGeneratedProperty,
+    type TemporaryGeneratedProperty,
+} from '../../tracking/temporary-generated-identity';
 import { toProviderValue } from '../../model/value-converter/store-value';
 
 export function generatedKeyPropagations(
@@ -38,6 +41,11 @@ export function generatedKeyPropagations(
             const principalProperty = String(principalKeyProperties[index]);
             const foreignKeyName = String(foreignKeyProperty);
             const foreignKeyValue = dependent.values[foreignKeyName];
+            const generated = isGeneratedOnAdd(
+                principal.entry.metadata.getProperty(
+                    principalProperty,
+                ).valueGenerated,
+            );
             const temporary = temporaryGeneratedProperty(
                 principal.entry,
                 principalProperty,
@@ -48,7 +56,15 @@ export function generatedKeyPropagations(
                     foreignKeyValue,
                     dependent,
                     foreignKeyName,
-                    temporary?.providerValue,
+                    temporary,
+                ) && !(
+                    generated && matchesPrincipalValue(
+                        foreignKeyValue,
+                        dependent,
+                        foreignKeyName,
+                        principal,
+                        principalProperty,
+                    )
                 )
             ) {
                 return [];
@@ -72,6 +88,31 @@ export function generatedKeyPropagations(
     return propagations.length > 0 ? propagations : undefined;
 }
 
+function matchesPrincipalValue(
+    foreignKeyValue: unknown,
+    dependent: PersistedEntrySnapshot,
+    foreignKeyName: string,
+    principal: PersistedEntrySnapshot,
+    principalPropertyName: string,
+): boolean {
+    const foreignKey = dependent.entry.metadata.getProperty(foreignKeyName);
+    const principalProperty = principal.entry.metadata.getProperty(
+        principalPropertyName,
+    );
+    return Object.is(
+        toProviderValue(
+            foreignKeyValue,
+            foreignKey.converter,
+            `${dependent.entry.metadata.entityName}.${foreignKeyName}`,
+        ),
+        toProviderValue(
+            principal.values[principalPropertyName],
+            principalProperty.converter,
+            `${principal.entry.metadata.entityName}.${principalPropertyName}`,
+        ),
+    );
+}
+
 function isMissing(value: unknown): boolean {
     return value === undefined || value === null || value === '';
 }
@@ -80,9 +121,9 @@ function matchesTemporaryValue(
     value: unknown,
     dependent: PersistedEntrySnapshot,
     propertyName: string,
-    temporaryProviderValue: unknown,
+    temporary: TemporaryGeneratedProperty | undefined,
 ): boolean {
-    if (temporaryProviderValue === undefined) {
+    if (!temporary) {
         return false;
     }
     const property = dependent.entry.metadata.getProperty(propertyName);
@@ -91,5 +132,5 @@ function matchesTemporaryValue(
         property.converter,
         `${dependent.entry.metadata.entityName}.${propertyName}`,
     );
-    return Object.is(providerValue, temporaryProviderValue);
+    return Object.is(providerValue, temporary.providerValue);
 }

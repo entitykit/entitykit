@@ -95,19 +95,24 @@ function resolvedProviderKeyValues(
             endpoint.entity,
             property.propertyName,
         );
-        if (generated) {
+        const generatedValue = generated?.persistedValue;
+        if (
+            generatedValue !== undefined &&
+            generatedValue !== null &&
+            generatedValue !== ''
+        ) {
             return toBoundPropertyValue(
-                generated.persistedValue,
+                generatedValue,
                 property,
                 endpoint.metadata.entityName,
             );
         }
         if (
             persistedValue !== undefined &&
-            endpoint.temporaryPropertyNames.has(property.propertyName)
+            endpoint.generatedOnAddPropertyNames.has(property.propertyName)
         ) {
             throw new Error(
-                `Many-to-many endpoint '${endpoint.metadata.entityName}' still has a temporary generated key '${property.propertyName}' after its insert.`,
+                `Many-to-many endpoint '${endpoint.metadata.entityName}' did not receive its generated key '${property.propertyName}' after its insert.`,
             );
         }
         return endpoint.providerKeyValues[index];

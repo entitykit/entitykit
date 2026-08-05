@@ -10,6 +10,8 @@ import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapsho
 import {
     temporaryGeneratedIdentity,
 } from '../tracking/temporary-generated-identity';
+import { EntityState } from '../tracking/entity-state';
+import { isGeneratedOnAdd } from '../model/value-generated';
 
 export interface CapturedRelationshipEndpoint {
     readonly entity: object;
@@ -17,7 +19,7 @@ export interface CapturedRelationshipEndpoint {
     readonly modelKeyValues: readonly unknown[];
     readonly providerKeyValues: readonly unknown[];
     readonly encodedIdentity: string;
-    readonly temporaryPropertyNames: ReadonlySet<string>;
+    readonly generatedOnAddPropertyNames: ReadonlySet<string>;
 }
 
 export class ManyToManyChangeValidator {
@@ -80,15 +82,34 @@ export class ManyToManyChangeValidator {
             metadata,
         );
         const temporary = temporaryGeneratedIdentity(snapshot.entry);
+        const activeTemporaryIdentity = temporary?.properties.some(
+            property => {
+                const index = metadata.keyProperties.map(String).indexOf(
+                    property.propertyName,
+                );
+                return Object.is(
+                    providerKeyValues[index],
+                    property.providerValue,
+                );
+            },
+        ) === true
+            ? temporary.identityKey
+            : undefined;
         const endpoint = {
             entity,
             metadata,
             modelKeyValues,
             providerKeyValues,
-            encodedIdentity: temporary?.identityKey ??
+            encodedIdentity: activeTemporaryIdentity ??
                 encodeSaveIdentityTuple(providerKeyValues),
-            temporaryPropertyNames: new Set(
-                temporary?.properties.map(property => property.propertyName),
+            generatedOnAddPropertyNames: new Set(
+                snapshot.state === EntityState.Added
+                    ? metadata.keyPropertiesMetadata
+                        .filter(property => isGeneratedOnAdd(
+                            property.valueGenerated,
+                        ))
+                        .map(property => property.propertyName)
+                    : [],
             ),
         };
         endpoints.set(entity, endpoint);

@@ -2,6 +2,7 @@ import type { SavePlanEntry } from '../save-plan';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
 import type { AppliedPropertyValue } from './applied-generated-value';
+import { isGeneratedOnAdd } from '../../model/value-generated';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
@@ -9,7 +10,7 @@ export function propagateGeneratedKeys(
     persistedValues: Record<string, unknown>,
     mutations: SaveTimeMutationLog,
     propagations: readonly GeneratedKeyPropagation[] = [],
-    generatedValue: (
+    findGeneratedValue: (
         principal: object,
         propertyName: string,
     ) => AppliedPropertyValue | undefined,
@@ -24,10 +25,26 @@ export function propagateGeneratedKeys(
             )) {
                 continue;
             }
-            const value = generatedValue(
+            const generated = findGeneratedValue(
                 propagation.principal,
                 property.principalProperty,
-            )?.persistedValue ?? property.principalValue;
+            );
+            const requiresGeneratedValue = isGeneratedOnAdd(
+                propagation.principalMetadata.getProperty(
+                    property.principalProperty,
+                ).valueGenerated,
+            );
+            const generatedValue = generated?.persistedValue;
+            const hasGeneratedValue = generatedValue !== undefined &&
+                generatedValue !== null && generatedValue !== '';
+            const value = hasGeneratedValue
+                ? generatedValue
+                : property.principalValue;
+            if (requiresGeneratedValue && !hasGeneratedValue) {
+                throw new Error(
+                    `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
+                );
+            }
             if (value === undefined || value === null || value === '') {
                 throw new Error(
                     `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
