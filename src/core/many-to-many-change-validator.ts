@@ -1,26 +1,14 @@
 import { DbValidationError } from '../errors/entity-kit-error';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { ManyToManyChange } from './many-to-many-change';
-import {
-    encodeSaveIdentityTuple,
-    formatSaveIdentityValue,
-    toProviderKeyValues,
-} from './save-key-values';
+import { formatSaveIdentityValue } from './save-key-values';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import {
-    temporaryGeneratedIdentity,
-} from '../tracking/temporary-generated-identity';
-import { EntityState } from '../tracking/entity-state';
-import { isGeneratedOnAdd } from '../model/value-generated';
+    captureRelationshipEndpoint,
+    type CapturedRelationshipEndpoint,
+} from './many-to-many-captured-endpoint';
 
-export interface CapturedRelationshipEndpoint {
-    readonly entity: object;
-    readonly metadata: EntityMetadata;
-    readonly modelKeyValues: readonly unknown[];
-    readonly providerKeyValues: readonly unknown[];
-    readonly encodedIdentity: string;
-    readonly generatedOnAddPropertyNames: ReadonlySet<string>;
-}
+export type { CapturedRelationshipEndpoint } from './many-to-many-captured-endpoint';
 
 export class ManyToManyChangeValidator {
     constructor(private readonly isTracked: (entity: object) => boolean) {}
@@ -77,41 +65,12 @@ export class ManyToManyChangeValidator {
             metadata,
             modelKeyValues,
         );
-        const providerKeyValues = toProviderKeyValues(
-            modelKeyValues,
-            metadata,
-        );
-        const temporary = temporaryGeneratedIdentity(snapshot.entry);
-        const activeTemporaryIdentity = temporary?.properties.some(
-            property => {
-                const index = metadata.keyProperties.map(String).indexOf(
-                    property.propertyName,
-                );
-                return Object.is(
-                    providerKeyValues[index],
-                    property.providerValue,
-                );
-            },
-        ) === true
-            ? temporary.identityKey
-            : undefined;
-        const endpoint = {
+        const endpoint = captureRelationshipEndpoint(
             entity,
             metadata,
+            snapshot,
             modelKeyValues,
-            providerKeyValues,
-            encodedIdentity: activeTemporaryIdentity ??
-                encodeSaveIdentityTuple(providerKeyValues),
-            generatedOnAddPropertyNames: new Set(
-                snapshot.state === EntityState.Added
-                    ? metadata.keyPropertiesMetadata
-                        .filter(property => isGeneratedOnAdd(
-                            property.valueGenerated,
-                        ))
-                        .map(property => property.propertyName)
-                    : [],
-            ),
-        };
+        );
         endpoints.set(entity, endpoint);
         return endpoint;
     }
