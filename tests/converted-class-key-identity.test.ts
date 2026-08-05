@@ -168,4 +168,63 @@ describe('converted class key identity', () => {
             .resolves.toBe(comments[0]?.post);
         await db.dispose();
     });
+
+    it('preserves a private-field foreign-key reassignment', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: 'insert into strong_posts (id, title) values (?, ?), (?, ?)',
+            values: ['post-1', 'first', 'post-2', 'second'],
+        });
+        await db.database.connection.query({
+            text: 'insert into strong_comments (id, post_id, body) values (?, ?, ?)',
+            values: ['comment-1', 'post-1', 'comment'],
+        });
+        const posts = await db.posts.orderBy(post => post.id).toArray();
+        const comment = await db.comments
+            .include(item => item.post)
+            .single();
+
+        comment.postId = new StrongId('post-2');
+
+        await expect(db.saveChanges()).resolves.toBe(1);
+        expect(comment.post).toBe(posts[1]);
+        expect(comment.postId.value).toBe('post-2');
+        const stored = await db.database.connection.query<{
+            post_id: string;
+        }>({
+            text: 'select post_id from strong_comments where id = ?',
+            values: ['comment-1'],
+        });
+        expect(stored.rows).toEqual([{ post_id: 'post-2' }]);
+        await db.dispose();
+    });
+
+    it('orders a private-field key graph without a navigation', async () => {
+        const db = await open();
+        const post = Object.assign(new StrongPost(), {
+            id: new StrongId('post-3'),
+            title: 'post',
+        });
+        const comment = Object.assign(new StrongComment(), {
+            id: 'comment-3',
+            postId: new StrongId('post-3'),
+            body: 'comment',
+        });
+        db.comments.add(comment);
+        db.posts.add(post);
+
+        expect(db.getSavePlan().map(entry => entry.entityName)).toEqual([
+            'StrongPost',
+            'StrongComment',
+        ]);
+        await expect(db.saveChanges()).resolves.toBe(2);
+        const stored = await db.database.connection.query<{
+            post_id: string;
+        }>({
+            text: 'select post_id from strong_comments where id = ?',
+            values: ['comment-3'],
+        });
+        expect(stored.rows).toEqual([{ post_id: 'post-3' }]);
+        await db.dispose();
+    });
 });
