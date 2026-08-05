@@ -5,6 +5,7 @@ import { buildManyToManySavePlan } from './many-to-many-save-plan';
 import type { SavePlanEntry } from './save-plan';
 import { registerSavePlanExecution } from './save-plan-execution';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import type { EntityEntry } from '../tracking/entity-entry';
 
 export type { ManyToManyChange } from './many-to-many-change';
 
@@ -18,8 +19,8 @@ export class ManyToManyChangeSet {
     private readonly changes: ManyToManyChange[] = [];
     private readonly validator: ManyToManyChangeValidator;
 
-    constructor(isTracked: (entity: object) => boolean) {
-        this.validator = new ManyToManyChangeValidator(isTracked);
+    constructor(trackedEntry: (entity: object) => EntityEntry<object> | undefined) {
+        this.validator = new ManyToManyChangeValidator(trackedEntry);
     }
 
     public get size(): number {

@@ -27,17 +27,10 @@ export function captureRelationshipEndpoint(
 ): CapturedRelationshipEndpoint {
     const providerKeyValues = toProviderKeyValues(modelKeyValues, metadata);
     const temporary = temporaryGeneratedIdentity(snapshot.entry);
-    const activeTemporaryIdentity = temporary?.properties.some(property => {
-        const index = metadata.keyProperties.map(String).indexOf(
-            property.propertyName,
-        );
-        return Object.is(
-            providerKeyValues[index],
-            property.providerValue,
-        );
-    }) === true
-        ? temporary.identityKey
-        : undefined;
+    const activeTemporaryIdentity =
+        snapshot.state === EntityState.Added && temporary
+            ? temporary.identityKey
+            : undefined;
     return {
         entity,
         metadata,

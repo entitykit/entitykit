@@ -7,11 +7,17 @@ import {
     captureRelationshipEndpoint,
     type CapturedRelationshipEndpoint,
 } from './many-to-many-captured-endpoint';
+import type { EntityEntry } from '../tracking/entity-entry';
+import { validateManyToManyKeyValues } from './many-to-many-key-validator';
 
 export type { CapturedRelationshipEndpoint } from './many-to-many-captured-endpoint';
 
 export class ManyToManyChangeValidator {
-    constructor(private readonly isTracked: (entity: object) => boolean) {}
+    constructor(
+        private readonly trackedEntry: (
+            entity: object,
+        ) => EntityEntry<object> | undefined,
+    ) {}
 
     public validate(change: ManyToManyChange): void {
         const relationshipName = this.relationshipName(change);
@@ -58,12 +64,13 @@ export class ManyToManyChangeValidator {
         }
         const modelKeyValues = metadata.keyProperties.map(propertyName =>
             snapshot.values[propertyName]);
-        this.validateKeyValues(
+        validateManyToManyKeyValues(
             change,
             side,
             this.relationshipName(change),
             metadata,
             modelKeyValues,
+            snapshot.entry,
         );
         const endpoint = captureRelationshipEndpoint(
             entity,
@@ -83,15 +90,17 @@ export class ManyToManyChangeValidator {
         metadata: EntityMetadata,
     ): readonly unknown[] {
         const keyValues = metadata.getKeyValues(entity);
-        this.validateKeyValues(
+        const entry = this.trackedEntry(entity);
+        validateManyToManyKeyValues(
             change,
             side,
             relationshipName,
             metadata,
             keyValues,
+            entry,
         );
 
-        if (!this.isTracked(entity)) {
+        if (!entry) {
             const identity = keyValues.length === 1 ? keyValues[0] : keyValues;
             throw new DbValidationError(
                 `Cannot ${change.action} many-to-many relationship '${relationshipName}' because the ${side} entity '${metadata.entityName}' with key '${formatSaveIdentityValue(identity)}' is not tracked by this DbContext.`,
@@ -106,30 +115,6 @@ export class ManyToManyChangeValidator {
         }
 
         return keyValues;
-    }
-
-    private validateKeyValues(
-        change: ManyToManyChange,
-        side: 'source' | 'target',
-        relationshipName: string,
-        metadata: EntityMetadata,
-        keyValues: readonly unknown[],
-    ): void {
-        const emptyIndex = keyValues.findIndex(
-            value => value === undefined || value === null || value === '',
-        );
-        if (emptyIndex >= 0) {
-            throw new DbValidationError(
-                `Cannot ${change.action} many-to-many relationship '${relationshipName}' because the ${side} entity '${metadata.entityName}' has an empty key '${String(metadata.keyProperties[emptyIndex])}'.`,
-                {
-                    action: change.action,
-                    relationship: relationshipName,
-                    side,
-                    entity: metadata.entityName,
-                    keyProperty: metadata.keyProperties[emptyIndex],
-                },
-            );
-        }
     }
 
     private relationshipName(change: ManyToManyChange): string {

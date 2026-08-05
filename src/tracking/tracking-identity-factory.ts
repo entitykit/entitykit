@@ -22,17 +22,14 @@ export class TrackingIdentityFactory {
     ): CapturedTrackingIdentity {
         const keyValues = metadata.getKeyValues(entity);
         const properties = state === EntityState.Added
-            ? metadata.keyPropertiesMetadata.flatMap((property, index) => {
-                if (!isGeneratedOnAdd(property.valueGenerated)) {
-                    return [];
-                }
-                const temporary = captureTemporaryGeneratedProperty(
-                    keyValues[index],
-                    property,
-                    metadata.entityName,
-                );
-                return temporary ? [temporary] : [];
-            })
+            ? metadata.keyPropertiesMetadata.flatMap((property, index) =>
+                isGeneratedOnAdd(property.valueGenerated)
+                    ? [captureTemporaryGeneratedProperty(
+                        keyValues[index],
+                        property,
+                        metadata.entityName,
+                    )]
+                    : [])
             : [];
         if (properties.length > 0) {
             const identityKey = `\0entitykit:${metadata.entityName}:${

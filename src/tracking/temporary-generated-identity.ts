@@ -22,19 +22,17 @@ export function captureTemporaryGeneratedProperty(
     value: unknown,
     property: PropertyMetadata,
     entityName: string,
-): TemporaryGeneratedProperty | undefined {
+): TemporaryGeneratedProperty {
     const providerValue = toProviderValue(
         value,
         property.converter,
         `${entityName}.${property.propertyName}`,
     );
-    return isTemporaryProviderValue(providerValue)
-        ? {
-            propertyName: property.propertyName,
-            modelValue: value,
-            providerValue,
-        }
-        : undefined;
+    return {
+        propertyName: property.propertyName,
+        modelValue: value,
+        providerValue,
+    };
 }
 
 export function registerTemporaryGeneratedIdentity(
@@ -61,9 +59,4 @@ export function temporaryGeneratedProperty(
     return temporaryByEntry.get(entry)?.properties.find(
         property => property.propertyName === propertyName,
     );
-}
-
-function isTemporaryProviderValue(value: unknown): boolean {
-    return value === undefined || value === null || value === '' ||
-        value === 0 || value === 0n;
 }

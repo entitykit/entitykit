@@ -6,7 +6,7 @@ import { DbContextRawSql } from './db-context-raw-sql';
 /** Many-to-many link ownership and the public relationship operations. */
 export abstract class DbContextRelationships extends DbContextRawSql {
     protected readonly manyToMany = new ManyToManyChangeSet(
-        entity => Boolean(this.changeTracker.entry(entity)),
+        entity => this.changeTracker.entry(entity),
     );
     private readonly navigationLinks = new NavigationLinkOps(
         () => this.modelMetadata,
