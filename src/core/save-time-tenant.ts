@@ -12,7 +12,7 @@ interface TenantWriteScope {
     readonly isAdded: boolean;
     readonly tenantId: unknown;
     readonly allowsCrossTenantAccess: boolean;
-    readonly recordMutation: () => void;
+    readonly recordMutation: (applied: unknown) => void;
     readonly mirrorMutation?: (value: unknown) => void;
 }
 
@@ -38,11 +38,12 @@ export function applyTenantWrite(
         isAdded: snapshot.state === EntityState.Added,
         tenantId,
         allowsCrossTenantAccess,
-        recordMutation: () => {
-            mutations.recordCaptured(
+        recordMutation: applied => {
+            mutations.recordApplied(
                 liveValues,
                 tenantProperty,
                 snapshot.values[tenantProperty],
+                applied,
             );
         },
         mirrorMutation: value => {
@@ -108,7 +109,7 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
     }
 
     if (isAdded && isEmptyTenantValue(values[tenantProperty])) {
-        recordMutation();
+        recordMutation(tenantId);
         values[tenantProperty] = tenantId;
         mirrorMutation?.(tenantId);
     }

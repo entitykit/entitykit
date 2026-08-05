@@ -32,6 +32,11 @@ export class SaveTimeWrites {
         this.tenantIdInitialized = false;
     }
 
+    /** Rebuild the plan while retaining stable request-scoped save values. */
+    public beginGeneration(): void {
+        this.mutations.restore();
+    }
+
     /**
      * Apply policy writes to the captured values and mirror them into the live
      * entities under the rollback journal.

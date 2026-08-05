@@ -29,11 +29,32 @@ export class SaveTimeMutationLog {
         });
     }
 
-    public recordState(entry: EntityEntry<object>): void {
-        const previous = entry.state;
+    /** Restore a policy write only while its provisional value is still live. */
+    public recordApplied(
+        values: Record<string, unknown>,
+        property: string,
+        previous: unknown,
+        applied: unknown,
+    ): void {
         this.mutations.push({
             restore: () => {
-                entry.state = previous;
+                if (Object.is(values[property], applied)) {
+                    values[property] = previous;
+                }
+            },
+        });
+    }
+
+    public recordAppliedState(
+        entry: EntityEntry<object>,
+        previous: EntityEntry<object>['state'],
+        applied: EntityEntry<object>['state'],
+    ): void {
+        this.mutations.push({
+            restore: () => {
+                if (entry.state === applied) {
+                    entry.state = previous;
+                }
             },
         });
     }

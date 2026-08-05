@@ -88,10 +88,11 @@ function setIfConfigured(
         return;
     }
 
-    mutations.recordCaptured(
+    mutations.recordApplied(
         liveValues,
         propertyName,
         snapshot.values[propertyName],
+        value,
     );
     snapshot.values[propertyName] = value;
     liveValues[propertyName] = value;

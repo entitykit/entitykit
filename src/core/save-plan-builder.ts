@@ -38,6 +38,8 @@ export class SavePlanBuilder {
     public build(options: { readonly continueSaveAttempt?: boolean } = {}): SavePlanEntry[] {
         if (!options.continueSaveAttempt) {
             this.deps.saveTimeWrites.begin();
+        } else {
+            this.deps.saveTimeWrites.beginGeneration();
         }
         try {
             return this.buildPreparedPlan();

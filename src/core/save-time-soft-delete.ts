@@ -16,14 +16,19 @@ export function applySoftDeleteWrite(
     const value =
         softDelete.deletedValue !== undefined ? softDelete.deletedValue : now();
     const liveValues = entry.entity as Record<string, unknown>;
-    mutations.recordCaptured(
+    mutations.recordApplied(
         liveValues,
         softDelete.propertyName,
         snapshot.values[softDelete.propertyName],
+        value,
     );
     snapshot.values[softDelete.propertyName] = value;
     liveValues[softDelete.propertyName] = value;
-    mutations.recordState(entry);
+    mutations.recordAppliedState(
+        entry,
+        entry.state,
+        EntityState.Modified,
+    );
     entry.state = EntityState.Modified;
     return { ...snapshot, state: EntityState.Modified };
 }
