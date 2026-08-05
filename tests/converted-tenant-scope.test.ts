@@ -19,6 +19,8 @@ const tenantIdConverter = valueConverter<TenantId, string>({
     fromProvider: value => new TenantId(value),
 });
 
+let lastProvidedTenant: TenantId | undefined;
+
 class TenantRow {
     public id = '';
     public tenantId!: TenantId;
@@ -30,7 +32,10 @@ class ConvertedTenantContext extends DbContext {
 
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useProvider(sqliteProviderServices, ':memory:')
-            .useTenantScope(() => new TenantId('acme'));
+            .useTenantScope(() => {
+                lastProvidedTenant = new TenantId('acme');
+                return lastProvidedTenant;
+            });
     }
 
     protected override model(model: ModelBuilder): void {
@@ -48,6 +53,10 @@ class ConvertedTenantContext extends DbContext {
 }
 
 describe('converted tenant scope', () => {
+    beforeEach(() => {
+        lastProvidedTenant = undefined;
+    });
+
     it('accepts fresh model objects with the same provider identity', async () => {
         const db = ConvertedTenantContext.create();
         await db.database.connection.query({
@@ -90,4 +99,52 @@ describe('converted tenant scope', () => {
         expect(db.changeTracker.entries()).toEqual([]);
         await db.dispose();
     });
+
+    it('upserts a fresh tenant object with the same provider identity', async () => {
+        const db = await open();
+        const row = Object.assign(new TenantRow(), {
+            id: 'row-3',
+            tenantId: new TenantId('acme'),
+            name: 'row',
+        });
+
+        await expect(db.rows.upsert([row])).resolves.toBe(1);
+        const result = await db.database.connection.query<{
+            tenant_id: string;
+        }>({
+            text: 'select tenant_id from tenant_rows',
+            values: [],
+        });
+        expect(result.rows).toEqual([{ tenant_id: 'acme' }]);
+        await db.dispose();
+    });
+
+    it('stamps an independent converted tenant value during upsert', async () => {
+        const db = await open();
+        const row = Object.assign(new TenantRow(), {
+            id: 'row-4',
+            name: 'row',
+        });
+
+        await expect(db.rows.upsert([row])).resolves.toBe(1);
+        expect(row.tenantId.value).toBe('acme');
+        expect(row.tenantId).not.toBe(lastProvidedTenant);
+        const result = await db.database.connection.query<{
+            tenant_id: string;
+        }>({
+            text: 'select tenant_id from tenant_rows',
+            values: [],
+        });
+        expect(result.rows).toEqual([{ tenant_id: 'acme' }]);
+        await db.dispose();
+    });
 });
+
+async function open(): Promise<ConvertedTenantContext> {
+    const db = ConvertedTenantContext.create();
+    await db.database.connection.query({
+        text: db.database.createScript(),
+        values: [],
+    });
+    return db;
+}
