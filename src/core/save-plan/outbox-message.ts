@@ -57,28 +57,37 @@ export function collectPendingOutboxMessages(
             collectedEvents,
         );
         for (const event of events) {
+            const type = event.type;
+            const payload = event.payload;
+            const aggregateId = event.aggregateId;
+            const occurredAt = event.occurredAt;
+            const hasExplicitAggregateId = aggregateId !== undefined;
             messages.push({
                 entity: entry.entity,
                 event,
-                keyValue: event.aggregateId === undefined
-                    ? entry.keyValue
-                    : event.aggregateId,
-                type: event.type,
+                keyValue: hasExplicitAggregateId
+                    ? aggregateId
+                    : entry.keyValue,
+                type,
                 serializedPayload: serializeJsonValue(
-                    event.payload,
-                    outboxValuePath(event, 'payload'),
+                    payload,
+                    outboxValuePath(type, 'payload'),
                 ),
-                hasExplicitAggregateId: event.aggregateId !== undefined,
-                aggregateId: event.aggregateId === undefined
-                    ? undefined
-                    : formatExplicitAggregateId(
-                        event.aggregateId,
-                        outboxValuePath(event, 'aggregateId'),
-                    ),
-                pendingAggregateId: event.aggregateId === undefined
-                    ? captureAggregateId(snapshot)
+                hasExplicitAggregateId,
+                aggregateId: hasExplicitAggregateId
+                    ? formatExplicitAggregateId(
+                        aggregateId,
+                        outboxValuePath(type, 'aggregateId'),
+                    )
                     : undefined,
-                occurredAt: outboxOccurredAt(event, options),
+                pendingAggregateId: hasExplicitAggregateId
+                    ? undefined
+                    : captureAggregateId(snapshot),
+                occurredAt: outboxOccurredAt(
+                    type,
+                    occurredAt,
+                    options,
+                ),
             });
         }
     }
@@ -86,24 +95,25 @@ export function collectPendingOutboxMessages(
 }
 
 function outboxOccurredAt(
-    event: OutboxMessage,
+    type: string,
+    occurredAt: Date | undefined,
     options: CollectionOptions,
 ): Date {
-    const value = event.occurredAt ??
+    const value = occurredAt ??
         readSynchronousDate(options.outbox.now, 'The outbox clock') ??
         options.currentAuditTimestamp();
     assertValidDate(
         value,
-        `Outbox event "${event.type}" occurredAt must be a valid Date.`,
+        `Outbox event "${type}" occurredAt must be a valid Date.`,
     );
     return new Date(value.getTime());
 }
 
 function outboxValuePath(
-    event: OutboxMessage,
+    type: string,
     field: 'payload' | 'aggregateId',
 ): string {
-    return `Outbox event "${event.type}" ${field}`;
+    return `Outbox event "${type}" ${field}`;
 }
 
 export function outboxEventBatches(
