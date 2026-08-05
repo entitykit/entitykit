@@ -327,7 +327,7 @@ describe('generated-value snapshot acceptance', () => {
                 id: 71,
                 name: 'replacement',
             });
-            expect(() => transaction.parents.add(replacement)).toThrow(
+            expect(() => transaction.parents.attach(replacement)).toThrow(
                 ContextConcurrentOperationError,
             );
             throw new Error('abort transaction');

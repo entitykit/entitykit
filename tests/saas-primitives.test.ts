@@ -128,8 +128,8 @@ describe('SaaS primitives', () => {
         await db.saveChanges();
 
         expect(user.workspaceId).toBe('wrk_1');
-        expect(user.createdAt).toBe(now);
-        expect(user.updatedAt).toBe(now);
+        expect(user.createdAt).toEqual(now);
+        expect(user.updatedAt).toEqual(now);
         expect(user.createdBy).toBe('actor_1');
         expect(user.updatedBy).toBe('actor_1');
         expect(connection.statements[0]?.text).toContain('insert into "users"');
@@ -149,7 +149,7 @@ describe('SaaS primitives', () => {
         db.users.remove(user);
         await db.saveChanges();
 
-        expect(user.deletedAt).toBe(now);
+        expect(user.deletedAt).toEqual(now);
         expect(connection.statements[0]?.text).toContain('update "users" set');
         expect(connection.statements[0]?.text).toContain('"deleted_at" = $1');
         expect(connection.statements[0]?.text).not.toContain('delete from');
