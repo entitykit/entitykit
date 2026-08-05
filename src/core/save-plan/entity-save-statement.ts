@@ -33,8 +33,12 @@ export function buildSaveStatement(
         );
     }
     if (snapshot.state === EntityState.Deleted) {
-        return sql.buildDeleteFromValues(
+        const modifiedProperties = modifiedEntityValueProperties(
             entry.metadata, snapshot.values, entry.originalValues,
+        );
+        assertNoKeyModifications(entry, modifiedProperties);
+        return sql.buildDeleteFromValues(
+            entry.metadata, entry.originalValues, entry.originalValues,
         );
     }
     return undefined;

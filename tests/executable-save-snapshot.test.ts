@@ -161,22 +161,20 @@ describe('executable save snapshots', () => {
         expect(db.entry(item)?.originalValues.name).toBe('database-value');
     });
 
-    it('captures a delete key once for the executable predicate', async () => {
+    it('rejects a captured delete key that differs from the tracked identity', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = SnapshotContext.create(connection);
         const item = record('record-1', 'original');
         db.records.attach(item);
         db.records.remove(item);
         item.returnOnReads('id', 'database-key', 'wrong-key');
-        connection.queueResult({ rowCount: 1 });
 
-        await expect(db.saveChanges()).resolves.toBe(1);
+        await expect(db.saveChanges()).rejects.toThrow(
+            'Primary key changes are not supported for entity \'UnstableRecord\' (property \'id\').',
+        );
 
-        expect(connection.statements[0]?.values).toEqual([
-            'database-key',
-            'token-0',
-        ]);
-        expect(db.entry(item)).toBeUndefined();
+        expect(connection.statements).toEqual([]);
+        expect(db.entry(item)?.state).toBe(EntityState.Deleted);
     });
 
     it('uses the captured concurrency value for both SQL and acceptance', async () => {
