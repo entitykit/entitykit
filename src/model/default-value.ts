@@ -1,9 +1,6 @@
 import { compareJsonKeys } from '../json/canonical-json';
-import {
-    consumeThenable,
-    ownThenFunction,
-    readInheritedThen,
-} from '../json/json-object-inspection';
+import { consumeDefaultThenable } from './default-value-thenable';
+import { withDefaultAncestor } from './default-value-ancestor';
 const serializedDefaultType = '$entitykitDefaultType';
 
 export interface SerializedBigIntDefault {
@@ -88,14 +85,17 @@ export function normalizeDefaultValue(
     }
 
     if (typeof value === 'object' || typeof value === 'function') {
-        consumeDefaultThenable(value, path);
+        if (consumeDefaultThenable(value)) {
+            throw unsupportedDefault(path, 'Promise or thenable');
+        }
     }
 
     if (Array.isArray(value)) {
-        return withAncestor(value, path, ancestors, () =>
+        return withDefaultAncestor(value, path, ancestors, () =>
             value.map((item, index) =>
                 normalizeDefaultValue(item, `${path}[${String(index)}]`, true, ancestors),
             ),
+        cycle => unsupportedDefault(cycle, 'cyclic reference'),
         );
     }
 
@@ -113,7 +113,7 @@ export function normalizeDefaultValue(
             throw unsupportedDefault(path, 'symbol-keyed property');
         }
 
-        return withAncestor(value, path, ancestors, () =>
+        return withDefaultAncestor(value, path, ancestors, () =>
             Object.fromEntries(
                 Object.entries(record).sort(([left], [right]) =>
                     compareJsonKeys(left, right)).map(([key, item]) => [
@@ -126,43 +126,11 @@ export function normalizeDefaultValue(
                     ),
                 ]),
             ),
+        cycle => unsupportedDefault(cycle, 'cyclic reference'),
         );
     }
 
     throw unsupportedDefault(path, typeof value);
-}
-
-function consumeDefaultThenable(value: object, path: string): void {
-    let descriptors: PropertyDescriptorMap;
-    try {
-        descriptors = Object.getOwnPropertyDescriptors(value);
-    } catch {
-        return;
-    }
-    const then = ownThenFunction(descriptors) ??
-        readInheritedThen(value, descriptors);
-    if (typeof then !== 'function') {
-        return;
-    }
-    consumeThenable(value, then as (...args: unknown[]) => unknown);
-    throw unsupportedDefault(path, 'Promise or thenable');
-}
-
-function withAncestor<TResult>(
-    value: object,
-    path: string,
-    ancestors: Set<object>,
-    work: () => TResult,
-): TResult {
-    if (ancestors.has(value)) {
-        throw unsupportedDefault(path, 'cyclic reference');
-    }
-    ancestors.add(value);
-    try {
-        return work();
-    } finally {
-        ancestors.delete(value);
-    }
 }
 
 function unsupportedDefault(path: string, actual: string): TypeError {
