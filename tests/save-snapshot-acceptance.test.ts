@@ -110,8 +110,10 @@ describe('save snapshot acceptance', () => {
         }).toThrow(ContextConcurrentOperationError);
         expect(() => {
             const entry = db.entry(first);
-            if (entry) entry.state = EntityState.Deleted;
-        }).toThrow(ContextConcurrentOperationError);
+            if (entry) {
+                (entry as { state: EntityState }).state = EntityState.Deleted;
+            }
+        }).toThrow(TypeError);
         connection.release();
         await expect(saving).resolves.toBe(1);
 
