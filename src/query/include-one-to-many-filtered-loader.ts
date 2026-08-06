@@ -4,7 +4,7 @@ import type { IncludeLoaderContext, IncludeLoadRoot, LoadedIncludeResult } from 
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import type { IncludeStitcher } from './include-loader-stitch';
 import { uniquePropertyValues } from './include-property-key-helpers';
-import { uniqueEntityInstances } from './include-navigation-helpers';
+import { uniqueIncludeRoots } from './include-load-root';
 import { buildOneToManyWindowStatement } from './include-one-to-many-window-sql';
 import { IncludeStrategyBase } from './include-strategy-base';
 import type { IncludeFilterModel } from './query-model';
@@ -47,7 +47,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const allDependents: object[] = [];
+        const allDependents: IncludeLoadRoot[] = [];
         for (const principal of principals) {
             const principalKey = principalValuesForDependent(
                 relationship,
@@ -61,7 +61,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
                 [principalKey],
                 filter,
             );
-            const uniqueDependents = uniqueEntityInstances(dependents);
+            const uniqueDependents = uniqueIncludeRoots(dependents);
             const assigned = this.stitcher.assignDependentsToPrincipals(
                 principalMetadata,
                 [principal],
@@ -72,7 +72,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             allDependents.push(...assigned);
         }
 
-        const uniqueDependents = uniqueEntityInstances(allDependents);
+        const uniqueDependents = uniqueIncludeRoots(allDependents);
         this.emitIncludeDiagnostic(
             principalMetadata.entityName,
             dependentMetadata.entityName,
@@ -84,7 +84,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             uniqueDependents.length,
             elapsed(),
         );
-        return { metadata: dependentMetadata, entities: uniqueDependents };
+        return { metadata: dependentMetadata, roots: uniqueDependents };
     }
 
     private async loadWindowedBatch<TPrincipal extends object>(
@@ -118,7 +118,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             filter,
         );
         const result = await this.ctx.database.query(statement, this.ctx.operationOptions);
-        const dependents = this.ctx.materializer.materializeMany(
+        const dependents = this.ctx.materializer.materializeManyWithValues(
             dependentMetadata,
             result.rows,
             this.ctx.changeTracker,
@@ -141,6 +141,6 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             assigned.length,
             elapsed(),
         );
-        return { metadata: dependentMetadata, entities: assigned };
+        return { metadata: dependentMetadata, roots: assigned };
     }
 }

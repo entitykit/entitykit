@@ -29,7 +29,7 @@ export type QueryFilterApplier = <TEntity extends object>(
 
 export interface LoadedIncludeResult<TEntity extends object = object> {
     readonly metadata: EntityMetadata<TEntity>;
-    readonly entities: readonly TEntity[];
+    readonly roots: ReadonlyArray<IncludeLoadRoot<TEntity>>;
 }
 
 /** One navigation root paired with values captured once for this load. */

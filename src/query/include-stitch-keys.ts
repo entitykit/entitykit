@@ -33,12 +33,12 @@ export function dependentStitchKey<
 >(
     metadata: EntityMetadata<TDependent>,
     relationship: RelationshipMetadata<TDependent, TPrincipal>,
-    dependent: TDependent,
+    dependent: Readonly<Record<string, unknown>>,
 ): string {
     return dependentRelationshipProviderKey(
         relationship,
         metadata,
-        dependent as Record<string, unknown>,
+        dependent,
     );
 }
 

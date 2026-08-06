@@ -12,3 +12,14 @@ export function captureIncludeRoots<TEntity extends object>(
         values: supplied?.get(entity) ?? readEntityValues(metadata, entity),
     }));
 }
+
+export function uniqueIncludeRoots<TEntity extends object>(
+    roots: ReadonlyArray<IncludeLoadRoot<TEntity>>,
+): Array<IncludeLoadRoot<TEntity>> {
+    const seen: Set<TEntity> = new Set();
+    return roots.filter(root => {
+        if (seen.has(root.entity)) return false;
+        seen.add(root.entity);
+        return true;
+    });
+}

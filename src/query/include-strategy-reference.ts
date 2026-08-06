@@ -6,7 +6,7 @@ import type { IncludePropertyLoader } from './include-loader-key-batch';
 import { IncludeStrategyBase } from './include-strategy-base';
 import { isCompleteTuple } from './include-key-helpers';
 import { uniquePropertyTuples } from './include-property-key-helpers';
-import { uniqueEntityInstances } from './include-navigation-helpers';
+import { uniqueIncludeRoots } from './include-load-root';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import {
     relationshipPrincipalKeyProperties,
@@ -68,7 +68,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                 this.markLoaded(entity, relationship.navigationProperty);
             }
             this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'skipped', roots.length, 0, 0, 0, elapsed());
-            return { metadata: principalMetadata, entities: [] };
+            return { metadata: principalMetadata, roots: [] };
         }
 
         const principals = await this.propertyLoader.loadByProperties(
@@ -82,35 +82,40 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                 principalRelationshipProviderKey(
                     relationship,
                     principalMetadata,
-                    principal as Record<string, unknown>,
+                    principal.values,
                 ),
                 principal,
             ]),
         );
-        const loadedPrincipals: object[] = [];
+        const loadedPrincipals: IncludeLoadRoot[] = [];
 
         for (const { entity, values } of roots) {
             const foreignKeyTuple = foreignKeyProperties.map(
                 propertyName => values[propertyName],
             );
-            const principal = isCompleteTuple(foreignKeyTuple)
+            const principalRoot = isCompleteTuple(foreignKeyTuple)
                 ? principalsByKey.get(dependentRelationshipProviderKey(
                     relationship,
                     metadata,
                     values,
                 )) ?? null
                 : null;
+            const principal = principalRoot?.entity ?? null;
             (entity as Record<string, unknown>)[relationship.navigationProperty] = principal;
-            if (principal) {
-                this.fixOneToOneInverse(entity, principal, relationship);
-                loadedPrincipals.push(principal);
+            if (principalRoot) {
+                this.fixOneToOneInverse(
+                    entity,
+                    principalRoot.entity,
+                    relationship,
+                );
+                loadedPrincipals.push(principalRoot);
             }
             this.markLoaded(entity, relationship.navigationProperty);
         }
 
-        const uniquePrincipals = uniqueEntityInstances(loadedPrincipals);
+        const uniquePrincipals = uniqueIncludeRoots(loadedPrincipals);
         this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'splitQuery', roots.length, foreignKeyTuples.length, principals.length, uniquePrincipals.length, elapsed());
-        return { metadata: principalMetadata, entities: uniquePrincipals };
+        return { metadata: principalMetadata, roots: uniquePrincipals };
     }
 
     private fixOneToOneInverse<TEntity extends object>(

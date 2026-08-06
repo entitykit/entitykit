@@ -1,7 +1,7 @@
 import { FieldExpression } from './expression/field-expression';
 import { createQueryModel, cloneQueryModel, type IncludeFilterModel } from './query-model';
 import type { EntityMetadata } from '../model/entity-metadata';
-import type { IncludeLoaderContext } from './include-loader-context';
+import type { IncludeLoaderContext, IncludeLoadRoot } from './include-loader-context';
 
 /**
  * Turn a set of parent-key tuples into materialized rows, split to stay within
@@ -29,10 +29,10 @@ export class IncludePropertyLoader {
         propertyNames: readonly string[],
         tuples: ReadonlyArray<readonly unknown[]>,
         filter?: IncludeFilterModel,
-    ): Promise<TEntity[]> {
+    ): Promise<Array<IncludeLoadRoot<TEntity>>> {
         const chunkSize = this.keyChunkSize(propertyNames.length, filter);
         if (tuples.length > chunkSize) {
-            const loaded: TEntity[] = [];
+            const loaded: Array<IncludeLoadRoot<TEntity>> = [];
             for (let start = 0; start < tuples.length; start += chunkSize) {
                 loaded.push(...await this.loadByPropertyChunk(metadata, propertyNames, tuples.slice(start, start + chunkSize), filter));
             }
@@ -62,7 +62,7 @@ export class IncludePropertyLoader {
         propertyNames: readonly string[],
         tuples: ReadonlyArray<readonly unknown[]>,
         filter?: IncludeFilterModel,
-    ): Promise<TEntity[]> {
+    ): Promise<Array<IncludeLoadRoot<TEntity>>> {
     // One property keeps the compact `in (...)` form; several compile to an
     // `or` of `and`ed equality tests, one per key tuple.
         const basePredicate = propertyNames.length === 1
@@ -85,6 +85,10 @@ export class IncludePropertyLoader {
             statement,
             this.ctx.operationOptions,
         );
-        return this.ctx.materializer.materializeMany(metadata, result.rows, this.ctx.changeTracker);
+        return this.ctx.materializer.materializeManyWithValues(
+            metadata,
+            result.rows,
+            this.ctx.changeTracker,
+        );
     }
 }

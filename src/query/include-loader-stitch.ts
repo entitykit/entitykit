@@ -7,21 +7,19 @@ import {
     mergeNavigationItems,
     pushUnique,
     pushUniqueObject,
-    uniqueEntityInstances,
     type UniqueObjectList,
 } from './include-navigation-helpers';
+import { uniqueIncludeRoots } from './include-load-root';
 import {
     dependentStitchKey,
     manyToManyEntityStitchKey,
     manyToManyRowStitchKey,
     principalStitchKey,
 } from './include-stitch-keys';
-
 /**
  * Wire freshly loaded rows onto the navigation properties of their parents
  * (and, where configured, the inverse navigation on the children), then mark
  * those navigations loaded.
- *
  * Strategies decide which rows to load; this class owns their shared,
  * identity-preserving assignment path.
  */
@@ -33,8 +31,8 @@ export class IncludeStitcher {
         principals: ReadonlyArray<IncludeLoadRoot<TPrincipal>>,
         dependentMetadata: EntityMetadata,
         relationship: RelationshipMetadata<object, TPrincipal>,
-        dependents: readonly object[],
-    ): object[] {
+        dependents: readonly IncludeLoadRoot[],
+    ): IncludeLoadRoot[] {
         const dependentsByPrincipalKey: Map<string, object[]> = new Map();
         const principalsByKey = new Map(
             principals.map(principal => [
@@ -43,11 +41,12 @@ export class IncludeStitcher {
             ]),
         );
 
-        for (const dependent of dependents) {
+        for (const dependentRoot of dependents) {
+            const dependent = dependentRoot.entity;
             const key = dependentStitchKey(
                 dependentMetadata,
                 relationship,
-                dependent,
+                dependentRoot.values,
             );
             const group = dependentsByPrincipalKey.get(key) ?? [];
             pushUnique(group, dependent);
@@ -88,25 +87,26 @@ export class IncludeStitcher {
             this.markLoaded(principal, inverseNavigation);
         }
 
-        return uniqueEntityInstances(dependents);
+        return uniqueIncludeRoots(dependents);
     }
 
     public assignManyToManyRelated(
         rows: ReadonlyArray<Record<string, unknown>>,
-        relatedEntities: readonly object[],
+        relatedRoots: readonly IncludeLoadRoot[],
         currentEntities: readonly IncludeLoadRoot[],
         info: ManyToManyRelationshipInfo,
-    ): object[] {
+    ): IncludeLoadRoot[] {
         const relatedByParentKey: Map<string, UniqueObjectList> = new Map();
         const inverseParentsByRelated = info.relatedInverseNavigationProperty
             ? new Map<object, UniqueObjectList>()
             : undefined;
 
         for (let index = 0; index < rows.length; index++) {
-            const related = relatedEntities.at(index);
-            if (!related) {
+            const relatedRoot = relatedRoots.at(index);
+            if (!relatedRoot) {
                 continue;
             }
+            const related = relatedRoot.entity;
 
             const row = rows.at(index);
             if (!row) {
@@ -140,7 +140,7 @@ export class IncludeStitcher {
             }
         }
 
-        return uniqueEntityInstances(relatedEntities);
+        return uniqueIncludeRoots(relatedRoots);
     }
 
     private markLoaded(entity: object, navigationProperty: string): void {

@@ -5,6 +5,7 @@ import { EntityState } from '../tracking/entity-state';
 import { applyMaterializedValues } from './complex-value-materializer';
 import { assertSynchronousCallbackResult } from '../synchronous-callback';
 import { readTrackingTenantFromRow } from './tracking-tenant-row';
+import type { MaterializedRow } from './materialized-row';
 
 export class Materializer {
     constructor(private readonly valueReader?: StoreValueReader) {}
@@ -14,7 +15,7 @@ export class Materializer {
         metadata: EntityMetadata<TEntity>,
         row: Record<string, unknown>,
     ): TEntity {
-        return this.createEntity(metadata, row).entity;
+        return this.createEntity(metadata, this.readValues(metadata, row));
     }
 
     public materialize<TEntity extends object>(
@@ -22,8 +23,17 @@ export class Materializer {
         row: Record<string, unknown>,
         changeTracker: ChangeTracker,
     ): TEntity {
+        return this.materializeWithValues(metadata, row, changeTracker).entity;
+    }
+
+    public materializeWithValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        row: Record<string, unknown>,
+        changeTracker: ChangeTracker,
+    ): MaterializedRow<TEntity> {
+        const values = this.readValues(metadata, row);
         if (metadata.isKeyless) {
-            return this.createEntity(metadata, row).entity;
+            return { entity: this.createEntity(metadata, values), values };
         }
         const keyValues = metadata.getKeyValuesFromRow(row, this.valueReader);
         const tenantValue = readTrackingTenantFromRow(
@@ -37,17 +47,22 @@ export class Materializer {
             tenantValue,
         );
         if (existing) {
-            return existing.entity;
+            return { entity: existing.entity, values };
         }
 
-        const { entity, originalValues } = this.createEntity(metadata, row);
+        const entity = this.createEntity(metadata, values);
 
         // Return the tracked entry's entity, not the one just built. If the identity
         // map missed above but `track` finds a collision, it keeps the instance it
         // already holds — returning the local one would hand back an untracked
         // duplicate whose edits `saveChanges()` would silently discard.
-        const entry = changeTracker.track(entity, metadata, EntityState.Unchanged, originalValues);
-        return entry.entity;
+        const entry = changeTracker.track(
+            entity,
+            metadata,
+            EntityState.Unchanged,
+            values,
+        );
+        return { entity: entry.entity, values };
     }
 
     public materializeMany<TEntity extends object>(
@@ -56,6 +71,16 @@ export class Materializer {
         changeTracker: ChangeTracker,
     ): TEntity[] {
         return rows.map(row => this.materialize(metadata, row, changeTracker));
+    }
+
+    public materializeManyWithValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        rows: ReadonlyArray<Record<string, unknown>>,
+        changeTracker: ChangeTracker,
+    ): Array<MaterializedRow<TEntity>> {
+        return rows.map(row =>
+            this.materializeWithValues(metadata, row, changeTracker),
+        );
     }
 
     /** Materialize entities without requiring or retaining identity keys. */
@@ -68,15 +93,8 @@ export class Materializer {
 
     private createEntity<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
-        row: Record<string, unknown>,
-    ): { entity: TEntity; originalValues: Record<string, unknown> } {
-        const originalValues: Record<string, unknown> = {};
-        for (const property of metadata.properties) {
-            const value = readStoreValue(
-                row[property.columnName], property, this.valueReader, metadata.entityName,
-            );
-            originalValues[property.propertyName] = value;
-        }
+        originalValues: Record<string, unknown>,
+    ): TEntity {
         let entity: TEntity;
         if (metadata.materializer) {
             const created: unknown = metadata.materializer(
@@ -92,7 +110,21 @@ export class Materializer {
             entity = new (metadata.ctor as unknown as new () => TEntity)();
         }
         applyMaterializedValues(metadata, entity, originalValues);
-        return { entity, originalValues };
+        return entity;
+    }
+
+    private readValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        row: Record<string, unknown>,
+    ): Record<string, unknown> {
+        const values: Record<string, unknown> = {};
+        for (const property of metadata.properties) {
+            const value = readStoreValue(
+                row[property.columnName], property, this.valueReader, metadata.entityName,
+            );
+            values[property.propertyName] = value;
+        }
+        return values;
     }
 }
 

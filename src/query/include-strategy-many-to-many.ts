@@ -5,7 +5,7 @@ import { buildManyToManyBatchStatement } from './include-many-to-many-batch-sql'
 import { buildManyToManyWindowStatement } from './include-many-to-many-window-sql';
 import { isCompleteTuple } from './include-key-helpers';
 import { uniquePropertyTuples } from './include-property-key-helpers';
-import { uniqueEntityInstances } from './include-navigation-helpers';
+import { uniqueIncludeRoots } from './include-load-root';
 import type { IncludeFilterModel } from './query-model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 
@@ -50,7 +50,7 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
                 this.markLoaded(entity, info.navigationProperty);
             }
             this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'skipped', currentEntities.length, 0, 0, 0, elapsed());
-            return { metadata: info.relatedMetadata, entities: [] };
+            return { metadata: info.relatedMetadata, roots: [] };
         }
 
         if (currentEntities.length > 1 && (filter?.limit !== undefined || filter?.offset !== undefined)) {
@@ -72,19 +72,19 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const allRelated: object[] = [];
+        const allRelated: IncludeLoadRoot[] = [];
 
         for (const root of currentEntities) {
             const currentKey = info.currentMetadata.keyProperties.map(
                 propertyName => root.values[propertyName],
             );
             const loaded = await this.loadBatch([currentKey], [root], info, filter, false);
-            allRelated.push(...loaded.entities);
+            allRelated.push(...loaded.roots);
         }
 
-        const uniqueRelated = uniqueEntityInstances(allRelated);
+        const uniqueRelated = uniqueIncludeRoots(allRelated);
         this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'perParentFallback', currentEntities.length, currentEntities.length, allRelated.length, uniqueRelated.length, elapsed());
-        return { metadata: info.relatedMetadata, entities: uniqueRelated };
+        return { metadata: info.relatedMetadata, roots: uniqueRelated };
     }
 
     private async loadBatch(
@@ -106,12 +106,12 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
             statement,
             this.ctx.operationOptions,
         );
-        const relatedEntities = this.ctx.materializer.materializeMany(info.relatedMetadata, result.rows, this.ctx.changeTracker);
-        const uniqueRelated = this.stitcher.assignManyToManyRelated(result.rows, relatedEntities, currentEntities, info);
+        const relatedRoots = this.ctx.materializer.materializeManyWithValues(info.relatedMetadata, result.rows, this.ctx.changeTracker);
+        const uniqueRelated = this.stitcher.assignManyToManyRelated(result.rows, relatedRoots, currentEntities, info);
         if (emitDiagnostic) {
             this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'splitQuery', currentEntities.length, currentKeys.length, result.rowCount, uniqueRelated.length, elapsed());
         }
-        return { metadata: info.relatedMetadata, entities: uniqueRelated };
+        return { metadata: info.relatedMetadata, roots: uniqueRelated };
     }
 
     private async loadWindowedBatch(
@@ -132,9 +132,9 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
             statement,
             this.ctx.operationOptions,
         );
-        const relatedEntities = this.ctx.materializer.materializeMany(info.relatedMetadata, result.rows, this.ctx.changeTracker);
-        const uniqueRelated = this.stitcher.assignManyToManyRelated(result.rows, relatedEntities, currentEntities, info);
+        const relatedRoots = this.ctx.materializer.materializeManyWithValues(info.relatedMetadata, result.rows, this.ctx.changeTracker);
+        const uniqueRelated = this.stitcher.assignManyToManyRelated(result.rows, relatedRoots, currentEntities, info);
         this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'windowedBatch', currentEntities.length, currentKeys.length, result.rowCount, uniqueRelated.length, elapsed());
-        return { metadata: info.relatedMetadata, entities: uniqueRelated };
+        return { metadata: info.relatedMetadata, roots: uniqueRelated };
     }
 }

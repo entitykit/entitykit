@@ -47,31 +47,32 @@ export class DbSetQueryRunner<TEntity extends object> {
             ? new ChangeTracker()
             : this.context.changeTracker;
         try {
-            return await this.pipeline.execute(
+            const materialized = await this.pipeline.execute(
                 shape,
                 async () => {
                     const result = await this.context.database.query(statement, options);
-                    const entities = this.materializer.materializeMany(
+                    const roots = this.materializer.materializeManyWithValues(
                         this.metadata, result.rows, tracker,
                     );
                     return {
-                        value: entities,
+                        value: roots,
                         rowCount: result.rowCount,
-                        resultCount: entities.length,
+                        resultCount: roots.length,
                     };
                 },
-                async entities =>
+                async roots =>
                     loadDbSetIncludes(
                         this.context,
                         this.diagnostics,
                         this.metadata,
-                        entities,
+                        roots,
                         filteredModel,
                         tracker,
                         (metadata, query) => operation.apply(metadata, query),
                         options,
                     ),
             );
+            return materialized.map(root => root.entity);
         } finally {
             if (tracker !== this.context.changeTracker) {
                 tracker.clear();

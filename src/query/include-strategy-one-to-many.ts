@@ -79,7 +79,7 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
                 this.markLoaded(principal, inverseNavigation);
             }
             this.emitIncludeDiagnostic(principalMetadata.entityName, dependentMetadata.entityName, inverseNavigation, 'skipped', principals.length, 0, 0, 0, elapsed());
-            return { metadata: dependentMetadata, entities: [] };
+            return { metadata: dependentMetadata, roots: [] };
         }
 
         if (filter?.limit !== undefined || filter?.offset !== undefined) {
@@ -96,6 +96,6 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
         const dependents = await this.propertyLoader.loadByProperties(dependentMetadata, relationship.foreignKeyProperties, principalKeys, filter);
         const assigned = this.stitcher.assignDependentsToPrincipals(principalMetadata, principals, dependentMetadata, relationship, dependents);
         this.emitIncludeDiagnostic(principalMetadata.entityName, dependentMetadata.entityName, inverseNavigation, 'splitQuery', principals.length, principalKeys.length, dependents.length, assigned.length, elapsed());
-        return { metadata: dependentMetadata, entities: assigned };
+        return { metadata: dependentMetadata, roots: assigned };
     }
 }
