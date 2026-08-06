@@ -9,6 +9,7 @@ import {
     snapshotPropertyValueCopies,
     snapshotPropertyValuesEqual,
 } from '../tracking/snapshot-value';
+import { ensurePolicyPropertyPath } from './policy-property-path';
 
 /** Apply the tenant boundary to one set-based entity write. */
 export function applyBulkWriteTenant<TEntity extends object>(
@@ -33,6 +34,7 @@ export function applyBulkWriteTenant<TEntity extends object>(
             property.converter,
             `${metadata.entityName}.${tenantProperty}`,
         );
+        ensurePolicyPropertyPath(metadata, entity, property);
         writePropertyValue(entity, property, liveValue);
         return;
     }

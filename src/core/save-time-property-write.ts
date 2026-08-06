@@ -5,6 +5,7 @@ import {
     readPropertyValue,
     writePropertyValue,
 } from '../model/property-value-access';
+import { ensurePolicyPropertyPath } from './policy-property-path';
 
 /** Write distinct persisted and live copies of one save-time policy value. */
 export function writeSaveTimeProperty(
@@ -22,6 +23,12 @@ export function writeSaveTimeProperty(
     );
     const context = `${entry.metadata.entityName}.${propertyName}`;
     const previousLiveValue = readPropertyValue(entry.entity, property);
+    ensurePolicyPropertyPath(
+        entry.metadata,
+        entry.entity,
+        property,
+        mutations,
+    );
     writePropertyValue(entry.entity, property, liveValue);
     mutations.recordApplied(
         entry.entity,
