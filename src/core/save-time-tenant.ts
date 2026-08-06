@@ -6,22 +6,19 @@ import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { PropertyMetadata } from '../model/property-metadata';
 import { readPropertyValue, writePropertyValue } from '../model/property-value-access';
-import {
-    snapshotPropertyValueCopies,
-    snapshotPropertyValuesEqual,
-} from '../tracking/snapshot-value';
+import { snapshotPropertyValueCopies, snapshotPropertyValuesEqual } from '../tracking/snapshot-value';
 
 interface TenantWriteScope {
     readonly entityName: string;
     readonly tenantProperty: string;
     readonly property: PropertyMetadata;
     readonly readValue: () => unknown;
-    readonly writeValue: (value: unknown) => void;
+    readonly writeValue: (value: unknown) => unknown;
     readonly isAdded: boolean;
     readonly tenantId: unknown;
     readonly allowsCrossTenantAccess: boolean;
     readonly recordMutation: (applied: unknown) => void;
-    readonly mirrorMutation?: (value: unknown) => void;
+    readonly mirrorMutation?: (value: unknown) => unknown;
 }
 
 export function applyTenantWrite(
@@ -38,8 +35,8 @@ export function applyTenantWrite(
     if (!tenantProperty) {
         return;
     }
-    const liveValues = entry.entity as Record<string, unknown>;
     const property = entry.metadata.getProperty(tenantProperty);
+    const previousLiveValue = readPropertyValue(entry.entity, property);
     applyTenantWriteScope({
         entityName: entry.metadata.entityName,
         tenantProperty,
@@ -47,20 +44,23 @@ export function applyTenantWrite(
         readValue: () => snapshot.values[tenantProperty],
         writeValue: value => {
             snapshot.values[tenantProperty] = value;
+            return value;
         },
         isAdded: snapshot.state === EntityState.Added,
         tenantId,
         allowsCrossTenantAccess,
         recordMutation: applied => {
             mutations.recordApplied(
-                liveValues,
-                tenantProperty,
-                snapshot.values[tenantProperty],
+                entry.entity,
+                property,
+                previousLiveValue,
                 applied,
+                `${entry.metadata.entityName}.${tenantProperty}`,
             );
         },
         mirrorMutation: value => {
             writePropertyValue(entry.entity, property, value);
+            return readPropertyValue(entry.entity, property);
         },
     });
 }
@@ -78,7 +78,6 @@ export function applyTenantOnAdd<TEntity extends object>(
     const property = metadata.getProperty(tenantProperty);
     const previousTenantId = readPropertyValue(entity, property);
     let rollback = (): void => undefined;
-
     applyTenantWriteScope({
         entityName: metadata.entityName,
         tenantProperty,
@@ -86,6 +85,7 @@ export function applyTenantOnAdd<TEntity extends object>(
         readValue: () => readPropertyValue(entity, property),
         writeValue: value => {
             writePropertyValue(entity, property, value);
+            return readPropertyValue(entity, property);
         },
         isAdded: true,
         tenantId: currentTenantId(),
@@ -125,11 +125,11 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
             property.converter,
             `${entityName}.${tenantProperty}`,
         );
-        recordMutation(copies.liveValue);
-        writeValue(mirrorMutation
+        const written = writeValue(mirrorMutation
             ? copies.persistedValue
             : copies.liveValue);
-        mirrorMutation?.(copies.liveValue);
+        const applied = mirrorMutation?.(copies.liveValue) ?? written;
+        recordMutation(applied);
     }
 
     if (!snapshotPropertyValuesEqual(

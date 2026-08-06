@@ -1,6 +1,10 @@
 import { snapshotPropertyValueCopies } from '../tracking/snapshot-value';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { SaveTimeMutationLog } from './save-time-mutations';
+import {
+    readPropertyValue,
+    writePropertyValue,
+} from '../model/property-value-access';
 
 /** Write distinct persisted and live copies of one save-time policy value. */
 export function writeSaveTimeProperty(
@@ -16,13 +20,15 @@ export function writeSaveTimeProperty(
         property.converter,
         `${entry.metadata.entityName}.${propertyName}`,
     );
-    const liveValues = entry.entity as Record<string, unknown>;
+    const context = `${entry.metadata.entityName}.${propertyName}`;
+    const previousLiveValue = readPropertyValue(entry.entity, property);
+    writePropertyValue(entry.entity, property, liveValue);
     mutations.recordApplied(
-        liveValues,
-        propertyName,
-        snapshot.values[propertyName],
-        liveValue,
+        entry.entity,
+        property,
+        previousLiveValue,
+        readPropertyValue(entry.entity, property),
+        context,
     );
     snapshot.values[propertyName] = persistedValue;
-    liveValues[propertyName] = liveValue;
 }

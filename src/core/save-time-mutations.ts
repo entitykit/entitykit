@@ -1,4 +1,13 @@
 import type { EntityEntry } from '../tracking/entity-entry';
+import type { PropertyMetadata } from '../model/property-metadata';
+import {
+    readPropertyValue,
+    writePropertyValue,
+} from '../model/property-value-access';
+import {
+    snapshotPropertyValue,
+    snapshotPropertyValuesEqual,
+} from '../tracking/snapshot-value';
 
 interface SaveTimeMutation {
     restore(): void;
@@ -31,15 +40,26 @@ export class SaveTimeMutationLog {
 
     /** Restore a policy write only while its provisional value is still live. */
     public recordApplied(
-        values: Record<string, unknown>,
-        property: string,
+        entity: object,
+        property: PropertyMetadata,
         previous: unknown,
         applied: unknown,
+        context: string,
     ): void {
+        const appliedSnapshot = snapshotPropertyValue(
+            applied,
+            property.converter,
+            context,
+        );
         this.mutations.push({
             restore: () => {
-                if (Object.is(values[property], applied)) {
-                    values[property] = previous;
+                if (snapshotPropertyValuesEqual(
+                    readPropertyValue(entity, property),
+                    appliedSnapshot,
+                    property.converter,
+                    context,
+                )) {
+                    writePropertyValue(entity, property, previous);
                 }
             },
         });
