@@ -9,5 +9,9 @@ export interface EntityEntryStore {
         entry: EntityEntry<TEntity>,
         previousValues: Readonly<Record<string, unknown>>,
     ): void;
+    assertPersistedIdentity<TEntity extends object>(
+        entry: EntityEntry<TEntity>,
+        values: Readonly<Record<string, unknown>>,
+    ): void;
     detach<TEntity extends object>(entry: EntityEntry<TEntity>): void;
 }

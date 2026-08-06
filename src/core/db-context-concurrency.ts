@@ -23,6 +23,21 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
                 previousValues,
             );
         },
+        assertPersistedIdentity: (entry, values) => {
+            const keyValues = entry.metadata.keyProperties.map(
+                propertyName => values[propertyName],
+            );
+            if (
+                this.changeTracker.tryGetByIdentityValues(
+                    entry.metadata,
+                    keyValues,
+                ) !== entry
+            ) {
+                throw new Error(
+                    `Database values do not match the tracked identity for '${entry.metadata.entityName}'.`,
+                );
+            }
+        },
     };
 
     protected override initialize(): void {
@@ -34,7 +49,9 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
         entry: EntityEntry<TEntity>,
     ): Promise<Record<string, unknown> | null> {
         const keyProperties = entry.metadata.keyProperties;
-        const keyValues = entry.metadata.getKeyValues(entry.entity);
+        const keyValues = keyProperties.map(
+            propertyName => entry.originalValues[propertyName],
+        );
         const entity = await this.set(entry.metadata.ctor)
             .asNoTracking()
             .ignoreQueryFilters()

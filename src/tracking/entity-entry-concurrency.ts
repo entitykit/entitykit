@@ -44,6 +44,9 @@ export class EntityEntryConcurrency<TEntity extends object> {
     > {
         this.assertExistingEntry('getDatabaseValues()');
         const values = await this.store.loadDatabaseValues(this.entry);
+        if (values) {
+            this.store.assertPersistedIdentity(this.entry, values);
+        }
         return values
             ? createEntityDatabaseValues(this.entry, values)
             : null;
@@ -88,6 +91,7 @@ export class EntityEntryConcurrency<TEntity extends object> {
         databaseValues: EntityDatabaseValues<TEntity>,
     ): void {
         const values = readEntityDatabaseValues(this.entry, databaseValues);
+        this.store.assertPersistedIdentity(this.entry, values);
         const previousValues = this.entry.currentValues();
         applyMaterializedValues(this.entry.metadata, this.entry.entity, values);
         this.store.fixupReloadedRelationships(this.entry, previousValues);
@@ -99,6 +103,7 @@ export class EntityEntryConcurrency<TEntity extends object> {
     ): void {
         const state = this.entry.state;
         const values = readEntityDatabaseValues(this.entry, databaseValues);
+        this.store.assertPersistedIdentity(this.entry, values);
         this.entry.refreshOriginalValues(values);
         syncDatabaseVersions(
             this.entry.metadata,
