@@ -124,6 +124,29 @@ describe('complex policy path construction', () => {
         await db.dispose();
     });
 
+    it('constructs one typed ancestor for soft-delete and audit writes', async () => {
+        const db = AuditContext.create();
+        await db.database.connection.query({
+            text: db.database.createScript(),
+            values: [],
+        });
+        await db.database.connection.query({
+            text: 'insert into audited_rows (id, name) values (?, ?)',
+            values: ['row-1', 'before'],
+        });
+        const row = requireDefined(await db.rows.find('row-1'));
+        db.rows.remove(row);
+
+        await expect(db.saveChanges()).resolves.toBe(1);
+
+        expect(row.audit).toBeInstanceOf(AuditStamp);
+        expect(row.audit?.deletedAt).toEqual(
+            new Date('2026-08-06T12:00:00.000Z'),
+        );
+        expect(row.audit?.updatedAt).toEqual(row.audit?.deletedAt);
+        await db.dispose();
+    });
+
     it('removes a created tenant ancestor when add tracking fails', () => {
         const db = TenantContext.create();
         db.rows.add(Object.assign(new TenantRow(), {
