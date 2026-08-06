@@ -15,8 +15,7 @@ export const mySqlDialect: SqlDialect = Object.freeze({
         return 65535;
     },
     supportsWindowFunctions(): boolean {
-    // MySQL has had window functions since 8.0 (2018); 5.7 and earlier cannot
-    // run them, but the mysql2 driver this provider targets speaks to 8.0+.
+    // Window functions require the MySQL 8.0+ version this provider targets.
         return true;
     },
     avgOperand(columnSql: string): string {
@@ -126,6 +125,7 @@ export const mySqlDialect: SqlDialect = Object.freeze({
     falsePredicate(): string {
         return '1 = 0';
     },
+    rowLockClause: () => 'for update',
     upsertClause(_conflictColumns: readonly string[], updateColumns: readonly string[]): string {
     // MySQL keys the upsert on any unique index, not a named conflict target,
     // so the conflict columns are not part of the clause. `values(col)` reads

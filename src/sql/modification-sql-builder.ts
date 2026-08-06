@@ -1,13 +1,11 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
 import type { SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import { UpsertSqlBuilder } from './upsert-sql-builder';
 import type { PostgresUpdateSqlOptions, BulkUpdateSqlOptions } from './update-sql-builder';
 import type { PostgresDeleteSqlOptions, BulkDeleteSqlOptions } from './delete-sql-builder';
 import type { PostgresUpsertSqlOptions, UpsertSqlOptions } from './upsert-sql-builder';
-import type { ManyToManyEndpointKey } from './modification-sql-helpers';
-import { ModificationSqlCapturedBuilder } from './modification-sql-captured-builder';
+import { ModificationSqlRelationshipBuilder } from './modification-sql-relationship-builder';
 import type { EntityPropertyKey } from '../types';
 
 // Keep the facade's historical operation types importable from this module.
@@ -17,7 +15,7 @@ export type { PostgresUpsertSqlOptions, UpsertSqlOptions } from './upsert-sql-bu
 export type { ManyToManyEndpointKey } from './modification-sql-helpers';
 
 /** Compatibility facade delegating DML to its per-verb builders. */
-export class ModificationSqlBuilder extends ModificationSqlCapturedBuilder {
+export class ModificationSqlBuilder extends ModificationSqlRelationshipBuilder {
     private readonly upsertBuilder: UpsertSqlBuilder;
 
     constructor(dialect: SqlDialect = postgresDialect) {
@@ -97,36 +95,6 @@ export class ModificationSqlBuilder extends ModificationSqlCapturedBuilder {
         originalValues: Readonly<Record<string, unknown>> = {},
     ): SqlStatement | undefined {
         return this.updateBuilder.buildUpdate(metadata, entity, modifiedProperties, originalValues);
-    }
-
-    public buildInsertManyToMany<TEntity extends object>(
-        relationship: ManyToManyMetadata<TEntity>,
-        sourceKeyValues: ManyToManyEndpointKey,
-        targetKeyValues: ManyToManyEndpointKey,
-    ): SqlStatement {
-        return this.insertBuilder.buildInsertManyToMany(relationship, sourceKeyValues, targetKeyValues);
-    }
-
-    public buildInsertManyToManyBatch<TEntity extends object>(
-        relationship: ManyToManyMetadata<TEntity>,
-        pairs: ReadonlyArray<readonly [unknown, unknown]>,
-    ): SqlStatement {
-        return this.insertBuilder.buildInsertManyToManyBatch(relationship, pairs);
-    }
-
-    public buildDeleteManyToMany<TEntity extends object>(
-        relationship: ManyToManyMetadata<TEntity>,
-        sourceKeyValues: ManyToManyEndpointKey,
-        targetKeyValues: ManyToManyEndpointKey,
-    ): SqlStatement {
-        return this.deleteBuilder.buildDeleteManyToMany(relationship, sourceKeyValues, targetKeyValues);
-    }
-
-    public buildDeleteManyToManyBatch<TEntity extends object>(
-        relationship: ManyToManyMetadata<TEntity>,
-        pairs: ReadonlyArray<readonly [unknown, unknown]>,
-    ): SqlStatement {
-        return this.deleteBuilder.buildDeleteManyToManyBatch(relationship, pairs);
     }
 
     public buildDelete<TEntity extends object>(

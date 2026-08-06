@@ -60,12 +60,12 @@ export function buildManyToManyPairs(
     persistedValue?: PersistedValueLookup,
 ): Array<readonly [unknown, unknown]> {
     return group.map(captured => [
-        resolvedProviderKeyValues(captured.source, persistedValue),
-        resolvedProviderKeyValues(captured.target, persistedValue),
+        resolvedManyToManyProviderKeyValues(captured.source, persistedValue),
+        resolvedManyToManyProviderKeyValues(captured.target, persistedValue),
     ]);
 }
 
-function resolvedProviderKeyValues(
+export function resolvedManyToManyProviderKeyValues(
     endpoint: CapturedRelationshipEndpoint,
     persistedValue?: PersistedValueLookup,
 ): readonly unknown[] {

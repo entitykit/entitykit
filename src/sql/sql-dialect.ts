@@ -35,6 +35,8 @@ export interface SqlDialect extends SchemaSqlDialect {
    * on the others.
    */
     unlimitedLimitLiteral?(): string | undefined;
+    /** Lock rows selected by an ownership authorization query. */
+    rowLockClause?(): string;
     /**
    * Most bound parameters this provider accepts in one statement, or
    * `undefined` when it has no practical cap.

@@ -9,6 +9,7 @@ import {
     encodeSaveIdentityTuple,
     toProviderKeyValues,
 } from './save-key-values';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 export interface CapturedRelationshipEndpoint {
     readonly entity: object;
@@ -17,6 +18,10 @@ export interface CapturedRelationshipEndpoint {
     readonly providerKeyValues: readonly unknown[];
     readonly encodedIdentity: string;
     readonly generatedOnAddPropertyNames: ReadonlySet<string>;
+    readonly providerTenant?: {
+        readonly propertyName: string;
+        readonly value: unknown;
+    };
 }
 
 export function captureRelationshipEndpoint(
@@ -46,6 +51,27 @@ export function captureRelationshipEndpoint(
                     ))
                     .map(property => property.propertyName)
                 : [],
+        ),
+        providerTenant: captureProviderTenant(metadata, snapshot),
+    };
+}
+
+function captureProviderTenant(
+    metadata: EntityMetadata,
+    snapshot: PersistedEntrySnapshot,
+): { readonly propertyName: string; readonly value: unknown } | undefined {
+    const propertyName = metadata.tenantKeyProperty as string | undefined;
+    if (propertyName === undefined) return undefined;
+    const property = metadata.getProperty(propertyName);
+    const modelValue = snapshot.state === EntityState.Added
+        ? snapshot.values[propertyName]
+        : snapshot.entry.originalValues[propertyName];
+    return {
+        propertyName,
+        value: toBoundPropertyValue(
+            modelValue,
+            property,
+            metadata.entityName,
         ),
     };
 }

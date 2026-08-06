@@ -18,9 +18,9 @@ import { excludedColumnMatchClause } from './upsert-clause-match';
         return '';
     },
     unlimitedLimitLiteral(): string | undefined {
-    // Postgres accepts `offset` on its own.
         return undefined;
     },
+    rowLockClause: () => 'for update',
     generatedColumnClause(expression: string, stored: boolean): string {
         if (!stored) {
             throw new Error('The Postgres provider supports stored generated columns only.');

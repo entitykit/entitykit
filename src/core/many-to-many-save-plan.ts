@@ -15,6 +15,8 @@ import {
     registerSavePlanExecution,
     type PersistedValueLookup,
 } from './save-plan-execution';
+import { buildManyToManyAuthorizedPairs } from './many-to-many-authorized-pairs';
+import { hasTenantAuthorization } from '../sql/many-to-many-authorization';
 
 export function buildManyToManySavePlan(
     changes: readonly ManyToManyChange[],
@@ -45,7 +47,7 @@ export function buildManyToManySavePlan(
         groups.set(key, group);
     }
 
-    return Array.from(groups.values()).map(group =>
+    return Array.from(groups.values()).flatMap(group =>
         buildGroupSavePlan(group, sql),
     );
 }
@@ -53,13 +55,14 @@ export function buildManyToManySavePlan(
 function buildGroupSavePlan(
     group: readonly CapturedManyToManyChange[],
     sql: ModificationSqlBuilder,
-): SavePlanEntry {
+): SavePlanEntry[] {
     const firstCaptured = group.at(0);
     if (!firstCaptured) {
         throw new Error('Many-to-many save group cannot be empty.');
     }
     const { change: first } = firstCaptured;
     const pairs = buildManyToManyPairs(group);
+    const authorizedPairs = buildManyToManyAuthorizedPairs(group);
     const keyValue = pairs.length === 1
         ? `${String(pairs[0][0])}->${String(pairs[0][1])}`
         : `${String(pairs.length)} changes`;
@@ -73,9 +76,7 @@ function buildGroupSavePlan(
         keyValue,
         state:
       first.action === 'link' ? EntityState.Added : EntityState.Deleted,
-        statement: first.action === 'link'
-            ? sql.buildInsertManyToManyBatch(first.relationship, pairs)
-            : sql.buildDeleteManyToManyBatch(first.relationship, pairs),
+        statement: buildGroupStatement(group, sql),
         relationshipChangeCount: group.length,
         relationshipPairs: group.map(({ change }) => ({
             source: change.source,
@@ -92,7 +93,24 @@ function buildGroupSavePlan(
             persistedValue,
         ),
     });
-    return entry;
+    if (!hasTenantAuthorization(authorizedPairs)) return [entry];
+
+    const authorization: SavePlanEntry = {
+        entity: first.source,
+        entityName: entry.entityName,
+        keyValue,
+        state: entry.state,
+        statement: sql.buildManyToManyAuthorization(authorizedPairs),
+        expectedAffectedRows: group.length,
+        ...hasDeferredEndpoint(group) ? { isDeferred: true } : {},
+        isSystemGenerated: true,
+    };
+    registerSavePlanExecution(authorization, {
+        buildStatement: persistedValue => sql.buildManyToManyAuthorization(
+            buildManyToManyAuthorizedPairs(group, persistedValue),
+        ),
+    });
+    return [authorization, entry];
 }
 
 function buildGroupStatement(
@@ -101,6 +119,17 @@ function buildGroupStatement(
     persistedValue?: PersistedValueLookup,
 ): SqlStatement {
     const first = group[0].change;
+    const authorizedPairs = buildManyToManyAuthorizedPairs(
+        group,
+        persistedValue,
+    );
+    if (hasTenantAuthorization(authorizedPairs)) {
+        return sql.buildAuthorizedManyToMany(
+            first.action,
+            first.relationship,
+            authorizedPairs,
+        );
+    }
     const pairs = buildManyToManyPairs(group, persistedValue);
     return first.action === 'link'
         ? sql.buildInsertManyToManyBatch(first.relationship, pairs)
