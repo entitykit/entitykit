@@ -6,6 +6,7 @@ import type { Model } from '../model/model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { assertNavigationLoadableEntry } from './navigation-load-guard';
 import { LazyLoadScheduler } from './lazy-load-scheduler';
+import { NavigationLoadUnavailableError } from '../errors/navigation-errors';
 
 /**
  * What the coordinator needs from its `DbContext`: the change tracker that owns
@@ -52,9 +53,10 @@ export class LazyNavigationCoordinator implements LazyLoaderHost {
 
         const entry = this.host.changeTracker.entry(entity);
         if (!entry) {
-            throw new Error(
-                `lazy(...).${navigationProperty} needs an entity tracked by this DbContext. ` +
-        `'${entity.constructor.name || 'entity'}' is not tracked — it may have been detached, or the tracker cleared.`,
+            throw new NavigationLoadUnavailableError(
+                'untracked',
+                entity.constructor.name || 'entity',
+                navigationProperty,
             );
         }
         assertNavigationLoadableEntry(this.host.changeTracker, entry);

@@ -1,6 +1,10 @@
 import { requireDefined } from './support/require-defined';
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import {
+    DbContext,
+    ForeignEntityEntryError,
+    NavigationLoadUnavailableError,
+} from '../src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {
@@ -100,7 +104,9 @@ describe('explicit loading', () => {
         });
         const entry = first.posts.attach(post);
 
-        await expect(second.loadNavigation(entry, 'author')).rejects.toThrow(
+        const loading = second.loadNavigation(entry, 'author');
+        await expect(loading).rejects.toBeInstanceOf(ForeignEntityEntryError);
+        await expect(loading).rejects.toThrow(
             'EntityEntry belongs to another DbContext or is no longer tracked.',
         );
         expect(firstConnection.statements).toEqual([]);
@@ -171,7 +177,11 @@ describe('explicit loading', () => {
         });
         const reference = db.posts.add(post).reference(item => item.author);
 
-        await expect(reference.load()).rejects.toThrow(
+        const loading = reference.load();
+        await expect(loading).rejects.toBeInstanceOf(
+            NavigationLoadUnavailableError,
+        );
+        await expect(loading).rejects.toThrow(
             'Navigation loading is unavailable for an Added entity because it has no persisted identity.',
         );
         expect(connection.statements).toEqual([]);

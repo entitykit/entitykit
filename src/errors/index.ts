@@ -8,3 +8,4 @@ export { MigrationChecksumError, MigrationDataLossError, MigrationError, Migrati
 export type { MigrationErrorOptions, MigrationExecutionErrorOptions } from './migration-errors';
 export { ContextConcurrentOperationError, ContextDisposedError, ContextNotInitializedError, OperationCanceledError, ProviderCapabilityError } from './runtime-errors';
 export { TenantScopeUnavailableError } from './tenant-scope-unavailable-error';
+export { ForeignEntityEntryError, NavigationLoadUnavailableError } from './navigation-errors';
