@@ -1,9 +1,7 @@
 import { DbValidationError } from '../errors/entity-kit-error';
 import type { Model } from '../model/model';
-import type { PropertyMetadata } from '../model/property-metadata';
 import { DeleteBehavior } from '../model/relationship-metadata';
 import { principalValuesForDependent } from '../model/relationship-key-translation';
-import { writePropertyValue } from '../model/property-value-access';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
@@ -12,6 +10,10 @@ import {
     removeFromRelationshipInverse,
 } from './relationship-inverse-fixup';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import {
+    clearOptionalRelationshipForeignKey,
+    writeRelationshipForeignKey,
+} from './relationship-foreign-key-write';
 
 export function linkDependent(
     tracker: ChangeTracker,
@@ -22,8 +24,7 @@ export function linkDependent(
     previousPrincipal?: unknown,
 ): void {
     const values = dependent.entity as Record<string, unknown>;
-    const previous = previousPrincipal ??
-        values[relationship.navigationProperty];
+    const previous = previousPrincipal ?? values[relationship.navigationProperty];
     if (previous && previous !== principal) {
         removeFromRelationshipInverse(
             tracker,
@@ -41,13 +42,11 @@ export function linkDependent(
         principalMetadata,
         principal as Record<string, unknown>,
     );
-    relationship.foreignKeyProperties.forEach((property, index) => {
-        writePropertyValue(
-            dependent.entity,
-            dependent.metadata.getProperty(property),
-            key[index],
-        );
-    });
+    writeRelationshipForeignKey(
+        dependent,
+        relationship.foreignKeyProperties,
+        key,
+    );
     values[relationship.navigationProperty] = principal;
     addToRelationshipInverse(
         tracker,
@@ -66,8 +65,8 @@ export function severDependent(
     relationship: TrackedRelationshipMetadata,
     principal?: object,
 ): void {
-    const required = relationship.foreignKeyProperties.every(property =>
-        foreignKeyProperty(dependent, property).isRequired);
+    const required = relationship.foreignKeyProperties.every(
+        property => dependent.metadata.getProperty(property).isRequired);
     if (required) {
         if (relationship.deleteBehavior !== DeleteBehavior.Cascade) {
             throw new DbValidationError(
@@ -80,12 +79,10 @@ export function severDependent(
             dependent.markDeleted();
         }
     } else {
-        for (const property of relationship.foreignKeyProperties) {
-            const metadata = foreignKeyProperty(dependent, property);
-            if (!metadata.isRequired) {
-                writePropertyValue(dependent.entity, metadata, null);
-            }
-        }
+        clearOptionalRelationshipForeignKey(
+            dependent,
+            relationship.foreignKeyProperties,
+        );
     }
     const values = dependent.entity as Record<string, unknown>;
     const previous = principal ?? values[relationship.navigationProperty];
@@ -119,20 +116,6 @@ export function cascadeDeleteDependent(
         principal,
         dependent.entity,
     );
-}
-
-function foreignKeyProperty(
-    dependent: EntityEntry<object>,
-    propertyName: string,
-): PropertyMetadata {
-    const property = dependent.metadata.properties.find(candidate =>
-        candidate.propertyName === propertyName);
-    if (!property) {
-        throw new Error(
-            `Foreign-key property '${propertyName}' is not mapped on '${dependent.metadata.entityName}'.`,
-        );
-    }
-    return property;
 }
 
 export function clearStaleReference(

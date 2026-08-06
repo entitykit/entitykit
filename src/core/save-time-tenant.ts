@@ -5,10 +5,7 @@ import type { SaveTimeMutationLog } from './save-time-mutations';
 import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { PropertyMetadata } from '../model/property-metadata';
-import {
-    readPropertyValue,
-    writePropertyValue,
-} from '../model/property-value-access';
+import { readPropertyValue, writePropertyValue } from '../model/property-value-access';
 import {
     snapshotPropertyValueCopies,
     snapshotPropertyValuesEqual,
