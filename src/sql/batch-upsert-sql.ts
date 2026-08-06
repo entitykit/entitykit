@@ -42,6 +42,7 @@ export function buildBatchUpsert<TEntity extends object>(
         dialect.upsertConflictTarget === 'anyUnique' || !tenantMatchProperty
             ? []
             : [metadata.getProperty(tenantMatchProperty).columnName],
+        { schemaName: metadata.schemaName, tableName: metadata.tableName },
     );
     if (!clause) {
         throw new Error(

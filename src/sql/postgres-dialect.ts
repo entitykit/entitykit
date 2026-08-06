@@ -2,7 +2,7 @@ import type { SqlDialect, SqlSequenceDefinition } from './sql-dialect';
 import type { StoreGenerationStrategy } from '../model/store-generation';
 import { quoteIdentifier, quoteQualifiedIdentifier } from './postgres-identifiers';
 import { alterPostgresStoreGeneration, postgresStoreGenerationClause } from './postgres-store-generation';
-import { excludedColumnMatchClause } from './upsert-clause-match';
+import { postgresUpsertClause } from './postgres-upsert-clause';
 /** Built-in postgres dialect. */ export const postgresDialect: SqlDialect = Object.freeze({
     name: 'postgres',
     maxStatementParameters(): number {
@@ -78,21 +78,7 @@ import { excludedColumnMatchClause } from './upsert-clause-match';
     falsePredicate(): string {
         return '1 = 0';
     },
-    upsertClause(
-        conflictColumns: readonly string[],
-        updateColumns: readonly string[],
-        matchColumns: readonly string[] = [],
-    ): string {
-        const assignments = updateColumns
-            .map(
-                column =>
-                    `${quoteIdentifier(column)} = excluded.${quoteIdentifier(column)}`,
-            )
-            .join(', ');
-        return `on conflict (${conflictColumns
-            .map(quoteIdentifier)
-            .join(', ')}) do update set ${assignments}${excludedColumnMatchClause(matchColumns, quoteIdentifier)}`;
-    },
+    upsertClause: postgresUpsertClause,
     insertConflictDoNothingClause(): string {
         return 'on conflict do nothing';
     },

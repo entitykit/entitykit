@@ -5,6 +5,11 @@ export type { SchemaSqlDialect, SqlSequenceDefinition } from './schema-sql-diale
 export { postgresDialect } from './postgres-dialect';
 export { quoteIdentifier, quoteQualifiedIdentifier } from './postgres-identifiers';
 
+export interface UpsertMatchTarget {
+    readonly schemaName?: string;
+    readonly tableName: string;
+}
+
 /** Provider-neutral SQL rendering capabilities used by query and write compilation. */
 export interface SqlDialect extends SchemaSqlDialect {
     /** Stable name for this contract or database object. */ readonly name: string;
@@ -111,6 +116,7 @@ export interface SqlDialect extends SchemaSqlDialect {
         conflictColumns: readonly string[],
         updateColumns: readonly string[],
         matchColumns?: readonly string[],
+        matchTarget?: UpsertMatchTarget,
     ): string | undefined;
     /** Whether any unique key can trigger upsert; absent means only the specified target can. */
     readonly upsertConflictTarget?: 'specified' | 'anyUnique';
