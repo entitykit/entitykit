@@ -7,6 +7,7 @@ export function validateUpsertConflictTarget<TEntity extends object>(
     dialect: SqlDialect,
     metadata: EntityMetadata<TEntity>,
     conflictProperties: ReadonlyArray<PropertyMetadata<TEntity>>,
+    tenantMatchProperty?: EntityPropertyKey<TEntity>,
 ): void {
     if (dialect.upsertConflictTarget !== 'anyUnique') {
         return;
@@ -30,6 +31,12 @@ export function validateUpsertConflictTarget<TEntity extends object>(
             `The '${dialect.name}' dialect cannot safely upsert '${metadata.entityName}' because the model has ` +
       `a secondary unique key on (${secondaryUniqueIndex.propertyNames.join(', ')}): its upsert clause may ` +
       'update that row instead of the primary-key row. Use provider-specific SQL.',
+        );
+    }
+    if (tenantMatchProperty && !conflictNames.includes(tenantMatchProperty)) {
+        throw new Error(
+            `The '${dialect.name}' dialect cannot safely tenant-scope upsert on '${metadata.entityName}': ` +
+            `tenant property '${tenantMatchProperty}' must be part of its primary-key conflict target.`,
         );
     }
 }

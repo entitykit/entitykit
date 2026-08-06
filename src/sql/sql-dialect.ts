@@ -105,7 +105,11 @@ export interface SqlDialect extends SchemaSqlDialect {
    * and some cannot do it at all. A provider that returns `undefined` gets a
    * clear capability error instead of SQL it will reject.
    */
-    upsertClause?(conflictColumns: readonly string[], updateColumns: readonly string[]): string | undefined;
+    upsertClause?(
+        conflictColumns: readonly string[],
+        updateColumns: readonly string[],
+        matchColumns?: readonly string[],
+    ): string | undefined;
     /** Whether any unique key can trigger upsert; absent means only the specified target can. */
     readonly upsertConflictTarget?: 'specified' | 'anyUnique';
     /**

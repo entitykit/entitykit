@@ -8,6 +8,7 @@ import type { PostgresDeleteSqlOptions, BulkDeleteSqlOptions } from './delete-sq
 import type { PostgresUpsertSqlOptions, UpsertSqlOptions } from './upsert-sql-builder';
 import type { ManyToManyEndpointKey } from './modification-sql-helpers';
 import { ModificationSqlCapturedBuilder } from './modification-sql-captured-builder';
+import type { EntityPropertyKey } from '../types';
 
 // Keep the facade's historical operation types importable from this module.
 export type { PostgresUpdateSqlOptions, BulkUpdateSqlOptions } from './update-sql-builder';
@@ -43,8 +44,14 @@ export class ModificationSqlBuilder extends ModificationSqlCapturedBuilder {
         metadata: EntityMetadata<TEntity>,
         entities: readonly TEntity[],
         options: UpsertSqlOptions<TEntity> = {},
+        tenantMatchProperty?: EntityPropertyKey<TEntity>,
     ): SqlStatement {
-        return this.upsertBuilder.buildUpsertBatch(metadata, entities, options);
+        return this.upsertBuilder.buildUpsertBatch(
+            metadata,
+            entities,
+            options,
+            tenantMatchProperty,
+        );
     }
 
     public buildPostgresUpsert<TEntity extends object>(

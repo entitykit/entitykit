@@ -9,6 +9,7 @@ import {
 } from './postgres-upsert-sql';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import type { SqlStatement } from './sql-statement';
+import type { EntityPropertyKey } from '../types';
 
 export type { UpsertSqlOptions } from './batch-upsert-sql';
 export type { PostgresUpsertSqlOptions } from './postgres-upsert-sql';
@@ -35,8 +36,15 @@ export class UpsertSqlBuilder {
         metadata: EntityMetadata<TEntity>,
         entities: readonly TEntity[],
         options: UpsertSqlOptions<TEntity> = {},
+        tenantMatchProperty?: EntityPropertyKey<TEntity>,
     ): SqlStatement {
-        return buildBatchUpsert(this.dialect, metadata, entities, options);
+        return buildBatchUpsert(
+            this.dialect,
+            metadata,
+            entities,
+            options,
+            tenantMatchProperty,
+        );
     }
 
     public buildPostgresUpsert<TEntity extends object>(

@@ -1,6 +1,6 @@
 import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
 import type { EntityMetadata } from '../src/model/entity-metadata';
-import { UniqueConstraintError } from '../src';
+import { TenantOwnershipError, UniqueConstraintError } from '../src';
 import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
 import { postgresDialect } from '../src/sql/sql-dialect';
 import { mySqlDialect } from '../src/providers/mysql';
@@ -136,6 +136,45 @@ describe('bulk upsert', () => {
             expect(await db.items.upsert([item('a', { tenantId: 'anything' })])).toBe(1);
             await db.dispose();
         });
+
+        it('does not update a conflicting row owned by another tenant', async () => {
+            const db = await open();
+            await db.database.connection.query({
+                text: `insert into items (id, tenant_id, sku, name, quantity)
+                    values (?, ?, ?, ?, ?)`,
+                values: ['shared', 't2', 't2-sku', 'Tenant two', 7],
+            });
+
+            await expect(db.items.upsert([
+                item('shared', { name: 'Hijacked' }),
+            ], { updateProperties: ['name'] }))
+                .rejects.toBeInstanceOf(TenantOwnershipError);
+
+            const stored = await db.database.connection.query<{
+                tenant_id: string;
+                name: string;
+                quantity: number;
+            }>({
+                text: 'select tenant_id, name, quantity from items where id = ?',
+                values: ['shared'],
+            });
+            expect(stored.rows).toEqual([{
+                tenant_id: 't2', name: 'Tenant two', quantity: 7,
+            }]);
+            await db.dispose();
+        });
+
+        it('never accepts the tenant key as an upsert update property', async () => {
+            const db = await open();
+
+            await expect(db.items.upsert([item('a')], {
+                updateProperties: ['tenantId', 'name'],
+            })).rejects.toThrow(
+                'cannot include tenant property \'Item.tenantId\'',
+            );
+            expect(await db.items.count()).toBe(0);
+            await db.dispose();
+        });
     });
 
     describe('batching', () => {
@@ -221,6 +260,18 @@ describe('bulk upsert', () => {
             })).toThrow(/'mysql' dialect cannot target upsert conflict properties.*fires for any primary or unique key/s);
         });
 
+        it('when scoped MySQL conflict identity omits the tenant', () => {
+            const builder = new ModificationSqlBuilder(mySqlDialect);
+            const metadata = new CatalogDbContextMetadataProbe(true).metadata;
+
+            expect(() => builder.buildUpsertBatch(
+                metadata,
+                [item('a')],
+                {},
+                'tenantId',
+            )).toThrow(/cannot safely tenant-scope upsert.*must be part of its primary-key conflict target/s);
+        });
+
         it('when a MySQL model has a secondary unique key', () => {
             const builder = new ModificationSqlBuilder(mySqlDialect);
             const metadata = createIndexedCatalogMetadata();
@@ -257,6 +308,8 @@ describe('bulk upsert', () => {
 
 /** Reaches the built metadata without exposing a context just for the test. */
 class CatalogDbContextMetadataProbe {
+    constructor(private readonly tenantScoped = false) {}
+
     public readonly metadata = (() => {
         const model = new ModelBuilderImplementation();
         model.entity(Item, entity => {
@@ -267,6 +320,7 @@ class CatalogDbContextMetadataProbe {
             entity.property(row => row.sku).hasColumnName('sku').hasColumnType('text').isRequired();
             entity.property(row => row.name).hasColumnName('name').hasColumnType('text').isRequired();
             entity.property(row => row.quantity).hasColumnName('quantity').hasColumnType('integer').isRequired();
+            if (this.tenantScoped) entity.tenantKey(row => row.tenantId);
         });
         return model.build().getEntity(Item);
     })();

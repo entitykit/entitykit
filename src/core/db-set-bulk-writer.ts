@@ -9,6 +9,7 @@ import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { applyBulkWriteTenant } from './bulk-write-tenant';
+import { TenantOwnershipError } from '../errors/tenant-ownership-error';
 
 /**
  * The batched `upsert` write for a `DbSet`.
@@ -55,7 +56,11 @@ export class DbSetBulkWriter<TEntity extends object> {
             return 0;
         }
 
-        const tenantId = this.metadata.tenantKeyProperty
+        const allowsCrossTenantAccess = this.context.allowsCrossTenantAccess();
+        const tenantMatchProperty = allowsCrossTenantAccess
+            ? undefined
+            : this.metadata.tenantKeyProperty;
+        const tenantId = tenantMatchProperty
             ? this.context.currentTenantIdForWrites()
             : undefined;
         for (const entity of entities) {
@@ -63,7 +68,7 @@ export class DbSetBulkWriter<TEntity extends object> {
                 this.metadata,
                 entity,
                 tenantId,
-                this.context.allowsCrossTenantAccess(),
+                allowsCrossTenantAccess,
             );
         }
 
@@ -82,7 +87,12 @@ export class DbSetBulkWriter<TEntity extends object> {
                 const compileElapsed = startElapsedTimer();
                 let statement: SqlStatement;
                 try {
-                    statement = sql.buildUpsertBatch(this.metadata, batch, options);
+                    statement = sql.buildUpsertBatch(
+                        this.metadata,
+                        batch,
+                        options,
+                        tenantMatchProperty,
+                    );
                     this.diagnostics.emitQueryPlan('compile', shape, compileElapsed(), statement);
                 } catch (error) {
                     this.diagnostics.emitQueryPlan('compile', shape, compileElapsed(), undefined, undefined, undefined, error);
@@ -93,6 +103,17 @@ export class DbSetBulkWriter<TEntity extends object> {
                 try {
                     const result = await this.context.database.query(statement, options);
                     this.diagnostics.emitQueryPlan('execute', shape, executeElapsed(), undefined, result.rowCount);
+                    if (
+                        tenantMatchProperty &&
+                        this.context.dialect.upsertConflictTarget !== 'anyUnique' &&
+                        result.rowCount !== batch.length
+                    ) {
+                        throw new TenantOwnershipError(
+                            this.metadata.entityName,
+                            tenantMatchProperty,
+                            'upsert-conflict',
+                        );
+                    }
                     // Public upsert accounting is provider-neutral: one successfully
                     // processed input entity counts once. MySQL reports an updated row
                     // as two affected rows, unlike Postgres and SQLite.

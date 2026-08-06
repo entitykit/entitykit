@@ -5,6 +5,7 @@ import type { MigrationSqlDialect } from '../../migrations/migration-sql-dialect
 import type { SqlDialect } from '../../sql/sql-dialect';
 import type { SqlStatement } from '../../sql/sql-statement';
 import { sqliteStoreGenerationClause } from './sqlite-store-generation';
+import { excludedColumnMatchClause } from '../../sql/upsert-clause-match';
 
 function quoteIdentifier(identifier: string): string {
     if (!identifier || identifier.trim().length === 0) {
@@ -75,12 +76,12 @@ export const sqliteDialect: SqlDialect = Object.freeze({
     falsePredicate(): string {
         return '1 = 0';
     },
-    upsertClause(conflictColumns: readonly string[], updateColumns: readonly string[]): string {
+    upsertClause(conflictColumns: readonly string[], updateColumns: readonly string[], matchColumns: readonly string[] = []): string {
     // SQLite has spelled this the Postgres way since 3.24.
         const assignments = updateColumns
             .map(column => `${quoteIdentifier(column)} = excluded.${quoteIdentifier(column)}`)
             .join(', ');
-        return `on conflict (${conflictColumns.map(quoteIdentifier).join(', ')}) do update set ${assignments}`;
+        return `on conflict (${conflictColumns.map(quoteIdentifier).join(', ')}) do update set ${assignments}${excludedColumnMatchClause(matchColumns, quoteIdentifier)}`;
     },
     insertConflictDoNothingClause(): string {
         return 'on conflict do nothing';
