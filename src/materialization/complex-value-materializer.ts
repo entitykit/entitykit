@@ -43,9 +43,12 @@ export function ensureComplexPropertyPath<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entity: object,
     propertyPath: readonly string[],
-    beforeCreate?: (
+    afterCreate?: (
         target: Record<string, unknown>,
         propertyName: string,
+        previous: unknown,
+        created: object,
+        complex: ComplexPropertyMetadata,
     ) => void,
 ): void {
     for (const complex of metadata.complexProperties) {
@@ -54,11 +57,19 @@ export function ensureComplexPropertyPath<TEntity extends object>(
             continue;
         }
         const target = propertyValueTarget(entity, complex.propertyPath);
-        beforeCreate?.(target.target, target.propertyName);
+        const previous = target.target[target.propertyName];
+        const created = createComplexValue(complex);
         writePropertyPath(
             entity,
             complex.propertyPath,
-            createComplexValue(complex),
+            created,
+        );
+        afterCreate?.(
+            target.target,
+            target.propertyName,
+            previous,
+            created,
+            complex,
         );
     }
 }

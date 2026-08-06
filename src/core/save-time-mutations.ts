@@ -1,6 +1,8 @@
 import type { EntityEntry } from '../tracking/entity-entry';
 import type { PropertyMetadata } from '../model/property-metadata';
 import {
+    propertyValueTarget,
+    readPropertyPath,
     readPropertyValue,
     writePropertyValue,
 } from '../model/property-value-access';
@@ -38,6 +40,23 @@ export class SaveTimeMutationLog {
         });
     }
 
+    /** Remove only the exact framework-created ancestor while it stays pristine. */
+    public recordCreatedAncestor(
+        target: Record<string, unknown>,
+        property: string,
+        previous: unknown,
+        created: object,
+        isPristine: () => boolean,
+    ): void {
+        this.mutations.push({
+            restore: () => {
+                if (target[property] === created && isPristine()) {
+                    target[property] = previous;
+                }
+            },
+        });
+    }
+
     /** Restore a policy write only while its provisional value is still live. */
     public recordApplied(
         entity: object,
@@ -51,8 +70,17 @@ export class SaveTimeMutationLog {
             property.converter,
             context,
         );
+        const appliedTarget = propertyValueTarget(
+            entity,
+            property.propertyPath,
+        ).target;
         this.mutations.push({
             restore: () => {
+                const parentPath = property.propertyPath.slice(0, -1);
+                const currentTarget = parentPath.length === 0
+                    ? entity
+                    : readPropertyPath(entity, parentPath);
+                if (currentTarget !== appliedTarget) return;
                 if (snapshotPropertyValuesEqual(
                     readPropertyValue(entity, property),
                     appliedSnapshot,

@@ -22,13 +22,13 @@ export function writeSaveTimeProperty(
         `${entry.metadata.entityName}.${propertyName}`,
     );
     const context = `${entry.metadata.entityName}.${propertyName}`;
-    const previousLiveValue = readPropertyValue(entry.entity, property);
     ensurePolicyPropertyPath(
         entry.metadata,
         entry.entity,
         property,
         mutations,
     );
+    const previousLiveValue = readPropertyValue(entry.entity, property);
     writePropertyValue(entry.entity, property, liveValue);
     mutations.recordApplied(
         entry.entity,

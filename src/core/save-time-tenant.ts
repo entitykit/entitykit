@@ -22,7 +22,7 @@ export function applyTenantWrite(
         return;
     }
     const property = entry.metadata.getProperty(tenantProperty);
-    const previousLiveValue = readPropertyValue(entry.entity, property);
+    let previousLiveValue = readPropertyValue(entry.entity, property);
     if (snapshot.state !== EntityState.Added) {
         assertTrackedTenantBoundary(
             entry,
@@ -59,6 +59,7 @@ export function applyTenantWrite(
                 property,
                 mutations,
             );
+            previousLiveValue = readPropertyValue(entry.entity, property);
             writePropertyValue(entry.entity, property, value);
             return readPropertyValue(entry.entity, property);
         },
@@ -76,7 +77,7 @@ export function applyTenantOnAdd<TEntity extends object>(
         return () => undefined;
     }
     const property = metadata.getProperty(tenantProperty);
-    const previousTenantId = readPropertyValue(entity, property);
+    let previousTenantId = readPropertyValue(entity, property);
     const mutations = new SaveTimeMutationLog();
     applyTenantWriteScope({
         entityName: metadata.entityName,
@@ -85,6 +86,7 @@ export function applyTenantOnAdd<TEntity extends object>(
         readValue: () => readPropertyValue(entity, property),
         writeValue: value => {
             ensurePolicyPropertyPath(metadata, entity, property, mutations);
+            previousTenantId = readPropertyValue(entity, property);
             writePropertyValue(entity, property, value);
             return readPropertyValue(entity, property);
         },
