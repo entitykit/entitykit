@@ -1,4 +1,4 @@
-import type { IncludeLoaderContext, LoadedIncludeResult, ManyToManyRelationshipInfo } from './include-loader-context';
+import type { IncludeLoaderContext, IncludeLoadRoot, LoadedIncludeResult, ManyToManyRelationshipInfo } from './include-loader-context';
 import type { IncludeStitcher } from './include-loader-stitch';
 import { IncludeStrategyBase } from './include-strategy-base';
 import { buildManyToManyBatchStatement } from './include-many-to-many-batch-sql';
@@ -29,7 +29,7 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
     }
 
     public async load(
-        currentEntities: readonly object[],
+        currentEntities: readonly IncludeLoadRoot[],
         info: ManyToManyRelationshipInfo,
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
@@ -38,12 +38,14 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
             info.currentMetadata,
             info.currentMetadata.keyProperties.map(String),
             currentEntities
-                .map(entity => info.currentMetadata.getKeyValues(entity))
+                .map(root => info.currentMetadata.keyProperties.map(
+                    propertyName => root.values[propertyName],
+                ))
                 .filter(isCompleteTuple),
         );
 
         if (currentKeys.length === 0) {
-            for (const entity of currentEntities) {
+            for (const { entity } of currentEntities) {
                 (entity as Record<string, unknown>)[info.navigationProperty] = [];
                 this.markLoaded(entity, info.navigationProperty);
             }
@@ -65,16 +67,18 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
     }
 
     private async loadPerCurrentEntity(
-        currentEntities: readonly object[],
+        currentEntities: readonly IncludeLoadRoot[],
         info: ManyToManyRelationshipInfo,
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
         const allRelated: object[] = [];
 
-        for (const entity of currentEntities) {
-            const currentKey = info.currentMetadata.getKeyValues(entity);
-            const loaded = await this.loadBatch([currentKey], [entity], info, filter, false);
+        for (const root of currentEntities) {
+            const currentKey = info.currentMetadata.keyProperties.map(
+                propertyName => root.values[propertyName],
+            );
+            const loaded = await this.loadBatch([currentKey], [root], info, filter, false);
             allRelated.push(...loaded.entities);
         }
 
@@ -85,7 +89,7 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
 
     private async loadBatch(
         currentKeys: ReadonlyArray<readonly unknown[]>,
-        currentEntities: readonly object[],
+        currentEntities: readonly IncludeLoadRoot[],
         info: ManyToManyRelationshipInfo,
         filter?: IncludeFilterModel,
         emitDiagnostic = true,
@@ -112,7 +116,7 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
 
     private async loadWindowedBatch(
         currentKeys: ReadonlyArray<readonly unknown[]>,
-        currentEntities: readonly object[],
+        currentEntities: readonly IncludeLoadRoot[],
         info: ManyToManyRelationshipInfo,
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {

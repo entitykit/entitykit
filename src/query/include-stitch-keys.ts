@@ -18,12 +18,12 @@ export function principalStitchKey<
 >(
     metadata: EntityMetadata<TPrincipal>,
     relationship: RelationshipMetadata<TDependent, TPrincipal>,
-    principal: TPrincipal,
+    principal: Readonly<Record<string, unknown>>,
 ): string {
     return principalRelationshipProviderKey(
         relationship,
         metadata,
-        principal as Record<string, unknown>,
+        principal,
     );
 }
 
@@ -61,11 +61,13 @@ export function manyToManyRowStitchKey(
 
 export function manyToManyEntityStitchKey(
     info: ManyToManyRelationshipInfo,
-    entity: object,
+    values: Readonly<Record<string, unknown>>,
 ): string {
     return propertyTupleLookupKey(
         info.currentMetadata,
         info.currentMetadata.keyProperties.map(String),
-        info.currentMetadata.getKeyValues(entity),
+        info.currentMetadata.keyProperties.map(
+            propertyName => values[propertyName],
+        ),
     );
 }

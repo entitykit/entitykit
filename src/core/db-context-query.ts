@@ -4,7 +4,7 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { QueryFilterApplier } from './query-filter-applier';
 import { DbContextConcurrency } from './db-context-concurrency';
-import { assertNavigationLoadableEntry } from './navigation-load-guard';
+import { captureNavigationLoadValues } from './navigation-load-guard';
 
 /** Query filters and explicit navigation loading for a context. */
 export abstract class DbContextQuery extends DbContextConcurrency {
@@ -17,7 +17,12 @@ export abstract class DbContextQuery extends DbContextConcurrency {
         entry: EntityEntry<TEntity>,
         navigationProperty: string,
     ): Promise<unknown> {
-        assertNavigationLoadableEntry(this.changeTracker, entry);
+        const values = captureNavigationLoadValues(
+            this.changeTracker,
+            entry,
+            this.currentTenantId(),
+            this.options.tenantScope?.allowCrossTenantAccess === true,
+        );
         const loader = new IncludeLoader(
             this.modelMetadata,
             this.databaseConnection,
@@ -30,7 +35,7 @@ export abstract class DbContextQuery extends DbContextConcurrency {
         await loader.load(entry.metadata, [entry.entity], [{
             navigationProperty: navigationProperty as never,
             navigationPath: [navigationProperty],
-        }]);
+        }], new Map([[entry.entity, values]]));
         return (entry.entity as Record<string, unknown>)[navigationProperty];
     }
 

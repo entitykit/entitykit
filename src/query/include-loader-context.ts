@@ -32,6 +32,12 @@ export interface LoadedIncludeResult<TEntity extends object = object> {
     readonly entities: readonly TEntity[];
 }
 
+/** One navigation root paired with values captured once for this load. */
+export interface IncludeLoadRoot<TEntity extends object = object> {
+    readonly entity: TEntity;
+    readonly values: Readonly<Record<string, unknown>>;
+}
+
 export interface ManyToManyRelationshipInfo {
     readonly currentMetadata: EntityMetadata;
     readonly relatedMetadata: EntityMetadata;

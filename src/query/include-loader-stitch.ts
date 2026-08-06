@@ -1,7 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import { RelationshipCardinality } from '../model/relationship-metadata';
-import type { IncludeLoaderContext, ManyToManyRelationshipInfo } from './include-loader-context';
+import type { IncludeLoaderContext, IncludeLoadRoot, ManyToManyRelationshipInfo } from './include-loader-context';
 import {
     getUniqueObjectList,
     mergeNavigationItems,
@@ -30,7 +30,7 @@ export class IncludeStitcher {
 
     public assignDependentsToPrincipals<TPrincipal extends object>(
         principalMetadata: EntityMetadata<TPrincipal>,
-        principals: readonly TPrincipal[],
+        principals: ReadonlyArray<IncludeLoadRoot<TPrincipal>>,
         dependentMetadata: EntityMetadata,
         relationship: RelationshipMetadata<object, TPrincipal>,
         dependents: readonly object[],
@@ -38,8 +38,8 @@ export class IncludeStitcher {
         const dependentsByPrincipalKey: Map<string, object[]> = new Map();
         const principalsByKey = new Map(
             principals.map(principal => [
-                principalStitchKey(principalMetadata, relationship, principal),
-                principal,
+                principalStitchKey(principalMetadata, relationship, principal.values),
+                principal.entity,
             ]),
         );
 
@@ -66,11 +66,11 @@ export class IncludeStitcher {
                 `Relationship '${String(relationship.navigationProperty)}' does not configure an inverse navigation.`,
             );
         }
-        for (const principal of principals) {
+        for (const { entity: principal, values } of principals) {
             const key = principalStitchKey(
                 principalMetadata,
                 relationship,
-                principal,
+                values,
             );
             const group = dependentsByPrincipalKey.get(key) ?? [];
             if (
@@ -94,7 +94,7 @@ export class IncludeStitcher {
     public assignManyToManyRelated(
         rows: ReadonlyArray<Record<string, unknown>>,
         relatedEntities: readonly object[],
-        currentEntities: readonly object[],
+        currentEntities: readonly IncludeLoadRoot[],
         info: ManyToManyRelationshipInfo,
     ): object[] {
         const relatedByParentKey: Map<string, UniqueObjectList> = new Map();
@@ -120,9 +120,9 @@ export class IncludeStitcher {
             pushUniqueObject(getUniqueObjectList(relatedByParentKey, parentKey), related);
         }
 
-        for (const entity of currentEntities) {
+        for (const { entity, values } of currentEntities) {
             const group = relatedByParentKey.get(
-                manyToManyEntityStitchKey(info, entity),
+                manyToManyEntityStitchKey(info, values),
             )?.items ?? [];
             (entity as Record<string, unknown>)[info.navigationProperty] = group;
             this.markLoaded(entity, info.navigationProperty);

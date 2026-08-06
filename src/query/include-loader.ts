@@ -11,6 +11,7 @@ import type { IncludeDiagnosticEvent } from '../diagnostics/runtime/events';
 import type { QueryFilterApplier } from './include-loader-context';
 import { IncludeStrategyRunner } from './include-loader-strategies';
 import { groupIncludes } from './include-navigation-helpers';
+import { captureIncludeRoots } from './include-load-root';
 
 /**
  * Eager relationship/navigation loading for `include(...)`.
@@ -54,13 +55,18 @@ export class IncludeLoader {
         metadata: EntityMetadata<TEntity>,
         entities: readonly TEntity[],
         includes: ReadonlyArray<IncludeExpression<TEntity>>,
+        suppliedValues?: ReadonlyMap<
+            object,
+            Readonly<Record<string, unknown>>
+        >,
     ): Promise<void> {
         if (entities.length === 0 || includes.length === 0) {
             return;
         }
 
+        const roots = captureIncludeRoots(metadata, entities, suppliedValues);
         for (const group of groupIncludes(includes)) {
-            const loaded = await this.strategies.loadDirectInclude(metadata, entities, group.navigationProperty, group.directFilter);
+            const loaded = await this.strategies.loadDirectInclude(metadata, roots, group.navigationProperty, group.directFilter);
             if (loaded.entities.length > 0 && group.children.length > 0) {
                 await this.load(loaded.metadata, loaded.entities, group.children);
             }

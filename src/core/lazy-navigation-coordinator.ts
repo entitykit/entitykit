@@ -4,7 +4,7 @@ import type { ChangeTracker } from '../tracking/change-tracker';
 import type { EntityEntry } from '../tracking/entity-entry';
 import type { Model } from '../model/model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
-import { assertNavigationLoadableEntry } from './navigation-load-guard';
+import { assertNavigationEntryTracked } from './navigation-load-guard';
 import { LazyLoadScheduler } from './lazy-load-scheduler';
 import { NavigationLoadUnavailableError } from '../errors/navigation-errors';
 
@@ -59,7 +59,7 @@ export class LazyNavigationCoordinator implements LazyLoaderHost {
                 navigationProperty,
             );
         }
-        assertNavigationLoadableEntry(this.host.changeTracker, entry);
+        assertNavigationEntryTracked(this.host.changeTracker, entry);
 
         if (entry.isNavigationLoaded(navigationProperty)) {
             this.emitDiagnostic(entry.metadata.entityName, navigationProperty, false, elapsed());
@@ -86,9 +86,14 @@ export class LazyNavigationCoordinator implements LazyLoaderHost {
             async () => this.host.loadNavigation(entry, navigationProperty),
         );
 
-        const value = await load;
-        this.emitDiagnostic(entry.metadata.entityName, navigationProperty, true, elapsed());
-        return value;
+        try {
+            const value = await load;
+            this.emitDiagnostic(entry.metadata.entityName, navigationProperty, true, elapsed());
+            return value;
+        } catch (error) {
+            this.lazyLoadCount -= 1;
+            throw error;
+        }
     }
 
     /**
@@ -128,7 +133,6 @@ export class LazyNavigationCoordinator implements LazyLoaderHost {
 
         return names.filter((name, index, all) => all.indexOf(name) === index).sort();
     }
-
     private emitDiagnostic(entityName: string, navigationProperty: string, queried: boolean, durationMs: number): void {
         for (const handler of this.host.options.diagnostics) {
             handler({

@@ -1,7 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import type { IncludeFilterModel } from './query-model';
-import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader-context';
+import type { IncludeLoaderContext, IncludeLoadRoot, LoadedIncludeResult } from './include-loader-context';
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import { IncludeStrategyBase } from './include-strategy-base';
 import { isCompleteTuple } from './include-key-helpers';
@@ -36,7 +36,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
 
     public async load<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
-        entities: readonly TEntity[],
+        roots: ReadonlyArray<IncludeLoadRoot<TEntity>>,
         relationship: RelationshipMetadata<TEntity>,
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
@@ -52,22 +52,22 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         const foreignKeyTuples = uniquePropertyTuples(
             principalMetadata,
             principalKeyProperties.map(String),
-            entities
-                .map(entity => dependentValuesForPrincipal(
+            roots
+                .map(root => dependentValuesForPrincipal(
                     relationship,
                     metadata,
                     principalMetadata,
-                    entity as Record<string, unknown>,
+                    root.values,
                 ))
                 .filter(isCompleteTuple),
         );
 
         if (foreignKeyTuples.length === 0) {
-            for (const entity of entities) {
+            for (const { entity } of roots) {
                 (entity as Record<string, unknown>)[relationship.navigationProperty] = null;
                 this.markLoaded(entity, relationship.navigationProperty);
             }
-            this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'skipped', entities.length, 0, 0, 0, elapsed());
+            this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'skipped', roots.length, 0, 0, 0, elapsed());
             return { metadata: principalMetadata, entities: [] };
         }
 
@@ -89,13 +89,15 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         );
         const loadedPrincipals: object[] = [];
 
-        for (const entity of entities) {
-            const foreignKeyTuple = foreignKeyProperties.map(propertyName => (entity as Record<string, unknown>)[propertyName]);
+        for (const { entity, values } of roots) {
+            const foreignKeyTuple = foreignKeyProperties.map(
+                propertyName => values[propertyName],
+            );
             const principal = isCompleteTuple(foreignKeyTuple)
                 ? principalsByKey.get(dependentRelationshipProviderKey(
                     relationship,
                     metadata,
-                    entity as Record<string, unknown>,
+                    values,
                 )) ?? null
                 : null;
             (entity as Record<string, unknown>)[relationship.navigationProperty] = principal;
@@ -107,7 +109,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         }
 
         const uniquePrincipals = uniqueEntityInstances(loadedPrincipals);
-        this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'splitQuery', entities.length, foreignKeyTuples.length, principals.length, uniquePrincipals.length, elapsed());
+        this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'splitQuery', roots.length, foreignKeyTuples.length, principals.length, uniquePrincipals.length, elapsed());
         return { metadata: principalMetadata, entities: uniquePrincipals };
     }
 

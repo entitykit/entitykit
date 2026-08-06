@@ -7,7 +7,7 @@ import {
     publicEntityEntry,
 } from '../tracking/public-entity-entry';
 import type { DbContextHost } from './db-context-host';
-import { assertNavigationLoadableEntry } from './navigation-load-guard';
+import { assertNavigationEntryTracked } from './navigation-load-guard';
 
 /** Keeps internal tracker objects behind the public context facades. */
 export class DbContextPublicTracking {
@@ -34,7 +34,7 @@ export class DbContextPublicTracking {
         entry: EntityEntry<TEntity>,
     ): InternalEntityEntry<TEntity> {
         const internal = internalEntityEntry(entry);
-        assertNavigationLoadableEntry(this.host.changeTracker, internal);
+        assertNavigationEntryTracked(this.host.changeTracker, internal);
         return internal;
     }
 }

@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
-import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader-context';
+import type { IncludeLoaderContext, IncludeLoadRoot, LoadedIncludeResult } from './include-loader-context';
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import type { IncludeStitcher } from './include-loader-stitch';
 import { IncludeStrategyBase } from './include-strategy-base';
@@ -46,7 +46,7 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
 
     public async load<TPrincipal extends object>(
         principalMetadata: EntityMetadata<TPrincipal>,
-        principals: readonly TPrincipal[],
+        principals: ReadonlyArray<IncludeLoadRoot<TPrincipal>>,
         dependentMetadata: EntityMetadata,
         relationship: RelationshipMetadata<object, TPrincipal>,
         filter?: IncludeFilterModel,
@@ -60,7 +60,7 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
                     relationship,
                     dependentMetadata,
                     principalMetadata,
-                    principal as Record<string, unknown>,
+                    principal.values,
                 ))
                 .filter(isCompleteTuple),
         );
@@ -71,7 +71,7 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
         }
 
         if (principalKeys.length === 0) {
-            for (const principal of principals) {
+            for (const { entity: principal } of principals) {
                 (principal as Record<string, unknown>)[inverseNavigation] =
                     relationship.cardinality === RelationshipCardinality.OneToOne
                         ? null

@@ -1,7 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import type { IncludeFilterModel } from './query-model';
-import type { IncludeLoaderContext, LoadedIncludeResult, ManyToManyRelationshipInfo } from './include-loader-context';
+import type { IncludeLoaderContext, IncludeLoadRoot, LoadedIncludeResult, ManyToManyRelationshipInfo } from './include-loader-context';
 import { IncludePropertyLoader } from './include-loader-key-batch';
 import { IncludeStitcher } from './include-loader-stitch';
 import { IncludeStrategyReference } from './include-strategy-reference';
@@ -36,23 +36,23 @@ export class IncludeStrategyRunner {
 
     public async loadDirectInclude<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
-        entities: readonly TEntity[],
+        roots: ReadonlyArray<IncludeLoadRoot<TEntity>>,
         navigationProperty: string,
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const manyToOne = metadata.relationships.find(item => item.navigationProperty === navigationProperty);
         if (manyToOne) {
-            return this.reference.load(metadata, entities, manyToOne, filter);
+            return this.reference.load(metadata, roots, manyToOne, filter);
         }
 
         const oneToMany = this.findOneToManyRelationship(metadata, navigationProperty);
         if (oneToMany) {
-            return this.oneToMany.load(metadata, entities, oneToMany.dependentMetadata, oneToMany.relationship, filter);
+            return this.oneToMany.load(metadata, roots, oneToMany.dependentMetadata, oneToMany.relationship, filter);
         }
 
         const manyToMany = this.findManyToManyRelationship(metadata as unknown as EntityMetadata, navigationProperty);
         if (manyToMany) {
-            return this.manyToMany.load(entities, manyToMany, filter);
+            return this.manyToMany.load(roots, manyToMany, filter);
         }
 
         throw new Error(`Include '${navigationProperty}' is not configured as a relationship on entity '${metadata.entityName}'.`);

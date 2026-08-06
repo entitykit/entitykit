@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
-import type { IncludeLoaderContext, LoadedIncludeResult } from './include-loader-context';
+import type { IncludeLoaderContext, IncludeLoadRoot, LoadedIncludeResult } from './include-loader-context';
 import type { IncludePropertyLoader } from './include-loader-key-batch';
 import type { IncludeStitcher } from './include-loader-stitch';
 import { uniquePropertyValues } from './include-property-key-helpers';
@@ -22,7 +22,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
 
     public async load<TPrincipal extends object>(
         principalMetadata: EntityMetadata<TPrincipal>,
-        principals: readonly TPrincipal[],
+        principals: ReadonlyArray<IncludeLoadRoot<TPrincipal>>,
         dependentMetadata: EntityMetadata,
         relationship: RelationshipMetadata<object, TPrincipal>,
         inverseNavigation: string,
@@ -32,27 +32,15 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             this.ctx.dialect.supportsWindowFunctions?.() === true &&
             relationship.foreignKeyProperties.length === 1;
         return supportsWindowBatch
-            ? this.loadWindowedBatch(
-                principalMetadata,
-                principals,
-                dependentMetadata,
-                relationship,
-                inverseNavigation,
-                filter,
-            )
-            : this.loadPerPrincipal(
-                principalMetadata,
-                principals,
-                dependentMetadata,
-                relationship,
-                inverseNavigation,
-                filter,
-            );
+            ? this.loadWindowedBatch(principalMetadata, principals,
+                dependentMetadata, relationship, inverseNavigation, filter)
+            : this.loadPerPrincipal(principalMetadata, principals,
+                dependentMetadata, relationship, inverseNavigation, filter);
     }
 
     private async loadPerPrincipal<TPrincipal extends object>(
         principalMetadata: EntityMetadata<TPrincipal>,
-        principals: readonly TPrincipal[],
+        principals: ReadonlyArray<IncludeLoadRoot<TPrincipal>>,
         dependentMetadata: EntityMetadata,
         relationship: RelationshipMetadata<object, TPrincipal>,
         inverseNavigation: string,
@@ -61,7 +49,12 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         const elapsed = startElapsedTimer();
         const allDependents: object[] = [];
         for (const principal of principals) {
-            const principalKey = principalValuesForDependent(relationship, dependentMetadata, principalMetadata, principal as Record<string, unknown>);
+            const principalKey = principalValuesForDependent(
+                relationship,
+                dependentMetadata,
+                principalMetadata,
+                principal.values,
+            );
             const dependents = await this.propertyLoader.loadByProperties(
                 dependentMetadata,
                 relationship.foreignKeyProperties,
@@ -96,7 +89,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
 
     private async loadWindowedBatch<TPrincipal extends object>(
         principalMetadata: EntityMetadata<TPrincipal>,
-        principals: readonly TPrincipal[],
+        principals: ReadonlyArray<IncludeLoadRoot<TPrincipal>>,
         dependentMetadata: EntityMetadata,
         relationship: RelationshipMetadata<object, TPrincipal>,
         inverseNavigation: string,
@@ -108,7 +101,12 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             dependentMetadata,
             foreignKeyProperty,
             principals
-                .map(principal => principalValuesForDependent(relationship, dependentMetadata, principalMetadata, principal as Record<string, unknown>)[0])
+                .map(principal => principalValuesForDependent(
+                    relationship,
+                    dependentMetadata,
+                    principalMetadata,
+                    principal.values,
+                )[0])
                 .filter(value => value !== undefined && value !== null),
         );
         const statement = buildOneToManyWindowStatement(

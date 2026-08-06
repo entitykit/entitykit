@@ -1,5 +1,5 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState, lazy } from '../src';
+import { DbContext, EntityState, lazy, TenantOwnershipError } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 
 class BoundaryParent {
@@ -22,7 +22,7 @@ class NavigationBoundaryContext extends DbContext {
     public children = this.set(BoundaryChild);
 
     constructor(
-        private readonly tenantId: string,
+        public tenantId: string,
         private readonly lazyLoadBudget?: number,
     ) {
         super();
@@ -94,6 +94,30 @@ async function seed(
             values: ['child-1', tenantId, 1, childName],
         });
     }
+}
+
+async function openOverlapping(): Promise<NavigationBoundaryContext> {
+    const db = NavigationBoundaryContext.create('tenant-1');
+    await db.database.connection.query({
+        text: `create table boundary_parents (
+            id integer not null, tenant_id text not null, name text not null,
+            primary key (tenant_id, id)
+        ); create table boundary_children (
+            id text not null, tenant_id text not null,
+            parent_id integer not null, name text not null,
+            primary key (tenant_id, id)
+        )`,
+        values: [],
+    });
+    await db.database.connection.query({
+        text: `insert into boundary_parents (id, tenant_id, name)
+            values (?, ?, ?), (?, ?, ?)`,
+        values: [
+            1, 'tenant-1', 'tenant one parent',
+            1, 'tenant-2', 'tenant two parent',
+        ],
+    });
+    return db;
 }
 
 describe('navigation loading boundaries', () => {
@@ -188,6 +212,30 @@ describe('navigation loading boundaries', () => {
         );
         parent.id = 1;
         await expect(lazy(parent).children).resolves.toHaveLength(1);
+        await db.dispose();
+    });
+
+    it('rejects navigation loading after the tenant callback changes', async () => {
+        const db = await openOverlapping();
+        const parent = await db.parents.find(1);
+        if (!parent) throw new Error('Expected the tenant-one parent.');
+        db.tenantId = 'tenant-2';
+
+        await expect(db.entry(parent)?.collection(row => row.children).load())
+            .rejects.toThrow(TenantOwnershipError);
+        expect(parent.children).toEqual([]);
+        await db.dispose();
+    });
+
+    it('does not authorize navigation through ignoreTenantScope', async () => {
+        const db = await openOverlapping();
+        const parent = await db.parents.ignoreTenantScope()
+            .where(row => row.tenantId.eq('tenant-2'))
+            .single();
+
+        await expect(db.entry(parent)?.collection(row => row.children).load())
+            .rejects.toThrow(TenantOwnershipError);
+        expect(parent.children).toEqual([]);
         await db.dispose();
     });
 });
