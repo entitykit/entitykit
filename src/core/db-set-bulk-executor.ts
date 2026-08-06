@@ -6,7 +6,7 @@ import { ModificationSqlBuilder } from '../sql/modification-sql-builder';
 import type { SqlStatement } from '../sql/sql-statement';
 import type { DbSetContext } from './db-set-context';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
-import { assertBulkMutationSupported } from './db-set-bulk-validation';
+import { assertBulkMutationSupported, assertBulkUpdateTenantImmutable } from './db-set-bulk-validation';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 
@@ -19,6 +19,7 @@ export class DbSetBulkExecutor<TEntity extends object> {
     ) {}
 
     public async executeUpdate(model: QueryModel<TEntity>, values: EntityUpdateValues<TEntity>, options?: DatabaseOperationOptions): Promise<number> {
+        assertBulkUpdateTenantImmutable(this.metadata, values, this.context.allowsCrossTenantAccess());
         return this.executeBulk(
             'executeUpdate',
             model,

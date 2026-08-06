@@ -1,6 +1,11 @@
 import { requireDefined } from './support/require-defined';
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState, QueryCompilationError } from '../src';
+import {
+    DbContext,
+    EntityState,
+    QueryCompilationError,
+    TenantOwnershipError,
+} from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
@@ -172,6 +177,16 @@ describe('set-based mutation guards', () => {
 
         await expect(tenantDb.tasks.whereIf(false, task => task.status.eq('todo')).executeDelete())
             .rejects.toThrow('requires a where(...) filter');
+    });
+
+    it('rejects a set-based tenant transfer before sending SQL', async () => {
+        TenantContext.connection = new RecordingDatabaseConnection();
+        const tenantDb = TenantContext.create();
+
+        await expect(tenantDb.tasks.where(task => task.id.eq('task-1'))
+            .executeUpdate({ tenantId: 'tenant_2' }))
+            .rejects.toBeInstanceOf(TenantOwnershipError);
+        expect(TenantContext.connection.statements).toEqual([]);
     });
 
     it('rejects clauses that only shape a result set', async () => {
