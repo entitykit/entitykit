@@ -49,7 +49,12 @@ export class ChangeTrackerRegistry {
             return existingByObject as unknown as EntityEntry<TEntity>;
         }
 
-        const identity = this.identityFactory.create(entity, metadata, state);
+        const identity = this.identityFactory.create(
+            entity,
+            metadata,
+            state,
+            originalValues,
+        );
         const { identityKey } = identity;
         this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByIdentity = this.identities.get(identityKey);

@@ -1,9 +1,7 @@
 import type { EntityEntry } from './entity-entry';
 import { cloneEntityValues } from './entity-entry-snapshot';
 import { EntityState } from './entity-state';
-import {
-    captureNavigationSnapshotValues,
-} from './navigation-snapshot';
+import { captureNavigationSnapshotValues } from './navigation-snapshot';
 import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 import type { TrackedIdentityMap } from './tracked-identity-map';
 import {
@@ -11,6 +9,7 @@ import {
     type TrackedAcceptance,
 } from './tracked-acceptance-journal';
 import { assertNoUnresolvedGeneratedIdentities } from './temporary-generated-identity';
+import { trackingIdentityKeyForEntry } from './tracking-identity-key';
 
 export class ChangeTrackerAcceptance {
     constructor(
@@ -29,13 +28,17 @@ export class ChangeTrackerAcceptance {
     public acceptAll(): void {
         const entries = this.entries();
         assertNoUnresolvedGeneratedIdentities(entries);
-        this.identities.prepareAccept(entries);
+        this.identities.prepareAccept(
+            entries,
+            entry => trackingIdentityKeyForEntry(entry,
+                entry.state === EntityState.Added
+                    ? entry.currentValues() : entry.originalValues),
+        );
         for (const entry of entries) {
             if (entry.state === EntityState.Deleted) {
                 this.detach(entry.entity);
                 continue;
             }
-
             entry.acceptChanges();
         }
         this.assertInvariant();
@@ -75,11 +78,9 @@ export class ChangeTrackerAcceptance {
                 if (!persisted) {
                     throw new Error('Persisted identity snapshot is unavailable.');
                 }
-                return entry.metadata.createIdentityKeyFromValues(
-                    entry.metadata.keyProperties.map(propertyName =>
-                        persisted.values[propertyName]),
-                );
+                return trackingIdentityKeyForEntry(entry, persisted.values);
             },
+            true,
         );
         const reservedIdentityKeys = new Set(
             checkpoints.map(checkpoint => checkpoint.identityKey),
@@ -90,7 +91,6 @@ export class ChangeTrackerAcceptance {
                 reservedIdentityKeys.add(identityKey);
             }
         }
-
         const uncommitted = new TrackedAcceptanceJournal(
             checkpoints,
             this.identities,
@@ -107,7 +107,6 @@ export class ChangeTrackerAcceptance {
             uncommitted.rollback();
             throw error;
         }
-
         return new TrackedAcceptanceJournal(
             checkpoints,
             this.identities,

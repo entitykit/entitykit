@@ -32,6 +32,9 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
                 this.changeTracker.tryGetByIdentityValues(
                     entry.metadata,
                     keyValues,
+                    entry.metadata.tenantKeyProperty
+                        ? values[entry.metadata.tenantKeyProperty]
+                        : undefined,
                 ) !== entry
             ) {
                 throw new Error(

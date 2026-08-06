@@ -141,6 +141,7 @@ export class GeneratedValueHydrator {
             this.changeTracker,
             entry,
             keyValues,
+            persistedValues,
         );
     }
 }

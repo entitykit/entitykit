@@ -4,6 +4,7 @@ import type { ChangeTracker } from '../tracking/change-tracker';
 import { EntityState } from '../tracking/entity-state';
 import { applyMaterializedValues } from './complex-value-materializer';
 import { assertSynchronousCallbackResult } from '../synchronous-callback';
+import { readTrackingTenantFromRow } from './tracking-tenant-row';
 
 export class Materializer {
     constructor(private readonly valueReader?: StoreValueReader) {}
@@ -25,7 +26,16 @@ export class Materializer {
             return this.createEntity(metadata, row).entity;
         }
         const keyValues = metadata.getKeyValuesFromRow(row, this.valueReader);
-        const existing = changeTracker.tryGetByIdentityValues(metadata, keyValues);
+        const tenantValue = readTrackingTenantFromRow(
+            metadata,
+            row,
+            this.valueReader,
+        );
+        const existing = changeTracker.tryGetByIdentityValues(
+            metadata,
+            keyValues,
+            tenantValue,
+        );
         if (existing) {
             return existing.entity;
         }

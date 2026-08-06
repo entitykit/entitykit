@@ -68,6 +68,7 @@ export class TrackedIdentityMap {
         entries: ReadonlyArray<EntityEntry<object>>,
         identityKey: (entry: EntityEntry<object>) => string = entry =>
             entry.metadata.createIdentityKey(entry.entity),
+        allowExistingRekey = false,
     ): void {
         const acceptedEntries = new Set(entries);
         const finalKeys: Map<string, EntityEntry<object>> = new Map();
@@ -87,7 +88,11 @@ export class TrackedIdentityMap {
             if (previous === undefined) {
                 throw new Error('Tracked entity has no registered identity.');
             }
-            if (previous !== next && entry.state !== EntityState.Added) {
+            if (
+                previous !== next &&
+                entry.state !== EntityState.Added &&
+                !allowExistingRekey
+            ) {
                 throw new Error(
                     `Primary key changes are not supported for entity '${entry.metadata.entityName}'.`,
                 );

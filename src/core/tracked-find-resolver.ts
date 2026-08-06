@@ -6,6 +6,7 @@ import { EntityState } from '../tracking/entity-state';
 import { snapshotPropertyValuesEqual } from '../tracking/snapshot-value';
 import type { DbSetContext } from './db-set-context';
 import { createTenantScopeResolver } from './tenant-scope-resolver';
+import { TenantIdentityAmbiguityError } from '../errors/tenant-identity-ambiguity-error';
 
 /** Apply ordinary find boundaries before returning an identity-map candidate. */
 export function resolveTrackedFind<TEntity extends object>(
@@ -21,6 +22,7 @@ export function resolveTrackedFind<TEntity extends object>(
     const entry = context.changeTracker.tryGetByIdentityValues(
         metadata,
         keyValues,
+        tenantId,
     );
     if (!entry) {
         return undefined;
@@ -37,7 +39,7 @@ export function resolveTrackedFind<TEntity extends object>(
     if (metadata.tenantKeyProperty && tenantId !== undefined) {
         const property = metadata.getProperty(metadata.tenantKeyProperty);
         if (!snapshotPropertyValuesEqual(
-            readPropertyValue(entry.entity, property),
+            entry.originalValues[metadata.tenantKeyProperty],
             tenantId,
             property.converter,
         )) {
@@ -52,6 +54,16 @@ function resolveTenantId<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
 ): unknown {
     if (!metadata.tenantKeyProperty || context.allowsCrossTenantAccess()) {
+        if (
+            metadata.tenantKeyProperty &&
+            context.allowsCrossTenantAccess() &&
+            !metadata.keyProperties.includes(metadata.tenantKeyProperty)
+        ) {
+            throw new TenantIdentityAmbiguityError(
+                metadata.entityName,
+                metadata.tenantKeyProperty,
+            );
+        }
         return undefined;
     }
     return createTenantScopeResolver(

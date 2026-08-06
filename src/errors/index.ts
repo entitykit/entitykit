@@ -10,4 +10,5 @@ export { ContextConcurrentOperationError, ContextDisposedError, ContextNotInitia
 export { TenantScopeUnavailableError } from './tenant-scope-unavailable-error';
 export { TenantOwnershipError } from './tenant-ownership-error';
 export type { TenantOwnershipFailure } from './tenant-ownership-error';
+export { TenantIdentityAmbiguityError } from './tenant-identity-ambiguity-error';
 export { ForeignEntityEntryError, NavigationLoadUnavailableError } from './navigation-errors';

@@ -2,6 +2,7 @@ import type { PropertyMetadata } from '../model/property-metadata';
 import { toProviderValue } from '../model/value-converter/store-value';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
+import { trackingIdentityKeyForEntry } from './tracking-identity-key';
 
 export interface TemporaryGeneratedProperty {
     readonly propertyName: string;
@@ -74,10 +75,7 @@ export function assertTemporaryIdentityRegistration(
     if (!temporary) return;
     const expectedKey = entry.state === EntityState.Added
         ? temporary.identityKey
-        : entry.metadata.createIdentityKeyFromValues(
-            entry.metadata.keyProperties.map(propertyName =>
-                entry.originalValues[propertyName]),
-        );
+        : trackingIdentityKeyForEntry(entry);
     if (registeredKey !== expectedKey) {
         throw new Error(
             'Temporary identity invariant failed for tracked ' +

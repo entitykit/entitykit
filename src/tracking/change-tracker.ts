@@ -9,6 +9,7 @@ import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 import { SaveMutationGuard } from './save-mutation-guard';
 import type { TrackedAcceptance } from './tracked-acceptance-journal';
 import { ChangeTrackerRegistry } from './change-tracker-registry';
+import { createTrackingIdentityKey } from './tracking-identity-key';
 
 export class ChangeTracker {
     private readonly saveGuard = new SaveMutationGuard();
@@ -72,14 +73,17 @@ export class ChangeTracker {
         return this.tryGetByIdentityValues(metadata, [keyValue]);
     }
 
-    /** Look up a tracked entry by its key values, in declaration order. */
     public tryGetByIdentityValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         keyValues: readonly unknown[],
+        tenantValue?: unknown,
     ): EntityEntry<TEntity> | undefined {
-        return this.registry.identities.get(metadata.createIdentityKeyFromValues(keyValues)) as unknown as EntityEntry<TEntity> | undefined;
+        const identityKey = createTrackingIdentityKey(
+            metadata, keyValues, tenantValue,
+        );
+        return this.registry.identities.get(identityKey) as unknown as
+            EntityEntry<TEntity> | undefined;
     }
-
     public entries(): ReadonlyArray<EntityEntry<object>> {
         return this.registry.entries();
     }
