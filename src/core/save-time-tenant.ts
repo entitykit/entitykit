@@ -6,6 +6,10 @@ import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { PropertyMetadata } from '../model/property-metadata';
 import {
+    readPropertyValue,
+    writePropertyValue,
+} from '../model/property-value-access';
+import {
     snapshotPropertyValueCopies,
     snapshotPropertyValuesEqual,
 } from '../tracking/snapshot-value';
@@ -14,7 +18,8 @@ interface TenantWriteScope {
     readonly entityName: string;
     readonly tenantProperty: string;
     readonly property: PropertyMetadata;
-    readonly values: Record<string, unknown>;
+    readonly readValue: () => unknown;
+    readonly writeValue: (value: unknown) => void;
     readonly isAdded: boolean;
     readonly tenantId: unknown;
     readonly allowsCrossTenantAccess: boolean;
@@ -42,7 +47,10 @@ export function applyTenantWrite(
         entityName: entry.metadata.entityName,
         tenantProperty,
         property,
-        values: snapshot.values,
+        readValue: () => snapshot.values[tenantProperty],
+        writeValue: value => {
+            snapshot.values[tenantProperty] = value;
+        },
         isAdded: snapshot.state === EntityState.Added,
         tenantId,
         allowsCrossTenantAccess,
@@ -55,7 +63,7 @@ export function applyTenantWrite(
             );
         },
         mirrorMutation: value => {
-            liveValues[tenantProperty] = value;
+            writePropertyValue(entry.entity, property, value);
         },
     });
 }
@@ -70,29 +78,24 @@ export function applyTenantOnAdd<TEntity extends object>(
     if (!tenantProperty || allowsCrossTenantAccess) {
         return () => undefined;
     }
-    const values = entity as Record<string, unknown>;
-    const hadTenantProperty = Object.prototype.hasOwnProperty.call(
-        values,
-        tenantProperty,
-    );
-    const previousTenantId = values[tenantProperty];
+    const property = metadata.getProperty(tenantProperty);
+    const previousTenantId = readPropertyValue(entity, property);
     let rollback = (): void => undefined;
 
     applyTenantWriteScope({
         entityName: metadata.entityName,
         tenantProperty,
-        property: metadata.getProperty(tenantProperty),
-        values,
+        property,
+        readValue: () => readPropertyValue(entity, property),
+        writeValue: value => {
+            writePropertyValue(entity, property, value);
+        },
         isAdded: true,
         tenantId: currentTenantId(),
         allowsCrossTenantAccess,
         recordMutation: () => {
             rollback = () => {
-                if (hadTenantProperty) {
-                    values[tenantProperty] = previousTenantId;
-                } else {
-                    Reflect.deleteProperty(values, tenantProperty);
-                }
+                writePropertyValue(entity, property, previousTenantId);
             };
         },
     });
@@ -104,7 +107,8 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
         entityName,
         tenantProperty,
         property,
-        values,
+        readValue,
+        writeValue,
         isAdded,
         tenantId,
         allowsCrossTenantAccess,
@@ -118,21 +122,21 @@ function applyTenantWriteScope(scope: TenantWriteScope): void {
         throw new TenantScopeUnavailableError(entityName);
     }
 
-    if (isAdded && isEmptyTenantValue(values[tenantProperty])) {
+    if (isAdded && isEmptyTenantValue(readValue())) {
         const copies = snapshotPropertyValueCopies(
             tenantId,
             property.converter,
             `${entityName}.${tenantProperty}`,
         );
         recordMutation(copies.liveValue);
-        values[tenantProperty] = mirrorMutation
+        writeValue(mirrorMutation
             ? copies.persistedValue
-            : copies.liveValue;
+            : copies.liveValue);
         mirrorMutation?.(copies.liveValue);
     }
 
     if (!snapshotPropertyValuesEqual(
-        values[tenantProperty],
+        readValue(),
         tenantId,
         property.converter,
         `${entityName}.${tenantProperty}`,
