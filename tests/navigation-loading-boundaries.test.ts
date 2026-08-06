@@ -21,14 +21,19 @@ class NavigationBoundaryContext extends DbContext {
     public parents = this.set(BoundaryParent);
     public children = this.set(BoundaryChild);
 
-    constructor(private readonly tenantId: string) {
+    constructor(
+        private readonly tenantId: string,
+        private readonly lazyLoadBudget?: number,
+    ) {
         super();
     }
 
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useProvider(sqliteProviderServices, ':memory:')
             .useTenantScope(() => this.tenantId)
-            .useLazyLoading();
+            .useLazyLoading(this.lazyLoadBudget === undefined
+                ? {}
+                : { maxPerContext: this.lazyLoadBudget });
     }
 
     protected override model(model: ModelBuilder): void {
@@ -60,8 +65,11 @@ class NavigationBoundaryContext extends DbContext {
     }
 }
 
-async function open(tenantId: string): Promise<NavigationBoundaryContext> {
-    const db = NavigationBoundaryContext.create(tenantId);
+async function open(
+    tenantId: string,
+    lazyLoadBudget?: number,
+): Promise<NavigationBoundaryContext> {
+    const db = NavigationBoundaryContext.create(tenantId, lazyLoadBudget);
     await db.database.connection.query({
         text: db.database.createScript(),
         values: [],
@@ -131,7 +139,7 @@ describe('navigation loading boundaries', () => {
     });
 
     it('does not load through a generated-key placeholder', async () => {
-        const db = await open('tenant-1');
+        const db = await open('tenant-1', 1);
         await db.database.connection.query({
             text: 'insert into boundary_parents (id, tenant_id, name) values (?, ?, ?)',
             values: [0, 'tenant-1', 'persisted zero'],
@@ -155,6 +163,9 @@ describe('navigation loading boundaries', () => {
         expect(fresh.id).toBe(0);
         expect(fresh.children).toEqual([]);
         expect(db.changeTracker.entries()).toEqual([entry]);
+        const persisted = await db.parents.find(0);
+        if (!persisted) throw new Error('Expected the zero parent to load.');
+        await expect(lazy(persisted).children).resolves.toHaveLength(1);
         const stored = await db.database.connection.query<{
             parent_id: number;
         }>({
@@ -162,6 +173,21 @@ describe('navigation loading boundaries', () => {
             values: ['zero-child'],
         });
         expect(stored.rows).toEqual([{ parent_id: 0 }]);
+        await db.dispose();
+    });
+
+    it('rejects a changed key without consuming the lazy-load budget', async () => {
+        const db = await open('tenant-1', 1);
+        await seed(db, 'tenant-1', 'parent', 'child');
+        const parent = await db.parents.find(1);
+        if (!parent) throw new Error('Expected the parent to load.');
+        parent.id = 2;
+
+        await expect(lazy(parent).children).rejects.toThrow(
+            'Primary key changes are not supported',
+        );
+        parent.id = 1;
+        await expect(lazy(parent).children).resolves.toHaveLength(1);
         await db.dispose();
     });
 });

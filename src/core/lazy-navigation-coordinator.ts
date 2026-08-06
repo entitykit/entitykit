@@ -4,6 +4,7 @@ import type { ChangeTracker } from '../tracking/change-tracker';
 import type { EntityEntry } from '../tracking/entity-entry';
 import type { Model } from '../model/model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import { assertNavigationLoadableEntry } from './navigation-load-guard';
 
 /**
  * What the coordinator needs from its `DbContext`: the change tracker that owns
@@ -55,6 +56,7 @@ export class LazyNavigationCoordinator implements LazyLoaderHost {
         `'${entity.constructor.name || 'entity'}' is not tracked — it may have been detached, or the tracker cleared.`,
             );
         }
+        assertNavigationLoadableEntry(this.host.changeTracker, entry);
 
         if (entry.isNavigationLoaded(navigationProperty)) {
             this.emitDiagnostic(entry.metadata.entityName, navigationProperty, false, elapsed());

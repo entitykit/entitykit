@@ -38,6 +38,7 @@ class LoadingContext extends DbContext {
         model.entity(User, entity => {
             entity.toTable('users');
             entity.hasKey(user => user.id);
+            entity.hasAlternateKey(user => user.email);
             entity.property(user => user.id).hasColumnName('id').hasColumnType('text').isRequired();
             entity.property(user => user.email).hasColumnName('email').hasColumnType('text').isRequired();
         });
@@ -59,6 +60,34 @@ function createDb(connection: RecordingDatabaseConnection): LoadingContext {
 }
 
 describe('explicit loading', () => {
+    it('rejects a primary-key mutation before querying', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const user = new User({ id: 'usr_1', email: 'a@example.com' });
+        const collection = db.users.attach(user)
+            .collection(item => item.posts);
+        user.id = 'usr_2';
+
+        await expect(collection.load()).rejects.toThrow(
+            'Primary key changes are not supported for entity \'User\' (property \'id\').',
+        );
+        expect(connection.statements).toEqual([]);
+    });
+
+    it('rejects an alternate-key mutation before querying', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = createDb(connection);
+        const user = new User({ id: 'usr_1', email: 'a@example.com' });
+        const collection = db.users.attach(user)
+            .collection(item => item.posts);
+        user.email = 'changed@example.com';
+
+        await expect(collection.load()).rejects.toThrow(
+            'Alternate key changes are not supported for entity \'User\' (property \'email\').',
+        );
+        expect(connection.statements).toEqual([]);
+    });
+
     it('rejects an entry owned by another context before querying', async () => {
         const firstConnection = new RecordingDatabaseConnection();
         const secondConnection = new RecordingDatabaseConnection();

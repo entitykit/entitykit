@@ -1,6 +1,7 @@
 import type { ChangeTracker } from '../tracking/change-tracker';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { EntityState } from '../tracking/entity-state';
+import { assertNoKeyModifications } from './save-plan/immutable-key-change';
 
 /** Require a navigation target to be the context's current persisted entry. */
 export function assertNavigationLoadableEntry<TEntity extends object>(
@@ -17,4 +18,8 @@ export function assertNavigationLoadableEntry<TEntity extends object>(
             'Navigation loading is unavailable for an Added entity because it has no persisted identity.',
         );
     }
+    assertNoKeyModifications(
+        entry as unknown as EntityEntry<object>,
+        entry.modifiedProperties(),
+    );
 }
