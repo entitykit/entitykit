@@ -1,5 +1,5 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, TenantIdentityAmbiguityError } from '../src';
+import { DbContext, EntityState, TenantIdentityAmbiguityError } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { requireDefined } from './support/require-defined';
 
@@ -136,5 +136,23 @@ describe('tenant-aware identity resolution', () => {
 
         expect(db.changeTracker.entries()).toHaveLength(2);
         await db.dispose();
+    });
+
+    it('does not accept a tenant identity mutation into the identity map', () => {
+        const db = TenantIdentityContext.create(true);
+        const row = Object.assign(new TenantIdentityRow(), {
+            id: 'shared', tenantId: 'tenant-1', name: 'one',
+        });
+        const entry = db.rows.attach(row);
+        row.tenantId = 'tenant-2';
+
+        expect(() => {
+            db.changeTracker.acceptAllChanges();
+        }).toThrow(
+            'Primary key changes are not supported',
+        );
+
+        expect(entry.originalValues.tenantId).toBe('tenant-1');
+        expect(entry.state).toBe(EntityState.Unchanged);
     });
 });

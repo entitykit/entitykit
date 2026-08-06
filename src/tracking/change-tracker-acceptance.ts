@@ -30,9 +30,7 @@ export class ChangeTrackerAcceptance {
         assertNoUnresolvedGeneratedIdentities(entries);
         this.identities.prepareAccept(
             entries,
-            entry => trackingIdentityKeyForEntry(entry,
-                entry.state === EntityState.Added
-                    ? entry.currentValues() : entry.originalValues),
+            entry => trackingIdentityKeyForEntry(entry, entry.currentValues()),
         );
         for (const entry of entries) {
             if (entry.state === EntityState.Deleted) {
