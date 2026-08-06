@@ -1,5 +1,5 @@
 import type { EntityConstructor, EntityPropertyKey } from '../types';
-import type { PropertySelector } from './model-property-selector';
+import type { PropertyPathSelector } from './model-property-selector';
 import type { PropertyMetadata } from './property-metadata';
 import type { AuditMetadata, MutableAuditMetadata, MutableSoftDeleteMetadata, SoftDeleteMetadata } from './saas-metadata';
 import type { EntityBuilderProperties } from './entity-builder-properties';
@@ -26,51 +26,45 @@ export class EntityBuilderSaas<TEntity extends object> {
     ) {}
 
     public audit(config: {
-        createdAt?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-        updatedAt?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-        createdBy?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-        updatedBy?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
+        createdAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+        updatedAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+        createdBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+        updatedBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
     }): void {
         const audit: MutableAuditMetadata<TEntity> = {};
 
         if (config.createdAt) {
             audit.createdAtProperty = this.properties.resolvePropertyName(config.createdAt);
-            this.properties.assertNotIgnored(audit.createdAtProperty);
-            this.properties.ensureProperty(audit.createdAtProperty);
+            this.configurePolicyProperty(audit.createdAtProperty);
         }
 
         if (config.updatedAt) {
             audit.updatedAtProperty = this.properties.resolvePropertyName(config.updatedAt);
-            this.properties.assertNotIgnored(audit.updatedAtProperty);
-            this.properties.ensureProperty(audit.updatedAtProperty);
+            this.configurePolicyProperty(audit.updatedAtProperty);
         }
 
         if (config.createdBy) {
             audit.createdByProperty = this.properties.resolvePropertyName(config.createdBy);
-            this.properties.assertNotIgnored(audit.createdByProperty);
-            this.properties.ensureProperty(audit.createdByProperty);
+            this.configurePolicyProperty(audit.createdByProperty);
         }
 
         if (config.updatedBy) {
             audit.updatedByProperty = this.properties.resolvePropertyName(config.updatedBy);
-            this.properties.assertNotIgnored(audit.updatedByProperty);
-            this.properties.ensureProperty(audit.updatedByProperty);
+            this.configurePolicyProperty(audit.updatedByProperty);
         }
 
         this.auditMetadata = audit;
     }
 
-    public softDelete<TProperty>(propertyOrSelector: EntityPropertyKey<TEntity> | PropertySelector<TEntity, TProperty>, deletedValue?: unknown): void {
+    public softDelete<TProperty>(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity, TProperty>, deletedValue?: unknown): void {
         const propertyName = this.properties.resolvePropertyName(propertyOrSelector);
-        this.properties.assertNotIgnored(propertyName);
-        this.properties.ensureProperty(propertyName);
+        this.configurePolicyProperty(propertyName);
         this.softDeleteMetadata = { propertyName, deletedValue };
     }
 
-    public tenantKey<TProperty>(propertyOrSelector: EntityPropertyKey<TEntity> | PropertySelector<TEntity, TProperty>): void {
+    public tenantKey<TProperty>(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity, TProperty>): void {
         const propertyName = this.properties.resolvePropertyName(propertyOrSelector);
-        this.properties.assertNotIgnored(propertyName);
-        this.properties.ensureProperty(propertyName);
+        this.configurePolicyProperty(propertyName);
         this.tenantKeyProperty = propertyName;
     }
 
@@ -134,5 +128,12 @@ export class EntityBuilderSaas<TEntity extends object> {
         }
 
         return this.tenantKeyProperty;
+    }
+
+    private configurePolicyProperty(propertyName: EntityPropertyKey<TEntity>): void {
+        this.properties.assertNotIgnored(propertyName);
+        if (!propertyName.includes('.')) {
+            this.properties.ensureProperty(propertyName);
+        }
     }
 }

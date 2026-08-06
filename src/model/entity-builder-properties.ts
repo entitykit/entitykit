@@ -1,11 +1,8 @@
 import type { EntityConstructor, EntityPropertyKey } from '../types';
 import { PropertyBuilderImplementation } from './property-builder';
 import type { PropertyBuilder } from './property-builder-types';
-import type { PropertySelector } from './model-property-selector';
-import {
-    selectPropertyName,
-    selectPropertyPath,
-} from './model-property-selector';
+import type { PropertyPathSelector, PropertySelector } from './model-property-selector';
+import { selectPropertyPath } from './model-property-selector';
 import type { MutablePropertyMetadata, PropertyMetadata } from './property-metadata';
 import { finalizeProperty } from './property-metadata-finalizer';
 import { ValueGenerated } from './value-generated';
@@ -98,10 +95,13 @@ export class EntityBuilderProperties<TEntity extends object> {
     }
 
     public resolvePropertyName<TProperty>(
-        propertyOrSelector: EntityPropertyKey<TEntity> | PropertySelector<TEntity, TProperty>,
+        propertyOrSelector:
+        | EntityPropertyKey<TEntity>
+        | PropertySelector<TEntity, TProperty>
+        | PropertyPathSelector<TEntity, TProperty>,
     ): EntityPropertyKey<TEntity> {
         if (typeof propertyOrSelector === 'function') {
-            return selectPropertyName(propertyOrSelector);
+            return selectPropertyPath(propertyOrSelector).join('.') as EntityPropertyKey<TEntity>;
         }
 
         return propertyOrSelector;

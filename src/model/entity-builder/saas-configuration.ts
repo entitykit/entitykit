@@ -1,14 +1,14 @@
 import type { EntityPropertyKey } from '../../types';
-import type { PropertySelector } from '../model-property-selector';
+import type { PropertyPathSelector } from '../model-property-selector';
 import { EntityKeyConfiguration } from './key-configuration';
 
 export class EntitySaasConfiguration<TEntity extends object>
     extends EntityKeyConfiguration<TEntity> {
     public audit(config: {
-        createdAt?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-        updatedAt?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-        createdBy?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-        updatedBy?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
+        createdAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+        updatedAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+        createdBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+        updatedBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
     }): this {
         this.saasFacet.audit(config);
         return this;
@@ -19,13 +19,13 @@ export class EntitySaasConfiguration<TEntity extends object>
         deletedValue?: unknown
     ): this;
     public softDelete<TProperty>(
-        selector: PropertySelector<TEntity, TProperty>,
+        selector: PropertyPathSelector<TEntity, TProperty>,
         deletedValue?: unknown
     ): this;
     public softDelete<TProperty>(
         propertyOrSelector:
       | EntityPropertyKey<TEntity>
-      | PropertySelector<TEntity, TProperty>,
+      | PropertyPathSelector<TEntity, TProperty>,
         deletedValue?: unknown,
     ): this {
         this.saasFacet.softDelete(propertyOrSelector, deletedValue);
@@ -34,12 +34,12 @@ export class EntitySaasConfiguration<TEntity extends object>
 
     public tenantKey(propertyName: EntityPropertyKey<TEntity>): this;
     public tenantKey<TProperty>(
-        selector: PropertySelector<TEntity, TProperty>
+        selector: PropertyPathSelector<TEntity, TProperty>
     ): this;
     public tenantKey<TProperty>(
         propertyOrSelector:
       | EntityPropertyKey<TEntity>
-      | PropertySelector<TEntity, TProperty>,
+      | PropertyPathSelector<TEntity, TProperty>,
     ): this {
         this.saasFacet.tenantKey(propertyOrSelector);
         return this;

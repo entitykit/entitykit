@@ -10,6 +10,7 @@ import type {
 import type { IndexBuilder, AlternateKeyBuilder } from './index-builder-types';
 import type {
     PropertyListSelector,
+    PropertyPathSelector,
     PropertySelector,
 } from './model-property-selector';
 import type { PropertyBuilder } from './property-builder-types';
@@ -74,17 +75,17 @@ export interface EntityBuilder<TEntity extends object> {
         deletedValue?: unknown,
     ): this;
     /** Perform the soft delete operation. */ softDelete<TProperty>(
-        selector: PropertySelector<TEntity, TProperty>,
+        selector: PropertyPathSelector<TEntity, TProperty>,
         deletedValue?: unknown,
     ): this;
     /** Perform the tenant key operation. */ tenantKey(propertyName: EntityPropertyKey<TEntity>): this;
-    /** Perform the tenant key operation. */ tenantKey<TProperty>(selector: PropertySelector<TEntity, TProperty>): this;
+    /** Perform the tenant key operation. */ tenantKey<TProperty>(selector: PropertyPathSelector<TEntity, TProperty>): this;
 }
 
 /** Identifies conventional audit properties for an entity type. */
 export interface EntityAuditConfiguration<TEntity extends object> {
-    /** The created at. */ readonly createdAt?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-    /** The updated at. */ readonly updatedAt?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-    /** The created by. */ readonly createdBy?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
-    /** The updated by. */ readonly updatedBy?: EntityPropertyKey<TEntity> | PropertySelector<TEntity>;
+    /** The created at. */ readonly createdAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+    /** The updated at. */ readonly updatedAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+    /** The created by. */ readonly createdBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+    /** The updated by. */ readonly updatedBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
 }
