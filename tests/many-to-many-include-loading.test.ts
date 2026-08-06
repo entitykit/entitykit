@@ -78,6 +78,19 @@ class IncludeManyToManyContext extends DbContext {
 }
 
 describe('many-to-many include loading', () => {
+    it('rejects a mutated root key before a many-to-many query', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = IncludeManyToManyContext.createWith(connection);
+        const post = new Post({ id: 'post_1', title: 'Hello' });
+        const tags = db.posts.attach(post).collection(item => item.tags);
+        post.id = 'post_2';
+
+        await expect(tags.load()).rejects.toThrow(
+            'Primary key changes are not supported for entity \'Post\' (property \'id\').',
+        );
+        expect(connection.statements).toEqual([]);
+    });
+
     it('loads direct many-to-many collections with split queries', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({ rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1 });
