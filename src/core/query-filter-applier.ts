@@ -1,9 +1,12 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { FieldExpression } from '../query/expression/field-expression';
 import type { PredicateExpression } from '../query/expression/predicate-expression';
 import { cloneQueryModel, type JoinExpression, type QueryModel } from '../query/query-model';
 import type { RelationExistenceExpression } from '../query/relation-expression';
-import { createTenantScopeResolver } from './tenant-scope-resolver';
+import {
+    createQueryFilterOperation,
+    type QueryFilterOperation,
+} from './query-filter-operation';
+import { implicitQueryFilters } from './implicit-query-filter';
 
 /**
  * Applies a context's implicit query filters — soft-delete and tenant scope —
@@ -21,27 +24,51 @@ export class QueryFilterApplier {
         private readonly allowsCrossTenantAccess: () => boolean,
     ) {}
 
+    public beginOperation(): QueryFilterOperation {
+        const allowsCrossTenantAccess = this.allowsCrossTenantAccess();
+        const operation = createQueryFilterOperation(
+            this.currentTenantId,
+            allowsCrossTenantAccess,
+            (resolveTenantId, metadata, query) => this.applyWithResolver(
+                metadata,
+                query,
+                resolveTenantId,
+                allowsCrossTenantAccess,
+            ),
+        );
+        return operation;
+    }
+
     public apply<TEntity extends object>(metadata: EntityMetadata<TEntity>, query: QueryModel<TEntity>): QueryModel<TEntity> {
+        return this.beginOperation().apply(metadata, query);
+    }
+
+    private applyWithResolver<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        query: QueryModel<TEntity>,
+        resolveTenantId: (entityName: string) => unknown,
+        allowsCrossTenantAccess: boolean,
+    ): QueryModel<TEntity> {
         if (query.ignoreQueryFilters && query.ignoreTenantScope) {
             return query;
         }
 
         const opts = { softDelete: !query.ignoreQueryFilters, tenant: !query.ignoreTenantScope };
-        const resolveTenantId = createTenantScopeResolver(this.currentTenantId);
         let predicate = combinePredicates(
             query.predicate,
-            this.filtersFor(metadata, undefined, opts, resolveTenantId),
+            implicitQueryFilters(metadata, undefined, opts, resolveTenantId, allowsCrossTenantAccess),
         );
         let joins: JoinExpression[] | undefined;
         let relationExistence: RelationExistenceExpression[] | undefined;
 
         for (let index = 0; index < query.joins.length; index += 1) {
             const join = query.joins[index];
-            const filters = this.filtersFor(
+            const filters = implicitQueryFilters(
                 join.metadata,
                 join.alias,
                 opts,
                 resolveTenantId,
+                allowsCrossTenantAccess,
             );
             if (filters.length === 0) {
                 continue;
@@ -69,11 +96,12 @@ export class QueryFilterApplier {
 
         for (let index = 0; index < query.relationExistence.length; index += 1) {
             const expression = query.relationExistence[index];
-            const filters = this.filtersFor(
+            const filters = implicitQueryFilters(
                 expression.relation.targetMetadata,
                 undefined,
                 opts,
                 resolveTenantId,
+                allowsCrossTenantAccess,
             );
             if (filters.length === 0) {
                 continue;
@@ -97,38 +125,6 @@ export class QueryFilterApplier {
         });
     }
 
-    /**
-   * The filters a query carries implicitly.
-   *
-   * Soft delete and tenant scope are opted out of separately, because they are
-   * not the same kind of thing: hiding deleted rows is a convenience, and
-   * confining a query to one tenant is an isolation boundary. See
-   * `Queryable.ignoreQueryFilters`.
-   */
-    private filtersFor<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        sourceAlias: string | undefined,
-        applies: { softDelete: boolean; tenant: boolean },
-        resolveTenantId: (entityName: string) => unknown,
-    ): PredicateExpression[] {
-        const filters: PredicateExpression[] = [];
-
-        if (metadata.softDelete && applies.softDelete) {
-            filters.push(new FieldExpression<TEntity, unknown>(metadata.softDelete.propertyName, sourceAlias).isNull());
-        }
-
-        if (
-            metadata.tenantKeyProperty &&
-            applies.tenant &&
-            !this.allowsCrossTenantAccess()
-        ) {
-            filters.push(new FieldExpression<TEntity, unknown>(metadata.tenantKeyProperty, sourceAlias).eq(
-                resolveTenantId(metadata.entityName),
-            ));
-        }
-
-        return filters;
-    }
 }
 
 function combinePredicates(

@@ -6,6 +6,7 @@ import type { EntityEntry } from '../tracking/entity-entry';
 import type { ChangeTracker } from '../tracking/change-tracker';
 import type { DbContextOptions } from './context-options/db-context-option-types';
 import type { DbSetContext } from './db-set-context';
+import type { QueryFilterOperation } from './query-filter-operation';
 
 interface DbSetContextAdapterOptions {
     readonly options: () => DbContextOptions;
@@ -17,6 +18,7 @@ interface DbSetContextAdapterOptions {
         metadata: EntityMetadata<TEntity>,
         query: QueryModel<TEntity>,
     ) => QueryModel<TEntity>;
+    readonly beginQueryOperation: () => QueryFilterOperation;
     readonly currentTenantIdForWrites: () => unknown;
     readonly allowsCrossTenantAccess: () => boolean;
     readonly loadNavigation: <TEntity extends object>(
@@ -46,6 +48,7 @@ export function createDbSetContextAdapter(options: DbSetContextAdapterOptions): 
         changeTracker: options.changeTracker,
         assertCanQuery: options.assertCanQuery,
         applyQueryFilters: options.applyQueryFilters,
+        beginQueryOperation: options.beginQueryOperation,
         currentTenantIdForWrites: options.currentTenantIdForWrites,
         allowsCrossTenantAccess: options.allowsCrossTenantAccess,
         loadNavigation: options.loadNavigation,

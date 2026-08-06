@@ -6,7 +6,6 @@ import { Queryable } from '../query/queryable';
 import { UnsafeRawSqlQueryable } from '../query/unsafe-raw-sql-queryable';
 import { EntityState } from '../tracking/entity-state';
 import { buildRawSql } from '../sql/raw-sql';
-import type { EntityEntry as InternalEntityEntry } from '../tracking/entity-entry';
 import type { EntityEntry } from '../tracking/entity-entry-types';
 import { publicEntityEntry } from '../tracking/public-entity-entry';
 import { DbSetQueryBuilder } from './db-set-query-builder';
@@ -15,8 +14,10 @@ import { DbSetBulkWriter } from './db-set-bulk-writer';
 import { DbSetQueryExecutor } from './db-set-query-executor';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { resolveTrackedFind } from './tracked-find-resolver';
-import { applyTenantOnAdd } from './save-time-tenant';
 import { createDbSetRawQueryHost } from './db-set-raw-query-host';
+import type { QueryFilterOperation } from './query-filter-operation';
+import type { QueryModel } from '../query/query-model';
+import { addDbSetEntity } from './db-set-add';
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
 export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
@@ -47,39 +48,33 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
 
     protected findTracked(
         keyValues: readonly unknown[],
+        operation: QueryFilterOperation,
         options?: DatabaseOperationOptions,
     ): TEntity | null | undefined {
         return resolveTrackedFind(
             this.context,
             this.metadata,
             keyValues,
+            operation,
             options,
         );
     }
 
+    protected beginQueryOperation(): QueryFilterOperation {
+        return this.context.beginQueryOperation();
+    }
+
+    protected async executeFindQuery(
+        model: QueryModel<TEntity>,
+        operation: QueryFilterOperation,
+        options?: DatabaseOperationOptions,
+    ): Promise<TEntity[]> {
+        return this.queryExecutor.executeToArrayInOperation(model, operation, options);
+    }
+
     /** Start tracking a new entity as `Added`. */
     public add(entity: TEntity): EntityEntry<TEntity> {
-        this.metadata.assertWritable('add()');
-        const allowsCrossTenantAccess = this.context.allowsCrossTenantAccess();
-        const rollbackTenant = applyTenantOnAdd(
-            this.metadata,
-            entity,
-            () => this.context.currentTenantIdForWrites(),
-            allowsCrossTenantAccess,
-        );
-
-        let entry: InternalEntityEntry<TEntity>;
-        try {
-            entry = this.context.changeTracker.track(
-                entity,
-                this.metadata,
-                EntityState.Added,
-            );
-        } catch (error) {
-            rollbackTenant();
-            throw error;
-        }
-        return publicEntityEntry(entry, this.context);
+        return addDbSetEntity(this.context, this.metadata, entity);
     }
 
     /** Start tracking an existing entity as `Unchanged`. */

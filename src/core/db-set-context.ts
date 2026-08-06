@@ -7,6 +7,7 @@ import type { DatabaseConnection } from '../storage/database-connection';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import type { ChangeTracker } from '../tracking/change-tracker';
 import type { EntityNavigationLoader } from '../tracking/navigation-entry';
+import type { QueryFilterOperation } from './query-filter-operation';
 
 /** The context capabilities used by `DbSet` and its focused collaborators. */
 export interface DbSetContext extends EntityNavigationLoader {
@@ -23,6 +24,8 @@ export interface DbSetContext extends EntityNavigationLoader {
         metadata: EntityMetadata<TEntity>,
         query: QueryModel<TEntity>
     ): QueryModel<TEntity>;
+
+    beginQueryOperation(): QueryFilterOperation;
 
     currentTenantIdForWrites(): unknown;
     allowsCrossTenantAccess(): boolean;

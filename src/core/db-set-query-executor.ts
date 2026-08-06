@@ -13,6 +13,7 @@ import { DbSetRelationResolver } from './db-set-relation-resolver';
 import { DbSetResultMapper } from './db-set-result-mapper';
 import type { DatabaseOperationOptions, QueryStreamOptions } from '../storage/database-connection';
 import { DbSetStreamRunner } from './db-set-stream-runner';
+import type { QueryFilterOperation } from './query-filter-operation';
 
 /** Internal adapter between public query builders and DbSet execution services. */
 export class DbSetQueryExecutor<TEntity extends object>
@@ -51,6 +52,14 @@ implements QueryExecutor<TEntity> {
 
     public async executeToArray(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<TEntity[]> {
         return this.runner.executeToArray(model, options);
+    }
+
+    public async executeToArrayInOperation(
+        model: QueryModel<TEntity>,
+        operation: QueryFilterOperation,
+        options?: DatabaseOperationOptions,
+    ): Promise<TEntity[]> {
+        return this.runner.executeToArray(model, options, operation);
     }
 
     public executeStream(

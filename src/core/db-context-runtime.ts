@@ -19,6 +19,7 @@ import type { StoreValueReader } from '../storage/store-value-reader';
 import { createDbSetContextAdapter } from './db-set-context-adapter';
 import { readSynchronousScopeValue } from './synchronous-scope-value';
 import { readSynchronousDate } from '../synchronous-value';
+import type { QueryFilterOperation } from './query-filter-operation';
 export abstract class DbContextRuntime {
     private readonly state = new DbContextState();
     private disposePromise?: Promise<void>;
@@ -31,10 +32,8 @@ export abstract class DbContextRuntime {
         entry: EntityEntry<TEntity>,
         navigationProperty: string
     ): Promise<unknown>;
-    public abstract applyQueryFilters<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        query: QueryModel<TEntity>
-    ): QueryModel<TEntity>;
+    public abstract applyQueryFilters<TEntity extends object>(metadata: EntityMetadata<TEntity>, query: QueryModel<TEntity>): QueryModel<TEntity>;
+    public abstract beginQueryOperation(): QueryFilterOperation;
     public get options(): DbContextOptions {
         this.ensureInitialized();
         return this.state.options;
@@ -84,6 +83,7 @@ export abstract class DbContextRuntime {
                     void this.state.database;
                 },
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),
+                beginQueryOperation: () => this.beginQueryOperation(),
                 currentTenantIdForWrites: () => this.currentTenantIdForWrites(),
                 allowsCrossTenantAccess: () =>
                     this.options.tenantScope?.allowCrossTenantAccess === true,

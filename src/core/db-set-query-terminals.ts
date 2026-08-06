@@ -3,6 +3,8 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import { FieldExpression } from '../query/expression/field-expression';
 import type { Queryable } from '../query/queryable';
 import type { DatabaseOperationOptions, QueryStreamOptions } from '../storage/database-connection';
+import type { QueryModel } from '../query/query-model';
+import type { QueryFilterOperation } from './query-filter-operation';
 
 /** Primary-key lookup and terminal reads shared by every `DbSet`. */
 export abstract class DbSetQueryTerminals<TEntity extends object> {
@@ -15,8 +17,17 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
     /** Resolve a primary-key tuple from this context's identity map. */
     protected abstract findTracked(
         keyValues: readonly unknown[],
+        operation: QueryFilterOperation,
         options?: DatabaseOperationOptions,
     ): TEntity | null | undefined;
+
+    protected abstract beginQueryOperation(): QueryFilterOperation;
+
+    protected abstract executeFindQuery(
+        model: QueryModel<TEntity>,
+        operation: QueryFilterOperation,
+        options?: DatabaseOperationOptions,
+    ): Promise<TEntity[]>;
 
     /**
    * Find an entity by its configured primary key.
@@ -39,12 +50,13 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
                 `find() on '${this.metadata.entityName}' expects ${String(keyProperties.length)} key ${keyProperties.length === 1 ? 'value' : 'values'} (${keyProperties.join(', ')}), but received ${String(keyValues.length)}.`,
             );
         }
-        const tracked = this.findTracked(keyValues, options);
+        const operation = this.beginQueryOperation();
+        const tracked = this.findTracked(keyValues, operation, options);
         if (tracked !== undefined) {
             return tracked;
         }
 
-        return this.query()
+        const model = this.query()
             .where(() =>
                 keyProperties
                     .map((propertyName, index) =>
@@ -54,7 +66,10 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
                     )
                     .reduce((left, right) => left.and(right)),
             )
-            .firstOrNull(options);
+            .take(1)
+            .toQueryModel();
+        const rows = await this.executeFindQuery(model, operation, options);
+        return rows[0] ?? null;
     }
 
     /** Find an entity by primary key or throw `EntityNotFoundError`. */

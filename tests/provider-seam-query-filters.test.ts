@@ -33,9 +33,10 @@ describe('provider seam architecture: query filters', () => {
         // The implicit-filter logic moved to QueryFilterApplier when DbContext was
         // decomposed; the separate-opt-outs invariant lives with it.
         const applier = readSource('src/core/query-filter-applier.ts');
+        const filters = readSource('src/core/implicit-query-filter.ts');
 
-        expect(applier).toContain('if (metadata.softDelete && applies.softDelete)');
-        expect(applier).toContain('applies.tenant');
+        expect(filters).toContain('if (metadata.softDelete && applies.softDelete)');
+        expect(filters).toContain('applies.tenant');
         expect(applier).not.toMatch(/if \(query\.ignoreQueryFilters\) \{\s*\n\s*return query;/);
 
         for (const file of ['src/query/queryable.ts', 'src/query/joined-query.ts', 'src/core/db-set.ts']) {

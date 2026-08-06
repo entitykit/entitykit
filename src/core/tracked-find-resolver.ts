@@ -5,20 +5,21 @@ import { throwIfOperationAborted } from '../storage/operation-cancellation';
 import { EntityState } from '../tracking/entity-state';
 import { snapshotPropertyValuesEqual } from '../tracking/snapshot-value';
 import type { DbSetContext } from './db-set-context';
-import { createTenantScopeResolver } from './tenant-scope-resolver';
 import { TenantIdentityAmbiguityError } from '../errors/tenant-identity-ambiguity-error';
+import type { QueryFilterOperation } from './query-filter-operation';
 
 /** Apply ordinary find boundaries before returning an identity-map candidate. */
 export function resolveTrackedFind<TEntity extends object>(
     context: DbSetContext,
     metadata: EntityMetadata<TEntity>,
     keyValues: readonly unknown[],
+    operation: QueryFilterOperation,
     options?: DatabaseOperationOptions,
 ): TEntity | null | undefined {
     context.assertCanQuery('find()');
     throwIfOperationAborted(options?.signal);
 
-    const tenantId = resolveTenantId(context, metadata);
+    const tenantId = resolveTenantId(metadata, operation);
     const entry = context.changeTracker.tryGetByIdentityValues(
         metadata,
         keyValues,
@@ -50,13 +51,13 @@ export function resolveTrackedFind<TEntity extends object>(
 }
 
 function resolveTenantId<TEntity extends object>(
-    context: DbSetContext,
     metadata: EntityMetadata<TEntity>,
+    operation: QueryFilterOperation,
 ): unknown {
-    if (!metadata.tenantKeyProperty || context.allowsCrossTenantAccess()) {
+    if (!metadata.tenantKeyProperty || operation.allowsCrossTenantAccess) {
         if (
             metadata.tenantKeyProperty &&
-            context.allowsCrossTenantAccess() &&
+            operation.allowsCrossTenantAccess &&
             !metadata.keyProperties.includes(metadata.tenantKeyProperty)
         ) {
             throw new TenantIdentityAmbiguityError(
@@ -66,7 +67,5 @@ function resolveTenantId<TEntity extends object>(
         }
         return undefined;
     }
-    return createTenantScopeResolver(
-        () => context.currentTenantIdForWrites(),
-    )(metadata.entityName);
+    return operation.tenantIdFor(metadata.entityName);
 }

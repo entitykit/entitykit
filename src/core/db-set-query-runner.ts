@@ -3,13 +3,14 @@ import type { DbSetContext } from './db-set-context';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { QueryModel } from '../query/query-model';
 import { Materializer } from '../materialization/materializer';
-import { IncludeLoader } from '../query/include-loader';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { DbSetResultMapper } from './db-set-result-mapper';
 import { DbSetQueryPipeline } from './db-set-query-pipeline';
 import { ChangeTracker } from '../tracking/change-tracker';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { DbSetCountRunner } from './db-set-count-runner';
+import type { QueryFilterOperation } from './query-filter-operation';
+import { loadDbSetIncludes } from './db-set-include-loader';
 /** Runs full-entity, scalar, projection, and aggregate reads for a `DbSet`. */
 export class DbSetQueryRunner<TEntity extends object> {
     private materializerInstance?: Materializer;
@@ -34,8 +35,12 @@ export class DbSetQueryRunner<TEntity extends object> {
         return this.materializerInstance ??= new Materializer(this.context.valueReader);
     }
 
-    public async executeToArray(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<TEntity[]> {
-        const filteredModel = this.context.applyQueryFilters(this.metadata, model);
+    public async executeToArray(
+        model: QueryModel<TEntity>,
+        options?: DatabaseOperationOptions,
+        operation: QueryFilterOperation = this.context.beginQueryOperation(),
+    ): Promise<TEntity[]> {
+        const filteredModel = operation.apply(this.metadata, model);
         const shape = this.diagnostics.queryShape('toArray', filteredModel);
         const statement = this.pipeline.compile('select', filteredModel, shape);
         const tracker = filteredModel.trackingBehavior === 'noTracking'
@@ -56,7 +61,16 @@ export class DbSetQueryRunner<TEntity extends object> {
                     };
                 },
                 async entities =>
-                    this.loadIncludes(entities, filteredModel, tracker, options),
+                    loadDbSetIncludes(
+                        this.context,
+                        this.diagnostics,
+                        this.metadata,
+                        entities,
+                        filteredModel,
+                        tracker,
+                        (metadata, query) => operation.apply(metadata, query),
+                        options,
+                    ),
             );
         } finally {
             if (tracker !== this.context.changeTracker) {
@@ -126,23 +140,4 @@ export class DbSetQueryRunner<TEntity extends object> {
         });
     }
 
-    private async loadIncludes(
-        entities: readonly TEntity[],
-        model: QueryModel<TEntity>,
-        changeTracker: ChangeTracker,
-        options?: DatabaseOperationOptions,
-    ): Promise<void> {
-        return new IncludeLoader(
-            this.context.modelMetadata,
-            this.context.database,
-            changeTracker,
-            (metadata, query) => this.context.applyQueryFilters(metadata, query),
-            this.context.dialect,
-            event => {
-                this.diagnostics.emitIncludeDiagnostic(event);
-            },
-            this.context.valueReader,
-            options,
-        ).load(this.metadata, entities, model.includes);
-    }
 }
