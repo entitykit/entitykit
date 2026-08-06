@@ -5,6 +5,7 @@ import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapsho
 import { readPropertyValue, writePropertyValue } from '../model/property-value-access';
 import { ensurePolicyPropertyPath } from './policy-property-path';
 import { applyTenantWriteScope } from './tenant-write-scope';
+import { assertTrackedTenantBoundary } from './tracked-tenant-boundary';
 
 export function applyTenantWrite(
     snapshot: PersistedEntrySnapshot,
@@ -22,6 +23,14 @@ export function applyTenantWrite(
     }
     const property = entry.metadata.getProperty(tenantProperty);
     const previousLiveValue = readPropertyValue(entry.entity, property);
+    if (snapshot.state !== EntityState.Added) {
+        assertTrackedTenantBoundary(
+            entry,
+            tenantId,
+            allowsCrossTenantAccess,
+            snapshot.values,
+        );
+    }
     applyTenantWriteScope({
         entityName: entry.metadata.entityName,
         tenantProperty,

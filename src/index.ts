@@ -1,5 +1,5 @@
-export { ContextConcurrentOperationError, ContextDisposedError, ContextNotInitializedError, DbValidationError, EntityKitError, ForeignEntityEntryError, ModelValidationError, NavigationLoadUnavailableError, OperationCanceledError, ProviderCapabilityError, QueryCompilationError, EntityNotFoundError, MultipleEntitiesFoundError, DbUpdateError, ForeignKeyConstraintError, NotNullConstraintError, TenantScopeUnavailableError, UniqueConstraintError, isEntityKitError } from './errors';
-export type { DbUpdateErrorOptions, EntityKitErrorCode, EntityKitErrorJson, EntityKitErrorOptions } from './errors';
+export { ContextConcurrentOperationError, ContextDisposedError, ContextNotInitializedError, DbValidationError, EntityKitError, ForeignEntityEntryError, ModelValidationError, NavigationLoadUnavailableError, OperationCanceledError, ProviderCapabilityError, QueryCompilationError, EntityNotFoundError, MultipleEntitiesFoundError, DbUpdateError, ForeignKeyConstraintError, NotNullConstraintError, TenantOwnershipError, TenantScopeUnavailableError, UniqueConstraintError, isEntityKitError } from './errors';
+export type { DbUpdateErrorOptions, EntityKitErrorCode, EntityKitErrorJson, EntityKitErrorOptions, TenantOwnershipFailure } from './errors';
 export type {
     EntityConstructor,
     EntityMaterializationValues,

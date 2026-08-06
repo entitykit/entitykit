@@ -7,6 +7,7 @@ import {
 import { readEntityValues } from '../tracking/entity-entry-snapshot';
 import { fixupReloadedRelationships } from '../tracking/reloaded-relationship-fixup';
 import { DbContextRuntime } from './db-context-runtime';
+import { assertTrackedTenantBoundary } from './tracked-tenant-boundary';
 
 /** Context bridge used by explicit tracked-entry concurrency recovery. */
 export abstract class DbContextConcurrency extends DbContextRuntime {
@@ -48,6 +49,14 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
     private async loadDatabaseValues<TEntity extends object>(
         entry: EntityEntry<TEntity>,
     ): Promise<Record<string, unknown> | null> {
+        const allowsCrossTenantAccess =
+            this.options.tenantScope?.allowCrossTenantAccess === true;
+        assertTrackedTenantBoundary(
+            entry,
+            this.currentTenantId(),
+            allowsCrossTenantAccess,
+            entry.currentValues(),
+        );
         const keyProperties = entry.metadata.keyProperties;
         const keyValues = keyProperties.map(
             propertyName => entry.originalValues[propertyName],
@@ -55,13 +64,24 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
         const entity = await this.set(entry.metadata.ctor)
             .asNoTracking()
             .ignoreQueryFilters()
-            .where(() => keyProperties
-                .map((propertyName, index) =>
+            .where(() => {
+                const properties = [...keyProperties];
+                const values = [...keyValues];
+                const tenantProperty = entry.metadata.tenantKeyProperty;
+                if (
+                    tenantProperty &&
+                    !allowsCrossTenantAccess &&
+                    !properties.includes(tenantProperty)
+                ) {
+                    properties.push(tenantProperty);
+                    values.push(entry.originalValues[tenantProperty]);
+                }
+                return properties.map((propertyName, index) =>
                     new FieldExpression<TEntity, unknown>(
                         propertyName,
-                    ).eq(keyValues[index]),
-                )
-                .reduce((left, right) => left.and(right)))
+                    ).eq(values[index]),
+                ).reduce((left, right) => left.and(right));
+            })
             .singleOrNull();
         return entity
             ? readEntityValues(entry.metadata, entity)

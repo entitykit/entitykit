@@ -52,6 +52,22 @@ export function buildKeyAndConcurrencyWhereFromValues<
             parameters, metadata.entityName,
         ));
     }
+    const tenantProperty = metadata.tenantKeyProperty;
+    if (
+        tenantProperty &&
+        Object.prototype.hasOwnProperty.call(originalValues, tenantProperty) &&
+        !metadata.keyProperties.includes(tenantProperty) &&
+        !metadata.getProperty(tenantProperty).isConcurrencyToken
+    ) {
+        const property = metadata.getProperty(tenantProperty);
+        conditions.push(compareCapturedProperty(
+            dialect,
+            property,
+            originalValues[tenantProperty],
+            parameters,
+            metadata.entityName,
+        ));
+    }
     return conditions.join(' and ');
 }
 

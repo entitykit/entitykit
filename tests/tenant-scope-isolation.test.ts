@@ -3,7 +3,7 @@ import type {
     ModelBuilder,
     UnsafeRawSqlQueryable,
 } from '../src';
-import { DbContext, TenantScopeUnavailableError } from '../src';
+import { DbContext, TenantOwnershipError, TenantScopeUnavailableError } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { requireDefined } from './support/require-defined';
 
@@ -203,7 +203,7 @@ describe('tenant scope isolation', () => {
         expect(databaseValues.get('deletedAt')).toBeInstanceOf(Date);
 
         currentTenant = 't2';
-        await expect(entry.getDatabaseValues()).resolves.toBeNull();
+        await expect(entry.getDatabaseValues()).rejects.toThrow(TenantOwnershipError);
     });
 
     it('keeps tenant scope on a bulk delete', async () => {
