@@ -1,5 +1,5 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, DeleteBehavior, valueConverter } from '../src';
+import { DbContext, DeleteBehavior, lazy, valueConverter } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 
 class StrongId {
@@ -45,7 +45,8 @@ class StrongIdentityContext extends DbContext {
     public comments = this.set(StrongComment);
 
     protected override configure(options: DbContextOptionsBuilder): void {
-        options.useProvider(sqliteProviderServices, ':memory:');
+        options.useProvider(sqliteProviderServices, ':memory:')
+            .useLazyLoading({ maxPerContext: 2 });
     }
 
     protected override model(model: ModelBuilder): void {
@@ -167,6 +168,34 @@ describe('converted class key identity', () => {
         expect(comments[0]?.post?.id.value).toBe('post-1');
         await expect(db.posts.find(new StrongId('post-1')))
             .resolves.toBe(comments[0]?.post);
+        await db.dispose();
+    });
+
+    it('keeps concurrent lazy loads separate for strongly typed keys', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: 'insert into strong_posts (id, title) values (?, ?), (?, ?)',
+            values: ['post-1', 'first', 'post-2', 'second'],
+        });
+        await db.database.connection.query({
+            text: 'insert into strong_comments (id, post_id, body) values (?, ?, ?), (?, ?, ?)',
+            values: [
+                'comment-1', 'post-1', 'first comment',
+                'comment-2', 'post-2', 'second comment',
+            ],
+        });
+        const posts = await db.posts.orderBy(post => post.title).toArray();
+
+        const [first, second] = await Promise.all([
+            lazy(posts[0]).comments,
+            lazy(posts[1]).comments,
+        ]);
+
+        expect(first.map(comment => comment.id)).toEqual(['comment-1']);
+        expect(second.map(comment => comment.id)).toEqual(['comment-2']);
+        expect(posts[0].comments).toBe(first);
+        expect(posts[1].comments).toBe(second);
+        await expect(lazy(posts[0]).tags).rejects.toThrow(/configured maximum/);
         await db.dispose();
     });
 

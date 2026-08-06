@@ -5,6 +5,7 @@ import type { EntityEntry } from '../tracking/entity-entry';
 import type { Model } from '../model/model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { assertNavigationLoadableEntry } from './navigation-load-guard';
+import { LazyLoadScheduler } from './lazy-load-scheduler';
 
 /**
  * What the coordinator needs from its `DbContext`: the change tracker that owns
@@ -30,7 +31,7 @@ export interface LazyNavigationHost {
  * attach it to tracked entities directly.
  */
 export class LazyNavigationCoordinator implements LazyLoaderHost {
-    private readonly pendingLazyLoads: Map<string, Promise<unknown>> = new Map();
+    private readonly pendingLazyLoads = new LazyLoadScheduler();
     private lazyLoadCount = 0;
 
     constructor(
@@ -63,8 +64,7 @@ export class LazyNavigationCoordinator implements LazyLoaderHost {
             return (entity as Record<string, unknown>)[navigationProperty];
         }
 
-        const pendingKey = `${entry.metadata.entityName}:${String(entry.keyValue)}:${navigationProperty}`;
-        const inFlight = this.pendingLazyLoads.get(pendingKey);
+        const inFlight = this.pendingLazyLoads.get(entry, navigationProperty);
         if (inFlight) {
             return inFlight;
         }
@@ -78,9 +78,11 @@ export class LazyNavigationCoordinator implements LazyLoaderHost {
         }
         this.lazyLoadCount += 1;
 
-        const load = this.host.loadNavigation(entry, navigationProperty)
-            .finally(() => this.pendingLazyLoads.delete(pendingKey));
-        this.pendingLazyLoads.set(pendingKey, load);
+        const load = this.pendingLazyLoads.schedule(
+            entry,
+            navigationProperty,
+            async () => this.host.loadNavigation(entry, navigationProperty),
+        );
 
         const value = await load;
         this.emitDiagnostic(entry.metadata.entityName, navigationProperty, true, elapsed());
