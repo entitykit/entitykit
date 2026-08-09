@@ -10,10 +10,10 @@ import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { AppliedPropertyValue } from './applied-generated-value';
 import { snapshotPropertyValueCopies } from '../../tracking/snapshot-value';
 
-export function writeGeneratedRow(
-    entity: object,
-    metadata: EntityMetadata,
-    properties: readonly PropertyMetadata[],
+export function writeGeneratedRow<TEntity extends object>(
+    entity: TEntity,
+    metadata: EntityMetadata<TEntity>,
+    properties: ReadonlyArray<PropertyMetadata<TEntity>>,
     row: Record<string, unknown>,
     mutations: SaveTimeMutationLog,
     valueReader?: StoreValueReader,
@@ -33,13 +33,13 @@ export function writeGeneratedRow(
     return applied;
 }
 
-export function writeGeneratedValue(
-    entity: object,
-    property: PropertyMetadata,
+export function writeGeneratedValue<TEntity extends object>(
+    entity: TEntity,
+    property: PropertyMetadata<TEntity>,
     storeValue: unknown,
     mutations: SaveTimeMutationLog,
     valueReader?: StoreValueReader,
-    metadata?: EntityMetadata,
+    metadata?: EntityMetadata<TEntity>,
     entityName = metadata?.entityName,
 ): unknown {
     const value = readStoreValue(

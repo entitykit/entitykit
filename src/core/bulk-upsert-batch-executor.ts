@@ -13,6 +13,7 @@ import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import type { DbSetContext } from './db-set-context';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { CapturedBulkUpsertRow } from './bulk-upsert-row';
+import type { BulkUpsertGeneratedValues } from './bulk-upsert-generated-values';
 
 interface BulkUpsertBatchExecution<TEntity extends object> {
     readonly context: DbSetContext;
@@ -23,6 +24,7 @@ interface BulkUpsertBatchExecution<TEntity extends object> {
     readonly options: UpsertSqlOptions<TEntity> & DatabaseOperationOptions;
     readonly tenantMatchProperty?: EntityPropertyKey<TEntity>;
     readonly batchSize: number;
+    readonly generatedValues: BulkUpsertGeneratedValues<TEntity>;
 }
 
 export async function executeBulkUpsertBatches<TEntity extends object>(
@@ -98,6 +100,7 @@ async function executeBatch<TEntity extends object>(
                 'upsert-conflict',
             );
         }
+        execution.generatedValues.hydrate(batch[0], result);
     } catch (error) {
         execution.diagnostics.emitQueryPlan(
             'execute', shape, executeElapsed(),

@@ -5,7 +5,12 @@ import { validateRequiredPropertyValues } from './captured-value-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { validateUpsertConflictTarget } from './upsert-conflict-target';
-import { resolveUpsertProperties } from './upsert-property-selection';
+import {
+    assertResolvableUpsertConflict,
+    resolveUpsertProperties,
+    upsertGeneratedProperties,
+    upsertInsertProperties,
+} from './upsert-property-selection';
 import { readEntityValues } from '../tracking/entity-entry-snapshot';
 
 export interface UpsertSqlOptions<TEntity extends object> {
@@ -46,6 +51,7 @@ export function buildBatchUpsertFromValues<TEntity extends object>(
         metadata,
         options,
     );
+    assertResolvableUpsertConflict(metadata, conflictProperties);
     validateUpsertConflictTarget(
         dialect,
         metadata,
@@ -67,13 +73,33 @@ export function buildBatchUpsertFromValues<TEntity extends object>(
         );
     }
 
+    const insertProperties = upsertInsertProperties(metadata);
+    const generatedProperties = upsertGeneratedProperties(metadata);
+    if (generatedProperties.length > 0 && rows.length !== 1) {
+        throw new Error(
+            `Upsert for '${metadata.entityName}' must execute one row at a time to correlate store-generated values.`,
+        );
+    }
+    const returning = generatedProperties.length > 0
+        ? dialect.returningClause?.(generatedProperties.map(
+            property => property.columnName,
+        ))
+        : undefined;
+    if (generatedProperties.length > 0 && !returning) {
+        throw new Error(
+            `The '${dialect.name}' dialect cannot safely upsert store-generated properties on '${metadata.entityName}' because it cannot return their persisted values.`,
+        );
+    }
+
     const parameters = new SqlParameterBag(dialect);
-    const columns = metadata.properties
+    const columns = insertProperties
         .map(property => dialect.quoteIdentifier(property.columnName))
         .join(', ');
     const valueSql = rows.map(valuesByProperty => {
-        validateRequiredPropertyValues(metadata, valuesByProperty);
-        const values = metadata.properties
+        validateRequiredPropertyValues(metadata, valuesByProperty, {
+            forInsert: true,
+        });
+        const values = insertProperties
             .map(property => parameters.add(toBoundPropertyValue(
                 valuesByProperty[property.propertyName],
                 property,
@@ -84,7 +110,7 @@ export function buildBatchUpsertFromValues<TEntity extends object>(
     });
 
     return {
-        text: `insert into ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} (${columns}) values ${valueSql.join(', ')} ${clause}`,
+        text: `insert into ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} (${columns}) values ${valueSql.join(', ')} ${clause}${returning ? ` ${returning}` : ''}`,
         values: parameters.values,
     };
 }

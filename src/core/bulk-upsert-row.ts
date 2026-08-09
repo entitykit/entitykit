@@ -15,7 +15,7 @@ export function captureBulkUpsertRow<TEntity extends object>(
     entity: TEntity,
 ): CapturedBulkUpsertRow<TEntity> {
     const values = readEntityValues(metadata, entity);
-    validateRequiredPropertyValues(metadata, values);
+    validateRequiredPropertyValues(metadata, values, { forInsert: true });
     validateRequiredComplexPropertyValues(
         metadata,
         Object.fromEntries(metadata.complexProperties.map(property => [

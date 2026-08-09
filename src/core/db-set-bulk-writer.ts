@@ -13,6 +13,8 @@ import {
     captureBulkUpsertRow,
     type CapturedBulkUpsertRow,
 } from './bulk-upsert-row';
+import { BulkUpsertGeneratedValues } from './bulk-upsert-generated-values';
+import { upsertInsertProperties } from '../sql/upsert-property-selection';
 
 /**
  * The batched `upsert` write for a `DbSet`.
@@ -67,6 +69,10 @@ export class DbSetBulkWriter<TEntity extends object> {
             ? this.context.currentTenantIdForWrites()
             : undefined;
         const rollbackTenantWrites: Array<() => void> = [];
+        const generatedValues = new BulkUpsertGeneratedValues(
+            this.metadata,
+            this.context.valueReader,
+        );
         try {
             const rows: Array<CapturedBulkUpsertRow<TEntity>> = [];
             for (const entity of entities) {
@@ -88,19 +94,22 @@ export class DbSetBulkWriter<TEntity extends object> {
 
             const sql = this.modificationSql();
             const parametersPerRow = Math.max(
-                this.metadata.properties.length,
+                upsertInsertProperties(this.metadata).length,
                 1,
             );
             const limit = this.context.options.dialect
                 .maxStatementParameters?.();
-            const batchSize = limit === undefined
+            const parameterBatchSize = limit === undefined
                 ? entities.length
                 : Math.max(Math.floor(limit / parametersPerRow), 1);
+            const batchSize = generatedValues.requiresSingleRow
+                ? 1
+                : parameterBatchSize;
 
             // Always enter the connection transaction API. Inside an explicit
             // context transaction this becomes a savepoint, so a caught
             // later-batch failure cannot leave earlier batches committed.
-            return await executeBulkUpsertBatches({
+            const affected = await executeBulkUpsertBatches({
                 context: this.context,
                 metadata: this.metadata,
                 diagnostics: this.diagnostics,
@@ -109,8 +118,12 @@ export class DbSetBulkWriter<TEntity extends object> {
                 options,
                 tenantMatchProperty,
                 batchSize,
+                generatedValues,
             });
+            generatedValues.accept();
+            return affected;
         } catch (error) {
+            generatedValues.restore();
             for (const rollback of [...rollbackTenantWrites].reverse()) {
                 rollback();
             }
