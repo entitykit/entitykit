@@ -30,8 +30,8 @@ export function applyBulkWriteTenant<TEntity extends object>(
     const property = metadata.getProperty(tenantProperty);
     let current = readPropertyValue(entity, property);
     const mutations = new SaveTimeMutationLog();
-    if (current === undefined || current === null || current === '') {
-        try {
+    try {
+        if (current === undefined || current === null || current === '') {
             const context = `${metadata.entityName}.${tenantProperty}`;
             const { liveValue } = snapshotPropertyValueCopies(
                 tenantId,
@@ -54,23 +54,23 @@ export function applyBulkWriteTenant<TEntity extends object>(
                 current,
                 context,
             );
-        } catch (error) {
-            mutations.restore();
-            throw error;
         }
-    }
 
-    if (!snapshotPropertyValuesEqual(
-        current,
-        tenantId,
-        property.converter,
-        `${metadata.entityName}.${tenantProperty}`,
-    )) {
-        throw new DbValidationError(
-            `Entity '${metadata.entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
-        );
-    }
-    return () => {
+        if (!snapshotPropertyValuesEqual(
+            current,
+            tenantId,
+            property.converter,
+            `${metadata.entityName}.${tenantProperty}`,
+        )) {
+            throw new DbValidationError(
+                `Entity '${metadata.entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
+            );
+        }
+        return () => {
+            mutations.restore();
+        };
+    } catch (error) {
         mutations.restore();
-    };
+        throw error;
+    }
 }
