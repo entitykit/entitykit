@@ -180,5 +180,18 @@ const mysqlEnabled = process.env.RUN_MYSQL_TESTS === 'true' &&
             expect(incoming.createdAt).toBeUndefined();
             expect(await db.rows.count()).toBe(0);
         });
+
+        it('rejects natural-key upserts when generated values cannot be returned', async () => {
+            const incoming = row('sku-one', 'one');
+
+            await expect(db.rows.upsert([incoming], naturalKeyOptions))
+                .rejects.toThrow(
+                    'The \'mysql\' dialect cannot safely upsert store-generated properties',
+                );
+
+            expect(incoming.id).toBe(0);
+            expect(incoming.createdAt).toBeUndefined();
+            expect(await db.rows.count()).toBe(0);
+        });
     },
 );
