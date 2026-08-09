@@ -44,8 +44,8 @@ export function applyBulkWriteTenant<TEntity extends object>(
                 property,
                 mutations,
             );
+            const previous = readPropertyValue(entity, property);
             writePropertyValue(entity, property, liveValue);
-            const previous = current;
             current = readPropertyValue(entity, property);
             mutations.recordApplied(
                 entity,
