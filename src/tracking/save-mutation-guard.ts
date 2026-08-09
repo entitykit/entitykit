@@ -60,12 +60,10 @@ export class SaveMutationGuard {
         entity?: object,
         identityKey?: string,
     ): void {
-        if (this.executionDepth > 0) {
-            throw new ContextConcurrentOperationError(
-                operation,
-                `${operation} cannot change tracked structure while saveChanges() SQL is executing. Await the save first.`,
-            );
-        }
+        this.assertNoExecution(
+            operation,
+            'change tracked structure',
+        );
         if (
             entity && this.pendingByEntity.has(entity) ||
             identityKey !== undefined && this.pendingByIdentity.has(identityKey) ||
@@ -74,6 +72,18 @@ export class SaveMutationGuard {
             throw new ContextConcurrentOperationError(
                 operation,
                 `${operation} cannot change an entity accepted inside an open transaction. Complete or roll back the transaction first.`,
+            );
+        }
+    }
+
+    public assertNoExecution(
+        operation: string,
+        action = 'run',
+    ): void {
+        if (this.executionDepth > 0) {
+            throw new ContextConcurrentOperationError(
+                operation,
+                `${operation} cannot ${action} while saveChanges() SQL is executing. Await the save first.`,
             );
         }
     }

@@ -119,10 +119,9 @@ export class ChangeTrackerAcceptance {
 
     private acceptSnapshot(snapshot: PersistedEntrySnapshot): void {
         const entry = snapshot.entry;
-        const pendingState = entry.state;
         if (
             snapshot.state === EntityState.Deleted &&
-            pendingState === EntityState.Deleted
+            entry.state === EntityState.Deleted
         ) {
             this.detach(entry.entity);
             return;
@@ -134,13 +133,8 @@ export class ChangeTrackerAcceptance {
         entry.acceptPersistedValues(
             snapshot.values,
             snapshot.navigations,
-            pendingState !== snapshot.state
-                ? pendingState
-                : EntityState.Unchanged,
+            EntityState.Unchanged,
         );
-        if (pendingState !== snapshot.state) {
-            return;
-        }
         entry.detectChanges();
     }
 }

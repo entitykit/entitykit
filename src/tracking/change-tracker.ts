@@ -3,13 +3,15 @@ import { ChangeTrackerAcceptance } from './change-tracker-acceptance';
 import { formatChangeTracker } from './change-tracker-debug';
 import type { EntityEntry } from './entity-entry';
 import type { EntityState } from './entity-state';
-import { changeTrackerModel } from './change-tracker-model';
-import { detectRelationshipChanges } from './relationship-change-detector';
 import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 import { SaveMutationGuard } from './save-mutation-guard';
 import type { TrackedAcceptance } from './tracked-acceptance-journal';
 import { ChangeTrackerRegistry } from './change-tracker-registry';
 import { createTrackingIdentityKey } from './tracking-identity-key';
+import {
+    detectTrackedChanges,
+    detectTrackedRelationships,
+} from './change-tracker-detection';
 
 export class ChangeTracker {
     private readonly saveGuard = new SaveMutationGuard();
@@ -98,18 +100,13 @@ export class ChangeTracker {
     }
 
     public detectChanges(): void {
-        this.detectSaveRelationships();
-        for (const entry of this.registry.entries()) {
-            entry.detectChanges();
-        }
+        this.saveGuard.assertNoExecution('detectChanges()');
+        detectTrackedChanges(this, this.registry.entries());
     }
 
     /** Apply tracked graph fix-up before one executable value capture. */
     public detectSaveRelationships(): void {
-        const configuredModel = changeTrackerModel(this);
-        if (configuredModel) {
-            detectRelationshipChanges(this, configuredModel);
-        }
+        detectTrackedRelationships(this);
     }
     public acceptAllChanges(): void {
         this.saveGuard.assertMutation('acceptAllChanges()');
@@ -139,7 +136,8 @@ export class ChangeTracker {
     }
 
     public debugView(): string {
-        this.detectChanges();
+        this.saveGuard.assertNoExecution('debugView()');
+        detectTrackedChanges(this, this.registry.entries());
         return formatChangeTracker(this.entries());
     }
 
