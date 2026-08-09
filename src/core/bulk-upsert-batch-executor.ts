@@ -12,13 +12,14 @@ import type { EntityPropertyKey } from '../types';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import type { DbSetContext } from './db-set-context';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
+import type { CapturedBulkUpsertRow } from './bulk-upsert-row';
 
 interface BulkUpsertBatchExecution<TEntity extends object> {
     readonly context: DbSetContext;
     readonly metadata: EntityMetadata<TEntity>;
     readonly diagnostics: DbSetDiagnostics<TEntity>;
     readonly sql: ModificationSqlBuilder;
-    readonly entities: readonly TEntity[];
+    readonly rows: ReadonlyArray<CapturedBulkUpsertRow<TEntity>>;
     readonly options: UpsertSqlOptions<TEntity> & DatabaseOperationOptions;
     readonly tenantMatchProperty?: EntityPropertyKey<TEntity>;
     readonly batchSize: number;
@@ -31,10 +32,10 @@ export async function executeBulkUpsertBatches<TEntity extends object>(
         let affected = 0;
         for (
             let start = 0;
-            start < execution.entities.length;
+            start < execution.rows.length;
             start += execution.batchSize
         ) {
-            const batch = execution.entities.slice(
+            const batch = execution.rows.slice(
                 start,
                 start + execution.batchSize,
             );
@@ -51,7 +52,7 @@ export async function executeBulkUpsertBatches<TEntity extends object>(
 
 async function executeBatch<TEntity extends object>(
     execution: BulkUpsertBatchExecution<TEntity>,
-    batch: readonly TEntity[],
+    batch: ReadonlyArray<CapturedBulkUpsertRow<TEntity>>,
 ): Promise<void> {
     const shape = execution.diagnostics.queryShape(
         'upsert',
@@ -60,9 +61,9 @@ async function executeBatch<TEntity extends object>(
     const compileElapsed = startElapsedTimer();
     let statement: SqlStatement;
     try {
-        statement = execution.sql.buildUpsertBatch(
+        statement = execution.sql.buildUpsertValuesBatch(
             execution.metadata,
-            batch,
+            batch.map(row => row.values),
             execution.options,
             execution.tenantMatchProperty,
         );

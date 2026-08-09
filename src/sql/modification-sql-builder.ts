@@ -56,6 +56,20 @@ export class ModificationSqlBuilder extends ModificationSqlRelationshipBuilder {
         );
     }
 
+    public buildUpsertValuesBatch<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+        options: UpsertSqlOptions<TEntity> = {},
+        tenantMatchProperty?: EntityPropertyKey<TEntity>,
+    ): SqlStatement {
+        return this.upsertBuilder.buildUpsertValuesBatch(
+            metadata,
+            rows,
+            options,
+            tenantMatchProperty,
+        );
+    }
+
     public buildPostgresUpsert<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         entity: TEntity,

@@ -1,6 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import {
     buildBatchUpsert,
+    buildBatchUpsertFromValues,
     type UpsertSqlOptions,
 } from './batch-upsert-sql';
 import {
@@ -42,6 +43,21 @@ export class UpsertSqlBuilder {
             this.dialect,
             metadata,
             entities,
+            options,
+            tenantMatchProperty,
+        );
+    }
+
+    public buildUpsertValuesBatch<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+        options: UpsertSqlOptions<TEntity> = {},
+        tenantMatchProperty?: EntityPropertyKey<TEntity>,
+    ): SqlStatement {
+        return buildBatchUpsertFromValues(
+            this.dialect,
+            metadata,
+            rows,
             options,
             tenantMatchProperty,
         );

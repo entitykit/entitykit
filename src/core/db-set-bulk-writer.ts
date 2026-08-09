@@ -4,8 +4,15 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import { ModificationSqlBuilder, type UpsertSqlOptions } from '../sql/modification-sql-builder';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
-import { applyBulkWriteTenant } from './bulk-write-tenant';
+import {
+    applyBulkWriteTenant,
+    assertBulkWriteTenantValues,
+} from './bulk-write-tenant';
 import { executeBulkUpsertBatches } from './bulk-upsert-batch-executor';
+import {
+    captureBulkUpsertRow,
+    type CapturedBulkUpsertRow,
+} from './bulk-upsert-row';
 
 /**
  * The batched `upsert` write for a `DbSet`.
@@ -61,6 +68,7 @@ export class DbSetBulkWriter<TEntity extends object> {
             : undefined;
         const rollbackTenantWrites: Array<() => void> = [];
         try {
+            const rows: Array<CapturedBulkUpsertRow<TEntity>> = [];
             for (const entity of entities) {
                 rollbackTenantWrites.push(applyBulkWriteTenant(
                     this.metadata,
@@ -68,6 +76,14 @@ export class DbSetBulkWriter<TEntity extends object> {
                     tenantId,
                     allowsCrossTenantAccess,
                 ));
+                const row = captureBulkUpsertRow(this.metadata, entity);
+                assertBulkWriteTenantValues(
+                    this.metadata,
+                    row.values,
+                    tenantId,
+                    allowsCrossTenantAccess,
+                );
+                rows.push(row);
             }
 
             const sql = this.modificationSql();
@@ -89,7 +105,7 @@ export class DbSetBulkWriter<TEntity extends object> {
                 metadata: this.metadata,
                 diagnostics: this.diagnostics,
                 sql,
-                entities,
+                rows,
                 options,
                 tenantMatchProperty,
                 batchSize,

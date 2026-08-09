@@ -1,12 +1,12 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { EntityPropertyKey } from '../types';
-import { validateRequiredProperties } from './modification-sql-helpers';
+import { validateRequiredPropertyValues } from './captured-value-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { validateUpsertConflictTarget } from './upsert-conflict-target';
 import { resolveUpsertProperties } from './upsert-property-selection';
-import { readPropertyValue } from '../model/property-value-access';
+import { readEntityValues } from '../tracking/entity-entry-snapshot';
 
 export interface UpsertSqlOptions<TEntity extends object> {
     /** Columns whose conflict triggers the update. Defaults to the primary key. */
@@ -22,7 +22,23 @@ export function buildBatchUpsert<TEntity extends object>(
     options: UpsertSqlOptions<TEntity> = {},
     tenantMatchProperty?: EntityPropertyKey<TEntity>,
 ): SqlStatement {
-    if (entities.length === 0) {
+    return buildBatchUpsertFromValues(
+        dialect,
+        metadata,
+        entities.map(entity => readEntityValues(metadata, entity)),
+        options,
+        tenantMatchProperty,
+    );
+}
+
+export function buildBatchUpsertFromValues<TEntity extends object>(
+    dialect: SqlDialect,
+    metadata: EntityMetadata<TEntity>,
+    rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+    options: UpsertSqlOptions<TEntity> = {},
+    tenantMatchProperty?: EntityPropertyKey<TEntity>,
+): SqlStatement {
+    if (rows.length === 0) {
         throw new Error('At least one entity is required.');
     }
 
@@ -55,11 +71,11 @@ export function buildBatchUpsert<TEntity extends object>(
     const columns = metadata.properties
         .map(property => dialect.quoteIdentifier(property.columnName))
         .join(', ');
-    const rows = entities.map(entity => {
-        validateRequiredProperties(metadata, entity);
+    const valueSql = rows.map(valuesByProperty => {
+        validateRequiredPropertyValues(metadata, valuesByProperty);
         const values = metadata.properties
             .map(property => parameters.add(toBoundPropertyValue(
-                readPropertyValue(entity, property),
+                valuesByProperty[property.propertyName],
                 property,
                 metadata.entityName,
             )))
@@ -68,7 +84,7 @@ export function buildBatchUpsert<TEntity extends object>(
     });
 
     return {
-        text: `insert into ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} (${columns}) values ${rows.join(', ')} ${clause}`,
+        text: `insert into ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} (${columns}) values ${valueSql.join(', ')} ${clause}`,
         values: parameters.values,
     };
 }

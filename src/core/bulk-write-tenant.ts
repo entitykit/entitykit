@@ -74,3 +74,27 @@ export function applyBulkWriteTenant<TEntity extends object>(
         throw error;
     }
 }
+
+/** Recheck tenant ownership against the exact row values bound to SQL. */
+export function assertBulkWriteTenantValues<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+    tenantId: unknown,
+    allowsCrossTenantAccess: boolean,
+): void {
+    const tenantProperty = metadata.tenantKeyProperty;
+    if (!tenantProperty || allowsCrossTenantAccess) {
+        return;
+    }
+    const property = metadata.getProperty(tenantProperty);
+    if (!snapshotPropertyValuesEqual(
+        values[tenantProperty],
+        tenantId,
+        property.converter,
+        `${metadata.entityName}.${tenantProperty}`,
+    )) {
+        throw new DbValidationError(
+            `Entity '${metadata.entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
+        );
+    }
+}
