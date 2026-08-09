@@ -65,12 +65,16 @@ export class ChangeTrackerRegistry {
         this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByIdentity = this.identities.get(identityKey);
         if (existingByIdentity) {
-            if (state === EntityState.Unchanged) {
-                return existingByIdentity as unknown as EntityEntry<TEntity>;
-            }
             const keyValue = metadata.keyProperties.map(
                 propertyName => capturedValues[propertyName],
             );
+            if (state === EntityState.Unchanged) {
+                throw new Error(
+                    `Another instance of '${metadata.entityName}' with key '${
+                        String(metadata.hasCompositeKey ? keyValue : keyValue[0])
+                    }' is already tracked. The supplied instance was not attached.`,
+                );
+            }
             throw new Error(
                 `An instance of '${metadata.entityName}' with key '${
                     String(metadata.hasCompositeKey ? keyValue : keyValue[0])

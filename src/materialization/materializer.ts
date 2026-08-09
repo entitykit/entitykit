@@ -52,10 +52,9 @@ export class Materializer {
 
         const entity = this.createEntity(metadata, values);
 
-        // Return the tracked entry's entity, not the one just built. If the identity
-        // map missed above but `track` finds a collision, it keeps the instance it
-        // already holds — returning the local one would hand back an untracked
-        // duplicate whose edits `saveChanges()` would silently discard.
+        // Initial tracking is strict. Identity resolution must happen against the
+        // captured provider row above; a collision here means materialization and
+        // registration disagreed about the row and must fail closed.
         const entry = changeTracker.track(
             entity,
             metadata,

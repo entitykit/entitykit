@@ -46,19 +46,34 @@ describe('ChangeTracker identity map', () => {
         expect(db.changeTracker.entries()).toHaveLength(1);
     });
 
-    it('allows tracking the same unchanged instance by identity without refreshing values', () => {
+    it('rejects attaching a different unchanged instance with the same identity', () => {
         const db =  AppDbContext.create();
         const first = new User({ id: 'usr_1', email: 'a@example.com', name: 'A' });
         const second = new User({ id: 'usr_1', email: 'b@example.com', name: 'B' });
 
         const firstEntry = db.users.attach(first);
-        const secondEntry = db.users.attach(second);
 
-        expect(secondEntry).toBe(firstEntry);
-        expect(secondEntry.entity).toBe(first);
+        expect(() => db.users.attach(second)).toThrow(
+            'Another instance of \'User\' with key \'usr_1\' is already tracked. ' +
+            'The supplied instance was not attached.',
+        );
         expect(first).toMatchObject({ email: 'a@example.com', name: 'A' });
         expect(db.entry(second)).toBeUndefined();
-        expect(db.changeTracker.entries()).toHaveLength(1);
+        expect(db.changeTracker.entries()).toEqual([firstEntry]);
+    });
+
+    it('returns the existing entry when the same instance is attached again', () => {
+        const db = AppDbContext.create();
+        const user = new User({
+            id: 'usr_1',
+            email: 'a@example.com',
+            name: 'A',
+        });
+
+        const first = db.users.attach(user);
+
+        expect(db.users.attach(user)).toBe(first);
+        expect(db.changeTracker.entries()).toEqual([first]);
     });
 
     it('can look up entries by metadata and primary key', () => {
