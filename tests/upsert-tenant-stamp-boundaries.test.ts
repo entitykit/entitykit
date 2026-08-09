@@ -14,9 +14,24 @@ class FlatUpsertRow {
     public name = '';
 }
 
+class NormalizingTenantRow {
+    public id = '';
+    public name = '';
+    private storedTenantId?: string;
+
+    public get tenantId(): string | undefined {
+        return this.storedTenantId;
+    }
+
+    public set tenantId(value: string | undefined) {
+        this.storedTenantId = value?.toUpperCase();
+    }
+}
+
 class FlatUpsertContext extends DbContext {
     public static connection: RecordingDatabaseConnection;
     public rows = this.set(FlatUpsertRow);
+    public normalizingRows = this.set(NormalizingTenantRow);
 
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useConnection(FlatUpsertContext.connection)
@@ -26,6 +41,15 @@ class FlatUpsertContext extends DbContext {
     protected override model(model: ModelBuilder): void {
         model.entity(FlatUpsertRow, entity => {
             entity.toTable('flat_upsert_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.tenantId).hasColumnName('tenant_id')
+                .hasColumnType('text').isRequired();
+            entity.property(row => row.name).hasColumnType('text').isRequired();
+            entity.tenantKey(row => row.tenantId);
+        });
+        model.entity(NormalizingTenantRow, entity => {
+            entity.toTable('normalizing_tenant_rows');
             entity.hasKey(row => row.id);
             entity.property(row => row.id).hasColumnType('text').isRequired();
             entity.property(row => row.tenantId).hasColumnName('tenant_id')
@@ -121,6 +145,22 @@ function flatRow(): FlatUpsertRow {
 }
 
 describe('upsert tenant stamp failure boundaries', () => {
+    it('restores a stamp rejected after a tenant setter transforms it', async () => {
+        FlatUpsertContext.connection = new RecordingDatabaseConnection();
+        const db = FlatUpsertContext.create();
+        const row = Object.assign(new NormalizingTenantRow(), {
+            id: 'row-one',
+            name: 'row',
+        });
+
+        await expect(db.normalizingRows.upsert([row])).rejects.toThrow(
+            /tenant key 'tenantId' must match/,
+        );
+
+        expect(row.tenantId).toBeUndefined();
+        expect(FlatUpsertContext.connection.transactionEvents).toEqual([]);
+    });
+
     it('restores a stamp when transaction begin or commit fails', async () => {
         const beginConnection = new RecordingDatabaseConnection();
         beginConnection.failNextTransactionBegin(new Error('begin failed'));
