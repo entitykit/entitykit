@@ -5,8 +5,18 @@ import type {
     ModelBuilder,
     SqlStatement,
 } from '../src';
-import { DbContext, valueConverter } from '../src';
+import {
+    DbContext,
+    OperationCanceledError,
+    UniqueConstraintError,
+    valueConverter,
+} from '../src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
+import {
+    bulkUpsertFixture,
+    Item,
+    openBulkUpsertDb,
+} from './support/bulk-upsert-fixture';
 
 class FlatUpsertRow {
     public id = '';
@@ -225,3 +235,65 @@ describe('upsert tenant stamp failure boundaries', () => {
         expect(NestedUpsertContext.connection.statements).toEqual([]);
     });
 });
+
+describe('upsert tenant stamp SQLite rollback', () => {
+    beforeEach(() => {
+        bulkUpsertFixture.reset();
+    });
+
+    it('restores earlier stamps after later validation', async () => {
+        const db = await openBulkUpsertDb();
+        const first = unstampedItem('a');
+
+        await expect(db.items.upsert([
+            first,
+            unstampedItem('b', { tenantId: 'tenant-two' }),
+        ])).rejects.toThrow(/tenant key 'tenantId' must match/);
+
+        expect(first.tenantId).toBeUndefined();
+        expect(await db.items.count()).toBe(0);
+        await db.dispose();
+    });
+
+    it('restores stamps after compilation and cancellation', async () => {
+        const db = await openBulkUpsertDb();
+        const compileRow = unstampedItem('compile');
+        await expect(db.items.upsert([compileRow], {
+            updateProperties: ['tenantId', 'name'],
+        })).rejects.toThrow('cannot include tenant property');
+        expect(compileRow.tenantId).toBeUndefined();
+
+        const canceledRow = unstampedItem('canceled');
+        const controller = new AbortController();
+        controller.abort('stop');
+        await expect(db.items.upsert([canceledRow], {
+            signal: controller.signal,
+        })).rejects.toBeInstanceOf(OperationCanceledError);
+        expect(canceledRow.tenantId).toBeUndefined();
+        await db.dispose();
+    });
+
+    it('restores every stamp after a provider failure', async () => {
+        const db = await openBulkUpsertDb();
+        const first = unstampedItem('a', { sku: 'duplicate' });
+        const second = unstampedItem('b', { sku: 'duplicate' });
+
+        await expect(db.items.upsert([first, second]))
+            .rejects.toBeInstanceOf(UniqueConstraintError);
+
+        expect(first.tenantId).toBeUndefined();
+        expect(second.tenantId).toBeUndefined();
+        expect(await db.items.count()).toBe(0);
+        await db.dispose();
+    });
+});
+
+function unstampedItem(id: string, overrides: Partial<Item> = {}): Item {
+    return new Item({
+        id,
+        sku: `sku-${id}`,
+        name: `Name ${id}`,
+        quantity: 1,
+        ...overrides,
+    });
+}

@@ -1,7 +1,6 @@
 import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
 import type { EntityMetadata } from '../src/model/entity-metadata';
 import {
-    OperationCanceledError,
     TenantOwnershipError,
     UniqueConstraintError,
 } from '../src';
@@ -91,15 +90,10 @@ describe('bulk upsert', () => {
             // The rule saveChanges() applies. A set-based write must not be the way
             // around an isolation boundary the tracked path enforces.
             const db = await open();
-            const first = unstampedItem('a');
 
-            await expect(db.items.upsert([
-                first,
-                item('b', { tenantId: 't2' }),
-            ]))
+            await expect(db.items.upsert([item('a'), item('b', { tenantId: 't2' })]))
                 .rejects.toThrow(/tenant key 'tenantId' must match the current tenant scope/);
 
-            expect(first.tenantId).toBeUndefined();
             expect(await db.items.count()).toBe(0);
             await db.dispose();
         });
@@ -175,43 +169,12 @@ describe('bulk upsert', () => {
 
         it('never accepts the tenant key as an upsert update property', async () => {
             const db = await open();
-            const incoming = unstampedItem('a');
 
-            await expect(db.items.upsert([incoming], {
+            await expect(db.items.upsert([item('a')], {
                 updateProperties: ['tenantId', 'name'],
             })).rejects.toThrow(
                 'cannot include tenant property \'Item.tenantId\'',
             );
-            expect(incoming.tenantId).toBeUndefined();
-            expect(await db.items.count()).toBe(0);
-            await db.dispose();
-        });
-
-        it('restores stamps after cancellation', async () => {
-            const db = await open();
-            const incoming = unstampedItem('a');
-            const controller = new AbortController();
-            controller.abort('stop');
-
-            await expect(db.items.upsert([incoming], {
-                signal: controller.signal,
-            })).rejects.toBeInstanceOf(OperationCanceledError);
-
-            expect(incoming.tenantId).toBeUndefined();
-            expect(await db.items.count()).toBe(0);
-            await db.dispose();
-        });
-
-        it('restores every stamp after a provider failure', async () => {
-            const db = await open();
-            const first = unstampedItem('a', { sku: 'duplicate' });
-            const second = unstampedItem('b', { sku: 'duplicate' });
-
-            await expect(db.items.upsert([first, second]))
-                .rejects.toBeInstanceOf(UniqueConstraintError);
-
-            expect(first.tenantId).toBeUndefined();
-            expect(second.tenantId).toBeUndefined();
             expect(await db.items.count()).toBe(0);
             await db.dispose();
         });
@@ -379,14 +342,4 @@ function createIndexedCatalogMetadata(): EntityMetadata<Item> {
         entity.hasIndex(row => [row.tenantId, row.sku]).isUnique();
     });
     return model.build().getEntity(Item);
-}
-
-function unstampedItem(id: string, overrides: Partial<Item> = {}): Item {
-    return new Item({
-        id,
-        sku: `sku-${id}`,
-        name: `Name ${id}`,
-        quantity: 1,
-        ...overrides,
-    });
 }
