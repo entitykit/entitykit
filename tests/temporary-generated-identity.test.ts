@@ -4,6 +4,9 @@ import type {
 } from '../src';
 import { DbContext, valueConverter } from '../src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
+import { temporaryGeneratedProperty } from '../src/tracking/temporary-generated-identity';
+import type { EntityEntry } from '../src/tracking/entity-entry';
+import { internalEntityEntry } from './support/public-api-internals';
 
 class NumberItem {
     public id = 0;
@@ -26,6 +29,16 @@ class CompositeItem {
     public name = '';
 }
 
+class UnstableGeneratedItem {
+    public name = '';
+    public idReads = 0;
+
+    public get id(): number {
+        this.idReads++;
+        return this.idReads === 1 ? 0 : 99;
+    }
+}
+
 const stringNumber = valueConverter<string, number>({
     toProvider: value => Number(value),
     fromProvider: value => String(value),
@@ -36,6 +49,7 @@ class TemporaryIdentityContext extends DbContext {
     public bigints = this.set(BigIntItem);
     public converted = this.set(ConvertedItem);
     public composites = this.set(CompositeItem);
+    public unstable = this.set(UnstableGeneratedItem);
 
     constructor(private readonly connection: RecordingDatabaseConnection) {
         super();
@@ -71,6 +85,13 @@ class TemporaryIdentityContext extends DbContext {
             entity.toTable('composite_items');
             entity.hasKey(item => [item.tenantId, item.id]);
             entity.property(item => item.tenantId).hasColumnType('text').isRequired();
+            entity.property(item => item.id).hasColumnType('integer').isRequired()
+                .valueGeneratedOnAdd();
+            entity.property(item => item.name).hasColumnType('text').isRequired();
+        });
+        model.entity(UnstableGeneratedItem, entity => {
+            entity.toTable('unstable_generated_items');
+            entity.hasKey(item => item.id);
             entity.property(item => item.id).hasColumnType('integer').isRequired()
                 .valueGeneratedOnAdd();
             entity.property(item => item.name).hasColumnType('text').isRequired();
@@ -124,6 +145,28 @@ describe('temporary generated identity', () => {
         }));
 
         expect(db.changeTracker.entries()).toHaveLength(2);
+    });
+
+    it('captures temporary generated metadata from the initial snapshot', () => {
+        const db = TemporaryIdentityContext.create(
+            new RecordingDatabaseConnection(),
+        );
+        const item = Object.assign(new UnstableGeneratedItem(), {
+            name: 'pending',
+        });
+
+        const entry = db.unstable.add(item);
+        const temporary = temporaryGeneratedProperty(
+            internalEntityEntry(entry) as unknown as EntityEntry<object>,
+            'id',
+        );
+
+        expect(item.idReads).toBe(1);
+        expect(entry.originalValues.id).toBe(0);
+        expect(temporary).toMatchObject({
+            modelValue: 0,
+            providerValue: 0,
+        });
     });
 
     it('keeps a tracked real zero distinct from a new generated placeholder', () => {
