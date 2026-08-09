@@ -88,6 +88,21 @@ describe('ChangeTracker identity map', () => {
         expect(db.entry(user)).toBe(entry);
     });
 
+    it('detects a registered identity that disagrees with persisted originals', () => {
+        const db = AppDbContext.create();
+        const user = new User({
+            id: 'usr_1',
+            email: 'a@example.com',
+            name: 'A',
+        });
+        const entry = internalEntityEntry(db.users.attach(user));
+        (entry.originalValues as Record<string, unknown>).id = 'corrupt';
+
+        expect(() => db.users.attach(user)).toThrow(
+            'Tracking identity invariant failed for tracked \'User\'.',
+        );
+    });
+
     it('removes the registered identity when a key-mutated entity is detached', () => {
         const db =  AppDbContext.create();
         const original = new User({
