@@ -10,6 +10,7 @@ import {
 } from './tracked-acceptance-journal';
 import { assertNoUnresolvedGeneratedIdentities } from './temporary-generated-identity';
 import { trackingIdentityKeyForEntry } from './tracking-identity-key';
+import { captureManualAcceptanceSnapshot } from './persisted-entry-snapshot';
 
 export class ChangeTrackerAcceptance {
     constructor(
@@ -28,22 +29,16 @@ export class ChangeTrackerAcceptance {
     public acceptAll(): void {
         const entries = this.entries();
         assertNoUnresolvedGeneratedIdentities(entries);
-        this.identities.prepareAccept(
-            entries,
-            entry => trackingIdentityKeyForEntry(entry, entry.currentValues()),
+        const acceptance = this.acceptPersisted(
+            entries.map(captureManualAcceptanceSnapshot),
+            false,
         );
-        for (const entry of entries) {
-            if (entry.state === EntityState.Deleted) {
-                this.detach(entry.entity);
-                continue;
-            }
-            entry.acceptChanges();
-        }
-        this.assertInvariant();
+        acceptance.commit();
     }
 
     public acceptPersisted(
         snapshots: readonly PersistedEntrySnapshot[],
+        allowExistingRekey = true,
     ): TrackedAcceptance {
         const tracked = snapshots.filter(snapshot =>
             this.isTracked(snapshot.entry));
@@ -78,7 +73,7 @@ export class ChangeTrackerAcceptance {
                 }
                 return trackingIdentityKeyForEntry(entry, persisted.values);
             },
-            true,
+            allowExistingRekey,
         );
         const reservedIdentityKeys = new Set(
             checkpoints.map(checkpoint => checkpoint.identityKey),

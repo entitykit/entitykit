@@ -21,6 +21,25 @@ export function capturePersistedEntrySnapshot(
 ): PersistedEntrySnapshot {
     const values = entry.currentValues();
     const state = entry.setStateFromCapturedValues(values);
+    return capturePersistedEntrySnapshotFromValues(entry, state, values);
+}
+
+/** Capture manual acceptance without mutating entry state during preparation. */
+export function captureManualAcceptanceSnapshot(
+    entry: EntityEntry<object>,
+): PersistedEntrySnapshot {
+    return capturePersistedEntrySnapshotFromValues(
+        entry,
+        entry.state,
+        entry.currentValues(),
+    );
+}
+
+function capturePersistedEntrySnapshotFromValues(
+    entry: EntityEntry<object>,
+    state: EntityState,
+    values: Record<string, unknown>,
+): PersistedEntrySnapshot {
     return {
         entry,
         state,
