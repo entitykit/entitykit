@@ -1,7 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { PredicateNode } from '../query/expression/predicate-node';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
-import { PredicateSqlCompiler } from './predicate-sql-compiler';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import {
@@ -12,11 +11,12 @@ import {
 import { buildCapturedEntityUpdate } from './captured-update-sql';
 import { isGeneratedOnUpdate } from '../model/value-generated';
 import { readPropertyValue } from '../model/property-value-access';
-import {
-    mappedUpdateValues,
-    type MappedUpdateValue,
-} from './mapped-update-values';
+import type { MappedUpdateValue } from './mapped-update-values';
 import type { EntityUpdateValues } from '../types';
+import {
+    buildSetWhereUpdate,
+    resolveMappedUpdateValues,
+} from './set-where-update-sql';
 
 export interface PostgresUpdateSqlOptions<TEntity extends object> {
     readonly values: EntityUpdateValues<TEntity>;
@@ -42,20 +42,14 @@ export class UpdateSqlBuilder {
         options: PostgresUpdateSqlOptions<TEntity>,
     ): SqlStatement {
         requirePostgres(this.dialect, 'Postgres update statements require the postgres SQL dialect.');
-        const candidate: unknown = options;
-        if (
-            candidate === null ||
-            typeof candidate !== 'object' ||
-            !('values' in candidate) ||
-            candidate.values === undefined
-        ) {
-            throw new Error(
-                'Postgres update statements must set at least one property.',
-            );
-        }
-        return this.buildSetWhereUpdate(
+        return buildSetWhereUpdate(
+            this.dialect,
             metadata,
-            mappedUpdateValues(metadata, options.values),
+            resolveMappedUpdateValues(
+                metadata,
+                options,
+                'Postgres update statements',
+            ),
             options.predicate,
             'Postgres update statements',
         );
@@ -71,18 +65,10 @@ export class UpdateSqlBuilder {
         metadata: EntityMetadata<TEntity>,
         options: BulkUpdateSqlOptions<TEntity>,
     ): SqlStatement {
-        const candidate: unknown = options;
-        if (
-            candidate === null ||
-            typeof candidate !== 'object' ||
-            !('values' in candidate) ||
-            candidate.values === undefined
-        ) {
-            throw new Error('executeUpdate() must set at least one property.');
-        }
-        return this.buildSetWhereUpdate(
+        return buildSetWhereUpdate(
+            this.dialect,
             metadata,
-            mappedUpdateValues(metadata, options.values),
+            resolveMappedUpdateValues(metadata, options, 'executeUpdate()'),
             options.predicate,
             'executeUpdate()',
         );
@@ -92,46 +78,13 @@ export class UpdateSqlBuilder {
         metadata: EntityMetadata<TEntity>,
         options: ResolvedBulkUpdateSqlOptions,
     ): SqlStatement {
-        return this.buildSetWhereUpdate(
+        return buildSetWhereUpdate(
+            this.dialect,
             metadata,
             options.assignments,
             options.predicate,
             'executeUpdate()',
         );
-    }
-
-    private buildSetWhereUpdate<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        entries: readonly MappedUpdateValue[],
-        predicate: PredicateNode | undefined,
-        label: string,
-    ): SqlStatement {
-        if (entries.length === 0) {
-            throw new Error(`${label} must set at least one property.`);
-        }
-        if (predicate === undefined) {
-            throw new Error(`${label} require a where predicate.`);
-        }
-
-        const parameters = new SqlParameterBag(this.dialect);
-        const assignments = entries.map(({ property, value }) => {
-            if (property.isPrimaryKey) {
-                throw new Error(`${label} cannot update primary key property '${metadata.entityName}.${property.propertyName}'.`);
-            }
-
-            return `${this.dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toBoundPropertyValue(value, property, metadata.entityName))}`;
-        });
-        const where = new PredicateSqlCompiler(
-            metadata,
-            parameters,
-            undefined,
-            this.dialect,
-        ).compile(predicate);
-
-        return {
-            text: `update ${this.dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} set ${assignments.join(', ')} where ${where}`,
-            values: parameters.values,
-        };
     }
 
     public buildUpdate<TEntity extends object>(
