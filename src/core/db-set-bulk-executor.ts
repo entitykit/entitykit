@@ -9,6 +9,7 @@ import type { DbSetDiagnostics } from './db-set-diagnostics';
 import { assertBulkMutationSupported, assertBulkUpdateTenantImmutable } from './db-set-bulk-validation';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import { mappedUpdateValues } from '../sql/mapped-update-values';
 
 export class DbSetBulkExecutor<TEntity extends object> {
     private modificationSqlBuilder?: ModificationSqlBuilder;
@@ -19,7 +20,6 @@ export class DbSetBulkExecutor<TEntity extends object> {
     ) {}
 
     public async executeUpdate(model: QueryModel<TEntity>, values: EntityUpdateValues<TEntity>, options?: DatabaseOperationOptions): Promise<number> {
-        assertBulkUpdateTenantImmutable(this.metadata, values, this.context.allowsCrossTenantAccess());
         return this.executeBulk(
             'executeUpdate',
             model,
@@ -30,9 +30,15 @@ export class DbSetBulkExecutor<TEntity extends object> {
                         'executeUpdate() lost its required predicate while applying query filters.',
                     );
                 }
-                return this.modificationSql().buildBulkUpdate(
+                const assignments = mappedUpdateValues(metadata, values);
+                assertBulkUpdateTenantImmutable(
                     metadata,
-                    { values, predicate: predicate.node },
+                    assignments,
+                    this.context.allowsCrossTenantAccess(),
+                );
+                return this.modificationSql().buildResolvedBulkUpdate(
+                    metadata,
+                    { assignments, predicate: predicate.node },
                 );
             },
             options,

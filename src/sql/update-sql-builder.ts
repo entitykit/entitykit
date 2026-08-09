@@ -12,7 +12,10 @@ import {
 import { buildCapturedEntityUpdate } from './captured-update-sql';
 import { isGeneratedOnUpdate } from '../model/value-generated';
 import { readPropertyValue } from '../model/property-value-access';
-import { mappedUpdateValues } from './mapped-update-values';
+import {
+    mappedUpdateValues,
+    type MappedUpdateValue,
+} from './mapped-update-values';
 import type { EntityUpdateValues } from '../types';
 
 export interface PostgresUpdateSqlOptions<TEntity extends object> {
@@ -25,6 +28,11 @@ export interface BulkUpdateSqlOptions<TEntity extends object> {
     readonly predicate: PredicateNode;
 }
 
+export interface ResolvedBulkUpdateSqlOptions {
+    readonly assignments: readonly MappedUpdateValue[];
+    readonly predicate: PredicateNode;
+}
+
 /** Builds entity and predicate-driven UPDATE statements. */
 export class UpdateSqlBuilder {
     constructor(private readonly dialect: SqlDialect = postgresDialect) {}
@@ -34,7 +42,23 @@ export class UpdateSqlBuilder {
         options: PostgresUpdateSqlOptions<TEntity>,
     ): SqlStatement {
         requirePostgres(this.dialect, 'Postgres update statements require the postgres SQL dialect.');
-        return this.buildSetWhereUpdate(metadata, options, 'Postgres update statements');
+        const candidate: unknown = options;
+        if (
+            candidate === null ||
+            typeof candidate !== 'object' ||
+            !('values' in candidate) ||
+            candidate.values === undefined
+        ) {
+            throw new Error(
+                'Postgres update statements must set at least one property.',
+            );
+        }
+        return this.buildSetWhereUpdate(
+            metadata,
+            mappedUpdateValues(metadata, options.values),
+            options.predicate,
+            'Postgres update statements',
+        );
     }
 
     /**
@@ -47,14 +71,6 @@ export class UpdateSqlBuilder {
         metadata: EntityMetadata<TEntity>,
         options: BulkUpdateSqlOptions<TEntity>,
     ): SqlStatement {
-        return this.buildSetWhereUpdate(metadata, options, 'executeUpdate()');
-    }
-
-    private buildSetWhereUpdate<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        options: BulkUpdateSqlOptions<TEntity>,
-        label: string,
-    ): SqlStatement {
         const candidate: unknown = options;
         if (
             candidate === null ||
@@ -62,13 +78,38 @@ export class UpdateSqlBuilder {
             !('values' in candidate) ||
             candidate.values === undefined
         ) {
-            throw new Error(`${label} must set at least one property.`);
+            throw new Error('executeUpdate() must set at least one property.');
         }
-        const entries = mappedUpdateValues(metadata, options.values);
+        return this.buildSetWhereUpdate(
+            metadata,
+            mappedUpdateValues(metadata, options.values),
+            options.predicate,
+            'executeUpdate()',
+        );
+    }
+
+    public buildResolvedBulkUpdate<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        options: ResolvedBulkUpdateSqlOptions,
+    ): SqlStatement {
+        return this.buildSetWhereUpdate(
+            metadata,
+            options.assignments,
+            options.predicate,
+            'executeUpdate()',
+        );
+    }
+
+    private buildSetWhereUpdate<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        entries: readonly MappedUpdateValue[],
+        predicate: PredicateNode | undefined,
+        label: string,
+    ): SqlStatement {
         if (entries.length === 0) {
             throw new Error(`${label} must set at least one property.`);
         }
-        if (!('predicate' in candidate) || candidate.predicate === undefined) {
+        if (predicate === undefined) {
             throw new Error(`${label} require a where predicate.`);
         }
 
@@ -80,7 +121,12 @@ export class UpdateSqlBuilder {
 
             return `${this.dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toBoundPropertyValue(value, property, metadata.entityName))}`;
         });
-        const where = new PredicateSqlCompiler(metadata, parameters, undefined, this.dialect).compile(options.predicate);
+        const where = new PredicateSqlCompiler(
+            metadata,
+            parameters,
+            undefined,
+            this.dialect,
+        ).compile(predicate);
 
         return {
             text: `update ${this.dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} set ${assignments.join(', ')} where ${where}`,

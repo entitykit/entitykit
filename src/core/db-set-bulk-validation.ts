@@ -2,6 +2,7 @@ import type { QueryModel } from '../query/query-model';
 import { QueryCompilationError } from '../errors/query-errors';
 import type { EntityMetadata } from '../model/entity-metadata';
 import { TenantOwnershipError } from '../errors/tenant-ownership-error';
+import type { MappedUpdateValue } from '../sql/mapped-update-values';
 
 export function assertBulkMutationSupported<TEntity extends object>(
     model: QueryModel<TEntity>,
@@ -40,14 +41,15 @@ export function assertBulkMutationSupported<TEntity extends object>(
 /** Tenant-scoped set updates may never transfer rows to another tenant. */
 export function assertBulkUpdateTenantImmutable<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
-    values: Readonly<Record<string, unknown>>,
+    assignments: readonly MappedUpdateValue[],
     allowsCrossTenantAccess: boolean,
 ): void {
     const tenantProperty = metadata.tenantKeyProperty;
     if (
         tenantProperty &&
         !allowsCrossTenantAccess &&
-        Object.prototype.hasOwnProperty.call(values, tenantProperty)
+        assignments.some(assignment =>
+            assignment.property.propertyName === tenantProperty)
     ) {
         throw new TenantOwnershipError(
             metadata.entityName,

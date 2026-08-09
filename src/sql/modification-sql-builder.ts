@@ -2,7 +2,11 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { SqlStatement } from './sql-statement';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import { UpsertSqlBuilder } from './upsert-sql-builder';
-import type { PostgresUpdateSqlOptions, BulkUpdateSqlOptions } from './update-sql-builder';
+import type {
+    PostgresUpdateSqlOptions,
+    BulkUpdateSqlOptions,
+    ResolvedBulkUpdateSqlOptions,
+} from './update-sql-builder';
 import type { PostgresDeleteSqlOptions, BulkDeleteSqlOptions } from './delete-sql-builder';
 import type { PostgresUpsertSqlOptions, UpsertSqlOptions } from './upsert-sql-builder';
 import { ModificationSqlRelationshipBuilder } from './modification-sql-relationship-builder';
@@ -79,6 +83,13 @@ export class ModificationSqlBuilder extends ModificationSqlRelationshipBuilder {
         options: BulkUpdateSqlOptions<TEntity>,
     ): SqlStatement {
         return this.updateBuilder.buildBulkUpdate(metadata, options);
+    }
+
+    public buildResolvedBulkUpdate<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        options: ResolvedBulkUpdateSqlOptions,
+    ): SqlStatement {
+        return this.updateBuilder.buildResolvedBulkUpdate(metadata, options);
     }
 
     public buildBulkDelete<TEntity extends object>(
