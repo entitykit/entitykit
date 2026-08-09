@@ -6,7 +6,11 @@ import { ModificationSqlBuilder } from '../sql/modification-sql-builder';
 import type { SqlStatement } from '../sql/sql-statement';
 import type { DbSetContext } from './db-set-context';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
-import { assertBulkMutationSupported, assertBulkUpdateTenantImmutable } from './db-set-bulk-validation';
+import {
+    assertBulkMutationSupported,
+    assertBulkUpdateTenantImmutable,
+    requireBulkMutationPredicate,
+} from './db-set-bulk-validation';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { mappedUpdateValues } from '../sql/mapped-update-values';
@@ -24,12 +28,7 @@ export class DbSetBulkExecutor<TEntity extends object> {
             'executeUpdate',
             model,
             (metadata, filteredModel) => {
-                const predicate = filteredModel.predicate;
-                if (!predicate) {
-                    throw new Error(
-                        'executeUpdate() lost its required predicate while applying query filters.',
-                    );
-                }
+                const predicate = requireBulkMutationPredicate(filteredModel, 'executeUpdate()');
                 const assignments = mappedUpdateValues(metadata, values);
                 assertBulkUpdateTenantImmutable(
                     metadata,
@@ -38,7 +37,7 @@ export class DbSetBulkExecutor<TEntity extends object> {
                 );
                 return this.modificationSql().buildResolvedBulkUpdate(
                     metadata,
-                    { assignments, predicate: predicate.node },
+                    { assignments, predicate },
                 );
             },
             options,
@@ -50,15 +49,11 @@ export class DbSetBulkExecutor<TEntity extends object> {
             'executeDelete',
             model,
             (metadata, filteredModel) => {
-                const predicate = filteredModel.predicate;
-                if (!predicate) {
-                    throw new Error(
-                        'executeDelete() lost its required predicate while applying query filters.',
-                    );
-                }
+                const predicate = requireBulkMutationPredicate(
+                    filteredModel, 'executeDelete()');
                 return this.modificationSql().buildBulkDelete(
                     metadata,
-                    { predicate: predicate.node },
+                    { predicate },
                 );
             },
             options,

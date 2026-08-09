@@ -3,6 +3,7 @@ import { QueryCompilationError } from '../errors/query-errors';
 import type { EntityMetadata } from '../model/entity-metadata';
 import { TenantOwnershipError } from '../errors/tenant-ownership-error';
 import type { MappedUpdateValue } from '../sql/mapped-update-values';
+import type { PredicateNode } from '../query/expression/predicate-node';
 
 export function assertBulkMutationSupported<TEntity extends object>(
     model: QueryModel<TEntity>,
@@ -36,6 +37,18 @@ export function assertBulkMutationSupported<TEntity extends object>(
       + 'Use where(...) to select the rows to change.',
         );
     }
+}
+
+export function requireBulkMutationPredicate<TEntity extends object>(
+    model: QueryModel<TEntity>,
+    label: string,
+): PredicateNode {
+    if (!model.predicate) {
+        throw new Error(
+            `${label} lost its required predicate while applying query filters.`,
+        );
+    }
+    return model.predicate.node;
 }
 
 /** Tenant-scoped set updates may never transfer rows to another tenant. */
