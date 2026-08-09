@@ -2,6 +2,10 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { ChangeTracker } from './change-tracker';
 import { changeTrackerModel, configureTrackedEntry } from './change-tracker-model';
 import { EntityEntry } from './entity-entry';
+import {
+    cloneEntityValues,
+    readEntityValues,
+} from './entity-entry-snapshot';
 import { EntityState } from './entity-state';
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
@@ -49,11 +53,13 @@ export class ChangeTrackerRegistry {
             return existingByObject as unknown as EntityEntry<TEntity>;
         }
 
-        const identity = this.identityFactory.create(
-            entity,
+        const capturedValues = originalValues
+            ? cloneEntityValues(metadata, originalValues)
+            : readEntityValues(metadata, entity);
+        const identity = this.identityFactory.createFromValues(
             metadata,
             state,
-            originalValues,
+            capturedValues,
         );
         const { identityKey } = identity;
         this.assertMutation('Tracking an entity', entity, identityKey);
@@ -62,10 +68,17 @@ export class ChangeTrackerRegistry {
             if (state === EntityState.Unchanged) {
                 return existingByIdentity as unknown as EntityEntry<TEntity>;
             }
-            throw new Error(`An instance of '${metadata.entityName}' with key '${String(metadata.getKeyValue(entity))}' is already tracked.`);
+            const keyValue = metadata.keyProperties.map(
+                propertyName => capturedValues[propertyName],
+            );
+            throw new Error(
+                `An instance of '${metadata.entityName}' with key '${
+                    String(metadata.hasCompositeKey ? keyValue : keyValue[0])
+                }' is already tracked.`,
+            );
         }
 
-        const entry = new EntityEntry(entity, metadata, state, originalValues);
+        const entry = new EntityEntry(entity, metadata, state, capturedValues);
         registerTemporaryGeneratedIdentity(
             entry as unknown as EntityEntry<object>,
             identity.temporaryGeneratedIdentity,

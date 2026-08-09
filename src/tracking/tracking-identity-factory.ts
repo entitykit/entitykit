@@ -6,8 +6,7 @@ import {
     type TemporaryGeneratedIdentity,
 } from './temporary-generated-identity';
 import {
-    createTrackingIdentityKey,
-    tenantIdentityValue,
+    trackingIdentityKeyForValues,
 } from './tracking-identity-key';
 
 export interface CapturedTrackingIdentity {
@@ -19,13 +18,14 @@ export interface CapturedTrackingIdentity {
 export class TrackingIdentityFactory {
     private nextTemporaryIdentity = 1;
 
-    public create<TEntity extends object>(
-        entity: TEntity,
+    public createFromValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         state: EntityState,
-        originalValues?: Readonly<Record<string, unknown>>,
+        values: Readonly<Record<string, unknown>>,
     ): CapturedTrackingIdentity {
-        const keyValues = metadata.getKeyValues(entity);
+        const keyValues = metadata.keyProperties.map(
+            propertyName => values[propertyName],
+        );
         const properties = state === EntityState.Added
             ? metadata.keyPropertiesMetadata.flatMap((property, index) =>
                 isGeneratedOnAdd(property.valueGenerated)
@@ -46,11 +46,7 @@ export class TrackingIdentityFactory {
             };
         }
         return {
-            identityKey: createTrackingIdentityKey(
-                metadata,
-                keyValues,
-                tenantIdentityValue(metadata, entity, originalValues),
-            ),
+            identityKey: trackingIdentityKeyForValues(metadata, values),
         };
     }
 }

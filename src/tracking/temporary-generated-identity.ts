@@ -72,13 +72,12 @@ export function assertTemporaryIdentityRegistration(
     registeredKey: string | undefined,
 ): void {
     const temporary = temporaryByEntry.get(entry);
-    if (!temporary) return;
-    const expectedKey = entry.state === EntityState.Added
+    const expectedKey = temporary && entry.state === EntityState.Added
         ? temporary.identityKey
-        : trackingIdentityKeyForEntry(entry);
+        : trackingIdentityKeyForEntry(entry, entry.originalValues);
     if (registeredKey !== expectedKey) {
         throw new Error(
-            'Temporary identity invariant failed for tracked ' +
+            'Tracking identity invariant failed for tracked ' +
             `'${entry.metadata.entityName}'.`,
         );
     }

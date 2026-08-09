@@ -1,6 +1,5 @@
 import { encodeIdentityTuple } from '../model/identity-value';
 import type { EntityMetadata } from '../model/entity-metadata';
-import { readPropertyValue } from '../model/property-value-access';
 import { toProviderValue } from '../model/value-converter/store-value';
 import type { EntityEntry } from './entity-entry';
 
@@ -28,23 +27,18 @@ export function trackingIdentityKeyForEntry(
     entry: EntityEntry<object>,
     values: Readonly<Record<string, unknown>> = entry.originalValues,
 ): string {
-    return createTrackingIdentityKey(
-        entry.metadata,
-        entry.metadata.keyProperties.map(propertyName => values[propertyName]),
-        tenantIdentityValue(entry.metadata, entry.entity, values),
-    );
+    return trackingIdentityKeyForValues(entry.metadata, values);
 }
 
-export function tenantIdentityValue<TEntity extends object>(
+export function trackingIdentityKeyForValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
-    entity: TEntity,
-    values?: Readonly<Record<string, unknown>>,
-): unknown {
-    const tenantProperty = metadata.tenantKeyProperty;
-    if (!tenantProperty) {
-        return undefined;
-    }
-    return values
-        ? values[tenantProperty]
-        : readPropertyValue(entity, metadata.getProperty(tenantProperty));
+    values: Readonly<Record<string, unknown>>,
+): string {
+    return createTrackingIdentityKey(
+        metadata,
+        metadata.keyProperties.map(propertyName => values[propertyName]),
+        metadata.tenantKeyProperty
+            ? values[metadata.tenantKeyProperty]
+            : undefined,
+    );
 }
