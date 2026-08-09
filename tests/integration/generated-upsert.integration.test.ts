@@ -15,6 +15,12 @@ class GeneratedProviderRow {
     public createdAt?: Date;
 }
 
+class MySqlGeneratedDefaultRow {
+    public id = '';
+    public label = '';
+    public createdAt?: Date;
+}
+
 abstract class GeneratedUpsertProviderContext extends DbContext {
     public rows = this.set(GeneratedProviderRow);
 
@@ -37,11 +43,12 @@ abstract class GeneratedUpsertProviderContext extends DbContext {
             const id = entity.property(row => row.id)
                 .hasColumnType('integer').isRequired();
             this.configureIdentity(id);
-            entity.property(row => row.sku).hasColumnType('text').isRequired();
+            entity.property(row => row.sku).hasColumnType('text')
+                .hasMaxLength(255).isRequired();
             entity.property(row => row.label).hasColumnType('text').isRequired();
             entity.property(row => row.createdAt).hasColumnName('created_at')
                 .hasColumnType('timestamp').isRequired()
-                .hasDefaultSql('current_timestamp').valueGeneratedOnAdd();
+                .hasDefaultSql('current_timestamp(3)').valueGeneratedOnAdd();
             entity.hasIndex(row => row.sku).isUnique();
         });
     }
@@ -65,6 +72,8 @@ class PostgresGeneratedUpsertContext extends GeneratedUpsertProviderContext {
 }
 
 class MySqlGeneratedUpsertContext extends GeneratedUpsertProviderContext {
+    public defaults = this.set(MySqlGeneratedDefaultRow);
+
     protected override configureProvider(
         options: DbContextOptionsBuilder,
     ): void {
@@ -80,6 +89,21 @@ class MySqlGeneratedUpsertContext extends GeneratedUpsertProviderContext {
         property: PropertyBuilder<number>,
     ): void {
         property.useAutoIncrement();
+    }
+
+    protected override model(model: ModelBuilder): void {
+        super.model(model);
+        model.entity(MySqlGeneratedDefaultRow, entity => {
+            entity.toTable('mysql_generated_default_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text')
+                .isRequired();
+            entity.property(row => row.label).hasColumnType('text')
+                .isRequired();
+            entity.property(row => row.createdAt).hasColumnName('created_at')
+                .hasColumnType('timestamp').isRequired()
+                .hasDefaultSql('current_timestamp(3)').valueGeneratedOnAdd();
+        });
     }
 }
 
@@ -152,6 +176,10 @@ const mysqlEnabled = process.env.RUN_MYSQL_TESTS === 'true' &&
         beforeEach(async () => {
             db = MySqlGeneratedUpsertContext.create();
             await db.database.connection.query({
+                text: 'drop table if exists mysql_generated_default_rows',
+                values: [],
+            });
+            await db.database.connection.query({
                 text: 'drop table if exists generated_upsert_provider_rows',
                 values: [],
             });
@@ -162,6 +190,10 @@ const mysqlEnabled = process.env.RUN_MYSQL_TESTS === 'true' &&
         });
 
         afterEach(async () => {
+            await db.database.connection.query({
+                text: 'drop table if exists mysql_generated_default_rows',
+                values: [],
+            });
             await db.database.connection.query({
                 text: 'drop table if exists generated_upsert_provider_rows',
                 values: [],
@@ -181,17 +213,19 @@ const mysqlEnabled = process.env.RUN_MYSQL_TESTS === 'true' &&
             expect(await db.rows.count()).toBe(0);
         });
 
-        it('rejects natural-key upserts when generated values cannot be returned', async () => {
-            const incoming = row('sku-one', 'one');
+        it('rejects stable-key upserts when generated values cannot be returned', async () => {
+            const incoming = Object.assign(new MySqlGeneratedDefaultRow(), {
+                id: 'row-one',
+                label: 'one',
+            });
 
-            await expect(db.rows.upsert([incoming], naturalKeyOptions))
+            await expect(db.defaults.upsert([incoming]))
                 .rejects.toThrow(
                     'The \'mysql\' dialect cannot safely upsert store-generated properties',
                 );
 
-            expect(incoming.id).toBe(0);
             expect(incoming.createdAt).toBeUndefined();
-            expect(await db.rows.count()).toBe(0);
+            expect(await db.defaults.count()).toBe(0);
         });
     },
 );
