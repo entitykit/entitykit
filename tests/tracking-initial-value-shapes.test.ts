@@ -107,6 +107,19 @@ describe('initial tracking value shapes', () => {
         )).toBe(internalEntityEntry(entry));
     });
 
+    it('reports a collision from the same captured composite key', () => {
+        const db = CaptureShapeContext.create();
+        const first = new CompositeCaptureRow();
+        const duplicate = new CompositeCaptureRow();
+        db.compositeRows.add(first);
+
+        expect(() => db.compositeRows.add(duplicate)).toThrow(
+            'key \'north,one\' is already tracked',
+        );
+        expect(first.idReads).toBe(1);
+        expect(duplicate.idReads).toBe(1);
+    });
+
     it('derives converted identity from the captured model value', () => {
         const db = CaptureShapeContext.create();
         const row = new ConvertedCaptureRow();
