@@ -11,7 +11,7 @@ import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
 import { TrackingIdentityFactory } from './tracking-identity-factory';
 import {
-    assertTemporaryIdentityRegistration,
+    assertTrackingIdentityRegistration,
     clearTemporaryGeneratedIdentity,
     registerTemporaryGeneratedIdentity,
 } from './temporary-generated-identity';
@@ -154,7 +154,7 @@ export class ChangeTrackerRegistry {
     public assertInvariant(): void {
         this.identities.assertConsistent(this.trackedEntries);
         for (const entry of this.trackedEntries) {
-            assertTemporaryIdentityRegistration(
+            assertTrackingIdentityRegistration(
                 entry,
                 this.identities.keyFor(entry),
             );

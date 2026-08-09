@@ -67,7 +67,7 @@ export function assertNoUnresolvedGeneratedIdentities(
     );
 }
 
-export function assertTemporaryIdentityRegistration(
+export function assertTrackingIdentityRegistration(
     entry: EntityEntry<object>,
     registeredKey: string | undefined,
 ): void {
