@@ -10,6 +10,7 @@ import {
     snapshotPropertyValuesEqual,
 } from '../tracking/snapshot-value';
 import { ensurePolicyPropertyPath } from './policy-property-path';
+import { SaveTimeMutationLog } from './save-time-mutations';
 
 /** Apply the tenant boundary to one set-based entity write. */
 export function applyBulkWriteTenant<TEntity extends object>(
@@ -17,26 +18,46 @@ export function applyBulkWriteTenant<TEntity extends object>(
     entity: TEntity,
     tenantId: unknown,
     allowsCrossTenantAccess: boolean,
-): void {
+): () => void {
     const tenantProperty = metadata.tenantKeyProperty;
     if (!tenantProperty || allowsCrossTenantAccess) {
-        return;
+        return () => undefined;
     }
     if (tenantId === undefined || tenantId === null) {
         throw new TenantScopeUnavailableError(metadata.entityName);
     }
 
     const property = metadata.getProperty(tenantProperty);
-    const current = readPropertyValue(entity, property);
+    let current = readPropertyValue(entity, property);
+    const mutations = new SaveTimeMutationLog();
     if (current === undefined || current === null || current === '') {
-        const { liveValue } = snapshotPropertyValueCopies(
-            tenantId,
-            property.converter,
-            `${metadata.entityName}.${tenantProperty}`,
-        );
-        ensurePolicyPropertyPath(metadata, entity, property);
-        writePropertyValue(entity, property, liveValue);
-        return;
+        try {
+            const context = `${metadata.entityName}.${tenantProperty}`;
+            const { liveValue } = snapshotPropertyValueCopies(
+                tenantId,
+                property.converter,
+                context,
+            );
+            ensurePolicyPropertyPath(
+                metadata,
+                entity,
+                property,
+                mutations,
+            );
+            writePropertyValue(entity, property, liveValue);
+            const previous = current;
+            current = readPropertyValue(entity, property);
+            mutations.recordApplied(
+                entity,
+                property,
+                previous,
+                current,
+                context,
+            );
+        } catch (error) {
+            mutations.restore();
+            throw error;
+        }
     }
 
     if (!snapshotPropertyValuesEqual(
@@ -49,4 +70,7 @@ export function applyBulkWriteTenant<TEntity extends object>(
             `Entity '${metadata.entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
         );
     }
+    return () => {
+        mutations.restore();
+    };
 }

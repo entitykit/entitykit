@@ -63,75 +63,125 @@ export class DbSetBulkWriter<TEntity extends object> {
         const tenantId = tenantMatchProperty
             ? this.context.currentTenantIdForWrites()
             : undefined;
-        for (const entity of entities) {
-            applyBulkWriteTenant(
-                this.metadata,
-                entity,
-                tenantId,
-                allowsCrossTenantAccess,
-            );
-        }
-
-        const sql = this.modificationSql();
-        const parametersPerRow = Math.max(this.metadata.properties.length, 1);
-        const limit = this.context.options.dialect.maxStatementParameters?.();
-        const batchSize = limit === undefined
-            ? entities.length
-            : Math.max(Math.floor(limit / parametersPerRow), 1);
-
-        const run = async (): Promise<number> => {
-            let affected = 0;
-            for (let start = 0; start < entities.length; start += batchSize) {
-                const batch = entities.slice(start, start + batchSize);
-                const shape = this.diagnostics.queryShape('upsert', createQueryModel(this.metadata.ctor));
-                const compileElapsed = startElapsedTimer();
-                let statement: SqlStatement;
-                try {
-                    statement = sql.buildUpsertBatch(
-                        this.metadata,
-                        batch,
-                        options,
-                        tenantMatchProperty,
-                    );
-                    this.diagnostics.emitQueryPlan('compile', shape, compileElapsed(), statement);
-                } catch (error) {
-                    this.diagnostics.emitQueryPlan('compile', shape, compileElapsed(), undefined, undefined, undefined, error);
-                    throw error;
-                }
-
-                const executeElapsed = startElapsedTimer();
-                try {
-                    const result = await this.context.database.query(statement, options);
-                    this.diagnostics.emitQueryPlan('execute', shape, executeElapsed(), undefined, result.rowCount);
-                    if (
-                        tenantMatchProperty &&
-                        this.context.dialect.upsertConflictTarget !== 'anyUnique' &&
-                        result.rowCount !== batch.length
-                    ) {
-                        throw new TenantOwnershipError(
-                            this.metadata.entityName,
-                            tenantMatchProperty,
-                            'upsert-conflict',
-                        );
-                    }
-                    // Public upsert accounting is provider-neutral: one successfully
-                    // processed input entity counts once. MySQL reports an updated row
-                    // as two affected rows, unlike Postgres and SQLite.
-                    affected += batch.length;
-                } catch (error) {
-                    this.diagnostics.emitQueryPlan('execute', shape, executeElapsed(), undefined, undefined, undefined, error);
-                    throw mapDatabaseProviderError(error);
-                }
+        const rollbackTenantWrites: Array<() => void> = [];
+        try {
+            for (const entity of entities) {
+                rollbackTenantWrites.push(applyBulkWriteTenant(
+                    this.metadata,
+                    entity,
+                    tenantId,
+                    allowsCrossTenantAccess,
+                ));
             }
-            return affected;
-        };
 
-        // Always enter the connection transaction API. Inside an explicit context
-        // transaction this becomes a savepoint, so a caught later-batch failure
-        // cannot leave earlier batches committed.
-        return this.context.database.transaction(run, {
-            signal: options.signal,
-        });
+            const sql = this.modificationSql();
+            const parametersPerRow = Math.max(
+                this.metadata.properties.length,
+                1,
+            );
+            const limit = this.context.options.dialect
+                .maxStatementParameters?.();
+            const batchSize = limit === undefined
+                ? entities.length
+                : Math.max(Math.floor(limit / parametersPerRow), 1);
+
+            const run = async (): Promise<number> => {
+                let affected = 0;
+                for (
+                    let start = 0;
+                    start < entities.length;
+                    start += batchSize
+                ) {
+                    const batch = entities.slice(start, start + batchSize);
+                    const shape = this.diagnostics.queryShape(
+                        'upsert',
+                        createQueryModel(this.metadata.ctor),
+                    );
+                    const compileElapsed = startElapsedTimer();
+                    let statement: SqlStatement;
+                    try {
+                        statement = sql.buildUpsertBatch(
+                            this.metadata,
+                            batch,
+                            options,
+                            tenantMatchProperty,
+                        );
+                        this.diagnostics.emitQueryPlan(
+                            'compile',
+                            shape,
+                            compileElapsed(),
+                            statement,
+                        );
+                    } catch (error) {
+                        this.diagnostics.emitQueryPlan(
+                            'compile',
+                            shape,
+                            compileElapsed(),
+                            undefined,
+                            undefined,
+                            undefined,
+                            error,
+                        );
+                        throw error;
+                    }
+
+                    const executeElapsed = startElapsedTimer();
+                    try {
+                        const result = await this.context.database.query(
+                            statement,
+                            options,
+                        );
+                        this.diagnostics.emitQueryPlan(
+                            'execute',
+                            shape,
+                            executeElapsed(),
+                            undefined,
+                            result.rowCount,
+                        );
+                        if (
+                            tenantMatchProperty &&
+                            this.context.dialect.upsertConflictTarget !==
+                                'anyUnique' &&
+                            result.rowCount !== batch.length
+                        ) {
+                            throw new TenantOwnershipError(
+                                this.metadata.entityName,
+                                tenantMatchProperty,
+                                'upsert-conflict',
+                            );
+                        }
+                        // Public upsert accounting is provider-neutral: one successfully
+                        // processed input entity counts once. MySQL reports an updated row
+                        // as two affected rows, unlike Postgres and SQLite.
+                        affected += batch.length;
+                    } catch (error) {
+                        this.diagnostics.emitQueryPlan(
+                            'execute',
+                            shape,
+                            executeElapsed(),
+                            undefined,
+                            undefined,
+                            undefined,
+                            error,
+                        );
+                        throw mapDatabaseProviderError(error);
+                    }
+                }
+                return affected;
+            };
+
+            // Always enter the connection transaction API. Inside an explicit
+            // context transaction this becomes a savepoint, so a caught
+            // later-batch failure cannot leave earlier batches committed.
+            return await this.context.database.transaction(run, {
+                signal: options.signal,
+            });
+        } catch (error) {
+            for (const rollback of [...rollbackTenantWrites].reverse()) {
+                rollback();
+            }
+            throw error;
+        }
     }
 
     private modificationSql(): ModificationSqlBuilder {
