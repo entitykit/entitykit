@@ -6,7 +6,7 @@ import {
     cloneEntityValues,
     readEntityValues,
 } from './entity-entry-snapshot';
-import { EntityState } from './entity-state';
+import type { EntityState } from './entity-state';
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
 import { TrackingIdentityFactory } from './tracking-identity-factory';
@@ -16,13 +16,13 @@ import {
     registerTemporaryGeneratedIdentity,
 } from './temporary-generated-identity';
 import { reuseTrackedEntry } from './tracked-entry-reuse';
+import { trackingCollisionError } from './tracking-collision-error';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
     private readonly trackedEntries: Set<EntityEntry<object>> = new Set();
     private readonly identityFactory = new TrackingIdentityFactory();
     public readonly identities = new TrackedIdentityMap();
-
     constructor(
         private readonly owner: ChangeTracker,
         private readonly assertMutation: (
@@ -65,21 +65,7 @@ export class ChangeTrackerRegistry {
         this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByIdentity = this.identities.get(identityKey);
         if (existingByIdentity) {
-            const keyValue = metadata.keyProperties.map(
-                propertyName => capturedValues[propertyName],
-            );
-            if (state === EntityState.Unchanged) {
-                throw new Error(
-                    `Another instance of '${metadata.entityName}' with key '${
-                        String(metadata.hasCompositeKey ? keyValue : keyValue[0])
-                    }' is already tracked. The supplied instance was not attached.`,
-                );
-            }
-            throw new Error(
-                `An instance of '${metadata.entityName}' with key '${
-                    String(metadata.hasCompositeKey ? keyValue : keyValue[0])
-                }' is already tracked.`,
-            );
+            throw trackingCollisionError(metadata, capturedValues, state);
         }
 
         const entry = new EntityEntry(entity, metadata, state, capturedValues);
