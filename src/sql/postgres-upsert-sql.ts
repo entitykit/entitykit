@@ -1,7 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { EntityPropertyKey } from '../types';
-import { validateRequiredPropertyValues } from './captured-value-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import {
@@ -9,11 +7,13 @@ import {
     defaultUpsertUpdateProperties,
     isStoreGenerated,
     resolveConfiguredProperties,
-    upsertGeneratedProperties,
-    upsertInsertProperties,
 } from './upsert-property-selection';
 import { readEntityValues } from '../tracking/entity-entry-snapshot';
 import { validateRequiredComplexProperties } from './required-complex-property-validation';
+import {
+    buildUpsertValueRows,
+    resolveUpsertWriteShape,
+} from './upsert-value-sql';
 
 export interface PostgresUpsertSqlOptions<TEntity extends object> {
     readonly conflictProperties?: ReadonlyArray<EntityPropertyKey<TEntity>>;
@@ -33,9 +33,6 @@ export function buildPostgresUpsert<TEntity extends object>(
     }
     validateRequiredComplexProperties(metadata, entity);
     const valuesByProperty = readEntityValues(metadata, entity);
-    validateRequiredPropertyValues(metadata, valuesByProperty, {
-        forInsert: true,
-    });
 
     const conflictProperties = resolveConfiguredProperties(
         metadata,
@@ -78,18 +75,13 @@ export function buildPostgresUpsert<TEntity extends object>(
     }
 
     const parameters = new SqlParameterBag(dialect);
-    const insertProperties = upsertInsertProperties(metadata);
-    const generatedProperties = upsertGeneratedProperties(metadata);
-    const columns = insertProperties
+    const write = resolveUpsertWriteShape(dialect, metadata, 1);
+    const columns = write.insertProperties
         .map(property => dialect.quoteIdentifier(property.columnName))
         .join(', ');
-    const values = insertProperties
-        .map(property => parameters.add(toBoundPropertyValue(
-            valuesByProperty[property.propertyName],
-            property,
-            metadata.entityName,
-        )))
-        .join(', ');
+    const values = buildUpsertValueRows(
+        metadata, [valuesByProperty], write.insertProperties, parameters,
+    );
     const conflictColumns = conflictProperties
         .map(property => dialect.quoteIdentifier(property.columnName))
         .join(', ');
@@ -98,20 +90,8 @@ export function buildPostgresUpsert<TEntity extends object>(
             `${dialect.quoteIdentifier(property.columnName)} = excluded.${dialect.quoteIdentifier(property.columnName)}`,
         )
         .join(', ');
-    const returningClause = generatedProperties.length > 0
-        ? dialect.returningClause?.(generatedProperties.map(
-            property => property.columnName,
-        ))
-        : undefined;
-    if (generatedProperties.length > 0 && !returningClause) {
-        throw new Error(
-            `Postgres upsert cannot safely write store-generated properties on '${metadata.entityName}' without a returning clause.`,
-        );
-    }
-    const returning = returningClause ? ` ${returningClause}` : '';
-
     return {
-        text: `insert into ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} (${columns}) values (${values}) on conflict (${conflictColumns}) do update set ${assignments}${returning}`,
+        text: `insert into ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} (${columns}) values ${values} on conflict (${conflictColumns}) do update set ${assignments}${write.returning}`,
         values: parameters.values,
     };
 }

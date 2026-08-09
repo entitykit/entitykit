@@ -2,10 +2,17 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { PropertyMetadata } from '../model/property-metadata';
 import type { EntityPropertyKey } from '../types';
 import {
-    isGeneratedOnAdd,
-    isGeneratedOnUpdate,
-} from '../model/value-generated';
+    defaultUpsertUpdateProperties,
+    isStoreGenerated,
+} from './upsert-generated-properties';
 
+export {
+    assertResolvableUpsertConflict,
+    defaultUpsertUpdateProperties,
+    isStoreGenerated,
+    upsertGeneratedProperties,
+    upsertInsertProperties,
+} from './upsert-generated-properties';
 export function resolveConfiguredProperties<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     propertyNames: ReadonlyArray<EntityPropertyKey<TEntity>>,
@@ -61,17 +68,6 @@ export function resolveUpsertProperties<TEntity extends object>(
     return { conflictProperties, updateProperties };
 }
 
-export function defaultUpsertUpdateProperties<TEntity extends object>(
-    metadata: EntityMetadata<TEntity>,
-    conflictNames: ReadonlySet<string>,
-): Array<PropertyMetadata<TEntity>> {
-    return metadata.properties.filter(property =>
-        !property.isPrimaryKey &&
-        !conflictNames.has(property.propertyName) &&
-        property.propertyName !== metadata.tenantKeyProperty &&
-        !isStoreGenerated(property));
-}
-
 function assertUpsertUpdates<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     updateProperties: ReadonlyArray<PropertyMetadata<TEntity>>,
@@ -100,38 +96,4 @@ function assertUpsertUpdates<TEntity extends object>(
             );
         }
     }
-}
-
-export function upsertInsertProperties<TEntity extends object>(
-    metadata: EntityMetadata<TEntity>,
-): Array<PropertyMetadata<TEntity>> {
-    return metadata.properties.filter(property =>
-        !isGeneratedOnAdd(property.valueGenerated));
-}
-
-export function upsertGeneratedProperties<TEntity extends object>(
-    metadata: EntityMetadata<TEntity>,
-): Array<PropertyMetadata<TEntity>> {
-    return metadata.properties.filter(property =>
-        isGeneratedOnAdd(property.valueGenerated));
-}
-
-export function assertResolvableUpsertConflict<TEntity extends object>(
-    metadata: EntityMetadata<TEntity>,
-    properties: ReadonlyArray<PropertyMetadata<TEntity>>,
-): void {
-    const generated = properties.find(property =>
-        isGeneratedOnAdd(property.valueGenerated));
-    if (generated) {
-        throw new Error(
-            `Upsert for '${metadata.entityName}' cannot use unresolved store-generated key '${generated.propertyName}' as its conflict target. ` +
-            'Select a natural unique key or use add() and saveChanges().',
-        );
-    }
-}
-
-export function isStoreGenerated(property: PropertyMetadata): boolean {
-    return isGeneratedOnAdd(property.valueGenerated) ||
-        isGeneratedOnUpdate(property.valueGenerated) ||
-        property.computedSql !== undefined;
 }
