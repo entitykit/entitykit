@@ -30,6 +30,24 @@ describe('SQL parameter contract', () => {
         expect(parameters.values).toEqual([]);
     });
 
+    it('rejects NaN before adding it to the statement', () => {
+        const parameters = new SqlParameterBag();
+        expect(() => parameters.add(Number.NaN)).toThrow(
+            'SQL parameters cannot contain NaN.',
+        );
+        expect(parameters.values).toEqual([]);
+    });
+
+    it('does not define infinity semantics as part of the NaN guard', () => {
+        const parameters = new SqlParameterBag();
+        expect(parameters.add(Number.POSITIVE_INFINITY)).toBe('$1');
+        expect(parameters.add(Number.NEGATIVE_INFINITY)).toBe('$2');
+        expect(parameters.values).toEqual([
+            Number.POSITIVE_INFINITY,
+            Number.NEGATIVE_INFINITY,
+        ]);
+    });
+
     it('consumes a rejected parameter Promise', async () => {
         const unhandled: unknown[] = [];
         const observeUnhandled = (reason: unknown): void => {
