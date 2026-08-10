@@ -63,6 +63,7 @@ class DelayedFirstQueryConnection extends RecordingDatabaseConnection {
     public readonly firstStarted: Promise<void> = new Promise(resolve => {
         this.markFirstStarted = resolve;
     });
+    public readonly querySignals: Array<AbortSignal | undefined> = [];
     private queryCount = 0;
 
     public release(): void {
@@ -76,6 +77,7 @@ class DelayedFirstQueryConnection extends RecordingDatabaseConnection {
         options?: DatabaseOperationOptions,
     ): Promise<DatabaseQueryResult<TRow>> {
         this.queryCount += 1;
+        this.querySignals.push(options?.signal);
         if (this.queryCount === 1) {
             this.markFirstStarted();
             await this.released;
@@ -164,5 +166,36 @@ describe('bulk upsert value snapshots', () => {
             'second-before',
         ]);
         expect(connection.transactionEvents).toEqual(['begin', 'commit']);
+    });
+
+    it('owns option arrays across batches while retaining the abort signal', async () => {
+        const connection = new DelayedFirstQueryConnection();
+        connection.queueResult({ rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+        const db = BatchSnapshotContext.create(connection);
+        const conflictProperties: Array<keyof BatchSnapshotRow> = ['id'];
+        const updateProperties: Array<keyof BatchSnapshotRow> = ['name'];
+        const controller = new AbortController();
+
+        const pending = db.rows.upsert([
+            Object.assign(new BatchSnapshotRow(), { id: 'first', name: 'one' }),
+            Object.assign(new BatchSnapshotRow(), { id: 'second', name: 'two' }),
+        ], {
+            conflictProperties,
+            updateProperties,
+            signal: controller.signal,
+        });
+        await connection.firstStarted;
+        conflictProperties[0] = 'name';
+        updateProperties[0] = 'id';
+        connection.release();
+
+        await expect(pending).resolves.toBe(2);
+        expect(connection.statements[1]?.text)
+            .toBe(connection.statements[0]?.text);
+        expect(connection.querySignals).toEqual([
+            controller.signal,
+            controller.signal,
+        ]);
     });
 });
