@@ -21,7 +21,7 @@ import { readSynchronousScopeValue } from './synchronous-scope-value';
 import { readSynchronousDate } from '../synchronous-value';
 import type { QueryFilterOperation } from './query-filter-operation';
 export abstract class DbContextRuntime {
-    private readonly state = new DbContextState();
+    protected readonly state = new DbContextState();
     private disposePromise?: Promise<void>;
     public readonly changeTracker = new ChangeTracker();
     private readonly lazyNavigation = new LazyNavigationCoordinator(
@@ -115,12 +115,6 @@ export abstract class DbContextRuntime {
         if (this.state.disposed) {
             throw new ContextDisposedError(operation);
         }
-    }
-    protected markStateRestorationFailure(
-        phase: 'commit' | 'rollback',
-        error: unknown,
-    ): void {
-        this.state.markStateRestorationFailure(phase, error);
     }
     protected currentAuditTimestamp(): Date {
         return readSynchronousDate(this.options.auditing?.now, 'The audit clock') ?? new Date();

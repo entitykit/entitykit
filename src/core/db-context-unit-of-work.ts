@@ -23,7 +23,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     private readonly transactionCoordinator = new TransactionCoordinator(
         () => this.databaseConnection,
         (phase, error) => {
-            this.markStateRestorationFailure(phase, error);
+            this.state.markStateRestorationFailure(phase, error);
         },
     );
     private readonly savePlanBuilder = new SavePlanBuilder({
