@@ -1,17 +1,10 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { EntityPropertyKey } from '../types';
 import type { SqlDialect } from './sql-dialect';
-import { SqlParameterBag, type SqlStatement } from './sql-statement';
-import { validateUpsertConflictTarget } from './upsert-conflict-target';
-import {
-    assertResolvableUpsertConflict,
-    resolveUpsertProperties,
-} from './upsert-property-selection';
+import type { SqlStatement } from './sql-statement';
 import { readEntityValues } from '../tracking/entity-entry-snapshot';
-import {
-    buildUpsertValueRows,
-    resolveUpsertWriteShape,
-} from './upsert-value-sql';
+import { buildUpsertValueRows } from './upsert-value-sql';
+import { buildBatchUpsertStatement } from './batch-upsert-statement';
 
 export interface UpsertSqlOptions<TEntity extends object> {
     /** Columns whose conflict triggers the update. Defaults to the primary key. */
@@ -43,47 +36,17 @@ export function buildBatchUpsertFromValues<TEntity extends object>(
     options: UpsertSqlOptions<TEntity> = {},
     tenantMatchProperty?: EntityPropertyKey<TEntity>,
 ): SqlStatement {
-    if (rows.length === 0) {
-        throw new Error('At least one entity is required.');
-    }
-
-    const { conflictProperties, updateProperties } = resolveUpsertProperties(
-        metadata,
-        options,
-    );
-    assertResolvableUpsertConflict(metadata, conflictProperties);
-    validateUpsertConflictTarget(
+    return buildBatchUpsertStatement(
         dialect,
         metadata,
-        conflictProperties,
+        rows.length,
+        (parameters, properties) => buildUpsertValueRows(
+            metadata,
+            rows,
+            properties,
+            parameters,
+        ),
+        options,
         tenantMatchProperty,
     );
-    const clause = dialect.upsertClause?.(
-        conflictProperties.map(property => property.columnName),
-        updateProperties.map(property => property.columnName),
-        dialect.upsertConflictTarget === 'anyUnique' || !tenantMatchProperty
-            ? []
-            : [metadata.getProperty(tenantMatchProperty).columnName],
-        { schemaName: metadata.schemaName, tableName: metadata.tableName },
-    );
-    if (!clause) {
-        throw new Error(
-            `The '${dialect.name}' dialect does not support upsert. ` +
-      'Use add(...) with saveChanges(), or provider-specific SQL.',
-        );
-    }
-
-    const write = resolveUpsertWriteShape(dialect, metadata, rows.length);
-    const parameters = new SqlParameterBag(dialect);
-    const columns = write.insertProperties
-        .map(property => dialect.quoteIdentifier(property.columnName))
-        .join(', ');
-    const valueSql = buildUpsertValueRows(
-        metadata, rows, write.insertProperties, parameters,
-    );
-
-    return {
-        text: `insert into ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} (${columns}) values ${valueSql} ${clause}${write.returning}`,
-        values: parameters.values,
-    };
 }

@@ -4,6 +4,7 @@ import {
     buildBatchUpsertFromValues,
     type UpsertSqlOptions,
 } from './batch-upsert-sql';
+import { buildBatchUpsertFromProviderValues } from './batch-upsert-provider-sql';
 import {
     buildPostgresUpsert,
     type PostgresUpsertSqlOptions,
@@ -55,6 +56,21 @@ export class UpsertSqlBuilder {
         tenantMatchProperty?: EntityPropertyKey<TEntity>,
     ): SqlStatement {
         return buildBatchUpsertFromValues(
+            this.dialect,
+            metadata,
+            rows,
+            options,
+            tenantMatchProperty,
+        );
+    }
+
+    public buildUpsertProviderValuesBatch<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+        options: UpsertSqlOptions<TEntity> = {},
+        tenantMatchProperty?: EntityPropertyKey<TEntity>,
+    ): SqlStatement {
+        return buildBatchUpsertFromProviderValues(
             this.dialect,
             metadata,
             rows,

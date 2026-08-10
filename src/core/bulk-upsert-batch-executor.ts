@@ -30,19 +30,12 @@ interface BulkUpsertBatchExecution<TEntity extends object> {
 export async function executeBulkUpsertBatches<TEntity extends object>(
     execution: BulkUpsertBatchExecution<TEntity>,
 ): Promise<number> {
+    const batches = prepareBatches(execution);
     const run = async (): Promise<number> => {
         let affected = 0;
-        for (
-            let start = 0;
-            start < execution.rows.length;
-            start += execution.batchSize
-        ) {
-            const batch = execution.rows.slice(
-                start,
-                start + execution.batchSize,
-            );
+        for (const batch of batches) {
             await executeBatch(execution, batch);
-            affected += batch.length;
+            affected += batch.rows.length;
         }
         return affected;
     };
@@ -52,47 +45,61 @@ export async function executeBulkUpsertBatches<TEntity extends object>(
     });
 }
 
+interface PreparedBulkUpsertBatch<TEntity extends object> {
+    readonly rows: ReadonlyArray<CapturedBulkUpsertRow<TEntity>>;
+    readonly statement: SqlStatement;
+    readonly shape: ReturnType<DbSetDiagnostics<TEntity>['queryShape']>;
+}
+
+function prepareBatches<TEntity extends object>(
+    execution: BulkUpsertBatchExecution<TEntity>,
+): Array<PreparedBulkUpsertBatch<TEntity>> {
+    const batches: Array<PreparedBulkUpsertBatch<TEntity>> = [];
+    for (let start = 0; start < execution.rows.length; start += execution.batchSize) {
+        const rows = execution.rows.slice(start, start + execution.batchSize);
+        const shape = execution.diagnostics.queryShape(
+            'upsert', createQueryModel(execution.metadata.ctor),
+        );
+        const compileElapsed = startElapsedTimer();
+        try {
+            const statement = execution.sql.buildUpsertProviderValuesBatch(
+                execution.metadata,
+                rows.map(row => row.providerValues),
+                execution.options,
+                execution.tenantMatchProperty,
+            );
+            execution.diagnostics.emitQueryPlan(
+                'compile', shape, compileElapsed(), statement,
+            );
+            batches.push({ rows, statement, shape });
+        } catch (error) {
+            execution.diagnostics.emitQueryPlan(
+                'compile', shape, compileElapsed(),
+                undefined, undefined, undefined, error,
+            );
+            throw error;
+        }
+    }
+    return batches;
+}
+
 async function executeBatch<TEntity extends object>(
     execution: BulkUpsertBatchExecution<TEntity>,
-    batch: ReadonlyArray<CapturedBulkUpsertRow<TEntity>>,
+    batch: PreparedBulkUpsertBatch<TEntity>,
 ): Promise<void> {
-    const shape = execution.diagnostics.queryShape(
-        'upsert',
-        createQueryModel(execution.metadata.ctor),
-    );
-    const compileElapsed = startElapsedTimer();
-    let statement: SqlStatement;
-    try {
-        statement = execution.sql.buildUpsertValuesBatch(
-            execution.metadata,
-            batch.map(row => row.values),
-            execution.options,
-            execution.tenantMatchProperty,
-        );
-        execution.diagnostics.emitQueryPlan(
-            'compile', shape, compileElapsed(), statement,
-        );
-    } catch (error) {
-        execution.diagnostics.emitQueryPlan(
-            'compile', shape, compileElapsed(),
-            undefined, undefined, undefined, error,
-        );
-        throw error;
-    }
-
     const executeElapsed = startElapsedTimer();
     try {
         const result = await execution.context.database.query(
-            statement,
+            batch.statement,
             execution.options,
         );
         execution.diagnostics.emitQueryPlan(
-            'execute', shape, executeElapsed(), undefined, result.rowCount,
+            'execute', batch.shape, executeElapsed(), undefined, result.rowCount,
         );
         if (
             execution.tenantMatchProperty &&
             execution.context.dialect.upsertConflictTarget !== 'anyUnique' &&
-            result.rowCount !== batch.length
+            result.rowCount !== batch.rows.length
         ) {
             throw new TenantOwnershipError(
                 execution.metadata.entityName,
@@ -100,10 +107,10 @@ async function executeBatch<TEntity extends object>(
                 'upsert-conflict',
             );
         }
-        execution.generatedValues.hydrate(batch[0], result);
+        execution.generatedValues.hydrate(batch.rows[0], result);
     } catch (error) {
         execution.diagnostics.emitQueryPlan(
-            'execute', shape, executeElapsed(),
+            'execute', batch.shape, executeElapsed(),
             undefined, undefined, undefined, error,
         );
         throw mapDatabaseProviderError(error);

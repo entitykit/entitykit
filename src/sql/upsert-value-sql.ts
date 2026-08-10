@@ -60,3 +60,17 @@ export function buildUpsertValueRows<TEntity extends object>(
         return `(${sql})`;
     }).join(', ');
 }
+
+/** Bind provider-value snapshots without evaluating converters again. */
+export function buildUpsertProviderValueRows<TEntity extends object>(
+    rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+    properties: ReadonlyArray<PropertyMetadata<TEntity>>,
+    parameters: SqlParameterBag,
+): string {
+    return rows.map(values => {
+        const sql = properties.map(property => parameters.add(
+            values[property.propertyName],
+        )).join(', ');
+        return `(${sql})`;
+    }).join(', ');
+}

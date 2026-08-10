@@ -9,6 +9,9 @@ import {
     snapshotPropertyValueCopies,
     snapshotPropertyValuesEqual,
 } from '../tracking/snapshot-value';
+import { cloneSnapshotValue } from '../tracking/snapshot-value';
+import { snapshotValuesEqual } from '../tracking/snapshot-value-equality';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { ensurePolicyPropertyPath } from './policy-property-path';
 import { SaveTimeMutationLog } from './save-time-mutations';
 
@@ -85,22 +88,37 @@ export function applyBulkWriteTenant<TEntity extends object>(
 }
 
 /** Recheck tenant ownership against the exact row values bound to SQL. */
-export function assertBulkWriteTenantValues<TEntity extends object>(
+export function captureBulkWriteTenantProviderValue<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
-    values: Readonly<Record<string, unknown>>,
     tenantId: unknown,
+    allowsCrossTenantAccess: boolean,
+): unknown {
+    const tenantProperty = metadata.tenantKeyProperty;
+    if (!tenantProperty || allowsCrossTenantAccess) {
+        return undefined;
+    }
+    const property = metadata.getProperty(tenantProperty);
+    return cloneSnapshotValue(toBoundPropertyValue(
+        tenantId,
+        property,
+        metadata.entityName,
+    ));
+}
+
+/** Recheck tenant ownership against the exact provider row bound to SQL. */
+export function assertBulkWriteTenantProviderValues<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    providerValues: Readonly<Record<string, unknown>>,
+    providerTenantId: unknown,
     allowsCrossTenantAccess: boolean,
 ): void {
     const tenantProperty = metadata.tenantKeyProperty;
     if (!tenantProperty || allowsCrossTenantAccess) {
         return;
     }
-    const property = metadata.getProperty(tenantProperty);
-    if (!snapshotPropertyValuesEqual(
-        values[tenantProperty],
-        tenantId,
-        property.converter,
-        `${metadata.entityName}.${tenantProperty}`,
+    if (!snapshotValuesEqual(
+        providerValues[tenantProperty],
+        providerTenantId,
     )) {
         throw new DbValidationError(
             `Entity '${metadata.entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,

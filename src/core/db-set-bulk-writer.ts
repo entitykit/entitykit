@@ -6,7 +6,8 @@ import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import {
     applyBulkWriteTenant,
-    assertBulkWriteTenantValues,
+    assertBulkWriteTenantProviderValues,
+    captureBulkWriteTenantProviderValue,
 } from './bulk-write-tenant';
 import { executeBulkUpsertBatches } from './bulk-upsert-batch-executor';
 import {
@@ -83,6 +84,9 @@ export class DbSetBulkWriter<TEntity extends object> {
             const tenantId = tenantMatchProperty
                 ? this.context.currentTenantIdForWrites()
                 : undefined;
+            const providerTenantId = captureBulkWriteTenantProviderValue(
+                this.metadata, tenantId, allowsCrossTenantAccess,
+            );
             const generatedValues = mutations.generatedValues;
             const rows: Array<CapturedBulkUpsertRow<TEntity>> = [];
             for (const entity of inputs) {
@@ -93,12 +97,9 @@ export class DbSetBulkWriter<TEntity extends object> {
                     allowsCrossTenantAccess,
                 ));
                 const row = captureBulkUpsertRow(this.metadata, entity);
-                assertBulkWriteTenantValues(
-                    this.metadata,
-                    row.values,
-                    tenantId,
-                    allowsCrossTenantAccess,
-                );
+                assertBulkWriteTenantProviderValues(this.metadata,
+                    row.providerValues, providerTenantId,
+                    allowsCrossTenantAccess);
                 rows.push(row);
             }
 
@@ -115,7 +116,6 @@ export class DbSetBulkWriter<TEntity extends object> {
             const batchSize = generatedValues.requiresSingleRow
                 ? 1
                 : parameterBatchSize;
-
             // Always enter the connection transaction API. Inside an explicit
             // context transaction this becomes a savepoint, so a caught
             // later-batch failure cannot leave earlier batches committed.
