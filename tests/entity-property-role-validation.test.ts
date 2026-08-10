@@ -142,6 +142,25 @@ describe('entity property role compatibility', () => {
         }, 'updatedBy audit', 'alternate-key', 'alternate');
     });
 
+    it.each([
+        ['createdAt', 'updatedAt'],
+        ['createdAt', 'createdBy'],
+        ['createdAt', 'updatedBy'],
+        ['updatedAt', 'createdBy'],
+        ['updatedAt', 'updatedBy'],
+        ['createdBy', 'updatedBy'],
+    ] as const)('rejects duplicate %s and %s audit roles', (first, second) => {
+        const selector = (row: RoleRow): Date | undefined => row.updatedAt;
+        expect(() => model(entity => {
+            entity.audit({
+                [first]: selector,
+                [second]: selector,
+            });
+        }).build()).toThrow(
+            /cannot combine .* audit and .* audit roles/,
+        );
+    });
+
     it('accepts distinct roles and an audit concurrency token', () => {
         const configured = model(entity => {
             entity.tenantKey(row => row.tenantId);
