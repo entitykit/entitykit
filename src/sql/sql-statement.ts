@@ -26,6 +26,9 @@ export class SqlParameterBag {
         if (value instanceof Date && Number.isNaN(value.getTime())) {
             throw new TypeError('SQL parameters cannot contain an invalid Date.');
         }
+        if (typeof value === 'number' && Number.isNaN(value)) {
+            throw new TypeError('SQL parameters cannot contain NaN.');
+        }
         this.parameterValues.push(value);
 
         // Every statement EntityKit builds passes through here, so one check

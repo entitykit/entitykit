@@ -19,6 +19,11 @@ export function toBindValue(value: unknown): SqliteBindValue {
     if (value === undefined || value === null) {
         return null;
     }
+    if (typeof value === 'number' && Number.isNaN(value)) {
+        throw new TypeError(
+            'SQLite parameters cannot contain NaN because SQLite stores it as NULL.',
+        );
+    }
     if (typeof value === 'boolean') {
         return value ? 1 : 0;
     }
