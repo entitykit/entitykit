@@ -74,7 +74,16 @@ export function writeGeneratedValue<TEntity extends object>(
         return persistedValue;
     }
     const previous = readPropertyValue(entity, property);
-    writePropertyValue(entity, property, liveValue);
+    try {
+        writePropertyValue(entity, property, liveValue);
+    } catch (error) {
+        try {
+            writePropertyValue(entity, property, previous);
+        } catch {
+            // Preserve the setter failure that interrupted generated hydration.
+        }
+        throw error;
+    }
     let applied: unknown;
     try {
         applied = readPropertyValue(entity, property);
