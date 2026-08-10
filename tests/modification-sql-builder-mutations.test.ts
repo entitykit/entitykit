@@ -1,6 +1,8 @@
 import type { SqlDialect } from '../src/adapter';
 import { createQueryProxy } from '../src/experimental';
 import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import type { EntityMetadata } from '../src/model/entity-metadata';
 import {
     User,
     createUserMetadata,
@@ -18,6 +20,24 @@ const nonPostgresDialect: SqlDialect = {
     falsePredicate: () => '0 = 1',
     insertConflictDoNothingClause: () => 'on conflict do nothing',
 };
+
+class CompositeUpsertRow {
+    public partition = '';
+    public sequence = 0;
+    public label = '';
+}
+
+function compositeMetadata(): EntityMetadata<CompositeUpsertRow> {
+    const model = new ModelBuilderImplementation();
+    model.entity(CompositeUpsertRow, entity => {
+        entity.toTable('composite_upsert_rows');
+        entity.hasKey(row => [row.partition, row.sequence]);
+        entity.property(row => row.partition).hasColumnType('text').isRequired();
+        entity.property(row => row.sequence).hasColumnType('integer').isRequired();
+        entity.property(row => row.label).hasColumnType('text').isRequired();
+    });
+    return model.build().getEntity(CompositeUpsertRow);
+}
 
 describe('ModificationSqlBuilder mutations', () => {
     it('compiles Postgres upsert SQL with a primary-key conflict by default', () => {
@@ -40,6 +60,23 @@ describe('ModificationSqlBuilder mutations', () => {
         })).toEqual({
             text: 'insert into "users" ("id", "email", "display_name", "created_at") values ($1, $2, $3, $4) on conflict ("email") do update set "display_name" = excluded."display_name", "created_at" = excluded."created_at"',
             values: ['usr_1', 'a@example.com', 'A', createdAt],
+        });
+    });
+
+    it('uses every composite key property as the default conflict target', () => {
+        const row = Object.assign(new CompositeUpsertRow(), {
+            partition: 'north',
+            sequence: 7,
+            label: 'seven',
+        });
+
+        expect(new ModificationSqlBuilder().buildPostgresUpsert(
+            compositeMetadata(),
+            row,
+        )).toEqual({
+            text: 'insert into "composite_upsert_rows" ("partition", "sequence", "label") values ($1, $2, $3) ' +
+                'on conflict ("partition", "sequence") do update set "label" = excluded."label"',
+            values: ['north', 7, 'seven'],
         });
     });
 
