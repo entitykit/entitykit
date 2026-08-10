@@ -48,7 +48,7 @@ class GeneratedAddSoftContext extends DbContext {
             entity.property(row => row.id).hasColumnType('text').isRequired();
             entity.property(row => row.label).hasColumnType('text').isRequired();
             entity.property(row => row.deletedAt).hasColumnName('deleted_at')
-                .hasColumnType('timestamp').hasDefaultSql('null')
+                .hasColumnType('timestamp').hasDefaultSql('  NULL  ')
                 .valueGeneratedOnAdd();
             entity.softDelete(row => row.deletedAt);
         });
@@ -129,9 +129,12 @@ describe('soft-delete model safety', () => {
         );
     });
 
-    it('rejects a deleted value whose converter produces null', () => {
-        const converter = valueConverter<string, string | null>({
-            toProvider: () => null,
+    it.each([
+        ['null', null],
+        ['undefined', undefined],
+    ] as const)('rejects a deleted value whose converter produces %s', (_label, providerValue) => {
+        const converter = valueConverter<string, string | null | undefined>({
+            toProvider: () => providerValue,
             fromProvider: value => value ?? 'live',
         });
 
