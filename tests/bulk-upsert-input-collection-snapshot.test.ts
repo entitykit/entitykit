@@ -138,6 +138,21 @@ beforeEach(() => {
 });
 
 describe('bulk upsert input collection snapshots', () => {
+    it('does not resolve policy scope or open a transaction for no inputs', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = open(connection);
+        let tenantReads = 0;
+        tenantScopeHook = () => {
+            tenantReads += 1;
+        };
+
+        await expect(db.rows.upsert([])).resolves.toBe(0);
+
+        expect(tenantReads).toBe(0);
+        expect(connection.statements).toEqual([]);
+        expect(connection.transactionEvents).toEqual([]);
+    });
+
     it('ignores a tracked entity appended by a tenant setter', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({ rowCount: 1 });
