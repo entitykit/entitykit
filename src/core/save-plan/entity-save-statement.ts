@@ -59,8 +59,10 @@ function includeSoftDeleteTransition<TEntity extends object>(
     modifiedProperties: string[],
 ): string[] {
     const property = metadata.softDelete?.propertyName;
+    if (!property) {
+        return modifiedProperties;
+    }
     if (
-        !property ||
         modifiedProperties.includes(property) ||
         values[property] === null ||
         values[property] === undefined ||
