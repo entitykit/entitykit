@@ -6,6 +6,7 @@ import { requireDefined } from './support/require-defined';
 class TransitionRow {
     public id = '';
     public label = '';
+    public note: string | null | undefined = null;
     public deletedAt: Date | null | undefined = null;
 }
 
@@ -22,6 +23,7 @@ class TransitionContext extends DbContext {
             entity.hasKey(row => row.id);
             entity.property(row => row.id).hasColumnType('text').isRequired();
             entity.property(row => row.label).hasColumnType('text').isRequired();
+            entity.property(row => row.note).hasColumnType('text');
             entity.property(row => row.deletedAt).hasColumnName('deleted_at')
                 .hasColumnType('timestamp');
             entity.softDelete(row => row.deletedAt);
@@ -44,8 +46,8 @@ async function insertRaw(
     marker: unknown,
 ): Promise<void> {
     await db.database.connection.query({
-        text: 'insert into transition_rows (id, label, deleted_at) values (?, ?, ?)',
-        values: [id, 'one', marker],
+        text: 'insert into transition_rows (id, label, note, deleted_at) values (?, ?, ?, ?)',
+        values: [id, 'one', null, marker],
     });
 }
 
@@ -85,6 +87,22 @@ describe('soft-delete transition SQL', () => {
         await db.dispose();
     });
 
+    it('writes a marker when an undefined live value is removed', async () => {
+        const db = await open();
+        await insertRaw(db, 'undefined-delete', null);
+        const row = Object.assign(new TransitionRow(), {
+            id: 'undefined-delete',
+            label: 'one',
+            deletedAt: undefined,
+        });
+        db.rows.attach(row);
+        db.rows.remove(row);
+
+        expect(updateSql(db).match(/"deleted_at"/gu)).toHaveLength(1);
+        await expect(db.saveChanges()).resolves.toBe(1);
+        await db.dispose();
+    });
+
     it('does not rewrite an existing deleted marker during business updates', async () => {
         const db = await open();
         const deletedAt = new Date('2026-08-10T12:00:00.000Z');
@@ -113,6 +131,22 @@ describe('soft-delete transition SQL', () => {
         db.rows.remove(row);
 
         expect(updateSql(db).match(/"deleted_at"/gu)).toHaveLength(1);
+        await db.dispose();
+    });
+
+    it('allows null assignments to ordinary nullable properties', async () => {
+        const db = await open();
+        const row: TransitionRow = Object.assign(new TransitionRow(), {
+            id: 'nullable-business',
+            label: 'one',
+            note: 'present',
+        });
+        db.rows.add(row);
+        await db.saveChanges();
+        row.note = null;
+
+        expect(updateSql(db)).toContain('"note" = ?');
+        await expect(db.saveChanges()).resolves.toBe(1);
         await db.dispose();
     });
 });
