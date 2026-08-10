@@ -45,7 +45,16 @@ export function applyBulkWriteTenant<TEntity extends object>(
                 mutations,
             );
             const previous = readPropertyValue(entity, property);
-            writePropertyValue(entity, property, liveValue);
+            try {
+                writePropertyValue(entity, property, liveValue);
+            } catch (error) {
+                try {
+                    writePropertyValue(entity, property, previous);
+                } catch {
+                    // Preserve the setter failure that interrupted tenant stamping.
+                }
+                throw error;
+            }
             current = readPropertyValue(entity, property);
             mutations.recordApplied(
                 entity,
