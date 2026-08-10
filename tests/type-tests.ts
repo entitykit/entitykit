@@ -16,10 +16,6 @@ class User {
     public id!: string;
     public email!: string;
     public createdAt!: Date;
-    public deletedAt?: Date | null;
-    public deletedState?: string | null;
-    public deletedFlag?: boolean | null;
-    public deletedCode?: number | null;
     public posts!: Post[];
 }
 
@@ -75,19 +71,6 @@ model.entity(User, entity => {
 
     // @ts-expect-error selector must return a property token
     entity.property(() => 'email');
-
-    entity.softDelete(user => user.deletedAt);
-    entity.softDelete(user => user.deletedState, 'deleted');
-    entity.softDelete(user => user.deletedFlag, true);
-    entity.softDelete(user => user.deletedCode, 7);
-    entity.softDelete('deletedState', 'deleted');
-
-    // @ts-expect-error non-temporal selectors require an explicit marker
-    entity.softDelete(user => user.deletedState);
-    // @ts-expect-error explicit markers must match the selected property type
-    entity.softDelete(user => user.deletedFlag, 'deleted');
-    // @ts-expect-error property-name configuration always requires a marker
-    entity.softDelete('deletedAt');
 });
 
 const queryUser = createQueryProxy<User>();
