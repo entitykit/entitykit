@@ -36,7 +36,7 @@ export function buildPostgresUpsert<TEntity extends object>(
 
     const conflictProperties = resolveConfiguredProperties(
         metadata,
-        options.conflictProperties ?? [metadata.keyProperty],
+        options.conflictProperties ?? metadata.keyProperties,
         'conflictProperties',
     );
     const conflictNames = new Set(
