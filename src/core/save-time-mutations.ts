@@ -125,8 +125,16 @@ export class SaveTimeMutationLog {
                 return;
             }
             pending = false;
+            const failures: unknown[] = [];
             for (const mutation of [...accepted].reverse()) {
-                mutation.restore();
+                try {
+                    mutation.restore();
+                } catch (error) {
+                    failures.push(error);
+                }
+            }
+            if (failures.length > 0) {
+                throw failures[0];
             }
         };
     }

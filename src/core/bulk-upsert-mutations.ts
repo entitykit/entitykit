@@ -36,14 +36,27 @@ export class BulkUpsertMutations<TEntity extends object> {
     }
 
     public restore(): void {
+        const failures: unknown[] = [];
         try {
             this.generatedValues.restore();
-            for (const rollback of [...this.tenantRollbacks].reverse()) {
+        } catch (error) {
+            failures.push(error);
+        }
+        for (const rollback of [...this.tenantRollbacks].reverse()) {
+            try {
                 rollback();
+            } catch (error) {
+                failures.push(error);
             }
-            this.tenantRollbacks.length = 0;
-        } finally {
+        }
+        this.tenantRollbacks.length = 0;
+        try {
             this.releaseReservation();
+        } catch (error) {
+            failures.push(error);
+        }
+        if (failures.length > 0) {
+            throw failures[0];
         }
     }
 }
