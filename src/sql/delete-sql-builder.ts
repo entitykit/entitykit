@@ -89,6 +89,8 @@ export class DeleteSqlBuilder {
         metadata: EntityMetadata<TEntity>,
         values: Readonly<Record<string, unknown>>,
         originalValues: Readonly<Record<string, unknown>> = {},
+        boundValues?: Readonly<Record<string, unknown>>,
+        originalBoundValues?: Readonly<Record<string, unknown>>,
     ): SqlStatement {
         const parameters = new SqlParameterBag(this.dialect);
         const where = buildKeyAndConcurrencyWhereFromValues(
@@ -97,6 +99,8 @@ export class DeleteSqlBuilder {
             values,
             originalValues,
             parameters,
+            boundValues,
+            originalBoundValues,
         );
 
         return {

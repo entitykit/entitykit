@@ -136,6 +136,8 @@ export class UpdateSqlBuilder {
         values: Readonly<Record<string, unknown>>,
         modifiedProperties: readonly string[],
         originalValues: Readonly<Record<string, unknown>> = {},
+        boundValues?: Readonly<Record<string, unknown>>,
+        originalBoundValues?: Readonly<Record<string, unknown>>,
     ): SqlStatement | undefined {
         return buildCapturedEntityUpdate(
             this.dialect,
@@ -143,6 +145,8 @@ export class UpdateSqlBuilder {
             values,
             modifiedProperties,
             originalValues,
+            boundValues,
+            originalBoundValues,
         );
     }
 }

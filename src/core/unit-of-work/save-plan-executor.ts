@@ -61,6 +61,8 @@ export class SavePlanExecutor {
                             .buildInsertFromValues(
                                 execution.metadata,
                                 persisted?.values ?? {},
+                                [],
+                                persisted?.boundValues,
                             )
                         : execution?.buildStatement?.(
                             (entity, propertyName) =>

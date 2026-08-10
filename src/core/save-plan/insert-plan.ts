@@ -72,6 +72,7 @@ export function buildInsertSavePlanEntry(
                 entry.metadata,
                 persisted.values,
                 allowMissingProperties,
+                persisted.boundValues,
             ),
             ...generatedKeyPropagations?.length
                 ? { isDeferred: true }
@@ -95,6 +96,7 @@ export function buildInsertSavePlanEntry(
         statement: sql.buildInsertBatchFromValues(
             first.entry.metadata,
             entries.map(entry => entry.values),
+            entries.map(entry => entry.boundValues),
         ),
         affectedEntityCount: entries.length,
         expectedAffectedRows: entries.length,

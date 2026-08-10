@@ -20,17 +20,23 @@ export abstract class ModificationSqlCapturedBuilder extends ModificationSqlOutb
         metadata: EntityMetadata<TEntity>,
         values: Readonly<Record<string, unknown>>,
         allowMissingProperties: readonly string[] = [],
+        boundValues?: Readonly<Record<string, unknown>>,
     ): SqlStatement {
         return this.insertBuilder.buildInsertFromValues(
-            metadata, values, allowMissingProperties,
+            metadata, values, allowMissingProperties, boundValues,
         );
     }
 
     public buildInsertBatchFromValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+        boundRows?: ReadonlyArray<Readonly<Record<string, unknown>>>,
     ): SqlStatement {
-        return this.insertBuilder.buildInsertBatchFromValues(metadata, rows);
+        return this.insertBuilder.buildInsertBatchFromValues(
+            metadata,
+            rows,
+            boundRows,
+        );
     }
 
     public buildUpdateFromValues<TEntity extends object>(
@@ -38,9 +44,16 @@ export abstract class ModificationSqlCapturedBuilder extends ModificationSqlOutb
         values: Readonly<Record<string, unknown>>,
         modifiedProperties: readonly string[],
         originalValues: Readonly<Record<string, unknown>> = {},
+        boundValues?: Readonly<Record<string, unknown>>,
+        originalBoundValues?: Readonly<Record<string, unknown>>,
     ): SqlStatement | undefined {
         return this.updateBuilder.buildUpdateFromValues(
-            metadata, values, modifiedProperties, originalValues,
+            metadata,
+            values,
+            modifiedProperties,
+            originalValues,
+            boundValues,
+            originalBoundValues,
         );
     }
 
@@ -48,9 +61,15 @@ export abstract class ModificationSqlCapturedBuilder extends ModificationSqlOutb
         metadata: EntityMetadata<TEntity>,
         values: Readonly<Record<string, unknown>>,
         originalValues: Readonly<Record<string, unknown>> = {},
+        boundValues?: Readonly<Record<string, unknown>>,
+        originalBoundValues?: Readonly<Record<string, unknown>>,
     ): SqlStatement {
         return this.deleteBuilder.buildDeleteFromValues(
-            metadata, values, originalValues,
+            metadata,
+            values,
+            originalValues,
+            boundValues,
+            originalBoundValues,
         );
     }
 }

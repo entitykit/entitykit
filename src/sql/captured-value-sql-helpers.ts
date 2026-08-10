@@ -31,6 +31,25 @@ export function validateRequiredPropertyValues<TEntity extends object>(
     }
 }
 
+/** Reuse an exact provider fact when save preparation captured one. */
+export function capturedBoundPropertyValue<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    property: PropertyMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+    boundValues?: Readonly<Record<string, unknown>>,
+): unknown {
+    return boundValues && Object.prototype.hasOwnProperty.call(
+        boundValues,
+        property.propertyName,
+    )
+        ? boundValues[property.propertyName]
+        : toBoundPropertyValue(
+            values[property.propertyName],
+            property,
+            metadata.entityName,
+        );
+}
+
 export function buildKeyAndConcurrencyWhereFromValues<
     TEntity extends object,
 >(
@@ -39,17 +58,33 @@ export function buildKeyAndConcurrencyWhereFromValues<
     values: Readonly<Record<string, unknown>>,
     originalValues: Readonly<Record<string, unknown>>,
     parameters: SqlParameterBag,
+    boundValues?: Readonly<Record<string, unknown>>,
+    originalBoundValues?: Readonly<Record<string, unknown>>,
 ): string {
     const conditions = metadata.keyPropertiesMetadata.map(property =>
         compareCapturedProperty(
-            dialect, property, values[property.propertyName], parameters,
-            metadata.entityName,
+            dialect,
+            property,
+            capturedBoundPropertyValue(
+                metadata,
+                property,
+                values,
+                boundValues,
+            ),
+            parameters,
         ));
     for (const property of metadata.properties.filter(item =>
         item.isConcurrencyToken)) {
         conditions.push(compareCapturedProperty(
-            dialect, property, originalValues[property.propertyName],
-            parameters, metadata.entityName,
+            dialect,
+            property,
+            capturedBoundPropertyValue(
+                metadata,
+                property,
+                originalValues,
+                originalBoundValues,
+            ),
+            parameters,
         ));
     }
     const tenantProperty = metadata.tenantKeyProperty;
@@ -63,9 +98,13 @@ export function buildKeyAndConcurrencyWhereFromValues<
         conditions.push(compareCapturedProperty(
             dialect,
             property,
-            originalValues[tenantProperty],
+            capturedBoundPropertyValue(
+                metadata,
+                property,
+                originalValues,
+                originalBoundValues,
+            ),
             parameters,
-            metadata.entityName,
         ));
     }
     return conditions.join(' and ');
@@ -74,17 +113,16 @@ export function buildKeyAndConcurrencyWhereFromValues<
 function compareCapturedProperty<TEntity extends object>(
     dialect: SqlDialect,
     property: PropertyMetadata<TEntity>,
-    value: unknown,
+    boundValue: unknown,
     parameters: SqlParameterBag,
-    entityName: string,
 ): string {
     const column = dialect.quoteIdentifier(property.columnName);
-    return value === null || value === undefined
+    return boundValue === null || boundValue === undefined
         ? `${column} is null`
         : `${column} = ${propertyComparisonParameter(
             dialect,
             parameters,
             property,
-            toBoundPropertyValue(value, property, entityName),
+            boundValue,
         )}`;
 }

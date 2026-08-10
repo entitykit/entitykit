@@ -3,7 +3,10 @@ import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import {
     validateRequiredProperties,
 } from './modification-sql-helpers';
-import { validateRequiredPropertyValues } from './captured-value-sql-helpers';
+import {
+    capturedBoundPropertyValue,
+    validateRequiredPropertyValues,
+} from './captured-value-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
 import { SqlParameterBag, type SqlStatement } from './sql-statement';
 import { isGeneratedOnAdd } from '../model/value-generated';
@@ -24,7 +27,11 @@ export function buildEntityInsert<TEntity extends object>(
     return buildEntityInsertFromReader(
         dialect,
         metadata,
-        property => readPropertyValue(entity, property),
+        property => toBoundPropertyValue(
+            readPropertyValue(entity, property),
+            property,
+            metadata.entityName,
+        ),
     );
 }
 
@@ -34,6 +41,7 @@ export function buildEntityInsertFromValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     valuesByProperty: Readonly<Record<string, unknown>>,
     allowMissingProperties: readonly string[] = [],
+    boundValues?: Readonly<Record<string, unknown>>,
 ): SqlStatement {
     validateRequiredPropertyValues(metadata, valuesByProperty, {
         forInsert: true,
@@ -43,14 +51,19 @@ export function buildEntityInsertFromValues<TEntity extends object>(
     return buildEntityInsertFromReader(
         dialect,
         metadata,
-        property => valuesByProperty[property.propertyName],
+        property => capturedBoundPropertyValue(
+            metadata,
+            property,
+            valuesByProperty,
+            boundValues,
+        ),
     );
 }
 
 function buildEntityInsertFromReader<TEntity extends object>(
     dialect: SqlDialect,
     metadata: EntityMetadata<TEntity>,
-    readValue: (property: PropertyMetadata<TEntity>) => unknown,
+    readBoundValue: (property: PropertyMetadata<TEntity>) => unknown,
 ): SqlStatement {
 
     const parameters = new SqlParameterBag(dialect);
@@ -64,11 +77,7 @@ function buildEntityInsertFromReader<TEntity extends object>(
         .map(property => dialect.quoteIdentifier(property.columnName))
         .join(', ');
     const values = writeProperties
-        .map(property => parameters.add(toBoundPropertyValue(
-            readValue(property),
-            property,
-            metadata.entityName,
-        )))
+        .map(property => parameters.add(readBoundValue(property)))
         .join(', ');
 
     const insertBody = writeProperties.length === 0

@@ -8,7 +8,10 @@ import {
     buildEntityInsert,
     buildEntityInsertFromValues,
 } from './entity-insert-sql';
-import { validateRequiredPropertyValues } from './captured-value-sql-helpers';
+import {
+    capturedBoundPropertyValue,
+    validateRequiredPropertyValues,
+} from './captured-value-sql-helpers';
 
 export function buildEntityInsertBatch<TEntity extends object>(
     dialect: SqlDialect,
@@ -48,6 +51,7 @@ export function buildEntityInsertBatchFromValues<TEntity extends object>(
     dialect: SqlDialect,
     metadata: EntityMetadata<TEntity>,
     rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+    boundRows?: ReadonlyArray<Readonly<Record<string, unknown>>>,
 ): SqlStatement {
     if (rows.length === 0) {
         throw new Error('At least one entity is required.');
@@ -57,6 +61,8 @@ export function buildEntityInsertBatchFromValues<TEntity extends object>(
             dialect,
             metadata,
             rows[0],
+            [],
+            boundRows?.[0],
         );
     }
 
@@ -64,13 +70,14 @@ export function buildEntityInsertBatchFromValues<TEntity extends object>(
     const columns = metadata.properties
         .map(property => dialect.quoteIdentifier(property.columnName))
         .join(', ');
-    const values = rows.map(row => {
+    const values = rows.map((row, rowIndex) => {
         validateRequiredPropertyValues(metadata, row, { forInsert: true });
         return `(${metadata.properties.map(property => parameters.add(
-            toBoundPropertyValue(
-                row[property.propertyName],
+            capturedBoundPropertyValue(
+                metadata,
                 property,
-                metadata.entityName,
+                row,
+                boundRows?.[rowIndex],
             ),
         )).join(', ')})`;
     });

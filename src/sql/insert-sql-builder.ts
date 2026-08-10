@@ -43,20 +43,28 @@ export class InsertSqlBuilder {
         metadata: EntityMetadata<TEntity>,
         values: Readonly<Record<string, unknown>>,
         allowMissingProperties: readonly string[] = [],
+        boundValues?: Readonly<Record<string, unknown>>,
     ): SqlStatement {
         return buildEntityInsertFromValues(
             this.dialect,
             metadata,
             values,
             allowMissingProperties,
+            boundValues,
         );
     }
 
     public buildInsertBatchFromValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+        boundRows?: ReadonlyArray<Readonly<Record<string, unknown>>>,
     ): SqlStatement {
-        return buildEntityInsertBatchFromValues(this.dialect, metadata, rows);
+        return buildEntityInsertBatchFromValues(
+            this.dialect,
+            metadata,
+            rows,
+            boundRows,
+        );
     }
 
     public buildInsertManyToMany<TEntity extends object>(

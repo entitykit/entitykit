@@ -1,10 +1,10 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { PropertyMetadata } from '../model/property-metadata';
 import { assertSoftDeletePersistedValue } from '../model/soft-delete-metadata-validation';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { isGeneratedOnUpdate } from '../model/value-generated';
 import {
     buildKeyAndConcurrencyWhereFromValues,
+    capturedBoundPropertyValue,
     validateRequiredPropertyValues,
 } from './captured-value-sql-helpers';
 import type { SqlDialect } from './sql-dialect';
@@ -16,6 +16,8 @@ export function buildCapturedEntityUpdate<TEntity extends object>(
     values: Readonly<Record<string, unknown>>,
     modifiedProperties: readonly string[],
     originalValues: Readonly<Record<string, unknown>> = {},
+    boundValues?: Readonly<Record<string, unknown>>,
+    originalBoundValues?: Readonly<Record<string, unknown>>,
 ): SqlStatement | undefined {
     validateRequiredPropertyValues(metadata, values);
     const versionProperties = metadata.properties.filter(property =>
@@ -35,12 +37,18 @@ export function buildCapturedEntityUpdate<TEntity extends object>(
     const parameters = new SqlParameterBag(dialect);
     const assignments = [
         ...writableProperties.map(property =>
-            `${dialect.quoteIdentifier(property.columnName)} = ${parameters.add(boundUpdateValue(metadata, property, values[property.propertyName]))}`),
+            `${dialect.quoteIdentifier(property.columnName)} = ${parameters.add(boundUpdateValue(metadata, property, values, boundValues))}`),
         ...versionProperties.map(property =>
             `${dialect.quoteIdentifier(property.columnName)} = ${dialect.quoteIdentifier(property.columnName)} + 1`),
     ].join(', ');
     const where = buildKeyAndConcurrencyWhereFromValues(
-        dialect, metadata, values, originalValues, parameters,
+        dialect,
+        metadata,
+        values,
+        originalValues,
+        parameters,
+        boundValues,
+        originalBoundValues,
     );
     const generatedProperties = metadata.properties.filter(property =>
         isGeneratedOnUpdate(property.valueGenerated));
@@ -58,9 +66,15 @@ export function buildCapturedEntityUpdate<TEntity extends object>(
 function boundUpdateValue<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     property: PropertyMetadata<TEntity>,
-    value: unknown,
+    values: Readonly<Record<string, unknown>>,
+    boundValues?: Readonly<Record<string, unknown>>,
 ): unknown {
-    const bound = toBoundPropertyValue(value, property, metadata.entityName);
+    const bound = capturedBoundPropertyValue(
+        metadata,
+        property,
+        values,
+        boundValues,
+    );
     if (property.propertyName === metadata.softDelete?.propertyName) {
         assertSoftDeletePersistedValue(
             metadata.entityName,

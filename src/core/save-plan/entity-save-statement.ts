@@ -16,7 +16,12 @@ export function buildSaveStatement(
         validateRequiredComplexPropertyValues(
             entry.metadata, snapshot.complexPropertyValues,
         );
-        return sql.buildInsertFromValues(entry.metadata, snapshot.values);
+        return sql.buildInsertFromValues(
+            entry.metadata,
+            snapshot.values,
+            [],
+            snapshot.boundValues,
+        );
     }
     if (snapshot.state === EntityState.Modified) {
         validateRequiredComplexPropertyValues(
@@ -40,6 +45,8 @@ export function buildSaveStatement(
             snapshot.values,
             modifiedProperties,
             entry.originalValues,
+            snapshot.boundValues,
+            snapshot.originalBoundValues,
         );
     }
     if (snapshot.state === EntityState.Deleted) {
@@ -48,7 +55,11 @@ export function buildSaveStatement(
         );
         assertNoKeyModifications(entry, modifiedProperties);
         return sql.buildDeleteFromValues(
-            entry.metadata, entry.originalValues, entry.originalValues,
+            entry.metadata,
+            entry.originalValues,
+            entry.originalValues,
+            snapshot.originalBoundValues,
+            snapshot.originalBoundValues,
         );
     }
     return undefined;
