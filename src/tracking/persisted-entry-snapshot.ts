@@ -11,6 +11,8 @@ export interface PersistedEntrySnapshot {
     readonly entry: EntityEntry<object>;
     readonly state: EntityState;
     readonly values: Record<string, unknown>;
+    readonly boundValues: Record<string, unknown>;
+    readonly originalBoundValues: Record<string, unknown>;
     readonly relationshipValues: Readonly<Record<string, unknown>>;
     readonly complexPropertyValues: Readonly<Record<string, unknown>>;
     readonly navigations: NavigationSnapshotValues;
@@ -44,6 +46,8 @@ function capturePersistedEntrySnapshotFromValues(
         entry,
         state,
         values,
+        boundValues: {},
+        originalBoundValues: {},
         relationshipValues: Object.fromEntries(
             entry.metadata.relationships.map(relationship => [
                 String(relationship.navigationProperty),
