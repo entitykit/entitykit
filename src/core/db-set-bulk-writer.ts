@@ -59,21 +59,22 @@ export class DbSetBulkWriter<TEntity extends object> {
         entities: readonly TEntity[],
         options: UpsertSqlOptions<TEntity> & DatabaseOperationOptions = {},
     ): Promise<number> {
-        if (entities.length === 0) {
+        const inputs = Object.freeze([...entities]);
+        if (inputs.length === 0) {
             return 0;
         }
         const capturedOptions = captureBulkUpsertOptions(options);
         assertBulkUpsertInputs(
             this.metadata,
             this.context.changeTracker,
-            entities,
+            inputs,
         );
         const mutations = new BulkUpsertMutations(
             this.metadata,
             this.context.valueReader,
         );
         mutations.reserveInputs(
-            this.context.changeTracker.reserveUntrackedEntities(entities),
+            this.context.changeTracker.reserveUntrackedEntities(inputs),
         );
         try {
             const allowsCrossTenantAccess = this.context.allowsCrossTenantAccess();
@@ -85,7 +86,7 @@ export class DbSetBulkWriter<TEntity extends object> {
                 : undefined;
             const generatedValues = mutations.generatedValues;
             const rows: Array<CapturedBulkUpsertRow<TEntity>> = [];
-            for (const entity of entities) {
+            for (const entity of inputs) {
                 mutations.recordTenant(applyBulkWriteTenant(
                     this.metadata,
                     entity,
@@ -110,7 +111,7 @@ export class DbSetBulkWriter<TEntity extends object> {
             const limit = this.context.options.dialect
                 .maxStatementParameters?.();
             const parameterBatchSize = limit === undefined
-                ? entities.length
+                ? rows.length
                 : Math.max(Math.floor(limit / parametersPerRow), 1);
             const batchSize = generatedValues.requiresSingleRow
                 ? 1
