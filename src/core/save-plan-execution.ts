@@ -5,6 +5,7 @@ import type { SavePlanEntry } from './save-plan';
 import type { ManyToManyChange } from './many-to-many-change';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { SqlStatement } from '../sql/sql-statement';
+import { assertTenantKeyNotStoreGenerated } from '../model/generated-tenant-key-validation';
 
 export interface GeneratedValuesPlan<TEntity extends object = object> {
     readonly metadata: EntityMetadata<TEntity>;
@@ -71,6 +72,11 @@ export function savePlanExecution(
 export function generatedValuesForUpdate(
     entry: EntityEntry<object>,
 ): GeneratedValuesPlan | undefined {
+    assertTenantKeyNotStoreGenerated(
+        entry.metadata.entityName,
+        entry.metadata.tenantKeyProperty,
+        entry.metadata.properties,
+    );
     const propertyNames = entry.metadata.properties
         .filter(property => isGeneratedOnUpdate(property.valueGenerated))
         .map(property => property.propertyName);

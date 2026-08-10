@@ -13,6 +13,7 @@ import {
 } from '../save-plan-execution';
 import { maxParameterBatchSize } from './parameter-batch-size';
 import { validateRequiredComplexPropertyValues } from '../../sql/required-complex-property-validation';
+import { assertTenantKeyNotStoreGenerated } from '../../model/generated-tenant-key-validation';
 
 /** Maximum rows that fit in one provider-legal multi-row insert statement. */
 export function maxInsertBatchSize(
@@ -42,6 +43,11 @@ export function buildInsertSavePlanEntry(
     if (entries.length === 0) {
         throw new Error('Insert save-plan group cannot be empty.');
     }
+    assertTenantKeyNotStoreGenerated(
+        entries[0].entry.metadata.entityName,
+        entries[0].entry.metadata.tenantKeyProperty,
+        entries[0].entry.metadata.properties,
+    );
     for (const snapshot of entries) {
         validateRequiredComplexPropertyValues(
             snapshot.entry.metadata,

@@ -3,6 +3,7 @@ import type { PropertyPathSelector } from './model-property-selector';
 import type { PropertyMetadata } from './property-metadata';
 import type { AuditMetadata, MutableAuditMetadata, MutableSoftDeleteMetadata, SoftDeleteMetadata } from './saas-metadata';
 import type { EntityBuilderProperties } from './entity-builder-properties';
+import { assertTenantKeyNotStoreGenerated } from './generated-tenant-key-validation';
 
 /**
  * SaaS-metadata facet: audit columns, soft-delete marker, and tenant key.
@@ -126,6 +127,11 @@ export class EntityBuilderSaas<TEntity extends object> {
         if (!propertyNames.has(this.tenantKeyProperty)) {
             throw new Error(`Tenant key configuration on entity '${this.ctor.name}' references unconfigured property '${this.tenantKeyProperty}'.`);
         }
+        assertTenantKeyNotStoreGenerated(
+            this.ctor.name,
+            this.tenantKeyProperty,
+            properties,
+        );
 
         return this.tenantKeyProperty;
     }

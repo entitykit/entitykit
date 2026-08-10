@@ -4,6 +4,7 @@ import {
     isGeneratedOnAdd,
     isGeneratedOnUpdate,
 } from '../model/value-generated';
+import { assertTenantKeyNotStoreGenerated } from '../model/generated-tenant-key-validation';
 
 export function defaultUpsertUpdateProperties<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
@@ -26,6 +27,11 @@ export function upsertInsertProperties<TEntity extends object>(
 export function upsertGeneratedProperties<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
 ): Array<PropertyMetadata<TEntity>> {
+    assertTenantKeyNotStoreGenerated(
+        metadata.entityName,
+        metadata.tenantKeyProperty,
+        metadata.properties,
+    );
     return metadata.properties.filter(property =>
         isGeneratedOnAdd(property.valueGenerated));
 }
