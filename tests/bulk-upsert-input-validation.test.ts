@@ -93,4 +93,19 @@ describe('bulk upsert input validation', () => {
         expect(connection.statements).toEqual([]);
         expect(connection.transactionEvents).toEqual([]);
     });
+
+    it('allows an untracked input when another object represents the same row', async () => {
+        const { db, connection } = open();
+        const tracked = Object.assign(row(), { id: 42 });
+        const incoming = row();
+        db.rows.attach(tracked);
+        connection.queueResult({ rows: [{ id: 42 }], rowCount: 1 });
+
+        await expect(db.rows.upsert([incoming], options)).resolves.toBe(1);
+
+        expect(incoming.id).toBe(42);
+        expect(db.entry(incoming)).toBeUndefined();
+        expect(db.entry(tracked)?.state).toBe(EntityState.Unchanged);
+        expect(connection.statements).toHaveLength(1);
+    });
 });
