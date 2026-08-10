@@ -33,7 +33,19 @@ class ReservedGeneratedRow {
 class ReservedTenantRow {
     public id = '';
     public label = '';
-    public tenantId?: string;
+    private storedTenantId?: string;
+    public onTenant?: () => void;
+
+    public get tenantId(): string | undefined {
+        return this.storedTenantId;
+    }
+
+    public set tenantId(value: string | undefined) {
+        this.storedTenantId = value;
+        if (value !== undefined) {
+            this.onTenant?.();
+        }
+    }
 }
 
 class ReservationContext extends DbContext {
@@ -151,6 +163,22 @@ describe('bulk upsert input reservations', () => {
         expect(row.id).toBe(0);
         expect(db.entry(row)).toBeUndefined();
         expect(() => db.generated.add(row)).not.toThrow();
+    });
+
+    it('rejects reentrant add from a tenant setter and restores the stamp', async () => {
+        const db = open();
+        const row = tenantRow();
+        row.onTenant = () => {
+            db.tenantRows.add(row);
+        };
+
+        await expect(db.tenantRows.upsert([row]))
+            .rejects.toThrow(reservationError);
+
+        expect(row.tenantId).toBeUndefined();
+        expect(db.entry(row)).toBeUndefined();
+        row.onTenant = undefined;
+        expect(() => db.tenantRows.add(row)).not.toThrow();
     });
 
     it('holds a generated input until an outer transaction commits', async () => {
