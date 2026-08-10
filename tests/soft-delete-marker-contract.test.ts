@@ -182,6 +182,24 @@ describe('soft-delete marker contract', () => {
         );
     });
 
+    it('does not infer the timestamp convention for a property-name omission', () => {
+        const model = new ModelBuilderImplementation();
+        model.entity(MarkerRow, entity => {
+            entity.toTable('marker_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.timestamp).hasColumnType('timestamp');
+            const unsafe = entity as unknown as {
+                softDelete(propertyName: string): unknown;
+            };
+            unsafe.softDelete('timestamp');
+        });
+
+        expect(() => model.build()).toThrow(
+            'must configure an explicit deleted value unless it uses the Date timestamp convention',
+        );
+    });
+
     it.each([
         'date',
         ' datetime(6) ',
