@@ -1,4 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
+import type { PropertyMetadata } from '../model/property-metadata';
+import { assertSoftDeletePersistedValue } from '../model/soft-delete-metadata-validation';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { isGeneratedOnUpdate } from '../model/value-generated';
 import {
@@ -33,7 +35,7 @@ export function buildCapturedEntityUpdate<TEntity extends object>(
     const parameters = new SqlParameterBag(dialect);
     const assignments = [
         ...writableProperties.map(property =>
-            `${dialect.quoteIdentifier(property.columnName)} = ${parameters.add(toBoundPropertyValue(values[property.propertyName], property, metadata.entityName))}`),
+            `${dialect.quoteIdentifier(property.columnName)} = ${parameters.add(boundUpdateValue(metadata, property, values[property.propertyName]))}`),
         ...versionProperties.map(property =>
             `${dialect.quoteIdentifier(property.columnName)} = ${dialect.quoteIdentifier(property.columnName)} + 1`),
     ].join(', ');
@@ -51,4 +53,20 @@ export function buildCapturedEntityUpdate<TEntity extends object>(
         text: `update ${dialect.quoteQualifiedIdentifier(metadata.schemaName, metadata.tableName)} set ${assignments} where ${where}${returning ? ` ${returning}` : ''}`,
         values: parameters.values,
     };
+}
+
+function boundUpdateValue<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    property: PropertyMetadata<TEntity>,
+    value: unknown,
+): unknown {
+    const bound = toBoundPropertyValue(value, property, metadata.entityName);
+    if (property.propertyName === metadata.softDelete?.propertyName) {
+        assertSoftDeletePersistedValue(
+            metadata.entityName,
+            property.propertyName,
+            bound,
+        );
+    }
+    return bound;
 }
