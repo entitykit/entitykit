@@ -163,4 +163,39 @@ describe('soft-delete marker contract', () => {
             'must configure an explicit deleted value unless it uses the Date timestamp convention',
         );
     });
+
+    it('rejects an untyped property-name omission without a convention', () => {
+        const model = new ModelBuilderImplementation();
+        model.entity(MarkerRow, entity => {
+            entity.toTable('marker_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.text).hasColumnType('text');
+            const unsafe = entity as unknown as {
+                softDelete(propertyName: string): unknown;
+            };
+            unsafe.softDelete('text');
+        });
+
+        expect(() => model.build()).toThrow(
+            'must configure an explicit deleted value unless it uses the Date timestamp convention',
+        );
+    });
+
+    it.each([
+        'date',
+        ' datetime(6) ',
+        ' timestamp with time zone ',
+    ])('recognizes the temporal %s column convention', columnType => {
+        const model = new ModelBuilderImplementation();
+        model.entity(MarkerRow, entity => {
+            entity.toTable('marker_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.timestamp).hasColumnType(columnType);
+            entity.softDelete(row => row.timestamp);
+        });
+
+        expect(() => model.build()).not.toThrow();
+    });
 });
