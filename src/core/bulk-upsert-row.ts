@@ -1,11 +1,13 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { readPropertyPath } from '../model/property-value-access';
+import {
+    readPropertyPath,
+    readPropertyValue,
+} from '../model/property-value-access';
 import { validateRequiredPropertyValues } from '../sql/captured-value-sql-helpers';
 import { validateRequiredComplexPropertyValues } from '../sql/required-complex-property-validation';
 import { upsertInsertProperties } from '../sql/upsert-property-selection';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
-import { readEntityValues } from '../tracking/entity-entry-snapshot';
-import { cloneSnapshotValue } from '../tracking/snapshot-value';
+import { toBoundProviderValue } from '../model/value-converter/store-value';
+import { snapshotPropertyValueCopies } from '../tracking/snapshot-value';
 
 export interface CapturedBulkUpsertRow<TEntity extends object> {
     readonly entity: TEntity;
@@ -18,7 +20,25 @@ export function captureBulkUpsertRow<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entity: TEntity,
 ): CapturedBulkUpsertRow<TEntity> {
-    const values = readEntityValues(metadata, entity);
+    const values: Record<string, unknown> = {};
+    const providerValues: Record<string, unknown> = {};
+    const insertProperties = new Set(upsertInsertProperties(metadata));
+    for (const property of metadata.properties) {
+        const context = `${metadata.entityName}.${property.propertyName}`;
+        const copies = snapshotPropertyValueCopies(
+            readPropertyValue(entity, property),
+            property.converter,
+            context,
+        );
+        values[property.propertyName] = copies.persistedValue;
+        if (insertProperties.has(property)) {
+            providerValues[property.propertyName] = toBoundProviderValue(
+                copies.providerValue,
+                property.columnType,
+                context,
+            );
+        }
+    }
     validateRequiredPropertyValues(metadata, values, { forInsert: true });
     validateRequiredComplexPropertyValues(
         metadata,
@@ -27,15 +47,9 @@ export function captureBulkUpsertRow<TEntity extends object>(
             readPropertyPath(entity, property.propertyPath),
         ])),
     );
-    const providerValues = Object.freeze(Object.fromEntries(
-        upsertInsertProperties(metadata).map(property => [
-            property.propertyName,
-            cloneSnapshotValue(toBoundPropertyValue(
-                values[property.propertyName],
-                property,
-                metadata.entityName,
-            )),
-        ]),
-    ));
-    return { entity, values: Object.freeze(values), providerValues };
+    return {
+        entity,
+        values: Object.freeze(values),
+        providerValues: Object.freeze(providerValues),
+    };
 }

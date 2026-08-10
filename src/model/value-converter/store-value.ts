@@ -28,19 +28,28 @@ export function toStoreValue<TProperty>(
     context = 'mapped JSON property',
 ): unknown {
     const converted = toProviderValue(value, converter, context);
-    if (converted === null || converted === undefined) {
-        return converted;
+    return toBoundProviderValue(converted, columnType, context);
+}
+
+/** Normalize an already converted provider snapshot for SQL binding. */
+export function toBoundProviderValue(
+    providerValue: unknown,
+    columnType: string,
+    context = 'mapped property',
+): unknown {
+    if (providerValue === null || providerValue === undefined) {
+        return providerValue;
     }
-    if (converted instanceof Date && Number.isNaN(converted.getTime())) {
+    if (providerValue instanceof Date && Number.isNaN(providerValue.getTime())) {
         throw new TypeError(`Invalid Date at '${context}'. Mapped Date values must be valid.`);
     }
 
     const normalized = columnType.trim().toLowerCase();
     if (normalized === 'json' || normalized === 'jsonb') {
-        return serializeJsonValue(converted, context);
+        return serializeJsonValue(providerValue, context);
     }
 
-    return converted;
+    return providerValue;
 }
 
 /** Convert a mapped model value to the exact representation bound to its column. */

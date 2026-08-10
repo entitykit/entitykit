@@ -9,6 +9,7 @@ import { snapshotValuesEqual } from './snapshot-value-equality';
 export { cloneSnapshotValue } from './snapshot-value-clone';
 
 export interface SnapshotPropertyValueCopies {
+    readonly providerValue: unknown;
     readonly persistedValue: unknown;
     readonly liveValue: unknown;
 }
@@ -34,12 +35,14 @@ export function snapshotPropertyValueCopies(
 ): SnapshotPropertyValueCopies {
     if (value === null || value === undefined || !converter) {
         return {
+            providerValue: cloneSnapshotValue(value),
             persistedValue: cloneSnapshotValue(value),
             liveValue: cloneSnapshotValue(value),
         };
     }
     const providerSnapshot = snapshotProviderValue(value, converter, context);
     return {
+        providerValue: cloneSnapshotValue(providerSnapshot),
         persistedValue: modelValueFromSnapshot(
             providerSnapshot,
             converter,
