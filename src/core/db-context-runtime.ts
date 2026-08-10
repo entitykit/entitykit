@@ -28,12 +28,9 @@ export abstract class DbContextRuntime {
         this, this.assertNotDisposed.bind(this),
     );
     protected abstract get transactionDepth(): number;
-    protected abstract registerTransactionState(
-        afterCommit: () => void, afterRollback: () => void): void;
+    protected abstract registerTransactionState(afterCommit: () => void, afterRollback: () => void): void;
     public abstract loadNavigation<TEntity extends object>(
-        entry: EntityEntry<TEntity>,
-        navigationProperty: string
-    ): Promise<unknown>;
+        entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
     public abstract applyQueryFilters<TEntity extends object>(metadata: EntityMetadata<TEntity>, query: QueryModel<TEntity>): QueryModel<TEntity>;
     public abstract beginQueryOperation(): QueryFilterOperation;
     public get options(): DbContextOptions {
@@ -86,7 +83,7 @@ export abstract class DbContextRuntime {
                 },
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),
                 beginQueryOperation: () => this.beginQueryOperation(),
-                currentTenantIdForWrites: () => this.currentTenantId(),
+                currentTenantIdForWrites: () => this.currentTenantIdForWrites(),
                 allowsCrossTenantAccess: () =>
                     this.options.tenantScope?.allowCrossTenantAccess === true,
                 registerTransactionState: this.registerTransactionState.bind(this),
@@ -99,6 +96,9 @@ export abstract class DbContextRuntime {
         );
         this.state.addSet(entityType, created);
         return created;
+    }
+    public currentTenantIdForWrites(): unknown {
+        return this.currentTenantId();
     }
     public async dispose(): Promise<void> {
         if (this.disposePromise) {
