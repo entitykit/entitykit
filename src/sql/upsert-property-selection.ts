@@ -3,6 +3,7 @@ import type { PropertyMetadata } from '../model/property-metadata';
 import type { EntityPropertyKey } from '../types';
 import {
     defaultUpsertUpdateProperties,
+    isAlternateKeyProperty,
     isStoreGenerated,
 } from './upsert-generated-properties';
 
@@ -83,6 +84,21 @@ function assertUpsertUpdates<TEntity extends object>(
         if (property.propertyName === metadata.tenantKeyProperty) {
             throw new Error(
                 `Upsert updateProperties cannot include tenant property '${metadata.entityName}.${property.propertyName}'.`,
+            );
+        }
+        if (property.isPrimaryKey) {
+            throw new Error(
+                `Upsert updateProperties cannot include primary-key property '${metadata.entityName}.${property.propertyName}'.`,
+            );
+        }
+        if (isAlternateKeyProperty(metadata, property.propertyName)) {
+            throw new Error(
+                `Upsert updateProperties cannot include alternate-key property '${metadata.entityName}.${property.propertyName}'.`,
+            );
+        }
+        if (property.isVersion) {
+            throw new Error(
+                `Upsert updateProperties cannot include version property '${metadata.entityName}.${property.propertyName}'.`,
             );
         }
         if (conflictNames.has(property.propertyName)) {
