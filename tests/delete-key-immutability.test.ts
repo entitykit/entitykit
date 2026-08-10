@@ -72,7 +72,7 @@ class DeleteIdentityContext extends DbContext {
             entity.softDelete(item => item.deletedAt);
             entity.property(item => item.id).hasColumnType('text').isRequired();
             entity.property(item => item.name).hasColumnType('text').isRequired();
-            entity.property(item => item.deletedAt).hasColumnType('text');
+            entity.property(item => item.deletedAt).hasColumnType('timestamp');
         });
     }
 }
