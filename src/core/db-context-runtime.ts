@@ -116,6 +116,12 @@ export abstract class DbContextRuntime {
             throw new ContextDisposedError(operation);
         }
     }
+    protected markStateRestorationFailure(
+        phase: 'commit' | 'rollback',
+        error: unknown,
+    ): void {
+        this.state.markStateRestorationFailure(phase, error);
+    }
     protected currentAuditTimestamp(): Date {
         return readSynchronousDate(this.options.auditing?.now, 'The audit clock') ?? new Date();
     }

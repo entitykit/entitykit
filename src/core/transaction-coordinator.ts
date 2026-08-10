@@ -22,7 +22,11 @@ export class TransactionCoordinator {
     private contextTransactionDepth = 0;
     private readonly afterCommitCallbacks: DeferredCallback[] = [];
 
-    constructor(private readonly getDatabase: () => DatabaseConnection) {}
+    constructor(
+        private readonly getDatabase: () => DatabaseConnection,
+        private readonly onDeferredCallbackFailure:
+        (phase: 'commit' | 'rollback', error: unknown) => void = () => undefined,
+    ) {}
 
     /** The current `transaction(...)` nesting depth; 0 when none is open. */
     public get depth(): number {
@@ -61,8 +65,8 @@ export class TransactionCoordinator {
             for (const callback of rolledBackCallbacks.reverse()) {
                 try {
                     callback.afterRollback?.();
-                } catch {
-                    // Preserve the transaction failure; rollback journals are best effort.
+                } catch (callbackError) {
+                    this.reportCallbackFailure('rollback', callbackError);
                 }
             }
             throw error;
@@ -79,9 +83,20 @@ export class TransactionCoordinator {
         for (const callback of callbacks) {
             try {
                 await callback.afterCommit();
-            } catch {
-                // The provider already committed; callbacks cannot change that result.
+            } catch (callbackError) {
+                this.reportCallbackFailure('commit', callbackError);
             }
+        }
+    }
+
+    private reportCallbackFailure(
+        phase: 'commit' | 'rollback',
+        error: unknown,
+    ): void {
+        try {
+            this.onDeferredCallbackFailure(phase, error);
+        } catch {
+            // Cleanup reporting cannot replace the transaction's real outcome.
         }
     }
 }

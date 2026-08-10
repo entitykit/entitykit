@@ -26,6 +26,20 @@ import { EntityKitError } from './entity-kit-error';
     }
 }
 
+/** Typed error reported when transaction cleanup cannot restore context state. */
+export class ContextStateRestorationError extends EntityKitError {
+    constructor(phase: 'commit' | 'rollback', cause: unknown) {
+        super(
+            `DbContext state restoration failed after transaction ${phase}. Its in-memory state may no longer match the database, so create a new context.`,
+            {
+                code: 'CONTEXT_STATE_RESTORATION_FAILED',
+                cause,
+                details: { phase },
+            },
+        );
+    }
+}
+
 /** Typed error reported when an explicitly cancelable operation is aborted. */
 export class OperationCanceledError extends EntityKitError {
     constructor(reason?: unknown) {

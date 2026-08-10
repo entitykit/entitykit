@@ -7,6 +7,7 @@ import { GuardedDatabaseConnection } from '../storage/guarded-database-connectio
 import {
     ContextConcurrentOperationError,
     ContextNotInitializedError,
+    ContextStateRestorationError,
 } from '../errors/runtime-errors';
 
 /**
@@ -19,6 +20,7 @@ export class DbContextState {
     private contextOptions?: DbContextOptions;
     private contextModel?: Model;
     private databaseConnection?: GuardedDatabaseConnection;
+    private stateRestorationFailure?: ContextStateRestorationError;
     private readonly sets: Map<EntityConstructor<object>, DbSet<object>> = new Map();
     public initialized = false;
     public disposed = false;
@@ -33,6 +35,9 @@ export class DbContextState {
     public get database(): DatabaseConnection {
         if (!this.initialized || !this.databaseConnection) {
             throw new ContextNotInitializedError();
+        }
+        if (this.stateRestorationFailure) {
+            throw this.stateRestorationFailure;
         }
         this.databaseConnection.assertUsable();
         return this.databaseConnection;
@@ -69,6 +74,14 @@ export class DbContextState {
             entityType,
             set as unknown as DbSet<object>,
         );
+    }
+
+    public markStateRestorationFailure(
+        phase: 'commit' | 'rollback',
+        cause: unknown,
+    ): void {
+        this.stateRestorationFailure ??=
+            new ContextStateRestorationError(phase, cause);
     }
 
     private get databaseOperationInProgress(): boolean {
