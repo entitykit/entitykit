@@ -48,6 +48,16 @@ export function validateModelRelationships(
                     `Relationship '${String(relationship.navigationProperty)}' on entity '${entity.entityName}' declares ${String(foreignKeyCount)} foreign-key ${foreignKeyCount === 1 ? 'property' : 'properties'}, but its principal key has ${String(principalKey.length)} properties.`,
                 );
             }
+            const foreignKeyProperties: readonly string[] =
+                relationship.foreignKeyProperties;
+            const versionForeignKey = foreignKeyProperties.find(
+                property => entity.getProperty(property).isVersion,
+            );
+            if (versionForeignKey !== undefined) {
+                throw new Error(
+                    `Property '${entity.entityName}.${versionForeignKey}' cannot combine version and relationship foreign-key roles. Configure separate properties for these persistence concerns.`,
+                );
+            }
             if (
                 relationship.deleteBehavior === DeleteBehavior.SetNull &&
                 relationship.foreignKeyProperties.some(property =>

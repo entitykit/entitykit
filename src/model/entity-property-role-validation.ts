@@ -25,6 +25,9 @@ export function validateEntityPropertyRoles<TEntity extends object>(
         const audits = auditRoles.get(name) ?? [];
         const tenant = name === roles.tenantKeyProperty;
         const softDelete = name === roles.softDelete?.propertyName;
+        if (audits.length > 1) {
+            incompatible(roles.entityName, name, audits[0], audits[1]);
+        }
         if (tenant && property.isVersion) {
             incompatible(roles.entityName, name, 'tenant', 'version');
         }
