@@ -14,13 +14,16 @@ export class EntitySaasConfiguration<TEntity extends object>
         return this;
     }
 
+    public softDelete<TPropertyName extends EntityPropertyKey<TEntity>>(
+        propertyName: TPropertyName,
+        deletedValue: NonNullable<TEntity[TPropertyName]>,
+    ): this;
     public softDelete(
-        propertyName: EntityPropertyKey<TEntity>,
-        deletedValue?: unknown
+        selector: PropertyPathSelector<TEntity, Date | null | undefined>,
     ): this;
     public softDelete<TProperty>(
         selector: PropertyPathSelector<TEntity, TProperty>,
-        deletedValue?: unknown
+        deletedValue: NoInfer<NonNullable<TProperty>>,
     ): this;
     public softDelete<TProperty>(
         propertyOrSelector:

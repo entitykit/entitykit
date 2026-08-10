@@ -125,7 +125,10 @@ describe('model misconfiguration', () => {
     // A live row is one whose marker is null, so a `not null` marker hides
     // every row forever. Measured before the fix: the schema script emitted
     // `"title" text not null` and every query carried `"title" is null`.
-        const result =  build(entity => entity.softDelete(doc => doc.title));
+        const result =  build(entity => entity.softDelete(
+            doc => doc.title,
+            'deleted',
+        ));
 
         expect(result.built).toBe(false);
         if (result.built) return;

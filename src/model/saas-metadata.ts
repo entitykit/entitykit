@@ -22,4 +22,5 @@ export interface SoftDeleteMetadata<TEntity extends object = object> {
 export interface MutableSoftDeleteMetadata<TEntity extends object = object> {
     propertyName?: EntityPropertyKey<TEntity>;
     deletedValue?: unknown;
+    usesTimestampConvention?: boolean;
 }

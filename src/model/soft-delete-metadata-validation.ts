@@ -51,11 +51,27 @@ export function finalizeSoftDeleteMetadata<TEntity extends object>(
             property,
             configured.deletedValue,
         );
+    } else if (!usesTimestampConvention(configured, property)) {
+        throw new Error(
+            `Soft delete property '${entityName}.${propertyName}' must configure an explicit deleted value unless it uses the Date timestamp convention.`,
+        );
     }
     return {
         propertyName,
         deletedValue: configured.deletedValue,
     };
+}
+
+function usesTimestampConvention<TEntity extends object>(
+    configured: MutableSoftDeleteMetadata<TEntity>,
+    property: PropertyMetadata<TEntity>,
+): boolean {
+    if (configured.usesTimestampConvention !== true) return false;
+    const columnType = property.columnType.trim().toLowerCase();
+    return property.converter !== undefined ||
+        columnType === 'date' ||
+        columnType.startsWith('datetime') ||
+        columnType.startsWith('timestamp');
 }
 
 function hasNullGeneratedDefault(property: PropertyMetadata): boolean {
@@ -93,6 +109,11 @@ export function assertSoftDeletePersistedValue(
     if (value === null || value === undefined) {
         throw new Error(
             `Soft delete property '${entityName}.${propertyName}' must write a non-null provider value, because SQL NULL represents a live row.`,
+        );
+    }
+    if (typeof value === 'number' && Number.isNaN(value)) {
+        throw new Error(
+            `Soft delete property '${entityName}.${propertyName}' cannot write NaN, because SQL providers do not share NaN persistence semantics.`,
         );
     }
 }

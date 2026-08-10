@@ -61,7 +61,13 @@ export class EntityBuilderSaas<TEntity extends object> {
     public softDelete<TProperty>(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity, TProperty>, deletedValue?: unknown): void {
         const propertyName = this.properties.resolvePropertyName(propertyOrSelector);
         this.configurePolicyProperty(propertyName);
-        this.softDeleteMetadata = { propertyName, deletedValue };
+        this.softDeleteMetadata = {
+            propertyName,
+            deletedValue,
+            usesTimestampConvention:
+                deletedValue === undefined &&
+                typeof propertyOrSelector === 'function',
+        };
     }
 
     public tenantKey<TProperty>(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity, TProperty>): void {

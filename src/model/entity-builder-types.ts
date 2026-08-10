@@ -70,13 +70,18 @@ export interface EntityBuilder<TEntity extends object> {
         navigationSelector: PropertySelector<TEntity, TNavigation>,
     ): ManyToManyRelationshipBuilder<TTarget>;
     /** Perform the audit operation. */ audit(config: EntityAuditConfiguration<TEntity>): this;
-    /** Perform the soft delete operation. */ softDelete(
-        propertyName: EntityPropertyKey<TEntity>,
-        deletedValue?: unknown,
+    /** Configure an explicitly valued soft-delete marker by property name. */ softDelete<
+        TPropertyName extends EntityPropertyKey<TEntity>,
+    >(
+        propertyName: TPropertyName,
+        deletedValue: NonNullable<TEntity[TPropertyName]>,
     ): this;
-    /** Perform the soft delete operation. */ softDelete<TProperty>(
+    /** Configure the conventional current-time marker for a Date property. */ softDelete(
+        selector: PropertyPathSelector<TEntity, Date | null | undefined>,
+    ): this;
+    /** Configure an explicitly valued soft-delete marker. */ softDelete<TProperty>(
         selector: PropertyPathSelector<TEntity, TProperty>,
-        deletedValue?: unknown,
+        deletedValue: NoInfer<NonNullable<TProperty>>,
     ): this;
     /** Perform the tenant key operation. */ tenantKey(propertyName: EntityPropertyKey<TEntity>): this;
     /** Perform the tenant key operation. */ tenantKey<TProperty>(selector: PropertyPathSelector<TEntity, TProperty>): this;

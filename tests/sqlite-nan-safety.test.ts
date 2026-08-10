@@ -6,7 +6,7 @@ import { buildGeneratedValueRefresh } from '../src/core/unit-of-work/generated-v
 import { sqliteDialect } from '../src/providers/sqlite';
 import { contextModel } from './support/public-api-internals';
 import type { EntityMetadata } from '../src/model/entity-metadata';
-import { requireDefined } from './support/require-defined';
+import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
 
 class NumericRow {
     public id = '';
@@ -33,7 +33,6 @@ class NumericContext extends DbContext {
             entity.property(row => row.token).hasColumnType('real')
                 .isConcurrencyToken();
             entity.property(row => row.deleted).hasColumnType('real');
-            entity.softDelete(row => row.deleted, Number.NaN);
         });
     }
 }
@@ -137,14 +136,17 @@ describe('SQLite NaN safety', () => {
             () => Number.NaN,
         )).toThrow('SQL parameters cannot contain NaN.');
 
-        const row = requireDefined(await db.rows.find('row-one'));
-        db.rows.remove(row);
-        await expect(db.saveChanges()).rejects.toThrow(
-            'SQL parameters cannot contain NaN.',
+        const model = new ModelBuilderImplementation();
+        model.entity(NumericRow, entity => {
+            entity.toTable('numeric_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.deleted).hasColumnType('real');
+            entity.softDelete(row => row.deleted, Number.NaN);
+        });
+        expect(() => model.build()).toThrow(
+            'cannot write NaN, because SQL providers do not share NaN persistence semantics',
         );
-        expect(await stored(db)).toMatchObject({ deleted: null });
-        db.changeTracker.clear();
-        expect(await db.rows.find('row-one')).not.toBeNull();
         await db.dispose();
     });
 });

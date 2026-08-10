@@ -122,14 +122,14 @@ describe('entity property role compatibility', () => {
 
     it('rejects soft deletion through an alternate key', () => {
         rejects(entity => {
-            entity.softDelete(row => row.alternate);
+            entity.softDelete(row => row.alternate, 'deleted');
         }, 'soft-delete', 'alternate-key', 'alternate');
     });
 
     it('rejects soft deletion through an optional primary key', () => {
         rejects(entity => {
             entity.property(row => row.id).isOptional();
-            entity.softDelete(row => row.id);
+            entity.softDelete(row => row.id, 'deleted');
         }, 'soft-delete', 'primary-key', 'id');
     });
 

@@ -30,7 +30,7 @@ const metadata = (() => {
             createdBy: row => row.createdBy,
             updatedBy: row => row.updatedBy,
         });
-        entity.softDelete(row => row.deletedAt);
+        entity.softDelete(row => row.deletedAt, 'deleted');
         entity.property(row => row.id).hasColumnType('text').isRequired();
         entity.property(row => row.partition).hasColumnType('text').isRequired();
         entity.property(row => row.externalCode).hasColumnType('text').isRequired();

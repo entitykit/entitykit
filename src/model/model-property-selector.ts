@@ -15,8 +15,8 @@ const modelPropertyPaths: WeakMap<object, readonly string[]> = new WeakMap();
     TEntity extends object,
     TProperty = unknown,
 > {
-    /** The model property type. */ readonly [modelPropertyPathType]?:
-    [TEntity, TProperty] extends [never, never] ? never : never;
+    /** Compile-time entity/property types carried by this path token. */
+    readonly [modelPropertyPathType]?: readonly [TEntity, TProperty];
 }
 
 /** Public type representing model property selector. */ export type ModelPropertySelector<TEntity extends object> = {

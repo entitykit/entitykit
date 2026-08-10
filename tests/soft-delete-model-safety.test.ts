@@ -14,7 +14,7 @@ class SoftDeleteModelRow {
 
 function softDeleteModel(
     configure: (property: PropertyBuilder<string | null>) => void,
-    deletedValue?: unknown,
+    deletedValue: unknown = 'deleted',
 ): ModelBuilderImplementation {
     return new ModelBuilderImplementation().entity(
         SoftDeleteModelRow,
@@ -23,7 +23,7 @@ function softDeleteModel(
             entity.hasKey(row => row.id);
             entity.property(row => row.id).hasColumnType('text').isRequired();
             configure(entity.property(row => row.marker).hasColumnType('text'));
-            entity.softDelete(row => row.marker, deletedValue);
+            entity.softDelete(row => row.marker, deletedValue as string);
         },
     );
 }
