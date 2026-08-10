@@ -13,8 +13,9 @@ import {
     captureBulkUpsertRow,
     type CapturedBulkUpsertRow,
 } from './bulk-upsert-row';
-import { BulkUpsertGeneratedValues } from './bulk-upsert-generated-values';
 import { upsertInsertProperties } from '../sql/upsert-property-selection';
+import { assertBulkUpsertInputs } from './bulk-upsert-input-validation';
+import { BulkUpsertMutations } from './bulk-upsert-mutations';
 
 /**
  * The batched `upsert` write for a `DbSet`.
@@ -60,6 +61,11 @@ export class DbSetBulkWriter<TEntity extends object> {
         if (entities.length === 0) {
             return 0;
         }
+        assertBulkUpsertInputs(
+            this.metadata,
+            this.context.changeTracker,
+            entities,
+        );
 
         const allowsCrossTenantAccess = this.context.allowsCrossTenantAccess();
         const tenantMatchProperty = allowsCrossTenantAccess
@@ -68,26 +74,15 @@ export class DbSetBulkWriter<TEntity extends object> {
         const tenantId = tenantMatchProperty
             ? this.context.currentTenantIdForWrites()
             : undefined;
-        const rollbackTenantWrites: Array<() => void> = [];
-        const generatedValues = new BulkUpsertGeneratedValues(
+        const mutations = new BulkUpsertMutations(
             this.metadata,
             this.context.valueReader,
         );
-        const acceptMutations = (): void => {
-            generatedValues.accept();
-            rollbackTenantWrites.length = 0;
-        };
-        const restoreMutations = (): void => {
-            generatedValues.restore();
-            for (const rollback of [...rollbackTenantWrites].reverse()) {
-                rollback();
-            }
-            rollbackTenantWrites.length = 0;
-        };
+        const generatedValues = mutations.generatedValues;
         try {
             const rows: Array<CapturedBulkUpsertRow<TEntity>> = [];
             for (const entity of entities) {
-                rollbackTenantWrites.push(applyBulkWriteTenant(
+                mutations.recordTenant(applyBulkWriteTenant(
                     this.metadata,
                     entity,
                     tenantId,
@@ -132,12 +127,12 @@ export class DbSetBulkWriter<TEntity extends object> {
                 generatedValues,
             });
             this.context.registerTransactionState(
-                acceptMutations,
-                restoreMutations,
+                mutations.accept.bind(mutations),
+                mutations.restore.bind(mutations),
             );
             return affected;
         } catch (error) {
-            restoreMutations();
+            mutations.restore();
             throw error;
         }
     }
