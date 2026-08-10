@@ -86,6 +86,35 @@ class RuntimeNullSoftContext extends DbContext {
     }
 }
 
+let collapseDuringBinding = false;
+const lateNullConverter = valueConverter<Date, string | null>({
+    toProvider: value => collapseDuringBinding ? null : value.toISOString(),
+    fromProvider: value => {
+        collapseDuringBinding = true;
+        return new Date(value ?? 0);
+    },
+});
+
+class LateNullSoftContext extends DbContext {
+    public rows = this.set(RuntimeNullSoftRow);
+
+    protected override configure(options: DbContextOptionsBuilder): void {
+        options.useProvider(sqliteProviderServices, ':memory:');
+    }
+
+    protected override model(model: ModelBuilder): void {
+        model.entity(RuntimeNullSoftRow, entity => {
+            entity.toTable('late_null_soft_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.label).hasColumnType('text').isRequired();
+            entity.property(row => row.deletedAt).hasColumnName('deleted_at')
+                .hasColumnType('text').hasConversion(lateNullConverter);
+            entity.softDelete(row => row.deletedAt);
+        });
+    }
+}
+
 async function createSchema(db: DbContext): Promise<void> {
     await db.database.connection.query({
         text: db.database.createScript(),
@@ -163,6 +192,28 @@ describe('soft-delete model safety', () => {
 
     it('defensively rejects a default marker converted to provider null', async () => {
         const db = RuntimeNullSoftContext.create();
+        await createSchema(db);
+        const row = Object.assign(new RuntimeNullSoftRow(), {
+            id: 'row-one',
+            label: 'one',
+        });
+        db.rows.add(row);
+        await db.saveChanges();
+        db.rows.remove(row);
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'must write a non-null provider value, because SQL NULL represents a live row',
+        );
+
+        expect(row.deletedAt).toBeNull();
+        expect(db.entry(row)?.state).toBe(EntityState.Deleted);
+        await expect(db.rows.count()).resolves.toBe(1);
+        await db.dispose();
+    });
+
+    it('rechecks the exact provider value bound into delete SQL', async () => {
+        collapseDuringBinding = false;
+        const db = LateNullSoftContext.create();
         await createSchema(db);
         const row = Object.assign(new RuntimeNullSoftRow(), {
             id: 'row-one',
