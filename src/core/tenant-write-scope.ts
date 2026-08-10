@@ -40,14 +40,38 @@ export function applyTenantWriteScope(scope: TenantWriteScope): void {
         scope.recordMutation(applied);
     }
 
-    if (!snapshotPropertyValuesEqual(
+    assertTenantWriteValue(
+        scope.entityName,
+        scope.tenantProperty,
+        scope.property,
         scope.readValue(),
         scope.tenantId,
-        scope.property.converter,
-        `${scope.entityName}.${scope.tenantProperty}`,
+        scope.allowsCrossTenantAccess,
+    );
+}
+
+export function assertTenantWriteValue(
+    entityName: string,
+    tenantProperty: string,
+    property: PropertyMetadata,
+    value: unknown,
+    tenantId: unknown,
+    allowsCrossTenantAccess: boolean,
+): void {
+    if (allowsCrossTenantAccess) {
+        return;
+    }
+    if (tenantId === undefined || tenantId === null) {
+        throw new TenantScopeUnavailableError(entityName);
+    }
+    if (!snapshotPropertyValuesEqual(
+        value,
+        tenantId,
+        property.converter,
+        `${entityName}.${tenantProperty}`,
     )) {
         throw new DbValidationError(
-            `Entity '${scope.entityName}' tenant key '${scope.tenantProperty}' must match the current tenant scope.`,
+            `Entity '${entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
         );
     }
 }

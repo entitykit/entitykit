@@ -4,7 +4,10 @@ import { SaveTimeMutationLog } from './save-time-mutations';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import { readPropertyValue, writePropertyValue } from '../model/property-value-access';
 import { ensurePolicyPropertyPath } from './policy-property-path';
-import { applyTenantWriteScope } from './tenant-write-scope';
+import {
+    applyTenantWriteScope,
+    assertTenantWriteValue,
+} from './tenant-write-scope';
 import { assertTrackedTenantBoundary } from './tracked-tenant-boundary';
 
 export function applyTenantWrite(
@@ -64,6 +67,28 @@ export function applyTenantWrite(
             return readPropertyValue(entry.entity, property);
         },
     });
+}
+
+export function assertPreparedTenantWrite(
+    snapshot: PersistedEntrySnapshot,
+    tenantId: unknown,
+    allowsCrossTenantAccess: boolean,
+): void {
+    const configuredProperty: unknown = snapshot.entry.metadata.tenantKeyProperty;
+    const tenantProperty = typeof configuredProperty === 'string'
+        ? configuredProperty
+        : undefined;
+    if (!tenantProperty) {
+        return;
+    }
+    assertTenantWriteValue(
+        snapshot.entry.metadata.entityName,
+        tenantProperty,
+        snapshot.entry.metadata.getProperty(tenantProperty),
+        snapshot.values[tenantProperty],
+        tenantId,
+        allowsCrossTenantAccess,
+    );
 }
 
 export function applyTenantOnAdd<TEntity extends object>(

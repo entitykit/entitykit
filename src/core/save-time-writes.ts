@@ -2,7 +2,10 @@ import { applyAuditWrites } from './save-time-audit';
 import { SaveTimeMutationLog } from './save-time-mutations';
 import type { SaveTimeScope } from './save-time-scope';
 import { applySoftDeleteWrite } from './save-time-soft-delete';
-import { applyTenantWrite } from './save-time-tenant';
+import {
+    applyTenantWrite,
+    assertPreparedTenantWrite,
+} from './save-time-tenant';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 /**
@@ -64,10 +67,12 @@ export class SaveTimeWrites {
         };
 
         return snapshots.map(snapshot => {
+            const tenantId = currentTenant();
+            const allowsCrossTenantAccess = this.scope.allowsCrossTenantAccess();
             applyTenantWrite(
                 snapshot,
-                currentTenant(),
-                this.scope.allowsCrossTenantAccess(),
+                tenantId,
+                allowsCrossTenantAccess,
                 this.mutations,
             );
             const prepared = applySoftDeleteWrite(
@@ -80,6 +85,11 @@ export class SaveTimeWrites {
                 currentTime,
                 currentUser,
                 this.mutations,
+            );
+            assertPreparedTenantWrite(
+                prepared,
+                tenantId,
+                allowsCrossTenantAccess,
             );
             return prepared;
         });
