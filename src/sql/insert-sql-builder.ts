@@ -46,11 +46,7 @@ export class InsertSqlBuilder {
         boundValues?: Readonly<Record<string, unknown>>,
     ): SqlStatement {
         return buildEntityInsertFromValues(
-            this.dialect,
-            metadata,
-            values,
-            allowMissingProperties,
-            boundValues,
+            this.dialect, metadata, values, allowMissingProperties, boundValues,
         );
     }
 
@@ -60,10 +56,7 @@ export class InsertSqlBuilder {
         boundRows?: ReadonlyArray<Readonly<Record<string, unknown>>>,
     ): SqlStatement {
         return buildEntityInsertBatchFromValues(
-            this.dialect,
-            metadata,
-            rows,
-            boundRows,
+            this.dialect, metadata, rows, boundRows,
         );
     }
 

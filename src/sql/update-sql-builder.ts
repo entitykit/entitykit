@@ -22,17 +22,14 @@ export interface PostgresUpdateSqlOptions<TEntity extends object> {
     readonly values: EntityUpdateValues<TEntity>;
     readonly predicate: PredicateNode;
 }
-
 export interface BulkUpdateSqlOptions<TEntity extends object> {
     readonly values: EntityUpdateValues<TEntity>;
     readonly predicate: PredicateNode;
 }
-
 export interface ResolvedBulkUpdateSqlOptions {
     readonly assignments: readonly MappedUpdateValue[];
     readonly predicate: PredicateNode;
 }
-
 /** Builds entity and predicate-driven UPDATE statements. */
 export class UpdateSqlBuilder {
     constructor(private readonly dialect: SqlDialect = postgresDialect) {}

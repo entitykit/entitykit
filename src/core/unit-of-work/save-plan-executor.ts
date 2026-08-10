@@ -14,7 +14,6 @@ import { reconcileSavePlanChanges } from './save-plan-reconciliation';
 
 export class SavePlanExecutor {
     private generatedValues?: GeneratedValueHydrator;
-
     constructor(
         private readonly getDatabase: () => DatabaseConnection,
         private readonly getDialect: () => SqlDialect,
@@ -113,7 +112,6 @@ export class SavePlanExecutor {
         this.generatedValues = undefined;
         return acceptance;
     }
-
     public restoreGeneratedValues(): void {
         this.generatedValues?.restore();
         this.generatedValues = undefined;
