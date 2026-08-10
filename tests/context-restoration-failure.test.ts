@@ -51,6 +51,48 @@ function open(connection: RecordingDatabaseConnection): RestorationFailureContex
 }
 
 describe('context transaction state restoration failures', () => {
+    it('preserves an immediate provider failure and poisons later database use', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const providerFailure = new Error('later batch failed');
+        const restorationFailure = new Error('generated setter refused restoration');
+        connection.queueResult({ rows: [{ id: 41 }], rowCount: 1 });
+        connection.queueError(providerFailure);
+        const db = open(connection);
+        const first = Object.assign(new FragileGeneratedRow(), {
+            sku: 'sku-one',
+            label: 'one',
+            failRestoration: restorationFailure,
+        });
+        const second = Object.assign(new FragileGeneratedRow(), {
+            sku: 'sku-two',
+            label: 'two',
+        });
+
+        await expect(db.rows.upsert([first, second], {
+            conflictProperties: ['sku'],
+            updateProperties: ['label'],
+        })).rejects.toBe(providerFailure);
+        expect(first.id).toBe(41);
+        expect(second.id).toBe(0);
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
+        expect(() => db.rows.attach(first)).not.toThrow();
+
+        let unusable: unknown;
+        try {
+            await db.rows.count();
+        } catch (error) {
+            unusable = error;
+        }
+        expect(unusable).toBeInstanceOf(ContextStateRestorationError);
+        expect(unusable).toMatchObject({
+            code: 'CONTEXT_STATE_RESTORATION_FAILED',
+            cause: restorationFailure,
+            details: { phase: 'rollback' },
+        });
+        await expect(db.transaction(() => undefined)).rejects.toBe(unusable);
+        expect(connection.statements).toHaveLength(2);
+    });
+
     it('preserves the transaction error and rejects later context use', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({ rows: [{ id: 41 }], rowCount: 1 });
