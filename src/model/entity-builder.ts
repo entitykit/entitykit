@@ -6,6 +6,7 @@ import {
 } from './complex-property-validation';
 import type { EntityBuilder } from './entity-builder-types';
 import type { EntityMaterializer } from '../types';
+import { finalizeEntitySaas } from './entity-saas-finalization';
 
 export class EntityBuilderImplementation<TEntity extends object>
     extends EntityRelationshipConfiguration<TEntity>
@@ -140,9 +141,7 @@ export class EntityBuilderImplementation<TEntity extends object>
             ),
             relationships,
             manyToManyRelationships,
-            audit: this.saasFacet.finalizeAudit(finalizedProperties),
-            softDelete: this.saasFacet.finalizeSoftDelete(finalizedProperties),
-            tenantKeyProperty: this.saasFacet.finalizeTenantKey(finalizedProperties),
+            ...finalizeEntitySaas(this.ctor.name, this.saasFacet, finalizedProperties, alternateKeys),
         });
     }
 }
