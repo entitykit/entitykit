@@ -1,7 +1,7 @@
-import { ensureComplexPropertyPath } from '../../materialization/complex-value-materializer';
 import type { EntityMetadata } from '../../model/entity-metadata';
 import {
-    propertyValueTarget,
+    readPropertyPath,
+    readPropertyValue,
     writePropertyValue,
 } from '../../model/property-value-access';
 import type { PropertyMetadata } from '../../model/property-metadata';
@@ -9,6 +9,7 @@ import { readStoreValue, type StoreValueReader } from '../../storage/store-value
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { AppliedPropertyValue } from './applied-generated-value';
 import { snapshotPropertyValueCopies } from '../../tracking/snapshot-value';
+import { ensurePolicyPropertyPath } from '../policy-property-path';
 
 export function writeGeneratedRow<TEntity extends object>(
     entity: TEntity,
@@ -57,17 +58,36 @@ export function writeGeneratedValue<TEntity extends object>(
         context,
     );
     if (metadata && liveValue !== null && liveValue !== undefined) {
-        ensureComplexPropertyPath(
+        ensurePolicyPropertyPath(
             metadata,
             entity,
-            property.propertyPath,
-            (target, propertyName) => {
-                mutations.record(target, propertyName);
-            },
+            property,
+            mutations,
         );
     }
-    const target = propertyValueTarget(entity, property.propertyPath);
-    mutations.record(target.target, target.propertyName);
+    const parentPath = property.propertyPath.slice(0, -1);
+    const parent = readPropertyPath(entity, parentPath);
+    if (
+        parentPath.length > 0 &&
+        (parent === null || parent === undefined)
+    ) {
+        return persistedValue;
+    }
+    const previous = readPropertyValue(entity, property);
     writePropertyValue(entity, property, liveValue);
+    let applied: unknown;
+    try {
+        applied = readPropertyValue(entity, property);
+    } catch (error) {
+        writePropertyValue(entity, property, previous);
+        throw error;
+    }
+    mutations.recordApplied(
+        entity,
+        property,
+        previous,
+        applied,
+        context,
+    );
     return persistedValue;
 }
