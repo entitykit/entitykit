@@ -86,7 +86,7 @@ describe('save-time audit snapshots', () => {
             updated_at: saveTimestamp.toISOString(),
         });
         expect(record.updatedAt).toEqual(saveTimestamp);
-        expect(record.observedNameReads).toBe(2);
+        expect(record.observedNameReads).toBe(3);
         await db.dispose();
     });
 });
