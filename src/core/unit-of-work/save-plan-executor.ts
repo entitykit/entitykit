@@ -10,7 +10,7 @@ import { savePlanExecution } from '../save-plan-execution';
 import { GeneratedValueHydrator } from './generated-value-hydrator';
 import { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { GeneratedValueAcceptance } from './applied-generated-value';
-import { reconcileTrackedChanges } from '../../tracking/change-tracker-detection';
+import { reconcileSavePlanChanges } from './save-plan-reconciliation';
 
 export class SavePlanExecutor {
     private generatedValues?: GeneratedValueHydrator;
@@ -97,7 +97,7 @@ export class SavePlanExecutor {
                 await runPlan();
                 beforeCommit();
             }, options);
-            reconcileTrackedChanges(this.changeTracker.entries());
+            reconcileSavePlanChanges(plan, this.changeTracker);
         } finally {
             releaseSaveLock();
         }
