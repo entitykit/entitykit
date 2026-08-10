@@ -4,7 +4,10 @@ import type {
     MutableSoftDeleteMetadata,
     SoftDeleteMetadata,
 } from './saas-metadata';
-import { isGeneratedOnUpdate } from './value-generated';
+import {
+    isGeneratedOnAdd,
+    isGeneratedOnUpdate,
+} from './value-generated';
 
 export function finalizeSoftDeleteMetadata<TEntity extends object>(
     entityName: string,
@@ -34,6 +37,14 @@ export function finalizeSoftDeleteMetadata<TEntity extends object>(
             `Soft delete property '${entityName}.${propertyName}' cannot be computed or generated on update, because remove() must write its deleted marker.`,
         );
     }
+    if (
+        isGeneratedOnAdd(property.valueGenerated) &&
+        !hasNullGeneratedDefault(property)
+    ) {
+        throw new Error(
+            `Soft delete property '${entityName}.${propertyName}' can be generated on add only when its database live-row default is SQL NULL.`,
+        );
+    }
     if (configured.deletedValue !== undefined) {
         assertSoftDeleteProviderValue(
             entityName,
@@ -45,6 +56,16 @@ export function finalizeSoftDeleteMetadata<TEntity extends object>(
         propertyName,
         deletedValue: configured.deletedValue,
     };
+}
+
+function hasNullGeneratedDefault(property: PropertyMetadata): boolean {
+    if (property.storeGeneration !== undefined) {
+        return false;
+    }
+    if (property.defaultSql !== undefined) {
+        return property.defaultSql.trim().toLowerCase() === 'null';
+    }
+    return property.defaultValue === undefined || property.defaultValue === null;
 }
 
 export function assertSoftDeleteProviderValue(
