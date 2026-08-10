@@ -73,6 +73,17 @@ export class DbSetBulkWriter<TEntity extends object> {
             this.metadata,
             this.context.valueReader,
         );
+        const acceptMutations = (): void => {
+            generatedValues.accept();
+            rollbackTenantWrites.length = 0;
+        };
+        const restoreMutations = (): void => {
+            generatedValues.restore();
+            for (const rollback of [...rollbackTenantWrites].reverse()) {
+                rollback();
+            }
+            rollbackTenantWrites.length = 0;
+        };
         try {
             const rows: Array<CapturedBulkUpsertRow<TEntity>> = [];
             for (const entity of entities) {
@@ -120,13 +131,13 @@ export class DbSetBulkWriter<TEntity extends object> {
                 batchSize,
                 generatedValues,
             });
-            generatedValues.accept();
+            this.context.registerTransactionState(
+                acceptMutations,
+                restoreMutations,
+            );
             return affected;
         } catch (error) {
-            generatedValues.restore();
-            for (const rollback of [...rollbackTenantWrites].reverse()) {
-                rollback();
-            }
+            restoreMutations();
             throw error;
         }
     }

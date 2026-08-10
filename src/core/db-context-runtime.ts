@@ -28,6 +28,8 @@ export abstract class DbContextRuntime {
         this, this.assertNotDisposed.bind(this),
     );
     protected abstract get transactionDepth(): number;
+    protected abstract registerTransactionState(
+        afterCommit: () => void, afterRollback: () => void): void;
     public abstract loadNavigation<TEntity extends object>(
         entry: EntityEntry<TEntity>,
         navigationProperty: string
@@ -84,9 +86,10 @@ export abstract class DbContextRuntime {
                 },
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),
                 beginQueryOperation: () => this.beginQueryOperation(),
-                currentTenantIdForWrites: () => this.currentTenantIdForWrites(),
+                currentTenantIdForWrites: () => this.currentTenantId(),
                 allowsCrossTenantAccess: () =>
                     this.options.tenantScope?.allowCrossTenantAccess === true,
+                registerTransactionState: this.registerTransactionState.bind(this),
                 loadNavigation: async (entry, navigationProperty) =>
                     this.loadNavigation(entry, navigationProperty),
             }), entityType,
@@ -96,9 +99,6 @@ export abstract class DbContextRuntime {
         );
         this.state.addSet(entityType, created);
         return created;
-    }
-    public currentTenantIdForWrites(): unknown {
-        return this.currentTenantId();
     }
     public async dispose(): Promise<void> {
         if (this.disposePromise) {

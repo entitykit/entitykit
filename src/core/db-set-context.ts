@@ -29,4 +29,8 @@ export interface DbSetContext extends EntityNavigationLoader {
 
     currentTenantIdForWrites(): unknown;
     allowsCrossTenantAccess(): boolean;
+    registerTransactionState(
+        afterCommit: () => void,
+        afterRollback: () => void,
+    ): void;
 }

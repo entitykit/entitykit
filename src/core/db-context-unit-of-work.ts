@@ -47,6 +47,20 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         return this.transactionCoordinator.depth;
     }
 
+    protected registerTransactionState(
+        afterCommit: () => void,
+        afterRollback: () => void,
+    ): void {
+        if (this.transactionCoordinator.depth === 0) {
+            afterCommit();
+            return;
+        }
+        this.transactionCoordinator.enqueueAfterCommitCallback(
+            afterCommit,
+            afterRollback,
+        );
+    }
+
     public getSavePlan(): readonly SavePlanEntry[] {
         this.assertSaveNotInProgress('getSavePlan()');
         try {
