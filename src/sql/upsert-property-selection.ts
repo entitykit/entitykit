@@ -43,6 +43,7 @@ export function resolveUpsertProperties<TEntity extends object>(
         readonly conflictProperties?: ReadonlyArray<EntityPropertyKey<TEntity>>;
         readonly updateProperties?: ReadonlyArray<EntityPropertyKey<TEntity>>;
     },
+    label = 'upsert',
 ): {
     readonly conflictProperties: Array<PropertyMetadata<TEntity>>;
     readonly updateProperties: Array<PropertyMetadata<TEntity>>;
@@ -51,7 +52,7 @@ export function resolveUpsertProperties<TEntity extends object>(
         metadata,
         options.conflictProperties ?? metadata.keyProperties,
         'conflictProperties',
-        'upsert',
+        label,
     );
     const conflictNames = new Set(
         conflictProperties.map(property => property.propertyName),
@@ -61,9 +62,15 @@ export function resolveUpsertProperties<TEntity extends object>(
             metadata,
             options.updateProperties,
             'updateProperties',
-            'upsert',
+            label,
         )
         : defaultUpsertUpdateProperties(metadata, conflictNames);
-    assertUpsertUpdates(metadata, updateProperties, conflictNames);
+    const validationLabel = label === 'upsert' ? 'Upsert' : label;
+    assertUpsertUpdates(
+        metadata,
+        updateProperties,
+        conflictNames,
+        validationLabel,
+    );
     return { conflictProperties, updateProperties };
 }
