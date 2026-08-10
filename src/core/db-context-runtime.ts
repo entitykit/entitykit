@@ -29,8 +29,7 @@ export abstract class DbContextRuntime {
     );
     protected abstract get transactionDepth(): number;
     protected abstract registerTransactionState(afterCommit: () => void, afterRollback: () => void): void;
-    public abstract loadNavigation<TEntity extends object>(
-        entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
+    public abstract loadNavigation<TEntity extends object>(entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
     public abstract applyQueryFilters<TEntity extends object>(metadata: EntityMetadata<TEntity>, query: QueryModel<TEntity>): QueryModel<TEntity>;
     public abstract beginQueryOperation(): QueryFilterOperation;
     public get options(): DbContextOptions {

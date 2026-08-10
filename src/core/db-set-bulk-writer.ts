@@ -31,7 +31,6 @@ import { captureBulkUpsertOptions } from './capture-bulk-upsert-options';
  */
 export class DbSetBulkWriter<TEntity extends object> {
     private modificationSqlBuilder?: ModificationSqlBuilder;
-
     constructor(
         private readonly context: DbSetContext,
         private readonly entityType: EntityConstructor<TEntity>,
