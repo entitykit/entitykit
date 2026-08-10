@@ -33,4 +33,5 @@ export interface DbSetContext extends EntityNavigationLoader {
         afterCommit: () => void,
         afterRollback: () => void,
     ): void;
+    markStateRestorationFailure(cause: unknown): void;
 }

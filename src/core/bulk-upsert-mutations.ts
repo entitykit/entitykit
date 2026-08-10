@@ -59,4 +59,14 @@ export class BulkUpsertMutations<TEntity extends object> {
             throw failures[0];
         }
     }
+
+    public restoreAfterFailure(
+        markStateRestorationFailure: (cause: unknown) => void,
+    ): void {
+        try {
+            this.restore();
+        } catch (error) {
+            markStateRestorationFailure(error);
+        }
+    }
 }

@@ -137,11 +137,12 @@ export class DbSetBulkWriter<TEntity extends object> {
             );
             return affected;
         } catch (error) {
-            mutations.restore();
+            mutations.restoreAfterFailure(cause => {
+                this.context.markStateRestorationFailure(cause);
+            });
             throw error;
         }
     }
-
     private modificationSql(): ModificationSqlBuilder {
         this.modificationSqlBuilder ??= new ModificationSqlBuilder(this.context.dialect);
         return this.modificationSqlBuilder;

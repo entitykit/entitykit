@@ -87,6 +87,7 @@ export abstract class DbContextRuntime {
                 allowsCrossTenantAccess: () =>
                     this.options.tenantScope?.allowCrossTenantAccess === true,
                 registerTransactionState: this.registerTransactionState.bind(this),
+                markStateRestorationFailure: this.state.markStateRestorationFailure.bind(this.state, 'rollback'),
                 loadNavigation: async (entry, navigationProperty) =>
                     this.loadNavigation(entry, navigationProperty),
             }), entityType,

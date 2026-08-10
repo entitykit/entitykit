@@ -25,6 +25,7 @@ interface DbSetContextAdapterOptions {
         afterCommit: () => void,
         afterRollback: () => void,
     ) => void;
+    readonly markStateRestorationFailure: (cause: unknown) => void;
     readonly loadNavigation: <TEntity extends object>(
         entry: EntityEntry<TEntity>,
         navigationProperty: string,
@@ -56,6 +57,7 @@ export function createDbSetContextAdapter(options: DbSetContextAdapterOptions): 
         currentTenantIdForWrites: options.currentTenantIdForWrites,
         allowsCrossTenantAccess: options.allowsCrossTenantAccess,
         registerTransactionState: options.registerTransactionState,
+        markStateRestorationFailure: options.markStateRestorationFailure,
         loadNavigation: options.loadNavigation,
     };
 }
