@@ -4,8 +4,8 @@ import type { SaveTimeScope } from './save-time-scope';
 import { applySoftDeleteWrite } from './save-time-soft-delete';
 import {
     applyTenantWrite,
-    assertPreparedTenantWrite,
 } from './save-time-tenant';
+import { capturePreparedTenantProviderFacts } from './prepared-tenant-provider-facts';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 
 /**
@@ -86,7 +86,7 @@ export class SaveTimeWrites {
                 currentUser,
                 this.mutations,
             );
-            assertPreparedTenantWrite(
+            capturePreparedTenantProviderFacts(
                 prepared,
                 tenantId,
                 allowsCrossTenantAccess,
