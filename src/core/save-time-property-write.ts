@@ -13,6 +13,7 @@ export function writeSaveTimeProperty(
     propertyName: string,
     suppliedValue: unknown,
     mutations: SaveTimeMutationLog,
+    validatePersistedValue?: (value: unknown) => void,
 ): void {
     const { entry } = snapshot;
     const property = entry.metadata.getProperty(propertyName);
@@ -22,6 +23,7 @@ export function writeSaveTimeProperty(
         `${entry.metadata.entityName}.${propertyName}`,
     );
     const context = `${entry.metadata.entityName}.${propertyName}`;
+    validatePersistedValue?.(persistedValue);
     ensurePolicyPropertyPath(
         entry.metadata,
         entry.entity,

@@ -4,6 +4,7 @@ import type { PropertyMetadata } from './property-metadata';
 import type { AuditMetadata, MutableAuditMetadata, MutableSoftDeleteMetadata, SoftDeleteMetadata } from './saas-metadata';
 import type { EntityBuilderProperties } from './entity-builder-properties';
 import { assertTenantKeyNotStoreGenerated } from './generated-tenant-key-validation';
+import { finalizeSoftDeleteMetadata } from './soft-delete-metadata-validation';
 
 /**
  * SaaS-metadata facet: audit columns, soft-delete marker, and tenant key.
@@ -95,27 +96,11 @@ export class EntityBuilderSaas<TEntity extends object> {
     }
 
     public finalizeSoftDelete(properties: ReadonlyArray<PropertyMetadata<TEntity>>): SoftDeleteMetadata<TEntity> | undefined {
-        if (!this.softDeleteMetadata?.propertyName) {
-            return undefined;
-        }
-
-        const propertyName = this.softDeleteMetadata.propertyName;
-        const property = properties.find(candidate => candidate.propertyName === propertyName);
-        if (!property) {
-            throw new Error(`Soft delete configuration on entity '${this.ctor.name}' references unconfigured property '${propertyName}'.`);
-        }
-
-        // A live row is one whose marker is null, so a required marker makes every
-        // row permanently invisible: the generated column is `not null` and the
-        // implicit filter is `is null`. Silent and total, so it is refused here.
-        if (property.isRequired) {
-            throw new Error(`Soft delete property '${propertyName}' on entity '${this.ctor.name}' must be nullable, because a live row is one whose marker is null.`);
-        }
-
-        return {
-            propertyName: this.softDeleteMetadata.propertyName,
-            deletedValue: this.softDeleteMetadata.deletedValue,
-        };
+        return finalizeSoftDeleteMetadata(
+            this.ctor.name,
+            this.softDeleteMetadata,
+            properties,
+        );
     }
 
     public finalizeTenantKey(properties: ReadonlyArray<PropertyMetadata<TEntity>>): EntityPropertyKey<TEntity> | undefined {
