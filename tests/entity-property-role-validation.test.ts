@@ -126,6 +126,13 @@ describe('entity property role compatibility', () => {
         }, 'soft-delete', 'alternate-key', 'alternate');
     });
 
+    it('rejects soft deletion through an optional primary key', () => {
+        rejects(entity => {
+            entity.property(row => row.id).isOptional();
+            entity.softDelete(row => row.id);
+        }, 'soft-delete', 'primary-key', 'id');
+    });
+
     it('rejects audit writes through immutable keys', () => {
         rejects(entity => {
             entity.audit({ createdBy: row => row.id });
