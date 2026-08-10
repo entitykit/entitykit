@@ -124,6 +124,19 @@ describe('soft-delete model safety', () => {
         );
     });
 
+    it.each([
+        ['a non-null SQL default', (property: PropertyBuilder<string | null>) =>
+            property.hasDefaultSql('current_timestamp').valueGeneratedOnAdd()],
+        ['a non-null value default', (property: PropertyBuilder<string | null>) =>
+            property.hasDefaultValue('deleted').valueGeneratedOnAdd()],
+        ['store generation', (property: PropertyBuilder<string | null>) =>
+            property.useSequence('soft_delete_sequence').isOptional()],
+    ] as const)('rejects a generated-on-add marker with %s', (_label, configure) => {
+        expect(() => softDeleteModel(configure).build()).toThrow(
+            'can be generated on add only when its database live-row default is SQL NULL',
+        );
+    });
+
     it('allows generated-on-add live defaults and performs a real delete update', async () => {
         const db = GeneratedAddSoftContext.create();
         await createSchema(db);
