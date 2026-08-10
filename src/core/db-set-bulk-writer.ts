@@ -16,6 +16,7 @@ import {
 import { upsertInsertProperties } from '../sql/upsert-property-selection';
 import { assertBulkUpsertInputs } from './bulk-upsert-input-validation';
 import { BulkUpsertMutations } from './bulk-upsert-mutations';
+import { captureBulkUpsertOptions } from './capture-bulk-upsert-options';
 
 /**
  * The batched `upsert` write for a `DbSet`.
@@ -61,6 +62,7 @@ export class DbSetBulkWriter<TEntity extends object> {
         if (entities.length === 0) {
             return 0;
         }
+        const capturedOptions = captureBulkUpsertOptions(options);
         assertBulkUpsertInputs(
             this.metadata,
             this.context.changeTracker,
@@ -123,7 +125,7 @@ export class DbSetBulkWriter<TEntity extends object> {
                 diagnostics: this.diagnostics,
                 sql,
                 rows,
-                options,
+                options: capturedOptions,
                 tenantMatchProperty,
                 batchSize,
                 generatedValues,
