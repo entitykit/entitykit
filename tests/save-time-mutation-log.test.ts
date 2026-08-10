@@ -55,4 +55,30 @@ describe('save-time property mutation log', () => {
         expect(entity.value).toBe(applied);
         expect([...entity.value]).toEqual([9, 4]);
     });
+
+    it('attempts every restoration before reporting the first failure', () => {
+        const failure = new Error('restore failed');
+        const values: Record<string, unknown> = {
+            good: 'before-good',
+            bad: 'before-bad',
+        };
+        const log = new SaveTimeMutationLog();
+        log.record(values, 'good');
+        log.record(values, 'bad');
+        values.good = 'after-good';
+        Object.defineProperty(values, 'bad', {
+            configurable: true,
+            get: () => 'after-bad',
+            set: () => {
+                throw failure;
+            },
+        });
+
+        expect(() => {
+            log.restore();
+        }).toThrow(failure);
+
+        expect(values.good).toBe('before-good');
+        expect(values.bad).toBe('after-bad');
+    });
 });

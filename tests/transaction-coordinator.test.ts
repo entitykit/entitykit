@@ -41,4 +41,42 @@ describe('TransactionCoordinator', () => {
         await expect(result).resolves.toBeUndefined();
         expect(database.transactionEvents).toEqual(['begin', 'commit']);
     });
+
+    it('reports rollback cleanup failure without replacing the original error', async () => {
+        const database = new RecordingDatabaseConnection();
+        const callbackFailure = new Error('rollback callback failed');
+        const transactionFailure = new Error('transaction failed');
+        const reports: Array<{ phase: string; error: unknown }> = [];
+        const completed: string[] = [];
+        const coordinator = new TransactionCoordinator(
+            () => database,
+            (phase, error) => {
+                reports.push({ phase, error });
+            },
+        );
+
+        const result = coordinator.run(() => {
+            coordinator.enqueueAfterCommitCallback(
+                () => undefined,
+                () => {
+                    completed.push('earlier');
+                },
+            );
+            coordinator.enqueueAfterCommitCallback(
+                () => undefined,
+                () => {
+                    completed.push('failing');
+                    throw callbackFailure;
+                },
+            );
+            throw transactionFailure;
+        });
+
+        await expect(result).rejects.toBe(transactionFailure);
+        expect(completed).toEqual(['failing', 'earlier']);
+        expect(reports).toEqual([{
+            phase: 'rollback',
+            error: callbackFailure,
+        }]);
+    });
 });
