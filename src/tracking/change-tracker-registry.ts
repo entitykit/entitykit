@@ -40,6 +40,7 @@ export class ChangeTrackerRegistry {
         originalValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
         metadata.assertWritable('Tracking');
+        this.assertMutation('Tracking an entity', entity);
         const existingByObject = this.entriesByEntity.get(entity);
         if (existingByObject) {
             const registeredIdentity = this.identities.keyFor(existingByObject);
@@ -52,7 +53,6 @@ export class ChangeTrackerRegistry {
             this.assertInvariant();
             return existingByObject as unknown as EntityEntry<TEntity>;
         }
-
         const capturedValues = originalValues
             ? cloneEntityValues(metadata, originalValues)
             : readEntityValues(metadata, entity);

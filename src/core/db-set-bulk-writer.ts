@@ -66,20 +66,22 @@ export class DbSetBulkWriter<TEntity extends object> {
             this.context.changeTracker,
             entities,
         );
-
-        const allowsCrossTenantAccess = this.context.allowsCrossTenantAccess();
-        const tenantMatchProperty = allowsCrossTenantAccess
-            ? undefined
-            : this.metadata.tenantKeyProperty;
-        const tenantId = tenantMatchProperty
-            ? this.context.currentTenantIdForWrites()
-            : undefined;
         const mutations = new BulkUpsertMutations(
             this.metadata,
             this.context.valueReader,
         );
-        const generatedValues = mutations.generatedValues;
+        mutations.reserveInputs(
+            this.context.changeTracker.reserveUntrackedEntities(entities),
+        );
         try {
+            const allowsCrossTenantAccess = this.context.allowsCrossTenantAccess();
+            const tenantMatchProperty = allowsCrossTenantAccess
+                ? undefined
+                : this.metadata.tenantKeyProperty;
+            const tenantId = tenantMatchProperty
+                ? this.context.currentTenantIdForWrites()
+                : undefined;
+            const generatedValues = mutations.generatedValues;
             const rows: Array<CapturedBulkUpsertRow<TEntity>> = [];
             for (const entity of entities) {
                 mutations.recordTenant(applyBulkWriteTenant(

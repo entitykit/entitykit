@@ -6,6 +6,7 @@ import { BulkUpsertGeneratedValues } from './bulk-upsert-generated-values';
 export class BulkUpsertMutations<TEntity extends object> {
     public readonly generatedValues: BulkUpsertGeneratedValues<TEntity>;
     private readonly tenantRollbacks: Array<() => void> = [];
+    private releaseReservation: () => void = () => undefined;
 
     constructor(
         metadata: EntityMetadata<TEntity>,
@@ -17,20 +18,32 @@ export class BulkUpsertMutations<TEntity extends object> {
         );
     }
 
+    public reserveInputs(release: () => void): void {
+        this.releaseReservation = release;
+    }
+
     public recordTenant(rollback: () => void): void {
         this.tenantRollbacks.push(rollback);
     }
 
     public accept(): void {
-        this.generatedValues.accept();
-        this.tenantRollbacks.length = 0;
+        try {
+            this.generatedValues.accept();
+            this.tenantRollbacks.length = 0;
+        } finally {
+            this.releaseReservation();
+        }
     }
 
     public restore(): void {
-        this.generatedValues.restore();
-        for (const rollback of [...this.tenantRollbacks].reverse()) {
-            rollback();
+        try {
+            this.generatedValues.restore();
+            for (const rollback of [...this.tenantRollbacks].reverse()) {
+                rollback();
+            }
+            this.tenantRollbacks.length = 0;
+        } finally {
+            this.releaseReservation();
         }
-        this.tenantRollbacks.length = 0;
     }
 }

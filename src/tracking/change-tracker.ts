@@ -89,7 +89,6 @@ export class ChangeTracker {
     public entries(): ReadonlyArray<EntityEntry<object>> {
         return this.registry.entries();
     }
-
     public detach<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         this.saveGuard.assertMutation('Detaching an entity', entity);
         const entry = this.registry.detach(entity);
@@ -143,5 +142,8 @@ export class ChangeTracker {
 
     public beginSaveExecution(): () => void {
         return this.saveGuard.beginExecution();
+    }
+    public reserveUntrackedEntities(entities: readonly object[]): () => void {
+        return this.saveGuard.reserveUpsertInputs(entities);
     }
 }

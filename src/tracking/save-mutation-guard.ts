@@ -6,6 +6,8 @@ export class SaveMutationGuard {
     private pendingCount = 0;
     private readonly pendingByEntity: WeakMap<object, number> = new WeakMap();
     private readonly pendingByIdentity: Map<string, number> = new Map();
+    private upsertReservationCount = 0;
+    private readonly upsertReservations: WeakMap<object, number> = new WeakMap();
 
     public beginExecution(): () => void {
         this.executionDepth += 1;
@@ -55,6 +57,28 @@ export class SaveMutationGuard {
         };
     }
 
+    public reserveUpsertInputs(entities: readonly object[]): () => void {
+        const reserved: Set<object> = new Set(entities);
+        for (const entity of reserved) {
+            if (this.upsertReservations.has(entity)) {
+                this.throwUpsertReservation('upsert()');
+            }
+        }
+        for (const entity of reserved) {
+            this.upsertReservations.set(entity, 1);
+            this.upsertReservationCount += 1;
+        }
+        let active = true;
+        return () => {
+            if (!active) return;
+            active = false;
+            for (const entity of reserved) {
+                this.upsertReservations.delete(entity);
+                this.upsertReservationCount -= 1;
+            }
+        };
+    }
+
     public assertMutation(
         operation: string,
         entity?: object,
@@ -65,6 +89,12 @@ export class SaveMutationGuard {
             'change tracked structure',
         );
         if (
+            entity && this.upsertReservations.has(entity) ||
+            entity === undefined && this.upsertReservationCount > 0
+        ) {
+            this.throwUpsertReservation(operation);
+        }
+        if (
             entity && this.pendingByEntity.has(entity) ||
             identityKey !== undefined && this.pendingByIdentity.has(identityKey) ||
             entity === undefined && this.pendingCount > 0
@@ -74,6 +104,13 @@ export class SaveMutationGuard {
                 `${operation} cannot change an entity accepted inside an open transaction. Complete or roll back the transaction first.`,
             );
         }
+    }
+
+    private throwUpsertReservation(operation: string): never {
+        throw new ContextConcurrentOperationError(
+            operation,
+            `${operation} cannot proceed because an upsert input cannot become tracked or change tracking state until its transaction finishes.`,
+        );
     }
 
     public assertNoExecution(
