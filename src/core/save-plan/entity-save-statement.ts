@@ -6,6 +6,7 @@ import { EntityState } from '../../tracking/entity-state';
 import type { SqlStatement } from '../../sql/sql-statement';
 import { assertNoKeyModifications } from './immutable-key-change';
 import { assertNoVersionModifications } from './store-managed-version-change';
+import type { EntityMetadata } from '../../model/entity-metadata';
 
 export function buildSaveStatement(
     sql: ModificationSqlBuilder,
@@ -22,8 +23,13 @@ export function buildSaveStatement(
         validateRequiredComplexPropertyValues(
             entry.metadata, snapshot.complexPropertyValues,
         );
-        const modifiedProperties = modifiedEntityValueProperties(
-            entry.metadata, snapshot.values, entry.originalValues,
+        const modifiedProperties = includeSoftDeleteTransition(
+            entry.metadata,
+            snapshot.values,
+            entry.originalValues,
+            modifiedEntityValueProperties(
+                entry.metadata, snapshot.values, entry.originalValues,
+            ),
         );
         assertNoKeyModifications(entry, modifiedProperties);
         assertNoVersionModifications(entry, modifiedProperties);
@@ -44,4 +50,23 @@ export function buildSaveStatement(
         );
     }
     return undefined;
+}
+
+function includeSoftDeleteTransition<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+    originalValues: Readonly<Record<string, unknown>>,
+    modifiedProperties: string[],
+): string[] {
+    const property = metadata.softDelete?.propertyName;
+    if (
+        !property ||
+        modifiedProperties.includes(property) ||
+        values[property] === null ||
+        values[property] === undefined ||
+        originalValues[property] !== null && originalValues[property] !== undefined
+    ) {
+        return modifiedProperties;
+    }
+    return [...modifiedProperties, property];
 }
