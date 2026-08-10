@@ -19,3 +19,15 @@ export function detectTrackedRelationships(tracker: ChangeTracker): void {
         detectRelationshipChanges(tracker, configuredModel);
     }
 }
+
+export function reconcileTrackedChanges(
+    entries: ReadonlyArray<EntityEntry<object>>,
+): void {
+    for (const entry of entries) {
+        try {
+            entry.detectChanges();
+        } catch {
+            // The provider commit already succeeded; normal detection can retry later.
+        }
+    }
+}
