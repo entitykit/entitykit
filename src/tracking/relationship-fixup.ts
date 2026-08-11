@@ -14,6 +14,8 @@ import {
     clearOptionalRelationshipForeignKey,
     writeRelationshipForeignKey,
 } from './relationship-foreign-key-write';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
+import { relationshipValuesFor } from './relationship-detection-values';
 
 export function linkDependent(
     tracker: ChangeTracker,
@@ -22,6 +24,7 @@ export function linkDependent(
     relationship: TrackedRelationshipMetadata,
     principal: object,
     previousPrincipal?: unknown,
+    captured?: RelationshipDetectionValues,
 ): void {
     const values = dependent.entity as Record<string, unknown>;
     const previous = previousPrincipal ?? values[relationship.navigationProperty];
@@ -36,16 +39,20 @@ export function linkDependent(
     const principalMetadata = model.getEntity<Record<string, unknown>>(
         relationship.principalEntity,
     );
+    const principalEntry = tracker.entry(principal);
     const key = principalValuesForDependent(
         relationship,
         dependent.metadata,
         principalMetadata,
-        principal as Record<string, unknown>,
+        principalEntry
+            ? relationshipValuesFor(principalEntry, captured)
+            : principal as Record<string, unknown>,
     );
     writeRelationshipForeignKey(
         dependent,
         relationship.foreignKeyProperties,
         key,
+        captured?.get(dependent),
     );
     values[relationship.navigationProperty] = principal;
     addToRelationshipInverse(
@@ -54,7 +61,9 @@ export function linkDependent(
         principal,
         dependent,
         previousEntry => {
-            severDependent(tracker, previousEntry, relationship, principal);
+            severDependent(
+                tracker, previousEntry, relationship, principal, captured,
+            );
         },
     );
 }
@@ -64,6 +73,7 @@ export function severDependent(
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     principal?: object,
+    captured?: RelationshipDetectionValues,
 ): void {
     const required = relationship.foreignKeyProperties.every(
         property => dependent.metadata.getProperty(property).isRequired);
@@ -82,6 +92,7 @@ export function severDependent(
         clearOptionalRelationshipForeignKey(
             dependent,
             relationship.foreignKeyProperties,
+            captured?.get(dependent),
         );
     }
     const values = dependent.entity as Record<string, unknown>;

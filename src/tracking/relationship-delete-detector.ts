@@ -8,11 +8,13 @@ import {
 } from './relationship-fixup';
 import { relationshipConnects } from './relationship-resolution';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
 
 /** Apply configured delete behavior to dependents already tracked in memory. */
 export function detectTrackedCascades(
     tracker: ChangeTracker,
     model: Model,
+    captured?: RelationshipDetectionValues,
 ): void {
     let changed = true;
     while (changed) {
@@ -39,6 +41,7 @@ export function detectTrackedCascades(
                             dependent,
                             relationship,
                             principal,
+                            captured,
                         )
                     ) {
                         continue;
@@ -59,6 +62,7 @@ export function detectTrackedCascades(
                             dependent,
                             relationship,
                             principal.entity,
+                            captured,
                         );
                     }
                 }

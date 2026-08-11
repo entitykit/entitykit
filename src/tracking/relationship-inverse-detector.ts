@@ -4,6 +4,7 @@ import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
 import {
+    captureNavigation,
     navigationSnapshot,
     navigationValueChanged,
 } from './navigation-snapshot';
@@ -13,11 +14,13 @@ import {
 } from './relationship-fixup';
 import { relationshipConnects } from './relationship-resolution';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
 
 export function detectInverseChanges(
     tracker: ChangeTracker,
     model: Model,
     entries: ReadonlyArray<EntityEntry<object>>,
+    captured?: RelationshipDetectionValues,
 ): void {
     for (const principal of entries) {
         if (principal.state === EntityState.Detached) {
@@ -36,6 +39,7 @@ export function detectInverseChanges(
                         model,
                         principal,
                         relationship,
+                        captured,
                     );
                 }
             }
@@ -48,6 +52,7 @@ function detectInverseChange(
     model: Model,
     principal: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
+    captured?: RelationshipDetectionValues,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
     if (!inverse) {
@@ -61,12 +66,18 @@ function detectInverseChange(
 
     const previousItems = navigationItems(snapshot.value, relationship);
     const currentItems = navigationItems(current, relationship);
+    let handled = true;
     for (const entity of currentItems.filter(item => !previousItems.includes(item))) {
         const dependent = tracker.entry(entity);
         const relationships = dependent?.metadata.relationships as
             readonly TrackedRelationshipMetadata[] | undefined;
         if (dependent && relationships?.includes(relationship)) {
-            linkDependent(tracker, model, dependent, relationship, principal.entity);
+            linkDependent(
+                tracker, model, dependent, relationship,
+                principal.entity, undefined, captured,
+            );
+        } else {
+            handled = false;
         }
     }
     for (const entity of previousItems.filter(item => !currentItems.includes(item))) {
@@ -74,11 +85,18 @@ function detectInverseChange(
         if (
             dependent &&
             dependent.state !== EntityState.Detached &&
-            relationshipConnects(model, dependent, relationship, principal)
+            relationshipConnects(
+                model, dependent, relationship, principal, captured,
+            )
         ) {
-            severDependent(tracker, dependent, relationship, principal.entity);
+            severDependent(
+                tracker, dependent, relationship, principal.entity, captured,
+            );
+        } else if (!dependent) {
+            handled = false;
         }
     }
+    if (handled) captureNavigation(principal, inverse);
 }
 
 function navigationItems(

@@ -7,14 +7,17 @@ import {
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
+import { relationshipValuesFor } from './relationship-detection-values';
 
 export function findTrackedPrincipal(
     tracker: ChangeTracker,
     model: Model,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
+    captured?: RelationshipDetectionValues,
 ): EntityEntry<object> | undefined {
-    const values = dependent.entity as Record<string, unknown>;
+    const values = relationshipValuesFor(dependent, captured);
     const foreignKey = relationship.foreignKeyProperties.map(
         property => values[property],
     );
@@ -31,7 +34,7 @@ export function findTrackedPrincipal(
             dependent.metadata,
             values,
             principalMetadata,
-            entry.entity as Record<string, unknown>,
+            relationshipValuesFor(entry, captured),
         ));
 }
 
@@ -69,9 +72,11 @@ export function relationshipConnects(
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     principal: EntityEntry<object>,
+    captured?: RelationshipDetectionValues,
 ): boolean {
-    const values = dependent.entity as Record<string, unknown>;
-    if (values[relationship.navigationProperty] === principal.entity) {
+    const live = dependent.entity as Record<string, unknown>;
+    const values = relationshipValuesFor(dependent, captured);
+    if (live[relationship.navigationProperty] === principal.entity) {
         return true;
     }
     const foreignKey = relationship.foreignKeyProperties.map(
@@ -85,6 +90,6 @@ export function relationshipConnects(
             model.getEntity<Record<string, unknown>>(
                 relationship.principalEntity,
             ),
-            principal.entity as Record<string, unknown>,
+            relationshipValuesFor(principal, captured),
         );
 }

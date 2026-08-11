@@ -3,6 +3,7 @@ import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
 import {
+    captureNavigation,
     navigationSnapshot,
     navigationValueChanged,
 } from './navigation-snapshot';
@@ -13,11 +14,15 @@ import {
 } from './relationship-fixup';
 import { findTrackedPrincipal } from './relationship-resolution';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import { modifiedEntityValueProperties } from './entity-entry-snapshot';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
+import { relationshipValuesFor } from './relationship-detection-values';
 
 export function detectReferenceChanges(
     tracker: ChangeTracker,
     model: Model,
     entries: ReadonlyArray<EntityEntry<object>>,
+    captured?: RelationshipDetectionValues,
 ): void {
     for (const dependent of entries) {
         if (
@@ -29,7 +34,9 @@ export function detectReferenceChanges(
         const relationships = dependent.metadata.relationships as
             readonly TrackedRelationshipMetadata[];
         for (const relationship of relationships) {
-            detectReferenceChange(tracker, model, dependent, relationship);
+            detectReferenceChange(
+                tracker, model, dependent, relationship, captured,
+            );
         }
     }
 }
@@ -39,20 +46,29 @@ function detectReferenceChange(
     model: Model,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
+    captured?: RelationshipDetectionValues,
 ): void {
-    const values = dependent.entity as Record<string, unknown>;
-    const current = values[relationship.navigationProperty];
+    const values = relationshipValuesFor(dependent, captured);
+    const current = (dependent.entity as Record<string, unknown>)[
+        relationship.navigationProperty
+    ];
     const snapshot = navigationSnapshot(
         dependent,
         relationship.navigationProperty,
     );
     const navigationChanged = snapshot.known &&
         navigationValueChanged(snapshot.value, current);
+    const modified = captured
+        ? modifiedEntityValueProperties(
+            dependent.metadata, values, dependent.originalValues,
+        )
+        : dependent.modifiedProperties();
     const foreignKeyChanged = relationship.foreignKeyProperties.some(
-        property => dependent.modifiedProperties().includes(property),
+        property => modified.includes(property),
     );
 
     if (navigationChanged || dependent.state === EntityState.Added && current) {
+        let handled = false;
         if (current && typeof current === 'object') {
             linkDependent(
                 tracker,
@@ -61,14 +77,21 @@ function detectReferenceChange(
                 relationship,
                 current,
                 snapshot.value,
+                captured,
             );
+            handled = true;
         } else if (snapshot.value) {
             severDependent(
                 tracker,
                 dependent,
                 relationship,
                 snapshot.value,
+                captured,
             );
+            handled = true;
+        }
+        if (handled) {
+            captureNavigation(dependent, relationship.navigationProperty);
         }
         return;
     }
@@ -81,6 +104,7 @@ function detectReferenceChange(
         model,
         dependent,
         relationship,
+        captured,
     );
     if (principal) {
         linkDependent(
@@ -89,11 +113,13 @@ function detectReferenceChange(
             dependent,
             relationship,
             principal.entity,
+            undefined,
+            captured,
         );
     } else if (relationship.foreignKeyProperties.some(
         property => values[property] === null || values[property] === undefined,
     )) {
-        severDependent(tracker, dependent, relationship);
+        severDependent(tracker, dependent, relationship, undefined, captured);
     } else {
         clearStaleReference(tracker, dependent, relationship);
     }

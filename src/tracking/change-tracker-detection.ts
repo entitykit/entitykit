@@ -3,6 +3,8 @@ import type { ChangeTracker } from './change-tracker';
 import { changeTrackerModel } from './change-tracker-model';
 import { detectRelationshipChanges } from './relationship-change-detector';
 import { detectReferenceChanges } from './relationship-reference-detector';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
+import { captureRelationshipFixupBaseline } from './relationship-fixup-baseline';
 
 export function detectTrackedChanges(
     tracker: ChangeTracker,
@@ -17,13 +19,19 @@ export function detectTrackedChanges(
 export function detectTrackedRelationships(
     tracker: ChangeTracker,
     entries?: ReadonlyArray<EntityEntry<object>>,
+    values?: RelationshipDetectionValues,
+    refreshBaselines = true,
 ): void {
     const configuredModel = changeTrackerModel(tracker);
     if (configuredModel) {
+        const acceptFixup = refreshBaselines
+            ? captureRelationshipFixupBaseline(tracker.entries())
+            : undefined;
         if (entries) {
-            detectReferenceChanges(tracker, configuredModel, entries);
+            detectReferenceChanges(tracker, configuredModel, entries, values);
         } else {
-            detectRelationshipChanges(tracker, configuredModel);
+            detectRelationshipChanges(tracker, configuredModel, values);
         }
+        acceptFixup?.();
     }
 }

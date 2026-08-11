@@ -9,6 +9,7 @@ import { ChangeTrackerRegistry } from './change-tracker-registry';
 import { createTrackingIdentityKey, createTrackingIdentityKeyFromBoundValues } from './tracking-identity-key';
 import { detectTrackedChanges, detectTrackedRelationships } from './change-tracker-detection';
 import { createChangeTrackerAcceptance } from './change-tracker-acceptance-factory';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
 export class ChangeTracker {
     private readonly saveGuard = new SaveMutationGuard();
     private readonly registry = new ChangeTrackerRegistry(
@@ -25,7 +26,6 @@ export class ChangeTracker {
     private onTracked?: (entity: object) => (() => void) | undefined;
     private onDetached?: (entity: object) => void;
     private onAcceptedAll?: () => void;
-
     public observeTracked(
         observer: (entity: object) => (() => void) | undefined,
     ): void {
@@ -100,12 +100,12 @@ export class ChangeTracker {
         this.saveGuard.assertNoExecution('detectChanges()');
         detectTrackedChanges(this, this.registry.entries());
     }
-
     /** Apply tracked graph fix-up before one executable value capture. */
     public detectSaveRelationships(
-        entries?: ReadonlyArray<EntityEntry<object>>,
+        entries?: ReadonlyArray<EntityEntry<object>>, values?: RelationshipDetectionValues,
+        refreshBaselines = true,
     ): void {
-        detectTrackedRelationships(this, entries);
+        detectTrackedRelationships(this, entries, values, refreshBaselines);
     }
     public acceptAllChanges(): void {
         this.saveGuard.assertMutation('acceptAllChanges()');
