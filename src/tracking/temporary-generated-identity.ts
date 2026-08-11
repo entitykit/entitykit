@@ -1,7 +1,7 @@
 import type { PropertyMetadata } from '../model/property-metadata';
-import { toProviderValue } from '../model/value-converter/store-value';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
+import { cloneSnapshotValue } from './snapshot-value-clone';
 import { trackingIdentityKeyForBoundValues } from './tracking-identity-key';
 import { trackingIdentityKeyForEntry } from './tracking-identity-key';
 
@@ -23,18 +23,13 @@ const temporaryByEntry: WeakMap<
 
 export function captureTemporaryGeneratedProperty(
     value: unknown,
+    boundValue: unknown,
     property: PropertyMetadata,
-    entityName: string,
 ): TemporaryGeneratedProperty {
-    const providerValue = toProviderValue(
-        value,
-        property.converter,
-        `${entityName}.${property.propertyName}`,
-    );
     return {
         propertyName: property.propertyName,
         modelValue: value,
-        providerValue,
+        providerValue: cloneSnapshotValue(boundValue),
     };
 }
 
@@ -84,9 +79,14 @@ export function assertTrackingIdentityRegistration(
     ) {
         identityProperties.push(entry.metadata.getProperty(tenantProperty));
     }
+    const usesBoundIdentity = identityProperties.some(property => {
+        const columnType = property.columnType.trim().toLowerCase();
+        return property.converter !== undefined ||
+            columnType === 'json' || columnType === 'jsonb';
+    });
     const expectedKey = temporary && entry.state === EntityState.Added
         ? temporary.identityKey
-        : identityProperties.some(property => property.converter)
+        : usesBoundIdentity
             ? trackingIdentityKeyForBoundValues(
                 entry.metadata,
                 entry.originalBoundValues,

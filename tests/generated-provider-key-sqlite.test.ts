@@ -1,12 +1,23 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, valueConverter } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { EntityEntry } from '../src/tracking/entity-entry';
+import { temporaryGeneratedProperty } from '../src/tracking/temporary-generated-identity';
+import { internalEntityEntry } from './support/public-api-internals';
 
 let generatedHydrated = false;
 let generatedConversions = 0;
+let temporaryConversions = 0;
+let driftTemporaryValues = false;
 
 const driftingGeneratedKey = valueConverter<number, number>({
     toProvider: value => {
+        if (!generatedHydrated && value === 0 && driftTemporaryValues) {
+            temporaryConversions += 1;
+            if (temporaryConversions === 1) return 0;
+            if (temporaryConversions === 2) return 91;
+            return 92;
+        }
         if (!generatedHydrated || value !== 1) return value;
         generatedConversions += 1;
         return generatedConversions === 1 ? 1 : 0;
@@ -20,9 +31,11 @@ const driftingGeneratedKey = valueConverter<number, number>({
     },
 });
 
-function resetGeneratedConverter(): void {
+function resetGeneratedConverter(driftTemporary = false): void {
     generatedHydrated = false;
     generatedConversions = 0;
+    temporaryConversions = 0;
+    driftTemporaryValues = driftTemporary;
 }
 
 class GeneratedProviderParent {
@@ -133,6 +146,49 @@ describe('generated provider key facts', () => {
         parent.children = [child];
         db.parents.add(parent);
         db.children.add(child);
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect(parent.id).toBe(1);
+        expect(child.parentId).toBe(1);
+        expect(db.entry(parent)?.originalValues.id).toBe(1);
+        const stored = await db.database.connection.query<{
+            parent_id: number;
+        }>({
+            text: 'select parent_id from generated_provider_children',
+            values: [],
+        });
+        expect(stored.rows).toEqual([{ parent_id: 1 }]);
+        await db.dispose();
+    });
+
+    it('matches dependent placeholders against the initially bound generated key', async () => {
+        resetGeneratedConverter(true);
+        const db = GeneratedProviderGraphContext.create();
+        await db.database.connection.query({
+            text: db.database.createScript(),
+            values: [],
+        });
+        await db.database.connection.query({
+            text: `insert into generated_provider_parents (id, name)
+                values (?, ?)`,
+            values: [0, 'existing-zero'],
+        });
+        const parent = Object.assign(new GeneratedProviderParent(), {
+            name: 'new-parent',
+        });
+        const child = Object.assign(new GeneratedProviderChild(), {
+            id: 'child',
+            parent,
+        });
+        parent.children = [child];
+        const parentEntry = db.parents.add(parent);
+        db.children.add(child);
+
+        const trackedParent = internalEntityEntry(parentEntry) as unknown as
+            EntityEntry<object>;
+        expect(temporaryGeneratedProperty(trackedParent, 'id')?.providerValue)
+            .toBe(trackedParent.originalBoundValues.id);
 
         await expect(db.saveChanges()).resolves.toBe(2);
 

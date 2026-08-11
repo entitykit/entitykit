@@ -32,8 +32,8 @@ export class TrackingIdentityFactory {
                 isGeneratedOnAdd(property.valueGenerated)
                     ? [captureTemporaryGeneratedProperty(
                         keyValues[index],
+                        boundValues[property.propertyName],
                         property,
-                        metadata.entityName,
                     )]
                     : [])
             : [];
