@@ -1,6 +1,6 @@
 import { encodeIdentityTuple } from '../model/identity-value';
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { EntityEntry } from './entity-entry';
 
 /** Build the identity-map key, adding tenant ownership when it is not a PK part. */
@@ -9,16 +9,23 @@ export function createTrackingIdentityKey<TEntity extends object>(
     keyValues: readonly unknown[],
     tenantValue?: unknown,
 ): string {
-    const primary = metadata.createIdentityKeyFromValues(keyValues);
+    const primary = metadata.createIdentityKeyFromProviderValues(
+        metadata.keyPropertiesMetadata.map((property, index) =>
+            toBoundPropertyValue(
+                keyValues[index],
+                property,
+                metadata.entityName,
+            )),
+    );
     const tenantProperty = metadata.tenantKeyProperty;
     if (!tenantProperty || metadata.keyProperties.includes(tenantProperty)) {
         return primary;
     }
     const property = metadata.getProperty(tenantProperty);
-    const providerValue = toProviderValue(
+    const providerValue = toBoundPropertyValue(
         tenantValue,
-        property.converter,
-        `${metadata.entityName}.${tenantProperty}`,
+        property,
+        metadata.entityName,
     );
     return `${primary}:tenant:${encodeIdentityTuple([providerValue])}`;
 }

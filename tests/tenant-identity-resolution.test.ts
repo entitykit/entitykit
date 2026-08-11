@@ -2,6 +2,11 @@ import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, EntityState, TenantIdentityAmbiguityError } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { requireDefined } from './support/require-defined';
+import {
+    internalChangeTracker,
+    internalEntityEntry,
+    setMetadata,
+} from './support/public-api-internals';
 
 class TenantIdentityRow {
     public id = '';
@@ -36,6 +41,31 @@ class TenantIdentityContext extends DbContext {
                 .hasColumnType('text').isRequired();
             entity.property(row => row.name).hasColumnType('text').isRequired();
             entity.tenantKey(row => row.tenantId);
+        });
+    }
+}
+
+class JsonTenantIdentityRow {
+    public id = '';
+    public tenantId: { region: string } = { region: '' };
+}
+
+class JsonTenantIdentityContext extends DbContext {
+    public rows = this.set(JsonTenantIdentityRow);
+
+    protected override configure(options: DbContextOptionsBuilder): void {
+        options.useProvider(sqliteProviderServices, ':memory:')
+            .allowCrossTenantAccess();
+    }
+
+    protected override model(model: ModelBuilder): void {
+        model.entity(JsonTenantIdentityRow, entity => {
+            entity.toTable('json_tenant_identity_rows');
+            entity.hasKey(row => row.id);
+            entity.tenantKey(row => row.tenantId);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.tenantId).hasColumnName('tenant_id')
+                .hasColumnType('json').isRequired();
         });
     }
 }
@@ -136,6 +166,28 @@ describe('tenant-aware identity resolution', () => {
 
         expect(db.changeTracker.entries()).toHaveLength(2);
         await db.dispose();
+    });
+
+    it('registers converter-free JSON tenants by their bound identity', () => {
+        const db = JsonTenantIdentityContext.create();
+        const north = Object.assign(new JsonTenantIdentityRow(), {
+            id: 'shared', tenantId: { region: 'north' },
+        });
+        const south = Object.assign(new JsonTenantIdentityRow(), {
+            id: 'shared', tenantId: { region: 'south' },
+        });
+
+        const northEntry = db.rows.attach(north);
+        expect(() => db.rows.attach(south)).not.toThrow();
+
+        expect(db.changeTracker.entries()).toHaveLength(2);
+        expect(db.entry(north)?.originalValues.tenantId)
+            .toEqual({ region: 'north' });
+        expect(internalChangeTracker(db.changeTracker).tryGetByIdentityValues(
+            setMetadata(db.rows),
+            ['shared'],
+            { region: 'north' },
+        )).toBe(internalEntityEntry(northEntry));
     });
 
     it('does not accept a tenant identity mutation into the identity map', () => {
