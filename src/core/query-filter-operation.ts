@@ -3,6 +3,7 @@ import type { QueryModel } from '../query/query-model';
 import { boundQueryValue } from '../query/expression/bound-query-value';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { createTenantScopeResolver } from './tenant-scope-resolver';
+import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
 
 /** One immutable tenant/filter snapshot shared by every SQL read in a query. */
 export interface QueryFilterOperation {
@@ -31,10 +32,10 @@ export function createQueryFilterOperation(
     ) => QueryModel<TEntity>,
 ): QueryFilterOperation {
     const resolveTenantId = createTenantScopeResolver(currentTenantId);
-    const providerValuesByConverter: WeakMap<
-        object,
+    const providerValuesByConverter: Map<
+        object | undefined,
         Map<string, unknown>
-    > = new WeakMap();
+    > = new Map();
     const resolveBoundTenant: QueryTenantProviderResolver = <TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
     ): unknown => {
@@ -44,26 +45,20 @@ export function createQueryFilterOperation(
         const converter = property.converter;
         const columnType = property.columnType.trim().toLowerCase();
         let providerValue: unknown;
-        if (converter) {
-            const cached = providerValuesByConverter.get(converter);
-            if (cached?.has(columnType)) {
-                providerValue = cached.get(columnType);
-            } else {
-                providerValue = toBoundPropertyValue(
+        const cached = providerValuesByConverter.get(converter);
+        if (cached?.has(columnType)) {
+            providerValue = cached.get(columnType);
+        } else {
+            providerValue = cloneSnapshotValue(
+                toBoundPropertyValue(
                     resolveTenantId(metadata.entityName),
                     property,
                     metadata.entityName,
-                );
-                const values = cached ?? new Map<string, unknown>();
-                values.set(columnType, providerValue);
-                providerValuesByConverter.set(converter, values);
-            }
-        } else {
-            providerValue = toBoundPropertyValue(
-                resolveTenantId(metadata.entityName),
-                property,
-                metadata.entityName,
+                ),
             );
+            const values = cached ?? new Map<string, unknown>();
+            values.set(columnType, providerValue);
+            providerValuesByConverter.set(converter, values);
         }
         return boundQueryValue(providerValue);
     };
