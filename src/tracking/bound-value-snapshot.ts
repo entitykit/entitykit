@@ -1,12 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import {
-    toBoundPropertyValue,
-    toBoundProviderValue,
-} from '../model/value-converter/store-value';
-import {
-    readStoreProviderValue,
-    type StoreValueReader,
-} from '../storage/store-value-reader';
+import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { cloneSnapshotValue } from './snapshot-value-clone';
 
 /** Capture the exact provider representations of one model-value snapshot. */
@@ -74,26 +67,6 @@ export function captureMissingBoundEntityValues<TEntity extends object>(
             ),
         );
     }
-}
-
-/** Preserve provider values already returned by a database row. */
-export function captureBoundRowValues<TEntity extends object>(
-    metadata: EntityMetadata<TEntity>,
-    row: Readonly<Record<string, unknown>>,
-    valueReader?: StoreValueReader,
-): Record<string, unknown> {
-    return Object.fromEntries(metadata.properties.map(property => [
-        property.propertyName,
-        cloneSnapshotValue(toBoundProviderValue(
-            readStoreProviderValue(
-                row[property.columnName],
-                property,
-                valueReader,
-            ),
-            property.columnType,
-            `${metadata.entityName}.${property.propertyName}`,
-        )),
-    ]));
 }
 
 export function cloneBoundValues(
