@@ -1,9 +1,6 @@
 import type { EntityPropertyKey } from '../types';
 import { encodeIdentityTuple } from './identity-value';
-import {
-    readStoreValue,
-    type StoreValueReader,
-} from '../storage/store-value-reader';
+import { readStoreValue, type StoreValueReader } from '../storage/store-value-reader';
 import type { PropertyMetadata } from './property-metadata';
 import { toProviderValue } from './value-converter/store-value';
 

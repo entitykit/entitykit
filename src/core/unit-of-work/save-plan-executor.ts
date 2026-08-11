@@ -11,7 +11,6 @@ import { GeneratedValueHydrator } from './generated-value-hydrator';
 import { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { GeneratedValueAcceptance } from './applied-generated-value';
 import { reconcileSavePlanChanges } from './save-plan-reconciliation';
-
 export class SavePlanExecutor {
     private generatedValues?: GeneratedValueHydrator;
     constructor(
@@ -93,7 +92,6 @@ export class SavePlanExecutor {
                 }
             }
         };
-
         const releaseSaveLock = this.changeTracker.beginSaveExecution();
         try {
             await this.database.transaction(async () => {

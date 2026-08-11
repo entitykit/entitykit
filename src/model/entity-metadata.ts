@@ -11,7 +11,6 @@ import type { AlternateKeyMetadata } from './alternate-key-metadata';
 import type { CheckConstraintMetadata } from './check-constraint-metadata';
 import type { EntityMetadataArgs } from './entity-metadata-args';
 import type { ComplexPropertyMetadata } from './complex-property-metadata';
-
 export class EntityMetadata<TEntity extends object = object> {
     public readonly ctor: EntityConstructor<TEntity>;
     public readonly materializer?: EntityMaterializer<TEntity>;
@@ -75,14 +74,11 @@ export class EntityMetadata<TEntity extends object = object> {
     public get keyPropertiesMetadata(): ReadonlyArray<PropertyMetadata<TEntity>> {
         return this.key().keyPropertiesMetadata;
     }
-
     public assertSingleKey(feature: string): void {
         this.key().assertSingleKey(feature);
     }
-
     public getProperty<TProperty = unknown>(propertyName: string): PropertyMetadata<TEntity, TProperty> {
         const property = this.propertiesByName.get(propertyName);
-
         if (!property) {
             throw new Error(`Property '${propertyName}' is not configured on entity '${this.entityName}'.`);
         }

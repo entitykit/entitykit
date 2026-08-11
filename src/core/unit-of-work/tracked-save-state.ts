@@ -3,10 +3,7 @@ import { EntityState } from '../../tracking/entity-state';
 import type { ManyToManyChangeSet } from '../many-to-many-change-set';
 import type { SavePlanEntry } from '../save-plan';
 import type { SaveTimeWrites } from '../save-time-writes';
-import {
-    readPropertyValue,
-    writePropertyValue,
-} from '../../model/property-value-access';
+import { readPropertyValue, writePropertyValue } from '../../model/property-value-access';
 import type { PropertyMetadata } from '../../model/property-metadata';
 import { savePlanExecution } from '../save-plan-execution';
 import type { AppliedGeneratedValue } from './applied-generated-value';

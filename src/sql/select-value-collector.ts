@@ -4,10 +4,7 @@ import { toBoundQueryPropertyValue } from '../query/expression/bound-query-value
 import type { BinaryOperator, PredicateNode } from '../query/expression/predicate-node';
 import type { QueryModel } from '../query/query-model';
 import type { ProjectionSqlNode } from '../query/projection';
-import {
-    isSqlNull,
-    readInPredicateValues,
-} from './predicate-null-semantics';
+import { isSqlNull, readInPredicateValues } from './predicate-null-semantics';
 import { assertNever, stringPatternValue } from './select-sql-helpers';
 import { projectionValueField } from './projection-expression-metadata';
 

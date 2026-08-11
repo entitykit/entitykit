@@ -19,12 +19,7 @@ export class EntityEntry<TEntity extends object> {
         originalBoundValues?: Record<string, unknown>,
     ) {
         this.trackedState = new EntityEntryState(
-            this,
-            metadata,
-            entity,
-            state,
-            originalValues,
-            originalBoundValues,
+            this, metadata, entity, state, originalValues, originalBoundValues,
         );
     }
     public get state(): EntityState {
@@ -101,7 +96,6 @@ export class EntityEntry<TEntity extends object> {
             navigationProperty,
         );
     }
-
     public markNavigationNotLoaded(navigationProperty: string): void {
         this.trackedState.markNavigationNotLoaded(
             this as unknown as EntityEntry<object>,
@@ -114,18 +108,15 @@ export class EntityEntry<TEntity extends object> {
     public loadedNavigations(): readonly string[] {
         return this.trackedState.loadedNavigationProperties();
     }
-
     public useNavigationLoader(loader: EntityNavigationLoader): this {
         this.navigationLoader = loader;
         return this;
     }
-
     public async getDatabaseValues(): Promise<
         EntityDatabaseValues<TEntity> | null
     > {
         return entityEntryConcurrency(this).getDatabaseValues();
     }
-
     public async reload(): Promise<boolean> {
         return entityEntryConcurrency(this).reload();
     }
