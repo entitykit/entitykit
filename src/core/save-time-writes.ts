@@ -20,6 +20,7 @@ import { reconcileSaveTimeRelationships } from './save-time-relationship-reconci
  */
 export class SaveTimeWrites {
     private readonly mutations = new SaveTimeMutationLog();
+    private readonly relationshipEntries: Set<object> = new Set();
     private nowMs?: number;
     private userId: unknown;
     private userIdInitialized = false;
@@ -31,6 +32,7 @@ export class SaveTimeWrites {
     /** Start one save attempt and snapshot its request-scoped values lazily. */
     public begin(): void {
         this.mutations.reset();
+        this.relationshipEntries.clear();
         this.nowMs = undefined;
         this.userId = undefined;
         this.userIdInitialized = false;
@@ -41,6 +43,7 @@ export class SaveTimeWrites {
     /** Rebuild the plan while retaining stable request-scoped save values. */
     public beginGeneration(): void {
         this.mutations.restore();
+        this.relationshipEntries.clear();
     }
 
     /**
@@ -94,6 +97,7 @@ export class SaveTimeWrites {
                 tenantId,
                 allowsCrossTenantAccess,
             );
+            this.rememberRelationshipWrites(prepared);
             captureMissingBoundEntityValues(
                 prepared.entry.metadata,
                 prepared.values,
@@ -104,8 +108,25 @@ export class SaveTimeWrites {
     }
 
     /** Reconcile graph state after final policy-managed FK writes. */
-    public reconcileRelationships(changeTracker: ChangeTracker): void {
-        reconcileSaveTimeRelationships(changeTracker, this.mutations);
+    public reconcileRelationships(changeTracker: ChangeTracker): ReadonlySet<object> {
+        reconcileSaveTimeRelationships(
+            changeTracker,
+            this.mutations,
+            changeTracker.entries().filter(entry =>
+                this.relationshipEntries.has(entry.entity)),
+        );
+        return this.relationshipEntries;
+    }
+
+    private rememberRelationshipWrites(snapshot: PersistedEntrySnapshot): void {
+        if (snapshot.entry.metadata.relationships.some(relationship =>
+            relationship.foreignKeyProperties.some(property =>
+                Object.prototype.hasOwnProperty.call(
+                    snapshot.boundValues,
+                    property,
+                )))) {
+            this.relationshipEntries.add(snapshot.entry.entity);
+        }
     }
 
     /** Undo the writes, newest first, so an entity survives a failure unchanged. */

@@ -1,5 +1,4 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { ChangeTrackerAcceptance } from './change-tracker-acceptance';
 import { formatChangeTracker } from './change-tracker-debug';
 import type { EntityEntry } from './entity-entry';
 import type { EntityState } from './entity-state';
@@ -7,15 +6,9 @@ import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 import { SaveMutationGuard } from './save-mutation-guard';
 import type { TrackedAcceptance } from './tracked-acceptance-journal';
 import { ChangeTrackerRegistry } from './change-tracker-registry';
-import {
-    createTrackingIdentityKey,
-    createTrackingIdentityKeyFromBoundValues,
-} from './tracking-identity-key';
-import {
-    detectTrackedChanges,
-    detectTrackedRelationships,
-} from './change-tracker-detection';
-
+import { createTrackingIdentityKey, createTrackingIdentityKeyFromBoundValues } from './tracking-identity-key';
+import { detectTrackedChanges, detectTrackedRelationships } from './change-tracker-detection';
+import { createChangeTrackerAcceptance } from './change-tracker-acceptance-factory';
 export class ChangeTracker {
     private readonly saveGuard = new SaveMutationGuard();
     private readonly registry = new ChangeTrackerRegistry(
@@ -27,20 +20,9 @@ export class ChangeTracker {
             this.onTracked?.(entity);
         },
     );
-    private readonly acceptance = new ChangeTrackerAcceptance(
-        () => this.entries(),
-        entry => this.registry.has(entry),
-        this.registry.identities,
-        entity => {
-            this.registry.detach(entity);
-        },
-        entry => {
-            this.registry.restore(entry);
-        },
-        (entries, identityKeys) => this.saveGuard.defer(entries, identityKeys),
-        () => {
-            this.registry.assertInvariant();
-        },
+    private readonly acceptance = createChangeTrackerAcceptance(
+        this.registry,
+        this.saveGuard,
     );
     private onTracked?: (entity: object) => void;
     private onDetached?: (entity: object) => void;
@@ -49,7 +31,6 @@ export class ChangeTracker {
     public observeTracked(observer: (entity: object) => void): void {
         this.onTracked = observer;
     }
-
     public observeDetached(observer: (entity: object) => void): void {
         this.onDetached = observer;
     }
@@ -66,11 +47,7 @@ export class ChangeTracker {
         originalBoundValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
         return this.registry.track(
-            entity,
-            metadata,
-            state,
-            originalValues,
-            originalBoundValues,
+            entity, metadata, state, originalValues, originalBoundValues,
         );
     }
 
@@ -125,8 +102,10 @@ export class ChangeTracker {
     }
 
     /** Apply tracked graph fix-up before one executable value capture. */
-    public detectSaveRelationships(): void {
-        detectTrackedRelationships(this);
+    public detectSaveRelationships(
+        entries?: ReadonlyArray<EntityEntry<object>>,
+    ): void {
+        detectTrackedRelationships(this, entries);
     }
     public acceptAllChanges(): void {
         this.saveGuard.assertMutation('acceptAllChanges()');

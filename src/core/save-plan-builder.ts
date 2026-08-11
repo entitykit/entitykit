@@ -58,10 +58,13 @@ export class SavePlanBuilder {
         let snapshots = this.deps.saveTimeWrites.applyTo(
             tracked.map(capturePersistedEntrySnapshot),
         );
-        this.deps.saveTimeWrites.reconcileRelationships(
+        const reconciled = this.deps.saveTimeWrites.reconcileRelationships(
             this.deps.changeTracker,
         );
-        snapshots = snapshots.map(refreshPersistedEntryRelationships);
+        snapshots = snapshots.map(snapshot =>
+            reconciled.has(snapshot.entry.entity)
+                ? refreshPersistedEntryRelationships(snapshot)
+                : snapshot);
         const pending = orderSaveEntries(snapshots.filter(snapshot =>
             snapshot.state === EntityState.Added ||
             snapshot.state === EntityState.Modified ||

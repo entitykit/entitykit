@@ -1,4 +1,5 @@
 import type { ChangeTracker } from '../tracking/change-tracker';
+import type { EntityEntry } from '../tracking/entity-entry';
 import { captureNavigationSnapshotValues } from '../tracking/navigation-snapshot';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 
@@ -13,9 +14,11 @@ interface NavigationValue {
 export function reconcileSaveTimeRelationships(
     tracker: ChangeTracker,
     mutations: SaveTimeMutationLog,
+    entries: ReadonlyArray<EntityEntry<object>>,
 ): void {
-    const before = captureLiveNavigations(tracker);
-    tracker.detectSaveRelationships();
+    if (entries.length === 0) return;
+    const before = captureLiveNavigations(tracker.entries());
+    tracker.detectSaveRelationships(entries);
     for (const previous of before) {
         const applied = cloneNavigationValue(
             previous.entity[previous.property],
@@ -37,9 +40,9 @@ export function reconcileSaveTimeRelationships(
 }
 
 function captureLiveNavigations(
-    tracker: ChangeTracker,
+    entries: ReadonlyArray<EntityEntry<object>>,
 ): NavigationValue[] {
-    return tracker.entries().flatMap(entry => {
+    return entries.flatMap(entry => {
         const entity = entry.entity as Record<string, unknown>;
         return [...captureNavigationSnapshotValues(entry).keys()].map(
             property => {
