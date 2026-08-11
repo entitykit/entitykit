@@ -16,19 +16,19 @@ export class ChangeTracker {
         (operation, entity, identityKey) => {
             this.saveGuard.assertMutation(operation, entity, identityKey);
         },
-        entity => {
-            this.onTracked?.(entity);
-        },
+        entity => this.onTracked?.(entity),
     );
     private readonly acceptance = createChangeTrackerAcceptance(
         this.registry,
         this.saveGuard,
     );
-    private onTracked?: (entity: object) => void;
+    private onTracked?: (entity: object) => (() => void) | undefined;
     private onDetached?: (entity: object) => void;
     private onAcceptedAll?: () => void;
 
-    public observeTracked(observer: (entity: object) => void): void {
+    public observeTracked(
+        observer: (entity: object) => (() => void) | undefined,
+    ): void {
         this.onTracked = observer;
     }
     public observeDetached(observer: (entity: object) => void): void {

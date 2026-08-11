@@ -12,11 +12,14 @@ import {
     relationshipPrincipalKeyProperties,
 } from '../model/relationship-key';
 import {
-    dependentRelationshipProviderKey,
-    principalRelationshipProviderKey,
+    dependentRelationshipBoundKey,
+    principalRelationshipBoundKey,
 } from '../model/relationship-key-codec';
-import { dependentValuesForPrincipal } from '../model/relationship-key-translation';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import {
+    boundQueryTuple,
+    dependentBoundTuple,
+} from './include-bound-key';
 
 /**
  * Reference (many-to-one) eager load.
@@ -52,13 +55,9 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         const foreignKeyTuples = uniquePropertyTuples(
             principalMetadata,
             principalKeyProperties.map(String),
-            roots
-                .map(root => dependentValuesForPrincipal(
-                    relationship,
-                    metadata,
-                    principalMetadata,
-                    root.values,
-                ))
+            roots.map(root => boundQueryTuple(
+                dependentBoundTuple(relationship, root),
+            ))
                 .filter(isCompleteTuple),
         );
 
@@ -79,25 +78,24 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         );
         const principalsByKey = new Map(
             principals.map(principal => [
-                principalRelationshipProviderKey(
+                principalRelationshipBoundKey(
                     relationship,
                     principalMetadata,
-                    principal.values,
+                    principal.boundValues,
                 ),
                 principal,
             ]),
         );
         const loadedPrincipals: IncludeLoadRoot[] = [];
 
-        for (const { entity, values } of roots) {
+        for (const { entity, boundValues } of roots) {
             const foreignKeyTuple = foreignKeyProperties.map(
-                propertyName => values[propertyName],
+                propertyName => boundValues[propertyName],
             );
             const principalRoot = isCompleteTuple(foreignKeyTuple)
-                ? principalsByKey.get(dependentRelationshipProviderKey(
+                ? principalsByKey.get(dependentRelationshipBoundKey(
                     relationship,
-                    metadata,
-                    values,
+                    boundValues,
                 )) ?? null
                 : null;
             const principal = principalRoot?.entity ?? null;

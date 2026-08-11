@@ -4,9 +4,10 @@ import type { ChangeTracker } from '../tracking/change-tracker';
 import { EntityState } from '../tracking/entity-state';
 import { applyMaterializedValues } from './complex-value-materializer';
 import { assertSynchronousCallbackResult } from '../synchronous-callback';
-import { readTrackingTenantFromRow } from './tracking-tenant-row';
 import type { MaterializedRow } from './materialized-row';
 import { captureBoundRowValues } from '../tracking/bound-value-snapshot';
+import { rememberMaterializedPersistenceFacts } from './materialized-bound-values';
+import { createMaterializerValues } from './materializer-values';
 
 export class Materializer {
     constructor(private readonly valueReader?: StoreValueReader) {}
@@ -16,7 +17,17 @@ export class Materializer {
         metadata: EntityMetadata<TEntity>,
         row: Record<string, unknown>,
     ): TEntity {
-        return this.createEntity(metadata, this.readValues(metadata, row));
+        const values = this.readValues(metadata, row);
+        const entity = this.createEntity(metadata, values);
+        const boundValues = captureBoundRowValues(
+            metadata,
+            row,
+            this.valueReader,
+        );
+        rememberMaterializedPersistenceFacts(
+            entity, metadata, values, boundValues,
+        );
+        return entity;
     }
 
     public materialize<TEntity extends object>(
@@ -33,25 +44,30 @@ export class Materializer {
         changeTracker: ChangeTracker,
     ): MaterializedRow<TEntity> {
         const values = this.readValues(metadata, row);
-        if (metadata.isKeyless) {
-            return { entity: this.createEntity(metadata, values), values };
-        }
-        const keyValues = metadata.getKeyValuesFromRow(row, this.valueReader);
-        const tenantValue = readTrackingTenantFromRow(
+        const boundValues = captureBoundRowValues(
             metadata,
             row,
             this.valueReader,
         );
-        const existing = changeTracker.tryGetByIdentityValues(
+        if (metadata.isKeyless) {
+            return {
+                entity: this.createEntity(metadata, values),
+                values,
+                boundValues,
+            };
+        }
+        const existing = changeTracker.tryGetByBoundIdentityValues(
             metadata,
-            keyValues,
-            tenantValue,
+            boundValues,
         );
         if (existing) {
-            return { entity: existing.entity, values };
+            return { entity: existing.entity, values, boundValues };
         }
 
         const entity = this.createEntity(metadata, values);
+        rememberMaterializedPersistenceFacts(
+            entity, metadata, values, boundValues,
+        );
 
         // Initial tracking is strict. Identity resolution must happen against the
         // captured provider row above; a collision here means materialization and
@@ -61,9 +77,9 @@ export class Materializer {
             metadata,
             EntityState.Unchanged,
             values,
-            captureBoundRowValues(metadata, row),
+            boundValues,
         );
-        return { entity: entry.entity, values };
+        return { entity: entry.entity, values, boundValues };
     }
 
     public materializeMany<TEntity extends object>(
@@ -127,13 +143,4 @@ export class Materializer {
         }
         return values;
     }
-}
-
-function createMaterializerValues<TEntity extends object>(
-    metadata: EntityMetadata<TEntity>,
-    originalValues: Readonly<Record<string, unknown>>,
-): Partial<TEntity> {
-    const values = {} as TEntity;
-    applyMaterializedValues(metadata, values, originalValues);
-    return values;
 }

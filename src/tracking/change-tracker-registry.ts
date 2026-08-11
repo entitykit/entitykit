@@ -2,16 +2,17 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { ChangeTracker } from './change-tracker';
 import { changeTrackerModel } from './change-tracker-model';
 import type { EntityEntry } from './entity-entry';
-import { cloneEntityValues, readEntityValues } from './entity-entry-snapshot';
 import type { EntityState } from './entity-state';
-import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
 import { TrackingIdentityFactory } from './tracking-identity-factory';
 import { assertTrackingIdentityRegistration, clearTemporaryGeneratedIdentity } from './temporary-generated-identity';
 import { reuseTrackedEntry } from './tracked-entry-reuse';
 import { trackingCollisionError } from './tracking-collision-error';
-import { captureTrackedBoundEntityValues, cloneBoundValues } from './bound-value-snapshot';
 import { createTrackedEntry } from './tracked-entry-factory';
+import {
+    prepareTrackedRegistration,
+    publishTrackedRegistration,
+} from './tracked-entry-registration';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -25,9 +26,10 @@ export class ChangeTrackerRegistry {
             entity: object,
             identityKey?: string,
         ) => void,
-        private readonly notifyTracked: (entity: object) => void,
+        private readonly notifyTracked: (
+            entity: object,
+        ) => (() => void) | undefined,
     ) {}
-
     public track<TEntity extends object>(
         entity: TEntity,
         metadata: EntityMetadata<TEntity>,
@@ -49,23 +51,20 @@ export class ChangeTrackerRegistry {
             this.assertInvariant();
             return existingByObject as unknown as EntityEntry<TEntity>;
         }
-        const capturedValues = originalValues
-            ? cloneEntityValues(metadata, originalValues)
-            : readEntityValues(metadata, entity);
-        const capturedBoundValues = originalBoundValues
-            ? cloneBoundValues(originalBoundValues)
-            : captureTrackedBoundEntityValues(metadata, capturedValues);
-        const identity = this.identityFactory.createFromValues(
+        const prepared = prepareTrackedRegistration(
+            entity,
             metadata,
             state,
-            capturedValues,
-            capturedBoundValues,
+            this.identityFactory,
+            originalValues,
+            originalBoundValues,
         );
+        const { values, boundValues, identity } = prepared;
         const { identityKey } = identity;
         this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByIdentity = this.identities.get(identityKey);
         if (existingByIdentity) {
-            throw trackingCollisionError(metadata, capturedValues, state);
+            throw trackingCollisionError(metadata, values, state);
         }
 
         const entry = createTrackedEntry(
@@ -73,28 +72,29 @@ export class ChangeTrackerRegistry {
             entity,
             metadata,
             state,
-            capturedValues,
-            capturedBoundValues,
+            values,
+            boundValues,
             identity.temporaryGeneratedIdentity,
             () => {
                 this.assertMutation('Changing EntityEntry.state', entity);
             },
         );
-        this.entriesByEntity.set(entity, entry as unknown as EntityEntry<object>);
-        this.identities.add(identityKey, entry as unknown as EntityEntry<object>);
-        this.trackedEntries.add(entry as unknown as EntityEntry<object>);
-        const model = changeTrackerModel(this.owner);
-        if (model) {
-            initializeNavigationSnapshots(
-                entry as unknown as EntityEntry<object>,
-                model,
-            );
-        }
-        this.notifyTracked(entity);
-        this.assertInvariant();
+        const tracked = entry as unknown as EntityEntry<object>;
+        publishTrackedRegistration(
+            entity,
+            tracked,
+            identityKey,
+            changeTrackerModel(this.owner),
+            this.entriesByEntity,
+            this.identities,
+            this.trackedEntries,
+            () => this.notifyTracked(entity),
+            () => {
+                this.assertInvariant();
+            },
+        );
         return entry;
     }
-
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.entriesByEntity.get(entity) as unknown as EntityEntry<TEntity> | undefined;
     }

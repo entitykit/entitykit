@@ -12,6 +12,7 @@ import type { IncludeLoadRoot, QueryFilterApplier } from './include-loader-conte
 import { IncludeStrategyRunner } from './include-loader-strategies';
 import { groupIncludes } from './include-navigation-helpers';
 import { captureIncludeRoots } from './include-load-root';
+import type { SuppliedIncludeValues } from './include-load-root';
 
 /**
  * Eager relationship/navigation loading for `include(...)`.
@@ -57,7 +58,7 @@ export class IncludeLoader {
         includes: ReadonlyArray<IncludeExpression<TEntity>>,
         suppliedValues?: ReadonlyMap<
             object,
-            Readonly<Record<string, unknown>>
+            SuppliedIncludeValues
         >,
     ): Promise<void> {
         const roots = captureIncludeRoots(metadata, entities, suppliedValues);

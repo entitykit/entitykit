@@ -1,16 +1,26 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { readEntityValues } from '../tracking/entity-entry-snapshot';
 import type { IncludeLoadRoot } from './include-loader-context';
+import { captureEntityPersistenceFacts } from '../tracking/entity-persistence-fact-capture';
+
+export interface SuppliedIncludeValues {
+    readonly modelValues: Readonly<Record<string, unknown>>;
+    readonly boundValues: Readonly<Record<string, unknown>>;
+}
 
 export function captureIncludeRoots<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entities: readonly TEntity[],
-    supplied?: ReadonlyMap<object, Readonly<Record<string, unknown>>>,
+    supplied?: ReadonlyMap<object, SuppliedIncludeValues>,
 ): Array<IncludeLoadRoot<TEntity>> {
-    return entities.map(entity => ({
-        entity,
-        values: supplied?.get(entity) ?? readEntityValues(metadata, entity),
-    }));
+    return entities.map(entity => {
+        const captured = supplied?.get(entity) ??
+            captureEntityPersistenceFacts(metadata, entity);
+        return {
+            entity,
+            values: captured.modelValues,
+            boundValues: captured.boundValues,
+        };
+    });
 }
 
 export function uniqueIncludeRoots<TEntity extends object>(

@@ -10,7 +10,7 @@ class AuditActor {
 class AuditedDocument {
     public id = '';
     public title = '';
-    public updatedById = '';
+    public updatedById: string | null = null;
     public updatedBy: AuditActor | null = null;
 }
 
@@ -18,8 +18,12 @@ class AuditRelationshipContext extends DbContext {
     public actors = this.set(AuditActor);
     public documents = this.set(AuditedDocument);
 
-    constructor(private readonly currentActorId: string) {
+    constructor(private currentActorId: string | undefined) {
         super();
+    }
+
+    public useActor(actorId: string | undefined): void {
+        this.currentActorId = actorId;
     }
 
     protected override configure(options: DbContextOptionsBuilder): void {
@@ -43,7 +47,7 @@ class AuditRelationshipContext extends DbContext {
                 .isRequired();
             entity.property(document => document.updatedById)
                 .hasColumnName('updated_by_id').hasColumnType('text')
-                .isRequired();
+                .isOptional();
             entity.hasOne(AuditActor, document => document.updatedBy)
                 .withMany(actor => actor.documents)
                 .hasForeignKey(document => document.updatedById);
@@ -123,6 +127,28 @@ describe('audit relationship reconciliation', () => {
         expect(document.updatedById).toBe('actor-b');
         expect(document.updatedBy).toBeNull();
         expect(actorA.documents).toEqual([]);
+        await db.dispose();
+    });
+
+    it('accepts every inverse baseline changed by audit reconciliation', async () => {
+        const db = await open('actor-b');
+        const { actorB, document } = trackedGraph(db);
+        document.title = 'after';
+        await db.saveChanges();
+        db.useActor(undefined);
+
+        actorB.documents = [];
+
+        await expect(db.saveChanges()).resolves.toBe(1);
+        expect(document.updatedById).toBeNull();
+        expect(document.updatedBy).toBeNull();
+        const stored = await db.database.connection.query<{
+            updated_by_id: string | null;
+        }>({
+            text: 'select updated_by_id from audited_documents where id = ?',
+            values: ['document'],
+        });
+        expect(stored.rows).toEqual([{ updated_by_id: null }]);
         await db.dispose();
     });
 

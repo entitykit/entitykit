@@ -11,6 +11,12 @@ import type { EntityEntryStore } from './entity-entry-store';
 import { EntityState } from './entity-state';
 import { applyMaterializedValues } from '../materialization/complex-value-materializer';
 import { syncDatabaseVersions } from './entity-entry-version-sync';
+import { captureCurrentNavigationSnapshotValues } from './navigation-snapshot';
+import {
+    assertConcurrencyConflictState,
+    assertConcurrencyExistingEntry,
+} from './entity-entry-concurrency-guards';
+import { captureReloadRelationshipBoundValues } from './reloaded-relationship-fixup';
 
 const concurrencyByEntry: WeakMap<object, object> = new WeakMap();
 
@@ -42,18 +48,22 @@ export class EntityEntryConcurrency<TEntity extends object> {
     public async getDatabaseValues(): Promise<
         EntityDatabaseValues<TEntity> | null
     > {
-        this.assertExistingEntry('getDatabaseValues()');
-        const values = await this.store.loadDatabaseValues(this.entry);
-        if (values) {
-            this.store.assertPersistedIdentity(this.entry, values);
+        assertConcurrencyExistingEntry(this.entry, 'getDatabaseValues()');
+        const loaded = await this.store.loadDatabaseValues(this.entry);
+        if (loaded) {
+            this.store.assertPersistedIdentity(this.entry, loaded);
         }
-        return values
-            ? createEntityDatabaseValues(this.entry, values)
+        return loaded
+            ? createEntityDatabaseValues(
+                this.entry,
+                loaded.values,
+                loaded.boundValues,
+            )
             : null;
     }
 
     public async reload(): Promise<boolean> {
-        this.assertExistingEntry('reload()');
+        assertConcurrencyExistingEntry(this.entry, 'reload()');
         const databaseValues = await this.getDatabaseValues();
         if (!databaseValues) {
             this.store.detach(this.entry);
@@ -67,7 +77,7 @@ export class EntityEntryConcurrency<TEntity extends object> {
         strategy: ConcurrencyResolutionStrategy,
         provided?: EntityDatabaseValues<TEntity>,
     ): Promise<EntityDatabaseValues<TEntity> | null> {
-        this.assertConflictState();
+        assertConcurrencyConflictState(this.entry);
         const databaseValues = provided ?? await this.getDatabaseValues();
         if (!databaseValues) {
             if (strategy === 'databaseWins') {
@@ -90,55 +100,49 @@ export class EntityEntryConcurrency<TEntity extends object> {
     private applyDatabaseWins(
         databaseValues: EntityDatabaseValues<TEntity>,
     ): void {
-        const values = readEntityDatabaseValues(this.entry, databaseValues);
-        this.store.assertPersistedIdentity(this.entry, values);
-        const previousValues = this.entry.currentValues();
-        applyMaterializedValues(this.entry.metadata, this.entry.entity, values);
-        this.store.fixupReloadedRelationships(this.entry, previousValues);
-        this.entry.acceptChanges();
+        const loaded = readEntityDatabaseValues(this.entry, databaseValues);
+        this.store.assertPersistedIdentity(this.entry, loaded);
+        const previousBoundValues = captureReloadRelationshipBoundValues(
+            this.entry,
+        );
+        applyMaterializedValues(
+            this.entry.metadata,
+            this.entry.entity,
+            loaded.values,
+        );
+        this.store.fixupReloadedRelationships(
+            this.entry,
+            previousBoundValues,
+            loaded.boundValues,
+        );
+        this.entry.acceptPersistedValues(
+            loaded.values,
+            loaded.boundValues,
+            captureCurrentNavigationSnapshotValues(
+                this.entry as unknown as EntityEntry<object>,
+            ),
+        );
     }
 
     private applyClientWins(
         databaseValues: EntityDatabaseValues<TEntity>,
     ): void {
         const state = this.entry.state;
-        const values = readEntityDatabaseValues(this.entry, databaseValues);
-        this.store.assertPersistedIdentity(this.entry, values);
-        this.entry.refreshOriginalValues(values);
+        const loaded = readEntityDatabaseValues(this.entry, databaseValues);
+        this.store.assertPersistedIdentity(this.entry, loaded);
+        this.entry.refreshPersistedValues(
+            loaded.values,
+            loaded.boundValues,
+        );
         syncDatabaseVersions(
             this.entry.metadata,
             this.entry.entity,
-            values,
+            loaded.values,
         );
         if (state === EntityState.Deleted) {
             this.entry.transitionToState(EntityState.Deleted);
         } else {
             this.entry.detectChanges();
-        }
-    }
-
-    private assertExistingEntry(operation: string): void {
-        if (this.entry.state === EntityState.Detached) {
-            throw new Error(
-                `${operation} requires a tracked '${this.entry.metadata.entityName}' entry.`,
-            );
-        }
-        if (this.entry.state === EntityState.Added) {
-            throw new Error(
-                `${operation} is not available for an Added '${this.entry.metadata.entityName}' entry because it has no persisted baseline.`,
-            );
-        }
-    }
-
-    private assertConflictState(): void {
-        this.assertExistingEntry('resolveConcurrency()');
-        if (
-            this.entry.state !== EntityState.Modified &&
-            this.entry.state !== EntityState.Deleted
-        ) {
-            throw new Error(
-                `resolveConcurrency() requires a Modified or Deleted '${this.entry.metadata.entityName}' entry, but its state is ${this.entry.state}.`,
-            );
         }
     }
 }

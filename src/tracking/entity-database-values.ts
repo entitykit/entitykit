@@ -4,10 +4,9 @@ import {
     type PropertyPathSelector,
 } from '../model/model-property-selector';
 import type { EntityEntry } from './entity-entry';
-import {
-    cloneEntityValues,
-} from './entity-entry-snapshot';
-import { snapshotPropertyValue } from './snapshot-value';
+import { cloneBoundValues } from './bound-value-snapshot';
+import type { LoadedEntityDatabaseValues } from './entity-entry-store';
+import { cloneBoundEntityValues } from './bound-entity-value-clone';
 
 /**
  * An immutable snapshot of the mapped values currently stored for one entry.
@@ -29,6 +28,7 @@ export interface EntityDatabaseValues<TEntity extends object> {
 interface SnapshotData {
     readonly entry: object;
     readonly values: Record<string, unknown>;
+    readonly boundValues: Record<string, unknown>;
 }
 
 const snapshotData: WeakMap<object, SnapshotData> = new WeakMap();
@@ -36,8 +36,13 @@ const snapshotData: WeakMap<object, SnapshotData> = new WeakMap();
 export function createEntityDatabaseValues<TEntity extends object>(
     entry: EntityEntry<TEntity>,
     values: Record<string, unknown>,
+    boundValues: Record<string, unknown>,
 ): EntityDatabaseValues<TEntity> {
-    const stored = cloneEntityValues(entry.metadata, values);
+    const stored = cloneBoundEntityValues(
+        entry.metadata,
+        values,
+        boundValues,
+    );
     const snapshot: EntityDatabaseValues<TEntity> = Object.freeze({
         propertyNames: Object.freeze(
             entry.metadata.properties.map(property => property.propertyName),
@@ -50,29 +55,44 @@ export function createEntityDatabaseValues<TEntity extends object>(
             const propertyName = typeof propertyOrSelector === 'function'
                 ? selectPropertyPath(propertyOrSelector).join('.')
                 : propertyOrSelector;
-            const property = entry.metadata.getProperty(propertyName);
-            return snapshotPropertyValue(
-                stored[property.propertyName],
-                property.converter,
-            );
+            return cloneBoundEntityValues(
+                entry.metadata,
+                stored,
+                boundValues,
+            )[propertyName];
         },
         /** Perform the to object operation. */ toObject(): Readonly<Record<string, unknown>> {
-            return Object.freeze(cloneEntityValues(entry.metadata, stored));
+            return Object.freeze(cloneBoundEntityValues(
+                entry.metadata,
+                stored,
+                boundValues,
+            ));
         },
     });
-    snapshotData.set(snapshot, { entry, values: stored });
+    snapshotData.set(snapshot, {
+        entry,
+        values: stored,
+        boundValues: cloneBoundValues(boundValues),
+    });
     return snapshot;
 }
 
 export function readEntityDatabaseValues<TEntity extends object>(
     entry: EntityEntry<TEntity>,
     snapshot: EntityDatabaseValues<TEntity>,
-): Record<string, unknown> {
+): LoadedEntityDatabaseValues {
     const data = snapshotData.get(snapshot);
     if (data?.entry !== entry) {
         throw new Error(
             `Database values for '${entry.metadata.entityName}' must come from getDatabaseValues() on the same tracked entry.`,
         );
     }
-    return cloneEntityValues(entry.metadata, data.values);
+    return {
+        values: cloneBoundEntityValues(
+            entry.metadata,
+            data.values,
+            data.boundValues,
+        ),
+        boundValues: cloneBoundValues(data.boundValues),
+    };
 }

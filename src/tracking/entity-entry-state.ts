@@ -5,8 +5,9 @@ import { cloneBoundEntityValues } from './bound-entity-value-clone';
 import { EntityState } from './entity-state';
 import { assertEntityEntryStateMutation } from './entity-entry-mutation-guard';
 import { acceptNavigationSnapshotValues, refreshNavigationSnapshots, type NavigationSnapshotValues } from './navigation-snapshot';
-import { captureBoundEntityValues, captureTrackedBoundEntityValues, cloneBoundValues } from './bound-value-snapshot';
+import { captureBoundEntityValues, cloneBoundValues } from './bound-value-snapshot';
 import { EntityEntryNavigationState } from './entity-entry-navigation-state';
+import { captureInitialTrackedEntrySnapshot } from './initial-tracked-entry-snapshot';
 export class EntityEntryState<TEntity extends object> {
     private snapshot: Record<string, unknown>;
     private boundSnapshot: Record<string, unknown>;
@@ -19,41 +20,34 @@ export class EntityEntryState<TEntity extends object> {
         originalValues?: Record<string, unknown>,
         originalBoundValues?: Record<string, unknown>,
     ) {
-        this.snapshot = originalValues
-            ? cloneEntityValues(metadata, originalValues)
-            : readEntityValues(metadata, entity);
-        this.boundSnapshot = originalBoundValues
-            ? cloneBoundValues(originalBoundValues)
-            : captureTrackedBoundEntityValues(metadata, this.snapshot);
+        const captured = captureInitialTrackedEntrySnapshot(
+            entity, metadata, originalValues, originalBoundValues,
+        );
+        this.snapshot = captured.values;
+        this.boundSnapshot = captured.boundValues;
     }
 
     public get state(): EntityState {
         return this.currentState;
     }
-
     public transitionTo(state: EntityState): void {
         if (state !== this.currentState) {
             assertEntityEntryStateMutation(this.owner);
             this.currentState = state;
         }
     }
-
     public get originalValues(): Readonly<Record<string, unknown>> {
         return this.snapshot;
     }
-
     public get originalBoundValues(): Readonly<Record<string, unknown>> {
         return this.boundSnapshot;
     }
-
     public currentValues(): Record<string, unknown> {
         return readEntityValues(this.metadata, this.entity);
     }
-
     public modifiedProperties(): string[] {
         return modifiedEntityProperties(this.metadata, this.entity, this.snapshot);
     }
-
     public detectChanges(): void {
         if (
             this.currentState !== EntityState.Unchanged &&
@@ -66,7 +60,6 @@ export class EntityEntryState<TEntity extends object> {
             ? EntityState.Modified
             : EntityState.Unchanged;
     }
-
     public setStateFromCapturedValues(
         values: Readonly<Record<string, unknown>>,
     ): EntityState {
@@ -84,7 +77,6 @@ export class EntityEntryState<TEntity extends object> {
         }
         return this.currentState;
     }
-
     public refresh(values?: Record<string, unknown>): void {
         this.snapshot = values
             ? cloneEntityValues(this.metadata, values)
@@ -94,7 +86,17 @@ export class EntityEntryState<TEntity extends object> {
             this.snapshot,
         );
     }
-
+    public refreshPersisted(
+        values: Record<string, unknown>,
+        boundValues: Record<string, unknown>,
+    ): void {
+        this.snapshot = cloneBoundEntityValues(
+            this.metadata,
+            values,
+            boundValues,
+        );
+        this.boundSnapshot = cloneBoundValues(boundValues);
+    }
     public accept(
         entry: EntityEntry<object>,
         state: EntityState = EntityState.Unchanged,
@@ -107,7 +109,6 @@ export class EntityEntryState<TEntity extends object> {
         refreshNavigationSnapshots(entry);
         this.currentState = state;
     }
-
     public acceptPersisted(
         entry: EntityEntry<object>,
         values: Record<string, unknown>,
@@ -120,21 +121,18 @@ export class EntityEntryState<TEntity extends object> {
         acceptNavigationSnapshotValues(entry, navigations);
         this.currentState = state;
     }
-
     public detach(): void {
         this.currentState = EntityState.Detached;
     }
 
     public markNavigationLoaded(
-        entry: EntityEntry<object>,
-        property: string,
+        entry: EntityEntry<object>, property: string,
     ): void {
         this.navigations.markLoaded(entry, property);
     }
 
     public markNavigationNotLoaded(
-        entry: EntityEntry<object>,
-        property: string,
+        entry: EntityEntry<object>, property: string,
     ): void {
         this.navigations.markNotLoaded(entry, property);
     }

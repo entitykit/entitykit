@@ -9,10 +9,8 @@ import { uniquePropertyTuples } from './include-property-key-helpers';
 import { IncludeOneToManyFilteredLoader } from './include-one-to-many-filtered-loader';
 import type { IncludeFilterModel } from './query-model';
 import { RelationshipCardinality } from '../model/relationship-metadata';
-import {
-    principalValuesForDependent,
-} from '../model/relationship-key-translation';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import { boundQueryTuple, principalBoundTuple } from './include-bound-key';
 
 /**
  * One-to-many eager load (principal -> collection of dependents).
@@ -55,13 +53,13 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
         const principalKeys = uniquePropertyTuples(
             dependentMetadata,
             relationship.foreignKeyProperties.map(String),
-            principals
-                .map(principal => principalValuesForDependent(
+            principals.map(principal => boundQueryTuple(
+                principalBoundTuple(
                     relationship,
-                    dependentMetadata,
                     principalMetadata,
-                    principal.values,
-                ))
+                    principal,
+                ),
+            ))
                 .filter(isCompleteTuple),
         );
 

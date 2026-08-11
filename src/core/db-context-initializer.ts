@@ -6,7 +6,7 @@ import type { DbContextOptions } from './context-options/db-context-option-types
 import type { Model } from '../model/model';
 import { ModelBuilder } from '../model/model-builder';
 import type { ChangeTracker } from '../tracking/change-tracker';
-import { attachLazyLoader } from './lazy-loading';
+import { attachLazyLoader, detachLazyLoader } from './lazy-loading';
 import type { LazyNavigationCoordinator } from './lazy-navigation-coordinator';
 import type { DbContextState } from './db-context-state';
 import { configureChangeTrackerModel } from '../tracking/change-tracker-model';
@@ -72,6 +72,9 @@ export function initializeDbContext(
     if (options.lazyLoading) {
         changeTracker.observeTracked(entity => {
             attachLazyLoader(entity, lazyNavigation);
+            return () => {
+                detachLazyLoader(entity);
+            };
         });
     }
 }

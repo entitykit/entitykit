@@ -57,6 +57,11 @@ export function forgetNavigation(
     snapshots.get(entry)?.delete(property);
 }
 
+/** Remove every navigation baseline prepared for a failed registration. */
+export function clearNavigationSnapshots(entry: EntityEntry<object>): void {
+    snapshots.delete(entry);
+}
+
 export function navigationSnapshot(
     entry: EntityEntry<object>,
     property: string,

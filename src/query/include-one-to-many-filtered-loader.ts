@@ -8,8 +8,8 @@ import { uniqueIncludeRoots } from './include-load-root';
 import { buildOneToManyWindowStatement } from './include-one-to-many-window-sql';
 import { IncludeStrategyBase } from './include-strategy-base';
 import type { IncludeFilterModel } from './query-model';
-import { principalValuesForDependent } from '../model/relationship-key-translation';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import { boundQueryTuple, principalBoundTuple } from './include-bound-key';
 
 export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
     constructor(
@@ -49,12 +49,11 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         const elapsed = startElapsedTimer();
         const allDependents: IncludeLoadRoot[] = [];
         for (const principal of principals) {
-            const principalKey = principalValuesForDependent(
+            const principalKey = boundQueryTuple(principalBoundTuple(
                 relationship,
-                dependentMetadata,
                 principalMetadata,
-                principal.values,
-            );
+                principal,
+            ));
             const dependents = await this.propertyLoader.loadByProperties(
                 dependentMetadata,
                 relationship.foreignKeyProperties,
@@ -101,12 +100,11 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             dependentMetadata,
             foreignKeyProperty,
             principals
-                .map(principal => principalValuesForDependent(
+                .map(principal => boundQueryTuple(principalBoundTuple(
                     relationship,
-                    dependentMetadata,
                     principalMetadata,
-                    principal.values,
-                )[0])
+                    principal,
+                ))[0])
                 .filter(value => value !== undefined && value !== null),
         );
         const statement = buildOneToManyWindowStatement(

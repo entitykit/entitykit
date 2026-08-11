@@ -23,7 +23,7 @@ export abstract class DbContextQuery extends DbContextConcurrency {
             this.changeTracker,
             entry,
             entry.metadata.tenantKeyProperty
-                ? operation.tenantIdFor(entry.metadata.entityName)
+                ? operation.boundTenantFor(entry.metadata)?.value
                 : undefined,
             operation.allowsCrossTenantAccess,
         );

@@ -62,11 +62,18 @@ export class SavePlanBuilder {
             this.deps.changeTracker,
         );
         snapshots = snapshots.map(snapshot => {
-            const properties = reconciled.get(snapshot.entry.entity);
-            return properties
-                ? refreshPersistedEntryRelationships(snapshot, properties)
+            const changes = reconciled.get(snapshot.entry.entity);
+            return changes
+                ? refreshPersistedEntryRelationships(
+                    snapshot,
+                    changes.foreignKeys,
+                )
                 : snapshot;
         });
+        this.deps.saveTimeWrites.rememberRelationshipAcceptance(
+            snapshots.filter(snapshot =>
+                (reconciled.get(snapshot.entry.entity)?.navigations.size ?? 0) > 0),
+        );
         const pending = orderSaveEntries(snapshots.filter(snapshot =>
             snapshot.state === EntityState.Added ||
             snapshot.state === EntityState.Modified ||

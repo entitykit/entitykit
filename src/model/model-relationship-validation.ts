@@ -2,6 +2,7 @@ import type { EntityConstructor } from '../types';
 import type { EntityMetadata } from './entity-metadata';
 import { isDeclaredPrincipalKey } from './relationship-key';
 import { DeleteBehavior } from './relationship-metadata';
+import { ValueGenerated } from './value-generated';
 
 export function validateModelRelationships(
     entities: readonly EntityMetadata[],
@@ -56,6 +57,16 @@ export function validateModelRelationships(
             if (versionForeignKey !== undefined) {
                 throw new Error(
                     `Property '${entity.entityName}.${versionForeignKey}' cannot combine version and relationship foreign-key roles. Configure separate properties for these persistence concerns.`,
+                );
+            }
+            const generatedForeignKey = foreignKeyProperties.find(property => {
+                const generation = entity.getProperty(property).valueGenerated;
+                return generation !== undefined &&
+                    generation !== ValueGenerated.Never;
+            });
+            if (generatedForeignKey !== undefined) {
+                throw new Error(
+                    `Property '${entity.entityName}.${generatedForeignKey}' cannot combine database-generated and relationship foreign-key roles. Configure an application-written foreign key until generated relationship reconciliation is supported.`,
                 );
             }
             if (

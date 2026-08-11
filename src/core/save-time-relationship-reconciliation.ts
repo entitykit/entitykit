@@ -34,15 +34,19 @@ export function reconcileSaveTimeRelationships(
     tracker: ChangeTracker,
     mutations: SaveTimeMutationLog,
     entries: ReadonlyArray<EntityEntry<object>>,
-): void {
-    if (entries.length === 0) return;
+): ReadonlyMap<object, ReadonlySet<string>> {
+    if (entries.length === 0) return new Map();
     const before = captureLiveNavigations(tracker.entries());
+    const changed: Map<object, Set<string>> = new Map();
     tracker.detectSaveRelationships(entries);
     for (const previous of before) {
         const applied = cloneNavigationValue(
             previous.entity[previous.property],
         );
         if (navigationValuesEqual(previous.snapshot, applied)) continue;
+        const properties = changed.get(previous.entity) ?? new Set<string>();
+        properties.add(previous.property);
+        changed.set(previous.entity, properties);
         mutations.recordRestoration(() => {
             const current = previous.entity[previous.property];
             if (!navigationValuesEqual(current, applied)) return;
@@ -56,6 +60,7 @@ export function reconcileSaveTimeRelationships(
             previous.entity[previous.property] = previous.value;
         });
     }
+    return changed;
 }
 
 function captureLiveNavigations(

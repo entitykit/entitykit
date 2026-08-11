@@ -10,9 +10,9 @@ import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapsho
 import { captureMissingBoundEntityValues } from '../tracking/bound-value-snapshot';
 import type { ChangeTracker } from '../tracking/change-tracker';
 import {
-    rememberSaveTimeRelationshipWrites,
-    reconcileSaveTimeRelationships,
-} from './save-time-relationship-reconciliation';
+    SaveTimeRelationshipState,
+    type SaveTimeRelationshipChanges,
+} from './save-time-relationship-state';
 
 /**
  * The writes a save makes into entities before persisting them: audit
@@ -23,7 +23,7 @@ import {
  */
 export class SaveTimeWrites {
     private readonly mutations = new SaveTimeMutationLog();
-    private readonly relationshipProperties: Map<object, Set<string>> = new Map();
+    private readonly relationships = new SaveTimeRelationshipState();
     private nowMs?: number;
     private userId: unknown;
     private userIdInitialized = false;
@@ -35,7 +35,7 @@ export class SaveTimeWrites {
     /** Start one save attempt and snapshot its request-scoped values lazily. */
     public begin(): void {
         this.mutations.reset();
-        this.relationshipProperties.clear();
+        this.relationships.reset();
         this.nowMs = undefined;
         this.userId = undefined;
         this.userIdInitialized = false;
@@ -46,7 +46,7 @@ export class SaveTimeWrites {
     /** Rebuild the plan while retaining stable request-scoped save values. */
     public beginGeneration(): void {
         this.mutations.restore();
-        this.relationshipProperties.clear();
+        this.relationships.reset();
     }
 
     /**
@@ -95,11 +95,7 @@ export class SaveTimeWrites {
                 currentUser,
                 this.mutations,
             );
-            rememberSaveTimeRelationshipWrites(
-                this.relationshipProperties,
-                prepared,
-                tenantWritten,
-            );
+            this.relationships.remember(prepared, tenantWritten);
             capturePreparedTenantProviderFacts(
                 prepared,
                 tenantId,
@@ -117,14 +113,21 @@ export class SaveTimeWrites {
     /** Reconcile graph state after final policy-managed FK writes. */
     public reconcileRelationships(
         changeTracker: ChangeTracker,
-    ): ReadonlyMap<object, ReadonlySet<string>> {
-        reconcileSaveTimeRelationships(
+    ): ReadonlyMap<object, SaveTimeRelationshipChanges> {
+        return this.relationships.reconcile(
             changeTracker,
             this.mutations,
-            changeTracker.entries().filter(entry =>
-                this.relationshipProperties.has(entry.entity)),
         );
-        return this.relationshipProperties;
+    }
+
+    public rememberRelationshipAcceptance(
+        snapshots: readonly PersistedEntrySnapshot[],
+    ): void {
+        this.relationships.rememberAcceptance(snapshots);
+    }
+
+    public relationshipAcceptanceSnapshots(): readonly PersistedEntrySnapshot[] {
+        return this.relationships.acceptanceSnapshots();
     }
 
     /** Undo the writes, newest first, so an entity survives a failure unchanged. */

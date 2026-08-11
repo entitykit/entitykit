@@ -1,4 +1,4 @@
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
+import { toBoundQueryPropertyValue } from './expression/bound-query-value';
 import { PredicateSqlCompiler } from '../sql/predicate-sql-compiler';
 import type { SqlDialect } from '../sql/sql-dialect';
 import {
@@ -54,7 +54,7 @@ export function buildManyToManyWindowStatement(
     const keyParameters = currentKeys
         .map(tuple =>
             parameters.add(
-                toBoundPropertyValue(
+                toBoundQueryPropertyValue(
                     tuple[0],
                     keyProperty,
                     info.currentMetadata.entityName,

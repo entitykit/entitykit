@@ -36,6 +36,7 @@ export interface LoadedIncludeResult<TEntity extends object = object> {
 export interface IncludeLoadRoot<TEntity extends object = object> {
     readonly entity: TEntity;
     readonly values: Readonly<Record<string, unknown>>;
+    readonly boundValues: Readonly<Record<string, unknown>>;
 }
 
 export interface ManyToManyRelationshipInfo {

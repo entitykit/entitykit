@@ -1,16 +1,15 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import {
-    dependentRelationshipProviderKey,
-    principalRelationshipProviderKey,
+    dependentRelationshipBoundKey,
+    principalRelationshipBoundKey,
 } from '../model/relationship-key-codec';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import type { ManyToManyRelationshipInfo } from './include-loader-context';
 import { parentKeyAliasAt } from './include-loader-sql';
-import {
-    readKeyColumn,
-} from './include-key-helpers';
-import { propertyTupleLookupKey } from './include-property-key-helpers';
+import { encodeIdentityTuple } from '../model/identity-value';
+import { readStoreProviderValue } from '../storage/store-value-reader';
+import { toBoundProviderValue } from '../model/value-converter/store-value';
 
 export function principalStitchKey<
     TDependent extends object,
@@ -20,7 +19,7 @@ export function principalStitchKey<
     relationship: RelationshipMetadata<TDependent, TPrincipal>,
     principal: Readonly<Record<string, unknown>>,
 ): string {
-    return principalRelationshipProviderKey(
+    return principalRelationshipBoundKey(
         relationship,
         metadata,
         principal,
@@ -35,9 +34,8 @@ export function dependentStitchKey<
     relationship: RelationshipMetadata<TDependent, TPrincipal>,
     dependent: Readonly<Record<string, unknown>>,
 ): string {
-    return dependentRelationshipProviderKey(
+    return dependentRelationshipBoundKey(
         relationship,
-        metadata,
         dependent,
     );
 }
@@ -47,15 +45,17 @@ export function manyToManyRowStitchKey(
     row: Record<string, unknown>,
     valueReader?: StoreValueReader,
 ): string {
-    return propertyTupleLookupKey(
-        info.currentMetadata,
-        info.currentMetadata.keyProperties.map(String),
-        info.currentJoinColumns.map((_, index) => readKeyColumn(
-            info.currentMetadata,
-            index,
-            row[parentKeyAliasAt(index)],
-            valueReader,
-        )),
+    return encodeIdentityTuple(
+        info.currentMetadata.keyPropertiesMetadata.map((property, index) =>
+            toBoundProviderValue(
+                readStoreProviderValue(
+                    row[parentKeyAliasAt(index)],
+                    property,
+                    valueReader,
+                ),
+                property.columnType,
+                `${info.currentMetadata.entityName}.${property.propertyName}`,
+            )),
     );
 }
 
@@ -63,11 +63,7 @@ export function manyToManyEntityStitchKey(
     info: ManyToManyRelationshipInfo,
     values: Readonly<Record<string, unknown>>,
 ): string {
-    return propertyTupleLookupKey(
-        info.currentMetadata,
-        info.currentMetadata.keyProperties.map(String),
-        info.currentMetadata.keyProperties.map(
-            propertyName => values[propertyName],
-        ),
-    );
+    return encodeIdentityTuple(info.currentMetadata.keyProperties.map(
+        propertyName => values[propertyName],
+    ));
 }

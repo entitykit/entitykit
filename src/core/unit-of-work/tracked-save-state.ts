@@ -11,6 +11,7 @@ import type { SaveStateAcceptance } from './save-state-acceptance';
 import { acceptSaveState } from './save-state-acceptor';
 import { incrementVersionValue } from './version-value-increment';
 import { toBoundPropertyValue } from '../../model/value-converter/store-value';
+import { saveStatePersistedEntries } from './save-state-persisted-entries';
 
 export class TrackedSaveState {
     constructor(
@@ -29,8 +30,10 @@ export class TrackedSaveState {
             changeTracker: this.changeTracker,
             saveTimeWrites: this.saveTimeWrites,
             manyToMany: this.manyToMany,
-            persistedEntries: plan.flatMap(item =>
-                savePlanExecution(item)?.persistedEntries ?? []),
+            persistedEntries: saveStatePersistedEntries(
+                plan,
+                this.saveTimeWrites,
+            ),
             manyToManyChanges: plan.flatMap(item =>
                 savePlanExecution(item)?.manyToManyChanges ?? []),
             rollbackVersions,
@@ -116,7 +119,6 @@ export class TrackedSaveState {
             if (item.state !== EntityState.Modified) {
                 continue;
             }
-
             for (const persisted of savePlanExecution(item)?.persistedEntries ?? []) {
                 for (const property of persisted.entry.metadata.properties) {
                     if (!property.isVersion) {

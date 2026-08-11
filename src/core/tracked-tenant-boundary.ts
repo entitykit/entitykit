@@ -2,6 +2,7 @@ import { TenantOwnershipError } from '../errors/tenant-ownership-error';
 import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-error';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { snapshotPropertyValuesEqual } from '../tracking/snapshot-value';
+import { snapshotValuesEqual } from '../tracking/snapshot-value-equality';
 
 /** Validate the persisted tenant identity used by a tracked operation. */
 export function assertTrackedTenantBoundary<TEntity extends object>(
@@ -42,6 +43,29 @@ export function assertTrackedTenantBoundary<TEntity extends object>(
             entry.metadata.entityName,
             tenantProperty,
             'tenant-key-change',
+        );
+    }
+}
+
+/** Validate a tracked row against an already-bound operation tenant. */
+export function assertTrackedBoundTenantBoundary<TEntity extends object>(
+    entry: EntityEntry<TEntity>,
+    boundTenantId: unknown,
+    allowsCrossTenantAccess: boolean,
+): void {
+    const tenantProperty = entry.metadata.tenantKeyProperty;
+    if (!tenantProperty || allowsCrossTenantAccess) return;
+    if (boundTenantId === undefined || boundTenantId === null) {
+        throw new TenantScopeUnavailableError(entry.metadata.entityName);
+    }
+    if (!snapshotValuesEqual(
+        entry.originalBoundValues[tenantProperty],
+        boundTenantId,
+    )) {
+        throw new TenantOwnershipError(
+            entry.metadata.entityName,
+            tenantProperty,
+            'scope-mismatch',
         );
     }
 }

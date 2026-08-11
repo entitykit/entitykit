@@ -3,6 +3,10 @@ import {
     toBoundPropertyValue,
     toBoundProviderValue,
 } from '../model/value-converter/store-value';
+import {
+    readStoreProviderValue,
+    type StoreValueReader,
+} from '../storage/store-value-reader';
 import { cloneSnapshotValue } from './snapshot-value-clone';
 
 /** Capture the exact provider representations of one model-value snapshot. */
@@ -26,11 +30,19 @@ export function captureTrackedBoundEntityValues<TEntity extends object>(
     values: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> {
     const tenantProperty = metadata.tenantKeyProperty;
+    const relationshipProperties = new Set(metadata.relationships.flatMap(
+        relationship => relationship.foreignKeyProperties as readonly string[],
+    ));
+    const alternateKeyProperties = new Set(metadata.alternateKeys.flatMap(
+        key => key.propertyNames.map(String),
+    ));
     return Object.fromEntries(metadata.properties
         .filter(property =>
             property.isPrimaryKey ||
             property.isConcurrencyToken ||
-            property.propertyName === tenantProperty)
+            property.propertyName === tenantProperty ||
+            relationshipProperties.has(property.propertyName) ||
+            alternateKeyProperties.has(property.propertyName))
         .map(property => [
             property.propertyName,
             cloneSnapshotValue(toBoundPropertyValue(
@@ -68,11 +80,16 @@ export function captureMissingBoundEntityValues<TEntity extends object>(
 export function captureBoundRowValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     row: Readonly<Record<string, unknown>>,
+    valueReader?: StoreValueReader,
 ): Record<string, unknown> {
     return Object.fromEntries(metadata.properties.map(property => [
         property.propertyName,
         cloneSnapshotValue(toBoundProviderValue(
-            row[property.columnName],
+            readStoreProviderValue(
+                row[property.columnName],
+                property,
+                valueReader,
+            ),
             property.columnType,
             `${metadata.entityName}.${property.propertyName}`,
         )),

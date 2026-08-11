@@ -56,6 +56,12 @@ export class EntityEntry<TEntity extends object> {
     public refreshOriginalValues(values?: Record<string, unknown>): void {
         this.trackedState.refresh(values);
     }
+    public refreshPersistedValues(
+        values: Record<string, unknown>,
+        boundValues: Record<string, unknown>,
+    ): void {
+        this.trackedState.refreshPersisted(values, boundValues);
+    }
     public acceptChanges(): void {
         this.trackedState.accept(this as unknown as EntityEntry<object>);
     }
@@ -112,38 +118,31 @@ export class EntityEntry<TEntity extends object> {
         this.navigationLoader = loader;
         return this;
     }
-    public async getDatabaseValues(): Promise<
-        EntityDatabaseValues<TEntity> | null
-    > {
+    public async getDatabaseValues(): Promise<EntityDatabaseValues<TEntity> | null> {
         return entityEntryConcurrency(this).getDatabaseValues();
     }
     public async reload(): Promise<boolean> {
         return entityEntryConcurrency(this).reload();
     }
-
     public async resolveConcurrency(
         strategy: ConcurrencyResolutionStrategy,
         databaseValues?: EntityDatabaseValues<TEntity>,
     ): Promise<EntityDatabaseValues<TEntity> | null> {
         return entityEntryConcurrency(this).resolve(strategy, databaseValues);
     }
-
     public reference<TNavigation>(selector: PropertySelector<TEntity, TNavigation>): ReferenceNavigationEntry<TEntity, NonNullable<TNavigation>> {
         return referenceEntry(this, selector, this.requireNavigationLoader());
     }
-
     public collection<TCollection>(selector: PropertySelector<TEntity, TCollection>): CollectionNavigationEntry<TEntity, NonNullable<TCollection> extends ReadonlyArray<infer TElement> ? NonNullable<TElement> : never> {
         return collectionEntry(this, selector, this.requireNavigationLoader());
     }
     public markDetached(): void {
         this.trackedState.detach();
     }
-
     private requireNavigationLoader(): EntityNavigationLoader {
         if (!this.navigationLoader) {
             throw new Error(`EntityEntry for '${this.metadata.entityName}' is not associated with a DbContext navigation loader.`);
         }
-
         return this.navigationLoader;
     }
 }

@@ -5,39 +5,51 @@ import {
     clearStaleReference,
     linkDependent,
 } from './relationship-fixup';
-import { findTrackedPrincipal } from './relationship-resolution';
+import { findTrackedPrincipalByBoundValues } from './relationship-resolution';
 import { captureNavigation } from './navigation-snapshot';
-import { snapshotPropertyValuesEqual } from './snapshot-value';
+import { snapshotValuesEqual } from './snapshot-value-equality';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import { captureEntityPersistenceFacts } from './entity-persistence-fact-capture';
+
+export function captureReloadRelationshipBoundValues<TEntity extends object>(
+    entry: EntityEntry<TEntity>,
+): Record<string, unknown> {
+    const properties = new Set(entry.metadata.relationships.flatMap(
+        relationship => relationship.foreignKeyProperties as readonly string[],
+    ));
+    return captureEntityPersistenceFacts(
+        entry.metadata,
+        entry.entity,
+        properties,
+    ).boundValues;
+}
 
 /** Keep tracked references coherent when a database-wins reload changes an FK. */
 export function fixupReloadedRelationships(
     tracker: ChangeTracker,
     model: Model,
     entry: EntityEntry<object>,
-    previousValues: Readonly<Record<string, unknown>>,
+    previousBoundValues: Readonly<Record<string, unknown>>,
+    reloadedBoundValues: Readonly<Record<string, unknown>>,
 ): void {
-    const current = entry.entity as Record<string, unknown>;
     const relationships = entry.metadata.relationships as
         readonly TrackedRelationshipMetadata[];
     for (const relationship of relationships) {
-        const changed = relationship.foreignKeyProperties.some(name => {
-            const property = entry.metadata.getProperty(name);
-            return !snapshotPropertyValuesEqual(
-                previousValues[name],
-                current[name],
-                property.converter,
-            );
-        });
+        const changed = relationship.foreignKeyProperties.some(name =>
+            !snapshotValuesEqual(
+                previousBoundValues[name],
+                reloadedBoundValues[name],
+            ));
         if (!changed) {
             continue;
         }
 
-        const principal = findTrackedPrincipal(
+        const principal = findTrackedPrincipalByBoundValues(
             tracker,
             model,
             entry,
             relationship,
+            reloadedBoundValues,
         );
         if (principal) {
             linkDependent(

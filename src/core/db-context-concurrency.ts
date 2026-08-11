@@ -4,10 +4,12 @@ import type { EntityEntryStore } from '../tracking/entity-entry-store';
 import {
     configureChangeTrackerStore,
 } from '../tracking/change-tracker-model';
-import { readEntityValues } from '../tracking/entity-entry-snapshot';
 import { fixupReloadedRelationships } from '../tracking/reloaded-relationship-fixup';
 import { DbContextRuntime } from './db-context-runtime';
-import { assertTrackedTenantBoundary } from './tracked-tenant-boundary';
+import { assertTrackedBoundTenantBoundary } from './tracked-tenant-boundary';
+import { boundQueryValue } from '../query/expression/bound-query-value';
+import { materializedPersistenceFacts } from '../materialization/materialized-bound-values';
+import type { LoadedEntityDatabaseValues } from '../tracking/entity-entry-store';
 
 /** Context bridge used by explicit tracked-entry concurrency recovery. */
 export abstract class DbContextConcurrency extends DbContextRuntime {
@@ -16,25 +18,24 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
         detach: entry => {
             this.changeTracker.detach(entry.entity);
         },
-        fixupReloadedRelationships: (entry, previousValues) => {
+        fixupReloadedRelationships: (
+            entry,
+            previousBoundValues,
+            reloadedBoundValues,
+        ) => {
             fixupReloadedRelationships(
                 this.changeTracker,
                 this.modelMetadata,
                 entry as unknown as EntityEntry<object>,
-                previousValues,
+                previousBoundValues,
+                reloadedBoundValues,
             );
         },
-        assertPersistedIdentity: (entry, values) => {
-            const keyValues = entry.metadata.keyProperties.map(
-                propertyName => values[propertyName],
-            );
+        assertPersistedIdentity: (entry, loaded) => {
             if (
-                this.changeTracker.tryGetByIdentityValues(
+                this.changeTracker.tryGetByBoundIdentityValues(
                     entry.metadata,
-                    keyValues,
-                    entry.metadata.tenantKeyProperty
-                        ? values[entry.metadata.tenantKeyProperty]
-                        : undefined,
+                    loaded.boundValues,
                 ) !== entry
             ) {
                 throw new Error(
@@ -51,33 +52,36 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
 
     private async loadDatabaseValues<TEntity extends object>(
         entry: EntityEntry<TEntity>,
-    ): Promise<Record<string, unknown> | null> {
+    ): Promise<LoadedEntityDatabaseValues | null> {
         const allowsCrossTenantAccess =
             this.options.tenantScope?.allowCrossTenantAccess === true;
-        assertTrackedTenantBoundary(
+        const operation = this.beginQueryOperation();
+        const boundTenant = entry.metadata.tenantKeyProperty
+            ? operation.boundTenantFor(entry.metadata)?.value
+            : undefined;
+        assertTrackedBoundTenantBoundary(
             entry,
-            this.currentTenantId(),
+            boundTenant,
             allowsCrossTenantAccess,
-            entry.currentValues(),
         );
         const keyProperties = entry.metadata.keyProperties;
-        const keyValues = keyProperties.map(
-            propertyName => entry.originalValues[propertyName],
-        );
         const entity = await this.set(entry.metadata.ctor)
             .asNoTracking()
             .ignoreQueryFilters()
+            .ignoreTenantScope()
             .where(() => {
                 const properties = [...keyProperties];
-                const values = [...keyValues];
+                const values = keyProperties.map(propertyName =>
+                    boundQueryValue(entry.originalBoundValues[propertyName]));
                 const tenantProperty = entry.metadata.tenantKeyProperty;
                 if (
                     tenantProperty &&
-                    !allowsCrossTenantAccess &&
                     !properties.includes(tenantProperty)
                 ) {
                     properties.push(tenantProperty);
-                    values.push(entry.originalValues[tenantProperty]);
+                    values.push(boundQueryValue(
+                        entry.originalBoundValues[tenantProperty],
+                    ));
                 }
                 return properties.map((propertyName, index) =>
                     new FieldExpression<TEntity, unknown>(
@@ -86,8 +90,13 @@ export abstract class DbContextConcurrency extends DbContextRuntime {
                 ).reduce((left, right) => left.and(right));
             })
             .singleOrNull();
-        return entity
-            ? readEntityValues(entry.metadata, entity)
-            : null;
+        if (!entity) return null;
+        const facts = materializedPersistenceFacts(entity);
+        if (!facts) {
+            throw new Error(
+                `Database values for '${entry.metadata.entityName}' have no bound row facts.`,
+            );
+        }
+        return facts;
     }
 }

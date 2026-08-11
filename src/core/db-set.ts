@@ -18,6 +18,7 @@ import { createDbSetRawQueryHost } from './db-set-raw-query-host';
 import type { QueryFilterOperation } from './query-filter-operation';
 import type { QueryModel } from '../query/query-model';
 import { addDbSetEntity } from './db-set-add';
+import type { BoundFindValues } from './bound-find-values';
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
 export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
@@ -47,14 +48,14 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
     }
 
     protected findTracked(
-        keyValues: readonly unknown[],
+        values: BoundFindValues,
         operation: QueryFilterOperation,
         options?: DatabaseOperationOptions,
     ): TEntity | null | undefined {
         return resolveTrackedFind(
             this.context,
             this.metadata,
-            keyValues,
+            values,
             operation,
             options,
         );

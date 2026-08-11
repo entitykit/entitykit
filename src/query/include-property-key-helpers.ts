@@ -1,5 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toProviderValue } from '../model/value-converter/store-value';
+import { toBoundQueryPropertyValue } from './expression/bound-query-value';
 import { tupleLookupKey } from './include-key-helpers';
 
 export function propertyTupleLookupKey<TEntity extends object>(
@@ -13,10 +13,10 @@ export function propertyTupleLookupKey<TEntity extends object>(
     return tupleLookupKey(values.map((value, index) => {
         const propertyName = propertyNames[index];
         const property = metadata.getProperty(propertyName);
-        return toProviderValue(
+        return toBoundQueryPropertyValue(
             value,
-            property.converter,
-            `${metadata.entityName}.${propertyName}`,
+            property,
+            metadata.entityName,
         );
     }));
 }

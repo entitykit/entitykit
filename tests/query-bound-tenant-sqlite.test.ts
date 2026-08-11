@@ -1,6 +1,7 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, valueConverter } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
+import { requireDefined } from './support/require-defined';
 
 class TenantScope {
     constructor(public readonly value: string) {}
@@ -106,6 +107,41 @@ describe('query-bound tenant facts', () => {
             child.id,
             child.tenantId.value,
         ])).toEqual([['child-one', 'tenant-one']]);
+        expect(scopeConversions).toBe(1);
+        await db.dispose();
+    });
+
+    it('reuses one provider tenant through explicit navigation loading', async () => {
+        scopeConversions = 0;
+        const db = BoundTenantQueryContext.create();
+        await db.database.connection.query({
+            text: `create table bound_tenant_parents (
+                id text not null, tenant_id text not null,
+                primary key (tenant_id, id)
+            ); create table bound_tenant_children (
+                id text not null, tenant_id text not null, parent_id text not null,
+                primary key (tenant_id, id)
+            )`,
+            values: [],
+        });
+        await db.database.connection.query({
+            text: `insert into bound_tenant_children (id, tenant_id, parent_id)
+                values (?, ?, ?), (?, ?, ?)`,
+            values: [
+                'child-one', 'tenant-one', 'parent',
+                'child-two', 'tenant-two', 'parent',
+            ],
+        });
+        const parent = Object.assign(new BoundTenantParent(), {
+            id: 'parent', tenantId: new TenantScope('tenant-one'),
+        });
+        db.parents.attach(parent);
+        scopeConversions = 0;
+
+        const children = await requireDefined(db.entry(parent))
+            .collection(row => row.children).load();
+
+        expect(children.map(child => child.id)).toEqual(['child-one']);
         expect(scopeConversions).toBe(1);
         await db.dispose();
     });

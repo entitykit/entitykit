@@ -1,6 +1,9 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { QueryModel } from '../query/query-model';
-import { boundQueryValue } from '../query/expression/bound-query-value';
+import {
+    boundQueryValue,
+    type BoundQueryValue,
+} from '../query/expression/bound-query-value';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { createTenantScopeResolver } from './tenant-scope-resolver';
 import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
@@ -11,6 +14,10 @@ export interface QueryFilterOperation {
 
     tenantIdFor(entityName: string): unknown;
 
+    boundTenantFor<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+    ): BoundQueryValue | undefined;
+
     apply<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         query: QueryModel<TEntity>,
@@ -19,7 +26,7 @@ export interface QueryFilterOperation {
 
 export type QueryTenantProviderResolver = <TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
-) => unknown;
+) => BoundQueryValue | undefined;
 
 export function createQueryFilterOperation(
     currentTenantId: () => unknown,
@@ -38,7 +45,7 @@ export function createQueryFilterOperation(
     > = new Map();
     const resolveBoundTenant: QueryTenantProviderResolver = <TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
-    ): unknown => {
+    ): BoundQueryValue | undefined => {
         const propertyName = metadata.tenantKeyProperty;
         if (!propertyName) return undefined;
         const property = metadata.getProperty(propertyName);
@@ -67,6 +74,9 @@ export function createQueryFilterOperation(
         tenantIdFor: entityName => allowsCrossTenantAccess
             ? undefined
             : resolveTenantId(entityName),
+        boundTenantFor: metadata => allowsCrossTenantAccess
+            ? undefined
+            : resolveBoundTenant(metadata),
         apply: (metadata, query) => apply(
             resolveTenantId,
             resolveBoundTenant,

@@ -1,5 +1,9 @@
 import type { Model } from '../model/model';
-import { relationshipKeyValuesEqual } from '../model/relationship-key-codec';
+import {
+    dependentRelationshipBoundKey,
+    principalRelationshipBoundKey,
+    relationshipKeyValuesEqual,
+} from '../model/relationship-key-codec';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
@@ -29,6 +33,35 @@ export function findTrackedPrincipal(
             principalMetadata,
             entry.entity as Record<string, unknown>,
         ));
+}
+
+export function findTrackedPrincipalByBoundValues(
+    tracker: ChangeTracker,
+    model: Model,
+    dependent: EntityEntry<object>,
+    relationship: TrackedRelationshipMetadata,
+    dependentBoundValues: Readonly<Record<string, unknown>>,
+): EntityEntry<object> | undefined {
+    const foreignKey = relationship.foreignKeyProperties.map(
+        property => dependentBoundValues[property],
+    );
+    if (foreignKey.some(value => value === null || value === undefined)) {
+        return undefined;
+    }
+    const principalMetadata = model.getEntity<Record<string, unknown>>(
+        relationship.principalEntity,
+    );
+    const key = dependentRelationshipBoundKey(
+        relationship,
+        dependentBoundValues,
+    );
+    return tracker.entries().find(entry =>
+        entry.metadata === principalMetadata &&
+        principalRelationshipBoundKey(
+            relationship,
+            principalMetadata,
+            entry.originalBoundValues,
+        ) === key);
 }
 
 export function relationshipConnects(

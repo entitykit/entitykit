@@ -5,6 +5,10 @@ import type { Queryable } from '../query/queryable';
 import type { DatabaseOperationOptions, QueryStreamOptions } from '../storage/database-connection';
 import type { QueryModel } from '../query/query-model';
 import type { QueryFilterOperation } from './query-filter-operation';
+import {
+    captureBoundFindValues,
+    type BoundFindValues,
+} from './bound-find-values';
 
 /** Primary-key lookup and terminal reads shared by every `DbSet`. */
 export abstract class DbSetQueryTerminals<TEntity extends object> {
@@ -16,7 +20,7 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
 
     /** Resolve a primary-key tuple from this context's identity map. */
     protected abstract findTracked(
-        keyValues: readonly unknown[],
+        values: BoundFindValues,
         operation: QueryFilterOperation,
         options?: DatabaseOperationOptions,
     ): TEntity | null | undefined;
@@ -51,7 +55,12 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
             );
         }
         const operation = this.beginQueryOperation();
-        const tracked = this.findTracked(keyValues, operation, options);
+        const bound = captureBoundFindValues(
+            this.metadata,
+            keyValues,
+            operation,
+        );
+        const tracked = this.findTracked(bound, operation, options);
         if (tracked !== undefined) {
             return tracked;
         }
@@ -61,7 +70,7 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
                 keyProperties
                     .map((propertyName, index) =>
                         new FieldExpression<TEntity, unknown>(propertyName).eq(
-                            keyValues[index],
+                            bound.predicates[index],
                         ),
                     )
                     .reduce((left, right) => left.and(right)),
@@ -118,9 +127,7 @@ export abstract class DbSetQueryTerminals<TEntity extends object> {
     public async exists(options?: DatabaseOperationOptions): Promise<boolean> {
         return this.query().exists(options);
     }
-
 }
-
 function findArguments(
     keyCount: number,
     arguments_: readonly unknown[],

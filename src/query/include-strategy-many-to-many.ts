@@ -8,6 +8,7 @@ import { uniquePropertyTuples } from './include-property-key-helpers';
 import { uniqueIncludeRoots } from './include-load-root';
 import type { IncludeFilterModel } from './query-model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
+import { boundQueryTuple } from './include-bound-key';
 
 /**
  * Many-to-many eager load across a join table.
@@ -38,8 +39,10 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
             info.currentMetadata,
             info.currentMetadata.keyProperties.map(String),
             currentEntities
-                .map(root => info.currentMetadata.keyProperties.map(
-                    propertyName => root.values[propertyName],
+                .map(root => boundQueryTuple(
+                    info.currentMetadata.keyProperties.map(
+                        propertyName => root.boundValues[propertyName],
+                    ),
                 ))
                 .filter(isCompleteTuple),
         );
@@ -75,8 +78,10 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
         const allRelated: IncludeLoadRoot[] = [];
 
         for (const root of currentEntities) {
-            const currentKey = info.currentMetadata.keyProperties.map(
-                propertyName => root.values[propertyName],
+            const currentKey = boundQueryTuple(
+                info.currentMetadata.keyProperties.map(
+                    propertyName => root.boundValues[propertyName],
+                ),
             );
             const loaded = await this.loadBatch([currentKey], [root], info, filter, false);
             allRelated.push(...loaded.roots);

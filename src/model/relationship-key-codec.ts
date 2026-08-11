@@ -54,6 +54,27 @@ export function principalRelationshipProviderKey<TEntity extends object>(
     );
 }
 
+export function dependentRelationshipBoundKey(
+    relationship: RelationshipKeyMetadata,
+    values: Readonly<Record<string, unknown>>,
+): string {
+    return encodeIdentityTuple(relationship.foreignKeyProperties.map(
+        property => values[property],
+    ));
+}
+
+export function principalRelationshipBoundKey<TEntity extends object>(
+    relationship: RelationshipKeyMetadata,
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+): string {
+    return encodeIdentityTuple(
+        (relationship.principalKeyProperties ?? metadata.keyProperties).map(
+            property => values[property],
+        ),
+    );
+}
+
 export function relationshipKeyValuesEqual<
     TDependent extends object,
     TPrincipal extends object,

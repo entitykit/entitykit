@@ -16,13 +16,6 @@ import {
     manyToManyRowStitchKey,
     principalStitchKey,
 } from './include-stitch-keys';
-/**
- * Wire freshly loaded rows onto the navigation properties of their parents
- * (and, where configured, the inverse navigation on the children), then mark
- * those navigations loaded.
- * Strategies decide which rows to load; this class owns their shared,
- * identity-preserving assignment path.
- */
 export class IncludeStitcher {
     constructor(private readonly ctx: IncludeLoaderContext) {}
 
@@ -36,7 +29,11 @@ export class IncludeStitcher {
         const dependentsByPrincipalKey: Map<string, object[]> = new Map();
         const principalsByKey = new Map(
             principals.map(principal => [
-                principalStitchKey(principalMetadata, relationship, principal.values),
+                principalStitchKey(
+                    principalMetadata,
+                    relationship,
+                    principal.boundValues,
+                ),
                 principal.entity,
             ]),
         );
@@ -46,7 +43,7 @@ export class IncludeStitcher {
             const key = dependentStitchKey(
                 dependentMetadata,
                 relationship,
-                dependentRoot.values,
+                dependentRoot.boundValues,
             );
             const group = dependentsByPrincipalKey.get(key) ?? [];
             pushUnique(group, dependent);
@@ -65,11 +62,11 @@ export class IncludeStitcher {
                 `Relationship '${String(relationship.navigationProperty)}' does not configure an inverse navigation.`,
             );
         }
-        for (const { entity: principal, values } of principals) {
+        for (const { entity: principal, boundValues } of principals) {
             const key = principalStitchKey(
                 principalMetadata,
                 relationship,
-                values,
+                boundValues,
             );
             const group = dependentsByPrincipalKey.get(key) ?? [];
             if (
@@ -120,9 +117,9 @@ export class IncludeStitcher {
             pushUniqueObject(getUniqueObjectList(relatedByParentKey, parentKey), related);
         }
 
-        for (const { entity, values } of currentEntities) {
+        for (const { entity, boundValues } of currentEntities) {
             const group = relatedByParentKey.get(
-                manyToManyEntityStitchKey(info, values),
+                manyToManyEntityStitchKey(info, boundValues),
             )?.items ?? [];
             (entity as Record<string, unknown>)[info.navigationProperty] = group;
             this.markLoaded(entity, info.navigationProperty);
