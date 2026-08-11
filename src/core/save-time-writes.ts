@@ -13,6 +13,7 @@ import {
     SaveTimeRelationshipState,
     type SaveTimeRelationshipChanges,
 } from './save-time-relationship-state';
+import { SaveTimeRelationshipGeneration } from './save-time-relationship-generation';
 
 /**
  * The writes a save makes into entities before persisting them: audit
@@ -29,9 +30,7 @@ export class SaveTimeWrites {
     private userIdInitialized = false;
     private tenantId: unknown;
     private tenantIdInitialized = false;
-
     constructor(private readonly scope: SaveTimeScope) {}
-
     /** Start one save attempt and snapshot its request-scoped values lazily. */
     public begin(): void {
         this.mutations.reset();
@@ -42,13 +41,11 @@ export class SaveTimeWrites {
         this.tenantId = undefined;
         this.tenantIdInitialized = false;
     }
-
     /** Rebuild the plan while retaining stable request-scoped save values. */
     public beginGeneration(): void {
         this.mutations.restore();
         this.relationships.reset();
     }
-
     /**
      * Apply policy writes to the captured values and mirror them into the live
      * entities under the rollback journal.
@@ -120,6 +117,10 @@ export class SaveTimeWrites {
         );
     }
 
+    public beginRelationshipGeneration(snapshots: readonly PersistedEntrySnapshot[]): SaveTimeRelationshipGeneration {
+        return new SaveTimeRelationshipGeneration(snapshots, this.mutations);
+    }
+
     public rememberRelationshipAcceptance(
         snapshots: readonly PersistedEntrySnapshot[],
     ): void {
@@ -145,5 +146,4 @@ export class SaveTimeWrites {
         return this.mutations.takeRollback();
     }
 }
-
 export type { SaveTimeScope } from './save-time-scope';

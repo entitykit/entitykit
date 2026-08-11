@@ -80,13 +80,18 @@ export function propagateGeneratedKeys(
                 foreignKey.converter,
                 context,
             );
+            const previousLiveValue = liveValues[property.foreignKeyProperty];
             if (snapshotPropertyValuesEqual(
-                liveValues[property.foreignKeyProperty],
+                previousLiveValue,
                 property.foreignKeyValue,
                 foreignKey.converter,
                 context,
             )) {
-                mutations.record(liveValues, property.foreignKeyProperty);
+                mutations.recordCaptured(
+                    liveValues,
+                    property.foreignKeyProperty,
+                    previousLiveValue,
+                );
                 liveValues[property.foreignKeyProperty] = liveValue;
             }
             persistedValues[property.foreignKeyProperty] = persistedValue;

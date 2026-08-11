@@ -16,6 +16,7 @@ import {
     capturePersistedEntrySnapshot,
     refreshPersistedEntryRelationships,
 } from '../tracking/persisted-entry-snapshot';
+import { refreshRelationshipPlanSnapshot } from './relationship-plan-snapshot';
 
 /** Dependencies the save-plan coordinator receives from its context. */
 export interface SavePlanBuilderDeps {
@@ -53,11 +54,32 @@ export class SavePlanBuilder {
     }
 
     private buildPreparedPlan(): SavePlanEntry[] {
-        this.deps.changeTracker.detectSaveRelationships();
         const tracked = this.deps.changeTracker.entries();
-        let snapshots = this.deps.saveTimeWrites.applyTo(
-            tracked.map(capturePersistedEntrySnapshot),
-        );
+        let snapshots = tracked.map(capturePersistedEntrySnapshot);
+        const relationshipValues = new Map(snapshots.map(snapshot => [
+            snapshot.entry,
+            snapshot.values,
+        ]));
+        const relationshipGeneration =
+            this.deps.saveTimeWrites.beginRelationshipGeneration(snapshots);
+        try {
+            this.deps.changeTracker.detectSaveRelationships(
+                undefined,
+                relationshipValues,
+            );
+        } finally {
+            relationshipGeneration.complete();
+        }
+        const relationshipChanges =
+            relationshipGeneration.changedForeignKeyEntries();
+        const retainedEntries = new Set(this.deps.changeTracker.entries());
+        snapshots = snapshots
+            .filter(snapshot => retainedEntries.has(snapshot.entry))
+            .map(snapshot => refreshRelationshipPlanSnapshot(
+                snapshot,
+                relationshipChanges.has(snapshot.entry),
+            ));
+        snapshots = this.deps.saveTimeWrites.applyTo(snapshots);
         const reconciled = this.deps.saveTimeWrites.reconcileRelationships(
             this.deps.changeTracker,
         );

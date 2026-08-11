@@ -38,7 +38,7 @@ export function reconcileSaveTimeRelationships(
     if (entries.length === 0) return new Map();
     const before = captureLiveNavigations(tracker.entries());
     const changed: Map<object, Set<string>> = new Map();
-    tracker.detectSaveRelationships(entries);
+    tracker.detectSaveRelationships(entries, undefined, false);
     for (const previous of before) {
         const applied = cloneNavigationValue(
             previous.entity[previous.property],

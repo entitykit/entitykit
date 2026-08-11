@@ -287,7 +287,8 @@ describe('generated graph executable snapshots', () => {
         });
         db.children.add(child);
         db.parents.add(parent);
-        child.returnParentIds(undefined, undefined, 999);
+        child.parentId = 999;
+        child.returnParentIds(undefined);
         connection.queueResult({ rows: [{ id: 71 }], rowCount: 1 });
         connection.queueResult({ rowCount: 1 });
 

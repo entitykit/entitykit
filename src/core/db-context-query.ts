@@ -22,6 +22,7 @@ export abstract class DbContextQuery extends DbContextConcurrency {
         const values = captureNavigationLoadValues(
             this.changeTracker,
             entry,
+            navigationProperty,
             entry.metadata.tenantKeyProperty
                 ? operation.boundTenantFor(entry.metadata)?.value
                 : undefined,

@@ -118,6 +118,12 @@ describe('relationship key value isolation', () => {
             'MutableKeyParent',
             'MutableKeyChild',
         ]);
+        expect(child.parentOccurredAt).toBeUndefined();
+        expect(child.parentBinaryId).toBeUndefined();
+        expect(child.parentConvertedId).toBeUndefined();
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
         expect(child.parentOccurredAt).toEqual(parent.occurredAt);
         expect(child.parentOccurredAt).not.toBe(parent.occurredAt);
         expect(child.parentBinaryId).toEqual(parent.binaryId);
@@ -126,7 +132,6 @@ describe('relationship key value isolation', () => {
         expect(child.parentConvertedId.bytes).toEqual(parent.convertedId.bytes);
         expect(child.parentConvertedId.bytes).not.toBe(parent.convertedId.bytes);
 
-        await expect(db.saveChanges()).resolves.toBe(2);
         child.parentOccurredAt.setUTCFullYear(2030);
         child.parentBinaryId[0] = 9;
         child.parentConvertedId.bytes[0] = 9;

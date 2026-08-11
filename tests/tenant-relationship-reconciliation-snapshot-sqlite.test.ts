@@ -118,7 +118,7 @@ describe('tenant relationship reconciliation snapshots', () => {
         expect(stored.rows).toEqual([{ account_code: 'parent' }]);
         expect(db.entry(order)?.originalValues.accountCode).toBe('parent');
         expect(db.entry(order)?.state).toBe(EntityState.Unchanged);
-        expect(order.accountCodeReadCount).toBe(5);
+        expect(order.accountCodeReadCount).toBe(3);
         await db.dispose();
     });
 });
