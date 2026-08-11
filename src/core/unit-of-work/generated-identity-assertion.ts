@@ -6,22 +6,15 @@ export function assertGeneratedIdentityAvailable(
     changeTracker: ChangeTracker,
     entry: SavePlanEntry,
     persistedKeyValues: readonly unknown[],
-    persistedValues: Readonly<Record<string, unknown>>,
+    persistedBoundValues: Readonly<Record<string, unknown>>,
 ): void {
     const tracked = changeTracker.entry(entry.entity);
     if (!tracked) {
         return;
     }
-    const configuredTenant: unknown = tracked.metadata.tenantKeyProperty;
-    const tenantProperty = typeof configuredTenant === 'string'
-        ? configuredTenant
-        : undefined;
-    const existing = changeTracker.tryGetByIdentityValues(
+    const existing = changeTracker.tryGetByBoundIdentityValues(
         tracked.metadata,
-        persistedKeyValues,
-        tenantProperty
-            ? persistedValues[tenantProperty]
-            : undefined,
+        persistedBoundValues,
     );
     if (existing && existing !== tracked) {
         const persistedKey = persistedKeyValues.length === 1

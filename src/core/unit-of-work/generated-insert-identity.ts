@@ -4,7 +4,10 @@ import { EntityState } from '../../tracking/entity-state';
 import type { SavePlanEntry } from '../save-plan';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedValueRecorder } from './generated-value-recorder';
-import { writeGeneratedValue } from './generated-value-writer';
+import {
+    generatedBoundValue,
+    writeGeneratedValue,
+} from './generated-value-writer';
 
 /** Apply and record a provider insert ID when it is the entity's sole key. */
 export function applyGeneratedInsertIdentity(
@@ -35,6 +38,11 @@ export function applyGeneratedInsertIdentity(
     recorder.record(entry.entity, [{
         propertyName: property.propertyName,
         persistedValue,
+        boundValue: generatedBoundValue(
+            insertId,
+            property,
+            entry.entityName,
+        ),
     }]);
     return property;
 }

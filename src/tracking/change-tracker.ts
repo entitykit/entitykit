@@ -7,7 +7,10 @@ import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 import { SaveMutationGuard } from './save-mutation-guard';
 import type { TrackedAcceptance } from './tracked-acceptance-journal';
 import { ChangeTrackerRegistry } from './change-tracker-registry';
-import { createTrackingIdentityKey } from './tracking-identity-key';
+import {
+    createTrackingIdentityKey,
+    createTrackingIdentityKeyFromBoundValues,
+} from './tracking-identity-key';
 import {
     detectTrackedChanges,
     detectTrackedRelationships,
@@ -89,6 +92,17 @@ export class ChangeTracker {
     ): EntityEntry<TEntity> | undefined {
         const identityKey = createTrackingIdentityKey(
             metadata, keyValues, tenantValue,
+        );
+        return this.registry.identities.get(identityKey) as unknown as
+            EntityEntry<TEntity> | undefined;
+    }
+    public tryGetByBoundIdentityValues<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        boundValues: Readonly<Record<string, unknown>>,
+    ): EntityEntry<TEntity> | undefined {
+        const identityKey = createTrackingIdentityKeyFromBoundValues(
+            metadata,
+            boundValues,
         );
         return this.registry.identities.get(identityKey) as unknown as
             EntityEntry<TEntity> | undefined;

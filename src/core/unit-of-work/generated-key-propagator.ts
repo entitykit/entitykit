@@ -3,16 +3,18 @@ import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
 import type { AppliedPropertyValue } from './applied-generated-value';
 import { isGeneratedOnAdd } from '../../model/value-generated';
+import { snapshotPropertyValuesEqual } from '../../tracking/snapshot-value';
 import {
-    snapshotPropertyValueCopies,
-    snapshotPropertyValuesEqual,
-} from '../../tracking/snapshot-value';
-import { translatePropertyValue } from '../../model/property-value-translation';
+    fromProviderValue,
+    toBoundProviderValue,
+} from '../../model/value-converter/store-value';
+import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
     entry: SavePlanEntry,
     persistedValues: Record<string, unknown>,
+    persistedBoundValues: Record<string, unknown>,
     mutations: SaveTimeMutationLog,
     propagations: readonly GeneratedKeyPropagation[] = [],
     findGeneratedValue: (
@@ -61,17 +63,20 @@ export function propagateGeneratedKeys(
                     `Cannot insert '${entry.entityName}' because the database-generated key for '${propagation.principalMetadata.entityName}' was not available.`,
                 );
             }
-            const translatedValue = translatePropertyValue(
-                value,
-                propagation.principalMetadata,
-                propagation.principalMetadata.getProperty(
-                    property.principalProperty,
-                ),
-                propagation.dependentMetadata,
-                foreignKey,
+            const sourceBoundValue = generated?.boundValue ??
+                property.principalBoundValue;
+            const boundValue = cloneSnapshotValue(toBoundProviderValue(
+                sourceBoundValue,
+                foreignKey.columnType,
+                context,
+            ));
+            const persistedValue = fromProviderValue(
+                cloneSnapshotValue(boundValue),
+                foreignKey.converter,
+                context,
             );
-            const { persistedValue, liveValue } = snapshotPropertyValueCopies(
-                translatedValue,
+            const liveValue = fromProviderValue(
+                cloneSnapshotValue(boundValue),
                 foreignKey.converter,
                 context,
             );
@@ -85,9 +90,11 @@ export function propagateGeneratedKeys(
                 liveValues[property.foreignKeyProperty] = liveValue;
             }
             persistedValues[property.foreignKeyProperty] = persistedValue;
+            persistedBoundValues[property.foreignKeyProperty] = boundValue;
             applied.push({
                 propertyName: property.foreignKeyProperty,
                 persistedValue,
+                boundValue,
             });
         }
     }

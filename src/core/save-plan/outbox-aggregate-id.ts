@@ -2,7 +2,6 @@ import type { PersistedValueLookup } from '../save-plan-execution';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import type { PropertyMetadata } from '../../model/property-metadata';
 import { isGeneratedOnAdd } from '../../model/value-generated';
-import { toProviderValue } from '../../model/value-converter/store-value';
 import { serializeJsonValue, type JsonValue } from '../../json-value';
 import { serializeCanonicalJson } from '../../json/canonical-json';
 import { EntityState } from '../../tracking/entity-state';
@@ -28,7 +27,7 @@ export function formatExplicitAggregateId(value: unknown, path: string): unknown
 }
 
 export function captureAggregateId(snapshot: PersistedEntrySnapshot): PendingAggregateId {
-    const { entry, values } = snapshot;
+    const { entry, values, boundValues } = snapshot;
     return {
         entity: entry.entity,
         entityName: entry.metadata.entityName,
@@ -40,10 +39,9 @@ export function captureAggregateId(snapshot: PersistedEntrySnapshot): PendingAgg
                 property,
                 captured: generated || isMissingKeyValue(value)
                     ? undefined
-                    : mappedAggregateIdPart(
-                        value,
-                        property,
-                        entry.metadata.entityName,
+                    : aggregateIdPart(
+                        boundValues[property.propertyName],
+                        `${entry.metadata.entityName}.${property.propertyName} outbox aggregate ID`,
                     ),
             };
         }),
@@ -60,10 +58,9 @@ export function formatPendingAggregateId(
             component.property.propertyName,
         );
         return persisted
-            ? mappedAggregateIdPart(
-                persisted.persistedValue,
-                component.property,
-                pending.entityName,
+            ? aggregateIdPart(
+                persisted.boundValue,
+                `${pending.entityName}.${component.property.propertyName} outbox aggregate ID`,
             )
             : component.captured;
     });
@@ -79,21 +76,6 @@ export function formatPendingAggregateId(
     return complete.length === 1
         ? complete[0].value
         : serializeCompositeId(complete);
-}
-
-function mappedAggregateIdPart(
-    value: unknown,
-    property: PropertyMetadata,
-    entityName: string,
-): AggregateIdPart {
-    return aggregateIdPart(
-        toProviderValue(
-            value,
-            property.converter,
-            `${entityName}.${property.propertyName} outbox aggregate ID`,
-        ),
-        `${entityName}.${property.propertyName} outbox aggregate ID`,
-    );
 }
 
 function aggregateIdPart(value: unknown, path: string): AggregateIdPart {

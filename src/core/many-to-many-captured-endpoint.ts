@@ -7,9 +7,7 @@ import {
 } from '../tracking/temporary-generated-identity';
 import {
     encodeSaveIdentityTuple,
-    toProviderKeyValues,
 } from './save-key-values';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 export interface CapturedRelationshipEndpoint {
     readonly entity: object;
@@ -30,7 +28,9 @@ export function captureRelationshipEndpoint(
     snapshot: PersistedEntrySnapshot,
     modelKeyValues: readonly unknown[],
 ): CapturedRelationshipEndpoint {
-    const providerKeyValues = toProviderKeyValues(modelKeyValues, metadata);
+    const providerKeyValues = metadata.keyProperties.map(
+        propertyName => snapshot.boundValues[propertyName],
+    );
     const temporary = temporaryGeneratedIdentity(snapshot.entry);
     const activeTemporaryIdentity =
         snapshot.state === EntityState.Added && temporary
@@ -62,16 +62,10 @@ function captureProviderTenant(
 ): { readonly propertyName: string; readonly value: unknown } | undefined {
     const propertyName = metadata.tenantKeyProperty as string | undefined;
     if (propertyName === undefined) return undefined;
-    const property = metadata.getProperty(propertyName);
-    const modelValue = snapshot.state === EntityState.Added
-        ? snapshot.values[propertyName]
-        : snapshot.entry.originalValues[propertyName];
     return {
         propertyName,
-        value: toBoundPropertyValue(
-            modelValue,
-            property,
-            metadata.entityName,
-        ),
+        value: snapshot.state === EntityState.Added
+            ? snapshot.boundValues[propertyName]
+            : snapshot.originalBoundValues[propertyName],
     };
 }

@@ -3,6 +3,7 @@ import type { EntityEntry } from '../../tracking/entity-entry';
 export interface AppliedPropertyValue {
     readonly propertyName: string;
     readonly persistedValue: unknown;
+    readonly boundValue: unknown;
 }
 
 export interface AppliedGeneratedValue extends AppliedPropertyValue {

@@ -10,6 +10,8 @@ import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { AppliedPropertyValue } from './applied-generated-value';
 import { snapshotPropertyValueCopies } from '../../tracking/snapshot-value';
 import { ensurePolicyPropertyPath } from '../policy-property-path';
+import { toBoundProviderValue } from '../../model/value-converter/store-value';
+import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
 
 export function writeGeneratedRow<TEntity extends object>(
     entity: TEntity,
@@ -29,9 +31,29 @@ export function writeGeneratedRow<TEntity extends object>(
             valueReader,
             metadata,
         );
-        applied.push({ propertyName: property.propertyName, persistedValue });
+        applied.push({
+            propertyName: property.propertyName,
+            persistedValue,
+            boundValue: generatedBoundValue(
+                row[property.columnName],
+                property,
+                metadata.entityName,
+            ),
+        });
     }
     return applied;
+}
+
+export function generatedBoundValue(
+    storeValue: unknown,
+    property: PropertyMetadata,
+    entityName: string,
+): unknown {
+    return cloneSnapshotValue(toBoundProviderValue(
+        storeValue,
+        property.columnType,
+        `${entityName}.${property.propertyName}`,
+    ));
 }
 
 export function writeGeneratedValue<TEntity extends object>(

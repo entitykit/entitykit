@@ -1,9 +1,7 @@
-import type { EntityMetadata } from '../model/entity-metadata';
 import {
     encodeIdentityTuple,
     formatIdentityValue,
 } from '../model/identity-value';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 /**
  * Key handling shared by the save plan and the many-to-many change set.
@@ -19,13 +17,4 @@ export function formatSaveIdentityValue(value: unknown): string {
 
 export function encodeSaveIdentityTuple(values: readonly unknown[]): string {
     return encodeIdentityTuple(values);
-}
-
-export /**
- * Join-table columns hold the provider form of each key column, the same form a
- * many-to-many include queries with.
- */
-function toProviderKeyValues(keyValues: readonly unknown[], metadata: EntityMetadata): unknown[] {
-    return metadata.keyPropertiesMetadata.map((property, index) =>
-        toBoundPropertyValue(keyValues[index], property, metadata.entityName));
 }

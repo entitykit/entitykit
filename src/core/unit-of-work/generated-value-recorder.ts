@@ -3,7 +3,7 @@ import type {
     AppliedGeneratedValue,
     AppliedPropertyValue,
 } from './applied-generated-value';
-import { snapshotPropertyValue } from '../../tracking/snapshot-value';
+import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
 
 export class GeneratedValueRecorder {
     private readonly values: AppliedGeneratedValue[] = [];
@@ -22,11 +22,8 @@ export class GeneratedValueRecorder {
             this.values.push({
                 entry,
                 propertyName: value.propertyName,
-                persistedValue: this.snapshot(
-                    entry,
-                    value.propertyName,
-                    value.persistedValue,
-                ),
+                persistedValue: cloneSnapshotValue(value.persistedValue),
+                boundValue: cloneSnapshotValue(value.boundValue),
             });
         }
     }
@@ -41,11 +38,8 @@ export class GeneratedValueRecorder {
             if (value.entry === entry && value.propertyName === propertyName) {
                 return {
                     propertyName: value.propertyName,
-                    persistedValue: this.snapshot(
-                        value.entry,
-                        value.propertyName,
-                        value.persistedValue,
-                    ),
+                    persistedValue: cloneSnapshotValue(value.persistedValue),
+                    boundValue: cloneSnapshotValue(value.boundValue),
                 };
             }
         }
@@ -56,16 +50,4 @@ export class GeneratedValueRecorder {
         return this.values.splice(0);
     }
 
-    private snapshot(
-        entry: AppliedGeneratedValue['entry'],
-        propertyName: string,
-        value: unknown,
-    ): unknown {
-        const property = entry.metadata.getProperty(propertyName);
-        return snapshotPropertyValue(
-            value,
-            property.converter,
-            `${entry.metadata.entityName}.${propertyName}`,
-        );
-    }
 }

@@ -16,6 +16,7 @@ export interface GeneratedValuesPlan<TEntity extends object = object> {
 export interface GeneratedKeyPropertyPropagation {
     readonly principalProperty: string;
     readonly principalValue: unknown;
+    readonly principalBoundValue: unknown;
     readonly foreignKeyProperty: string;
     readonly foreignKeyValue: unknown;
 }
@@ -29,6 +30,7 @@ export interface GeneratedKeyPropagation {
 
 export interface PersistedValueFact {
     readonly persistedValue: unknown;
+    readonly boundValue: unknown;
 }
 
 export type PersistedValueLookup = (

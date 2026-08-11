@@ -50,6 +50,7 @@ export class GeneratedValueHydrator {
         result: DatabaseQueryResult,
         plan?: GeneratedValuesPlan,
         persistedValues: Readonly<Record<string, unknown>> = {},
+        persistedBoundValues: Readonly<Record<string, unknown>> = {},
         options?: DatabaseOperationOptions,
     ): Promise<void> {
         if (!plan) {
@@ -67,7 +68,12 @@ export class GeneratedValueHydrator {
                 this.mutations,
                 this.valueReader,
             ));
-            this.assertFinalIdentity(entry, plan.metadata, persistedValues);
+            this.assertFinalIdentity(
+                entry,
+                plan.metadata,
+                persistedValues,
+                persistedBoundValues,
+            );
             return;
         }
 
@@ -89,7 +95,8 @@ export class GeneratedValueHydrator {
                     remaining,
                     propertyName => {
                         const fact = this.recorded.find(entry.entity, propertyName);
-                        return fact?.persistedValue ?? persistedValues[propertyName];
+                        return fact?.boundValue ??
+                            persistedBoundValues[propertyName];
                     },
                 ),
                 options,
@@ -108,12 +115,18 @@ export class GeneratedValueHydrator {
                 this.valueReader,
             ));
         }
-        this.assertFinalIdentity(entry, plan.metadata, persistedValues);
+        this.assertFinalIdentity(
+            entry,
+            plan.metadata,
+            persistedValues,
+            persistedBoundValues,
+        );
     }
 
     public propagateGeneratedKeys(
         entry: SavePlanEntry,
         persistedValues: Record<string, unknown>,
+        persistedBoundValues: Record<string, unknown>,
         propagations?: readonly GeneratedKeyPropagation[],
     ): void {
         this.recorded.record(
@@ -121,6 +134,7 @@ export class GeneratedValueHydrator {
             propagateGeneratedKeys(
                 entry,
                 persistedValues,
+                persistedBoundValues,
                 this.mutations,
                 propagations,
                 (principal, propertyName) =>
@@ -133,6 +147,7 @@ export class GeneratedValueHydrator {
         entry: SavePlanEntry,
         metadata: EntityMetadata,
         persistedValues: Readonly<Record<string, unknown>>,
+        persistedBoundValues: Readonly<Record<string, unknown>>,
     ): void {
         const keyValues = metadata.keyProperties.map(propertyName =>
             this.recorded.find(entry.entity, propertyName)?.persistedValue ??
@@ -141,7 +156,13 @@ export class GeneratedValueHydrator {
             this.changeTracker,
             entry,
             keyValues,
-            persistedValues,
+            Object.fromEntries(metadata.properties.map(property => [
+                property.propertyName,
+                this.recorded.find(
+                    entry.entity,
+                    property.propertyName,
+                )?.boundValue ?? persistedBoundValues[property.propertyName],
+            ])),
         );
     }
 }

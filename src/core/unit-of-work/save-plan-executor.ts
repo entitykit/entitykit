@@ -51,6 +51,7 @@ export class SavePlanExecutor {
                     this.generatedValues?.propagateGeneratedKeys(
                         entry,
                         persisted.values,
+                        persisted.boundValues,
                         execution.generatedKeyPropagations,
                     );
                 }
@@ -84,6 +85,7 @@ export class SavePlanExecutor {
                     result,
                     execution?.generatedValues,
                     persisted?.values,
+                    persisted?.boundValues,
                     options,
                 );
                 if (!entry.isSystemGenerated) {

@@ -73,6 +73,8 @@ export function generatedKeyPropagations(
             return [{
                 principalProperty,
                 principalValue: principal.values[principalProperty],
+                principalBoundValue:
+                    principal.boundValues[principalProperty],
                 foreignKeyProperty: foreignKeyName,
                 foreignKeyValue,
             }];

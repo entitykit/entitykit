@@ -5,7 +5,6 @@ import type {
 } from './many-to-many-change-validator';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { PersistedValueLookup } from './save-plan-execution';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
 
 export interface CapturedManyToManyChange {
     readonly change: ManyToManyChange;
@@ -76,15 +75,12 @@ export function resolvedManyToManyProviderKeyValues(
         );
         const generatedValue = generated?.persistedValue;
         if (
+            generated !== undefined &&
             generatedValue !== undefined &&
             generatedValue !== null &&
             generatedValue !== ''
         ) {
-            return toBoundPropertyValue(
-                generatedValue,
-                property,
-                endpoint.metadata.entityName,
-            );
+            return generated.boundValue;
         }
         if (
             persistedValue !== undefined &&

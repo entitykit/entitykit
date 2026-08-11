@@ -97,6 +97,8 @@ export class TrackedSaveState {
             const snapshot = persisted.find(item => item.entry === generated.entry);
             if (snapshot) {
                 snapshot.values[generated.propertyName] = generated.persistedValue;
+                snapshot.boundValues[generated.propertyName] =
+                    generated.boundValue;
             }
         }
     }
