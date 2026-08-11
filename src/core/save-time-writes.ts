@@ -9,7 +9,10 @@ import { capturePreparedTenantProviderFacts } from './prepared-tenant-provider-f
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import { captureMissingBoundEntityValues } from '../tracking/bound-value-snapshot';
 import type { ChangeTracker } from '../tracking/change-tracker';
-import { reconcileSaveTimeRelationships } from './save-time-relationship-reconciliation';
+import {
+    rememberSaveTimeRelationshipWrites,
+    reconcileSaveTimeRelationships,
+} from './save-time-relationship-reconciliation';
 
 /**
  * The writes a save makes into entities before persisting them: audit
@@ -20,7 +23,7 @@ import { reconcileSaveTimeRelationships } from './save-time-relationship-reconci
  */
 export class SaveTimeWrites {
     private readonly mutations = new SaveTimeMutationLog();
-    private readonly relationshipEntries: Set<object> = new Set();
+    private readonly relationshipProperties: Map<object, Set<string>> = new Map();
     private nowMs?: number;
     private userId: unknown;
     private userIdInitialized = false;
@@ -32,7 +35,7 @@ export class SaveTimeWrites {
     /** Start one save attempt and snapshot its request-scoped values lazily. */
     public begin(): void {
         this.mutations.reset();
-        this.relationshipEntries.clear();
+        this.relationshipProperties.clear();
         this.nowMs = undefined;
         this.userId = undefined;
         this.userIdInitialized = false;
@@ -43,7 +46,7 @@ export class SaveTimeWrites {
     /** Rebuild the plan while retaining stable request-scoped save values. */
     public beginGeneration(): void {
         this.mutations.restore();
-        this.relationshipEntries.clear();
+        this.relationshipProperties.clear();
     }
 
     /**
@@ -75,7 +78,7 @@ export class SaveTimeWrites {
         return snapshots.map(snapshot => {
             const tenantId = currentTenant();
             const allowsCrossTenantAccess = this.scope.allowsCrossTenantAccess();
-            applyTenantWrite(
+            const tenantWritten = applyTenantWrite(
                 snapshot,
                 tenantId,
                 allowsCrossTenantAccess,
@@ -92,12 +95,16 @@ export class SaveTimeWrites {
                 currentUser,
                 this.mutations,
             );
+            rememberSaveTimeRelationshipWrites(
+                this.relationshipProperties,
+                prepared,
+                tenantWritten,
+            );
             capturePreparedTenantProviderFacts(
                 prepared,
                 tenantId,
                 allowsCrossTenantAccess,
             );
-            this.rememberRelationshipWrites(prepared);
             captureMissingBoundEntityValues(
                 prepared.entry.metadata,
                 prepared.values,
@@ -108,25 +115,16 @@ export class SaveTimeWrites {
     }
 
     /** Reconcile graph state after final policy-managed FK writes. */
-    public reconcileRelationships(changeTracker: ChangeTracker): ReadonlySet<object> {
+    public reconcileRelationships(
+        changeTracker: ChangeTracker,
+    ): ReadonlyMap<object, ReadonlySet<string>> {
         reconcileSaveTimeRelationships(
             changeTracker,
             this.mutations,
             changeTracker.entries().filter(entry =>
-                this.relationshipEntries.has(entry.entity)),
+                this.relationshipProperties.has(entry.entity)),
         );
-        return this.relationshipEntries;
-    }
-
-    private rememberRelationshipWrites(snapshot: PersistedEntrySnapshot): void {
-        if (snapshot.entry.metadata.relationships.some(relationship =>
-            relationship.foreignKeyProperties.some(property =>
-                Object.prototype.hasOwnProperty.call(
-                    snapshot.boundValues,
-                    property,
-                )))) {
-            this.relationshipEntries.add(snapshot.entry.entity);
-        }
+        return this.relationshipProperties;
     }
 
     /** Undo the writes, newest first, so an entity survives a failure unchanged. */

@@ -12,14 +12,14 @@ export function applyTenantWrite(
     tenantId: unknown,
     allowsCrossTenantAccess: boolean,
     mutations: SaveTimeMutationLog,
-): void {
+): boolean {
     const { entry } = snapshot;
     const configuredProperty: unknown = entry.metadata.tenantKeyProperty;
     const tenantProperty = typeof configuredProperty === 'string'
         ? configuredProperty
         : undefined;
     if (!tenantProperty) {
-        return;
+        return false;
     }
     const property = entry.metadata.getProperty(tenantProperty);
     let previousLiveValue = readPropertyValue(entry.entity, property);
@@ -31,7 +31,7 @@ export function applyTenantWrite(
             snapshot.values,
         );
     }
-    applyTenantWriteScope({
+    return applyTenantWriteScope({
         entityName: entry.metadata.entityName,
         tenantProperty,
         property,

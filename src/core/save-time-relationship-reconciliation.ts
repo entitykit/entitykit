@@ -2,6 +2,25 @@ import type { ChangeTracker } from '../tracking/change-tracker';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { captureNavigationSnapshotValues } from '../tracking/navigation-snapshot';
 import type { SaveTimeMutationLog } from './save-time-mutations';
+import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+
+export function rememberSaveTimeRelationshipWrites(
+    target: Map<object, Set<string>>,
+    snapshot: PersistedEntrySnapshot,
+    tenantWritten: boolean,
+): void {
+    const policyWrites = new Set(Object.keys(snapshot.boundValues));
+    const tenantProperty = snapshot.entry.metadata.tenantKeyProperty as
+        string | undefined;
+    if (tenantWritten && tenantProperty) policyWrites.add(tenantProperty);
+    const relationshipWrites = new Set(snapshot.entry.metadata.relationships.flatMap(
+        relationship => relationship.foreignKeyProperties.filter(property =>
+            policyWrites.has(String(property))).map(String),
+    ));
+    if (relationshipWrites.size > 0) {
+        target.set(snapshot.entry.entity, relationshipWrites);
+    }
+}
 
 interface NavigationValue {
     readonly entity: Record<string, unknown>;

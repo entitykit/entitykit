@@ -95,11 +95,9 @@ export function persistedEntryKeyValue(
 /** Refresh graph facts changed by final save-time relationship fix-up. */
 export function refreshPersistedEntryRelationships(
     snapshot: PersistedEntrySnapshot,
+    foreignKeys: ReadonlySet<string>,
 ): PersistedEntrySnapshot {
     const { entry } = snapshot;
-    const foreignKeys = new Set(entry.metadata.relationships.flatMap(
-        relationship => relationship.foreignKeyProperties as readonly string[],
-    ));
     for (const propertyName of foreignKeys) {
         const property = entry.metadata.getProperty(propertyName);
         const liveValue = readPropertyValue(entry.entity, property);

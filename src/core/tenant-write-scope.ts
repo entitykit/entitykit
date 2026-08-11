@@ -19,14 +19,15 @@ export interface TenantWriteScope {
     readonly mirrorMutation?: (value: unknown) => unknown;
 }
 
-export function applyTenantWriteScope(scope: TenantWriteScope): void {
+export function applyTenantWriteScope(scope: TenantWriteScope): boolean {
     if (scope.allowsCrossTenantAccess) {
-        return;
+        return false;
     }
     if (scope.tenantId === undefined || scope.tenantId === null) {
         throw new TenantScopeUnavailableError(scope.entityName);
     }
 
+    let wroteTenant = false;
     if (scope.isAdded && isEmptyTenantValue(scope.readValue())) {
         const copies = snapshotPropertyValueCopies(
             scope.tenantId,
@@ -38,6 +39,7 @@ export function applyTenantWriteScope(scope: TenantWriteScope): void {
             : copies.liveValue);
         const applied = scope.mirrorMutation?.(copies.liveValue) ?? written;
         scope.recordMutation(applied);
+        wroteTenant = true;
     }
 
     assertTenantWriteValue(
@@ -48,6 +50,7 @@ export function applyTenantWriteScope(scope: TenantWriteScope): void {
         scope.tenantId,
         scope.allowsCrossTenantAccess,
     );
+    return wroteTenant;
 }
 
 export function assertTenantWriteValue(
