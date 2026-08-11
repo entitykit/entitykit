@@ -223,7 +223,7 @@ describe('soft-delete model safety', () => {
         await db.dispose();
     });
 
-    it('rechecks the exact provider value bound into delete SQL', async () => {
+    it('does not recompute the provider value captured for delete SQL', async () => {
         collapseDuringBinding = false;
         const db = LateNullSoftContext.create();
         await createSchema(db);
@@ -235,13 +235,11 @@ describe('soft-delete model safety', () => {
         await db.saveChanges();
         db.rows.remove(row);
 
-        await expect(db.saveChanges()).rejects.toThrow(
-            'must write a non-null provider value, because SQL NULL represents a live row',
-        );
+        await expect(db.saveChanges()).resolves.toBe(1);
 
-        expect(row.deletedAt).toBeNull();
-        expect(db.entry(row)?.state).toBe(EntityState.Deleted);
-        await expect(db.rows.count()).resolves.toBe(1);
+        expect(row.deletedAt).not.toBeNull();
+        expect(db.entry(row)?.state).toBe(EntityState.Unchanged);
+        await expect(db.rows.count()).resolves.toBe(0);
         await db.dispose();
     });
 });
