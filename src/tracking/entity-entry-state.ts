@@ -1,30 +1,15 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { EntityEntry } from './entity-entry';
-import {
-    cloneEntityValues,
-    hasEntityModifications,
-    hasEntityValueModifications,
-    modifiedEntityProperties,
-    readEntityValues,
-} from './entity-entry-snapshot';
+import { cloneEntityValues, hasEntityModifications, hasEntityValueModifications, modifiedEntityProperties, readEntityValues } from './entity-entry-snapshot';
 import { EntityState } from './entity-state';
 import { assertEntityEntryStateMutation } from './entity-entry-mutation-guard';
-import {
-    acceptNavigationSnapshotValues,
-    captureNavigation,
-    forgetNavigation,
-    refreshNavigationSnapshots,
-    type NavigationSnapshotValues,
-} from './navigation-snapshot';
-import {
-    captureBoundEntityValues,
-    cloneBoundValues,
-} from './bound-value-snapshot';
-
+import { acceptNavigationSnapshotValues, refreshNavigationSnapshots, type NavigationSnapshotValues } from './navigation-snapshot';
+import { captureBoundEntityValues, captureTrackedBoundEntityValues, cloneBoundValues } from './bound-value-snapshot';
+import { EntityEntryNavigationState } from './entity-entry-navigation-state';
 export class EntityEntryState<TEntity extends object> {
     private snapshot: Record<string, unknown>;
     private boundSnapshot: Record<string, unknown>;
-    private readonly loadedNavigations: Set<string> = new Set();
+    private readonly navigations = new EntityEntryNavigationState();
 
     constructor(
         private readonly owner: EntityEntry<TEntity>,
@@ -39,7 +24,7 @@ export class EntityEntryState<TEntity extends object> {
             : readEntityValues(metadata, entity);
         this.boundSnapshot = originalBoundValues
             ? cloneBoundValues(originalBoundValues)
-            : captureBoundEntityValues(metadata, this.snapshot);
+            : captureTrackedBoundEntityValues(metadata, this.snapshot);
     }
 
     public get state(): EntityState {
@@ -144,23 +129,21 @@ export class EntityEntryState<TEntity extends object> {
         entry: EntityEntry<object>,
         property: string,
     ): void {
-        this.loadedNavigations.add(property);
-        captureNavigation(entry, property);
+        this.navigations.markLoaded(entry, property);
     }
 
     public markNavigationNotLoaded(
         entry: EntityEntry<object>,
         property: string,
     ): void {
-        this.loadedNavigations.delete(property);
-        forgetNavigation(entry, property);
+        this.navigations.markNotLoaded(entry, property);
     }
 
     public isNavigationLoaded(property: string): boolean {
-        return this.loadedNavigations.has(property);
+        return this.navigations.isLoaded(property);
     }
 
     public loadedNavigationProperties(): readonly string[] {
-        return Array.from(this.loadedNavigations).sort();
+        return this.navigations.properties();
     }
 }

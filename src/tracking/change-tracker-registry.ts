@@ -1,26 +1,17 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { ChangeTracker } from './change-tracker';
-import { changeTrackerModel, configureTrackedEntry } from './change-tracker-model';
-import { EntityEntry } from './entity-entry';
-import {
-    cloneEntityValues,
-    readEntityValues,
-} from './entity-entry-snapshot';
+import { changeTrackerModel } from './change-tracker-model';
+import type { EntityEntry } from './entity-entry';
+import { cloneEntityValues, readEntityValues } from './entity-entry-snapshot';
 import type { EntityState } from './entity-state';
 import { initializeNavigationSnapshots } from './navigation-snapshot';
 import { TrackedIdentityMap } from './tracked-identity-map';
 import { TrackingIdentityFactory } from './tracking-identity-factory';
-import {
-    assertTrackingIdentityRegistration,
-    clearTemporaryGeneratedIdentity,
-    registerTemporaryGeneratedIdentity,
-} from './temporary-generated-identity';
+import { assertTrackingIdentityRegistration, clearTemporaryGeneratedIdentity } from './temporary-generated-identity';
 import { reuseTrackedEntry } from './tracked-entry-reuse';
 import { trackingCollisionError } from './tracking-collision-error';
-import {
-    captureBoundEntityValues,
-    cloneBoundValues,
-} from './bound-value-snapshot';
+import { captureTrackedBoundEntityValues, cloneBoundValues } from './bound-value-snapshot';
+import { createTrackedEntry } from './tracked-entry-factory';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -63,7 +54,7 @@ export class ChangeTrackerRegistry {
             : readEntityValues(metadata, entity);
         const capturedBoundValues = originalBoundValues
             ? cloneBoundValues(originalBoundValues)
-            : captureBoundEntityValues(metadata, capturedValues);
+            : captureTrackedBoundEntityValues(metadata, capturedValues);
         const identity = this.identityFactory.createFromValues(
             metadata,
             state,
@@ -77,20 +68,14 @@ export class ChangeTrackerRegistry {
             throw trackingCollisionError(metadata, capturedValues, state);
         }
 
-        const entry = new EntityEntry(
+        const entry = createTrackedEntry(
+            this.owner,
             entity,
             metadata,
             state,
             capturedValues,
             capturedBoundValues,
-        );
-        registerTemporaryGeneratedIdentity(
-            entry as unknown as EntityEntry<object>,
             identity.temporaryGeneratedIdentity,
-        );
-        configureTrackedEntry(
-            this.owner,
-            entry as unknown as EntityEntry<object>,
             () => {
                 this.assertMutation('Changing EntityEntry.state', entity);
             },

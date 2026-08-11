@@ -20,6 +20,27 @@ export function captureBoundEntityValues<TEntity extends object>(
     ]));
 }
 
+/** Capture only facts that must remain stable from initial tracking onward. */
+export function captureTrackedBoundEntityValues<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+    const tenantProperty = metadata.tenantKeyProperty;
+    return Object.fromEntries(metadata.properties
+        .filter(property =>
+            property.isPrimaryKey ||
+            property.isConcurrencyToken ||
+            property.propertyName === tenantProperty)
+        .map(property => [
+            property.propertyName,
+            cloneSnapshotValue(toBoundPropertyValue(
+                values[property.propertyName],
+                property,
+                metadata.entityName,
+            )),
+        ]));
+}
+
 /** Fill uncaptured properties after save-time policy writes have completed. */
 export function captureMissingBoundEntityValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
