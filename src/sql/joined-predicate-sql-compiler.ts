@@ -1,5 +1,5 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
+import { toBoundQueryPropertyValue } from '../query/expression/bound-query-value';
 import type { BinaryOperator, PredicateNode, QueryFieldRef } from '../query/expression/predicate-node';
 import { compileInPredicate, isSqlNull, readInPredicateValues } from './predicate-null-semantics';
 import { assertNever, likeEscapeClause, metadataForSource, normalizeSourceAlias, sqlBinaryOperator, stringPatternValue } from './select-sql-helpers';
@@ -68,7 +68,11 @@ export class JoinedPredicateSqlCompiler {
                     this.dialect,
                     parameters,
                     property,
-                    toBoundPropertyValue(item, property, source.entityName),
+                    toBoundQueryPropertyValue(
+                        item,
+                        property,
+                        source.entityName,
+                    ),
                 ),
                 () => this.dialect.falsePredicate(),
             );
@@ -77,7 +81,7 @@ export class JoinedPredicateSqlCompiler {
         const sqlOperator = sqlBinaryOperator(operator);
         const parameterValue = stringPatternValue(
             operator,
-            toBoundPropertyValue(value, property, source.entityName),
+            toBoundQueryPropertyValue(value, property, source.entityName),
         );
         const parameter = propertyComparisonParameter(
             this.dialect,

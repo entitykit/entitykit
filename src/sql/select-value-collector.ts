@@ -1,5 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
+import { toBoundQueryPropertyValue } from '../query/expression/bound-query-value';
 import type { BinaryOperator, PredicateNode } from '../query/expression/predicate-node';
 import type { QueryModel } from '../query/query-model';
 import type { ProjectionSqlNode } from '../query/projection';
@@ -135,13 +136,17 @@ function collectBinaryValues<TEntity extends object>(
             `The 'in' operator for '${propertyName}' requires an array value.`,
         );
         for (const item of inValues.values) {
-            values.push(toBoundPropertyValue(item, property, metadata.entityName));
+            values.push(toBoundQueryPropertyValue(
+                item,
+                property,
+                metadata.entityName,
+            ));
         }
         return;
     }
 
     values.push(stringPatternValue(
         operator,
-        toBoundPropertyValue(value, property, metadata.entityName),
+        toBoundQueryPropertyValue(value, property, metadata.entityName),
     ));
 }

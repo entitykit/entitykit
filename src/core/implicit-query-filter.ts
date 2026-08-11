@@ -1,6 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { FieldExpression } from '../query/expression/field-expression';
 import type { PredicateExpression } from '../query/expression/predicate-expression';
+import type { QueryTenantProviderResolver } from './query-filter-operation';
 
 export interface ImplicitQueryFilterOptions {
     readonly softDelete: boolean;
@@ -12,7 +13,7 @@ export function implicitQueryFilters<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     sourceAlias: string | undefined,
     applies: ImplicitQueryFilterOptions,
-    resolveTenantId: (entityName: string) => unknown,
+    resolveBoundTenant: QueryTenantProviderResolver,
     allowsCrossTenantAccess: boolean,
 ): PredicateExpression[] {
     const filters: PredicateExpression[] = [];
@@ -26,7 +27,7 @@ export function implicitQueryFilters<TEntity extends object>(
         filters.push(new FieldExpression<TEntity, unknown>(
             metadata.tenantKeyProperty,
             sourceAlias,
-        ).eq(resolveTenantId(metadata.entityName)));
+        ).eq(resolveBoundTenant(metadata)));
     }
     return filters;
 }

@@ -5,6 +5,7 @@ import type { RelationExistenceExpression } from '../query/relation-expression';
 import {
     createQueryFilterOperation,
     type QueryFilterOperation,
+    type QueryTenantProviderResolver,
 } from './query-filter-operation';
 import { implicitQueryFilters } from './implicit-query-filter';
 
@@ -29,10 +30,11 @@ export class QueryFilterApplier {
         const operation = createQueryFilterOperation(
             this.currentTenantId,
             allowsCrossTenantAccess,
-            (resolveTenantId, metadata, query) => this.applyWithResolver(
+            (resolveTenantId, resolveBoundTenant, metadata, query) => this.applyWithResolver(
                 metadata,
                 query,
                 resolveTenantId,
+                resolveBoundTenant,
                 allowsCrossTenantAccess,
             ),
         );
@@ -47,6 +49,7 @@ export class QueryFilterApplier {
         metadata: EntityMetadata<TEntity>,
         query: QueryModel<TEntity>,
         resolveTenantId: (entityName: string) => unknown,
+        resolveBoundTenant: QueryTenantProviderResolver,
         allowsCrossTenantAccess: boolean,
     ): QueryModel<TEntity> {
         if (query.ignoreQueryFilters && query.ignoreTenantScope) {
@@ -56,7 +59,7 @@ export class QueryFilterApplier {
         const opts = { softDelete: !query.ignoreQueryFilters, tenant: !query.ignoreTenantScope };
         let predicate = combinePredicates(
             query.predicate,
-            implicitQueryFilters(metadata, undefined, opts, resolveTenantId, allowsCrossTenantAccess),
+            implicitQueryFilters(metadata, undefined, opts, resolveBoundTenant, allowsCrossTenantAccess),
         );
         let joins: JoinExpression[] | undefined;
         let relationExistence: RelationExistenceExpression[] | undefined;
@@ -67,7 +70,7 @@ export class QueryFilterApplier {
                 join.metadata,
                 join.alias,
                 opts,
-                resolveTenantId,
+                resolveBoundTenant,
                 allowsCrossTenantAccess,
             );
             if (filters.length === 0) {
@@ -100,7 +103,7 @@ export class QueryFilterApplier {
                 expression.relation.targetMetadata,
                 undefined,
                 opts,
-                resolveTenantId,
+                resolveBoundTenant,
                 allowsCrossTenantAccess,
             );
             if (filters.length === 0) {

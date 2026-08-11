@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { BinaryOperator, PredicateNode } from '../query/expression/predicate-node';
-import { toBoundPropertyValue } from '../model/value-converter/store-value';
+import { toBoundQueryPropertyValue } from '../query/expression/bound-query-value';
 import { likeEscapeClause, sqlBinaryOperator, stringPatternValue } from './select-sql-helpers';
 import {
     compileInPredicate,
@@ -55,7 +55,7 @@ export class PredicateSqlCompiler<TEntity extends object> {
                     this.dialect,
                     this.parameters,
                     property,
-                    toBoundPropertyValue(
+                    toBoundQueryPropertyValue(
                         item,
                         property,
                         this.metadata.entityName,
@@ -69,7 +69,11 @@ export class PredicateSqlCompiler<TEntity extends object> {
         const sqlOperator = sqlBinaryOperator(operator);
         const parameterValue = stringPatternValue(
             operator,
-            toBoundPropertyValue(value, property, this.metadata.entityName),
+            toBoundQueryPropertyValue(
+                value,
+                property,
+                this.metadata.entityName,
+            ),
         );
         const parameter = propertyComparisonParameter(
             this.dialect,
