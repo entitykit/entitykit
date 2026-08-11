@@ -131,6 +131,12 @@ export class EntityMetadata<TEntity extends object = object> {
         return this.key().createIdentityKeyFromValues(keyValues);
     }
 
+    public createIdentityKeyFromProviderValues(
+        providerValues: readonly unknown[],
+    ): string {
+        return this.key().createIdentityKeyFromProviderValues(providerValues);
+    }
+
     public assertWritable(operation: string): void {
         if (this.isKeyless) {
             throw new Error(

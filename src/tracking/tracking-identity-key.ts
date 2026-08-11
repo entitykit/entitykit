@@ -23,6 +23,25 @@ export function createTrackingIdentityKey<TEntity extends object>(
     return `${primary}:tenant:${encodeIdentityTuple([providerValue])}`;
 }
 
+/** Build an identity key from provider values captured with the tracked row. */
+export function createTrackingIdentityKeyFromBoundValues<
+    TEntity extends object,
+>(
+    metadata: EntityMetadata<TEntity>,
+    boundValues: Readonly<Record<string, unknown>>,
+): string {
+    const primary = metadata.createIdentityKeyFromProviderValues(
+        metadata.keyProperties.map(propertyName => boundValues[propertyName]),
+    );
+    const tenantProperty = metadata.tenantKeyProperty;
+    if (!tenantProperty || metadata.keyProperties.includes(tenantProperty)) {
+        return primary;
+    }
+    return `${primary}:tenant:${encodeIdentityTuple([
+        boundValues[tenantProperty],
+    ])}`;
+}
+
 export function trackingIdentityKeyForEntry(
     entry: EntityEntry<object>,
     values: Readonly<Record<string, unknown>> = entry.originalValues,
@@ -41,4 +60,11 @@ export function trackingIdentityKeyForValues<TEntity extends object>(
             ? values[metadata.tenantKeyProperty]
             : undefined,
     );
+}
+
+export function trackingIdentityKeyForBoundValues<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    boundValues: Readonly<Record<string, unknown>>,
+): string {
+    return createTrackingIdentityKeyFromBoundValues(metadata, boundValues);
 }

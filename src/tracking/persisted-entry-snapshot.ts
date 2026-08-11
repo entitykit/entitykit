@@ -5,6 +5,8 @@ import {
 } from './navigation-snapshot';
 import { readPropertyPath } from '../model/property-value-access';
 import type { EntityState } from './entity-state';
+import { cloneBoundValues } from './bound-value-snapshot';
+import { captureMissingBoundEntityValues } from './bound-value-snapshot';
 
 /** Exact tracked state represented by one executable save plan. */
 export interface PersistedEntrySnapshot {
@@ -30,11 +32,17 @@ export function capturePersistedEntrySnapshot(
 export function captureManualAcceptanceSnapshot(
     entry: EntityEntry<object>,
 ): PersistedEntrySnapshot {
-    return capturePersistedEntrySnapshotFromValues(
+    const snapshot = capturePersistedEntrySnapshotFromValues(
         entry,
         entry.state,
         entry.currentValues(),
     );
+    captureMissingBoundEntityValues(
+        entry.metadata,
+        snapshot.values,
+        snapshot.boundValues,
+    );
+    return snapshot;
 }
 
 function capturePersistedEntrySnapshotFromValues(
@@ -47,7 +55,7 @@ function capturePersistedEntrySnapshotFromValues(
         state,
         values,
         boundValues: {},
-        originalBoundValues: {},
+        originalBoundValues: cloneBoundValues(entry.originalBoundValues),
         relationshipValues: Object.fromEntries(
             entry.metadata.relationships.map(relationship => [
                 String(relationship.navigationProperty),

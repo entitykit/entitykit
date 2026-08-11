@@ -6,7 +6,7 @@ import {
     type TemporaryGeneratedIdentity,
 } from './temporary-generated-identity';
 import {
-    trackingIdentityKeyForValues,
+    trackingIdentityKeyForBoundValues,
 } from './tracking-identity-key';
 
 export interface CapturedTrackingIdentity {
@@ -22,6 +22,7 @@ export class TrackingIdentityFactory {
         metadata: EntityMetadata<TEntity>,
         state: EntityState,
         values: Readonly<Record<string, unknown>>,
+        boundValues: Readonly<Record<string, unknown>>,
     ): CapturedTrackingIdentity {
         const keyValues = metadata.keyProperties.map(
             propertyName => values[propertyName],
@@ -46,7 +47,10 @@ export class TrackingIdentityFactory {
             };
         }
         return {
-            identityKey: trackingIdentityKeyForValues(metadata, values),
+            identityKey: trackingIdentityKeyForBoundValues(
+                metadata,
+                boundValues,
+            ),
         };
     }
 }

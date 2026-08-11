@@ -1,4 +1,6 @@
 import { snapshotPropertyValueCopies } from '../tracking/snapshot-value';
+import { toBoundProviderValue } from '../model/value-converter/store-value';
+import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 import {
@@ -17,7 +19,7 @@ export function writeSaveTimeProperty(
 ): void {
     const { entry } = snapshot;
     const property = entry.metadata.getProperty(propertyName);
-    const { persistedValue, liveValue } = snapshotPropertyValueCopies(
+    const { providerValue, persistedValue, liveValue } = snapshotPropertyValueCopies(
         suppliedValue,
         property.converter,
         `${entry.metadata.entityName}.${propertyName}`,
@@ -40,4 +42,7 @@ export function writeSaveTimeProperty(
         context,
     );
     snapshot.values[propertyName] = persistedValue;
+    snapshot.boundValues[propertyName] = cloneSnapshotValue(
+        toBoundProviderValue(providerValue, property.columnType, context),
+    );
 }

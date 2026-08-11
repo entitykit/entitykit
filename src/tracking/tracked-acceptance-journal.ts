@@ -13,6 +13,7 @@ export interface AcceptanceCheckpoint {
     readonly entry: EntityEntry<object>;
     readonly state: EntityState;
     readonly originalValues: Record<string, unknown>;
+    readonly originalBoundValues: Record<string, unknown>;
     readonly navigations: NavigationSnapshotValues;
     readonly identityKey: string;
 }
@@ -51,6 +52,7 @@ export class TrackedAcceptanceJournal implements TrackedAcceptance {
             for (const checkpoint of this.checkpoints) {
                 checkpoint.entry.restoreTrackedValues(
                     checkpoint.originalValues,
+                    checkpoint.originalBoundValues,
                     checkpoint.navigations,
                     checkpoint.state,
                 );

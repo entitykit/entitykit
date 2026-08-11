@@ -13,6 +13,7 @@ import type { AppliedGeneratedValue } from './applied-generated-value';
 import type { SaveStateAcceptance } from './save-state-acceptance';
 import { acceptSaveState } from './save-state-acceptor';
 import { incrementVersionValue } from './version-value-increment';
+import { toBoundPropertyValue } from '../../model/value-converter/store-value';
 
 export class TrackedSaveState {
     constructor(
@@ -64,9 +65,14 @@ export class TrackedSaveState {
             originalValue,
             path,
             values,
+            boundValues,
         ) => {
             const incremented = incrementVersionValue(originalValue, path);
             values[property.propertyName] = incremented;
+            boundValues[property.propertyName] = toBoundPropertyValue(
+                incremented,
+                property,
+            );
             if (Object.is(readPropertyValue(entity, property), capturedValue)) {
                 rollback.push(() => {
                     writePropertyValue(entity, property, capturedValue);
@@ -104,6 +110,7 @@ export class TrackedSaveState {
             originalValue: unknown,
             propertyPath: string,
             persistedValues: Record<string, unknown>,
+            persistedBoundValues: Record<string, unknown>,
         ) => void,
     ): void {
         for (const item of plan) {
@@ -132,6 +139,7 @@ export class TrackedSaveState {
                         originalValue,
                         `${persisted.entry.metadata.entityName}.${property.propertyName}`,
                         persisted.values,
+                        persisted.boundValues,
                     );
                 }
             }

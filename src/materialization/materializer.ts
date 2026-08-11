@@ -6,6 +6,7 @@ import { applyMaterializedValues } from './complex-value-materializer';
 import { assertSynchronousCallbackResult } from '../synchronous-callback';
 import { readTrackingTenantFromRow } from './tracking-tenant-row';
 import type { MaterializedRow } from './materialized-row';
+import { captureBoundRowValues } from '../tracking/bound-value-snapshot';
 
 export class Materializer {
     constructor(private readonly valueReader?: StoreValueReader) {}
@@ -60,6 +61,7 @@ export class Materializer {
             metadata,
             EntityState.Unchanged,
             values,
+            captureBoundRowValues(metadata, row),
         );
         return { entity: entry.entity, values };
     }

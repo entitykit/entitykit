@@ -111,6 +111,17 @@ export class EntityKeyMetadata<TEntity extends object> {
                 this.keyPropertiesMetadata[index].converter,
                 `${this.entityName}.${this.keyProperties[index]}`,
             ));
+        return this.createIdentityKeyFromProviderValues(providerValues);
+    }
+
+    public createIdentityKeyFromProviderValues(
+        providerValues: readonly unknown[],
+    ): string {
+        if (providerValues.length !== this.keyProperties.length) {
+            throw new Error(
+                `Entity '${this.entityName}' has ${String(this.keyProperties.length)} key ${this.keyProperties.length === 1 ? 'property' : 'properties'} (${this.keyProperties.join(', ')}), but ${String(providerValues.length)} provider ${providerValues.length === 1 ? 'value was' : 'values were'} supplied.`,
+            );
+        }
         providerValues.forEach((keyValue, index) => {
             if (
                 keyValue === undefined ||

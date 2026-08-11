@@ -9,8 +9,9 @@ import {
     type TrackedAcceptance,
 } from './tracked-acceptance-journal';
 import { assertNoUnresolvedGeneratedIdentities } from './temporary-generated-identity';
-import { trackingIdentityKeyForEntry } from './tracking-identity-key';
 import { captureManualAcceptanceSnapshot } from './persisted-entry-snapshot';
+import { cloneBoundValues } from './bound-value-snapshot';
+import { trackingIdentityKeyForBoundValues } from './tracking-identity-key';
 
 export class ChangeTrackerAcceptance {
     constructor(
@@ -54,6 +55,9 @@ export class ChangeTrackerAcceptance {
                     snapshot.entry.metadata,
                     { ...snapshot.entry.originalValues },
                 ),
+                originalBoundValues: cloneBoundValues(
+                    snapshot.entry.originalBoundValues,
+                ),
                 navigations: captureNavigationSnapshotValues(snapshot.entry),
                 identityKey,
             };
@@ -71,7 +75,10 @@ export class ChangeTrackerAcceptance {
                 if (!persisted) {
                     throw new Error('Persisted identity snapshot is unavailable.');
                 }
-                return trackingIdentityKeyForEntry(entry, persisted.values);
+                return trackingIdentityKeyForBoundValues(
+                    entry.metadata,
+                    persisted.boundValues,
+                );
             },
             allowExistingRekey,
         );
@@ -127,6 +134,7 @@ export class ChangeTrackerAcceptance {
 
         entry.acceptPersistedValues(
             snapshot.values,
+            snapshot.boundValues,
             snapshot.navigations,
             EntityState.Unchanged,
         );

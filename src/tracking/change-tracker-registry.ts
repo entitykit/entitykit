@@ -17,6 +17,10 @@ import {
 } from './temporary-generated-identity';
 import { reuseTrackedEntry } from './tracked-entry-reuse';
 import { trackingCollisionError } from './tracking-collision-error';
+import {
+    captureBoundEntityValues,
+    cloneBoundValues,
+} from './bound-value-snapshot';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -38,6 +42,7 @@ export class ChangeTrackerRegistry {
         metadata: EntityMetadata<TEntity>,
         state: EntityState,
         originalValues?: Record<string, unknown>,
+        originalBoundValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
         metadata.assertWritable('Tracking');
         this.assertMutation('Tracking an entity', entity);
@@ -56,10 +61,14 @@ export class ChangeTrackerRegistry {
         const capturedValues = originalValues
             ? cloneEntityValues(metadata, originalValues)
             : readEntityValues(metadata, entity);
+        const capturedBoundValues = originalBoundValues
+            ? cloneBoundValues(originalBoundValues)
+            : captureBoundEntityValues(metadata, capturedValues);
         const identity = this.identityFactory.createFromValues(
             metadata,
             state,
             capturedValues,
+            capturedBoundValues,
         );
         const { identityKey } = identity;
         this.assertMutation('Tracking an entity', entity, identityKey);
@@ -68,7 +77,13 @@ export class ChangeTrackerRegistry {
             throw trackingCollisionError(metadata, capturedValues, state);
         }
 
-        const entry = new EntityEntry(entity, metadata, state, capturedValues);
+        const entry = new EntityEntry(
+            entity,
+            metadata,
+            state,
+            capturedValues,
+            capturedBoundValues,
+        );
         registerTemporaryGeneratedIdentity(
             entry as unknown as EntityEntry<object>,
             identity.temporaryGeneratedIdentity,

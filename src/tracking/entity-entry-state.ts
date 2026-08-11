@@ -16,9 +16,14 @@ import {
     refreshNavigationSnapshots,
     type NavigationSnapshotValues,
 } from './navigation-snapshot';
+import {
+    captureBoundEntityValues,
+    cloneBoundValues,
+} from './bound-value-snapshot';
 
 export class EntityEntryState<TEntity extends object> {
     private snapshot: Record<string, unknown>;
+    private boundSnapshot: Record<string, unknown>;
     private readonly loadedNavigations: Set<string> = new Set();
 
     constructor(
@@ -27,10 +32,14 @@ export class EntityEntryState<TEntity extends object> {
         private readonly entity: TEntity,
         private currentState: EntityState,
         originalValues?: Record<string, unknown>,
+        originalBoundValues?: Record<string, unknown>,
     ) {
         this.snapshot = originalValues
             ? cloneEntityValues(metadata, originalValues)
             : readEntityValues(metadata, entity);
+        this.boundSnapshot = originalBoundValues
+            ? cloneBoundValues(originalBoundValues)
+            : captureBoundEntityValues(metadata, this.snapshot);
     }
 
     public get state(): EntityState {
@@ -46,6 +55,10 @@ export class EntityEntryState<TEntity extends object> {
 
     public get originalValues(): Readonly<Record<string, unknown>> {
         return this.snapshot;
+    }
+
+    public get originalBoundValues(): Readonly<Record<string, unknown>> {
+        return this.boundSnapshot;
     }
 
     public currentValues(): Record<string, unknown> {
@@ -91,6 +104,10 @@ export class EntityEntryState<TEntity extends object> {
         this.snapshot = values
             ? cloneEntityValues(this.metadata, values)
             : readEntityValues(this.metadata, this.entity);
+        this.boundSnapshot = captureBoundEntityValues(
+            this.metadata,
+            this.snapshot,
+        );
     }
 
     public accept(
@@ -98,6 +115,10 @@ export class EntityEntryState<TEntity extends object> {
         state: EntityState = EntityState.Unchanged,
     ): void {
         this.snapshot = readEntityValues(this.metadata, this.entity);
+        this.boundSnapshot = captureBoundEntityValues(
+            this.metadata,
+            this.snapshot,
+        );
         refreshNavigationSnapshots(entry);
         this.currentState = state;
     }
@@ -105,10 +126,12 @@ export class EntityEntryState<TEntity extends object> {
     public acceptPersisted(
         entry: EntityEntry<object>,
         values: Record<string, unknown>,
+        boundValues: Record<string, unknown>,
         navigations: NavigationSnapshotValues,
         state: EntityState = EntityState.Unchanged,
     ): void {
         this.snapshot = cloneEntityValues(this.metadata, values);
+        this.boundSnapshot = cloneBoundValues(boundValues);
         acceptNavigationSnapshotValues(entry, navigations);
         this.currentState = state;
     }

@@ -7,6 +7,7 @@ import {
 } from './save-time-tenant';
 import { capturePreparedTenantProviderFacts } from './prepared-tenant-provider-facts';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import { captureMissingBoundEntityValues } from '../tracking/bound-value-snapshot';
 
 /**
  * The writes a save makes into entities before persisting them: audit
@@ -90,6 +91,11 @@ export class SaveTimeWrites {
                 prepared,
                 tenantId,
                 allowsCrossTenantAccess,
+            );
+            captureMissingBoundEntityValues(
+                prepared.entry.metadata,
+                prepared.values,
+                prepared.boundValues,
             );
             return prepared;
         });

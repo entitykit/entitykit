@@ -68,8 +68,8 @@ export function buildKeyAndConcurrencyWhereFromValues<
             capturedBoundPropertyValue(
                 metadata,
                 property,
-                values,
-                boundValues,
+                originalValues,
+                originalBoundValues,
             ),
             parameters,
         ));

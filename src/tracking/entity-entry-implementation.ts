@@ -16,6 +16,7 @@ export class EntityEntry<TEntity extends object> {
         public readonly metadata: EntityMetadata<TEntity>,
         state: EntityState,
         originalValues?: Record<string, unknown>,
+        originalBoundValues?: Record<string, unknown>,
     ) {
         this.trackedState = new EntityEntryState(
             this,
@@ -23,6 +24,7 @@ export class EntityEntry<TEntity extends object> {
             entity,
             state,
             originalValues,
+            originalBoundValues,
         );
     }
     public get state(): EntityState {
@@ -33,6 +35,9 @@ export class EntityEntry<TEntity extends object> {
     }
     public get originalValues(): Readonly<Record<string, unknown>> {
         return this.trackedState.originalValues;
+    }
+    public get originalBoundValues(): Readonly<Record<string, unknown>> {
+        return this.trackedState.originalBoundValues;
     }
     public get keyValue(): unknown {
         return this.metadata.hasCompositeKey
@@ -61,24 +66,28 @@ export class EntityEntry<TEntity extends object> {
     }
     public acceptPersistedValues(
         values: Record<string, unknown>,
+        boundValues: Record<string, unknown>,
         navigations: NavigationSnapshotValues,
         state: EntityState = EntityState.Unchanged,
     ): void {
         this.trackedState.acceptPersisted(
             this as unknown as EntityEntry<object>,
             values,
+            boundValues,
             navigations,
             state,
         );
     }
     public restoreTrackedValues(
         values: Record<string, unknown>,
+        boundValues: Record<string, unknown>,
         navigations: NavigationSnapshotValues,
         state: EntityState,
     ): void {
         this.trackedState.acceptPersisted(
             this as unknown as EntityEntry<object>,
             values,
+            boundValues,
             navigations,
             state,
         );

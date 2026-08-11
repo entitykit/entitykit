@@ -5,6 +5,7 @@ import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
 import { snapshotValuesEqual } from '../tracking/snapshot-value-equality';
+import { EntityState } from '../tracking/entity-state';
 
 /** Validate and retain the exact tenant representations later bound to SQL. */
 export function capturePreparedTenantProviderFacts(
@@ -22,18 +23,13 @@ export function capturePreparedTenantProviderFacts(
     const { entry } = snapshot;
     const property = entry.metadata.getProperty(tenantProperty);
     const entityName = entry.metadata.entityName;
-    const boundTenant = captureBoundTenantValue(
-        snapshot.values[tenantProperty], property, entityName,
-    );
-    snapshot.boundValues[tenantProperty] = boundTenant;
-    if (Object.prototype.hasOwnProperty.call(
-        entry.originalValues,
+    const boundTenant = readOrCaptureBoundTenant(
+        snapshot.boundValues,
+        snapshot.values,
         tenantProperty,
-    )) {
-        snapshot.originalBoundValues[tenantProperty] = captureBoundTenantValue(
-            entry.originalValues[tenantProperty], property, entityName,
-        );
-    }
+        property,
+        entityName,
+    );
     if (allowsCrossTenantAccess) return;
     if (tenantId === undefined || tenantId === null) {
         throw new TenantScopeUnavailableError(entityName);
@@ -47,6 +43,45 @@ export function capturePreparedTenantProviderFacts(
             `Entity '${entityName}' tenant key '${tenantProperty}' must match the current tenant scope.`,
         );
     }
+    if (
+        snapshot.state !== EntityState.Added &&
+        Object.prototype.hasOwnProperty.call(
+            entry.originalValues,
+            tenantProperty,
+        )
+    ) {
+        const originalBoundTenant = readOrCaptureBoundTenant(
+            snapshot.originalBoundValues,
+            entry.originalValues,
+            tenantProperty,
+            property,
+            entityName,
+        );
+        if (!snapshotValuesEqual(originalBoundTenant, boundScopeTenant)) {
+            throw new DbValidationError(
+                `Entity '${entityName}' original tenant key '${tenantProperty}' must match the current tenant scope.`,
+            );
+        }
+    }
+}
+
+function readOrCaptureBoundTenant(
+    boundValues: Record<string, unknown>,
+    values: Readonly<Record<string, unknown>>,
+    propertyName: string,
+    property: PropertyMetadata,
+    entityName: string,
+): unknown {
+    if (Object.prototype.hasOwnProperty.call(boundValues, propertyName)) {
+        return boundValues[propertyName];
+    }
+    const value = captureBoundTenantValue(
+        values[propertyName],
+        property,
+        entityName,
+    );
+    boundValues[propertyName] = value;
+    return value;
 }
 
 function captureBoundTenantValue(

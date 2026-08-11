@@ -60,8 +60,15 @@ export class ChangeTracker {
         metadata: EntityMetadata<TEntity>,
         state: EntityState,
         originalValues?: Record<string, unknown>,
+        originalBoundValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
-        return this.registry.track(entity, metadata, state, originalValues);
+        return this.registry.track(
+            entity,
+            metadata,
+            state,
+            originalValues,
+            originalBoundValues,
+        );
     }
 
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
