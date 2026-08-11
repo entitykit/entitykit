@@ -5,10 +5,13 @@ import {
     writePropertyValue,
 } from '../../model/property-value-access';
 import type { PropertyMetadata } from '../../model/property-metadata';
-import { readStoreValue, type StoreValueReader } from '../../storage/store-value-reader';
+import {
+    readStoreProviderValue,
+    type StoreValueReader,
+} from '../../storage/store-value-reader';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { AppliedPropertyValue } from './applied-generated-value';
-import { snapshotPropertyValueCopies } from '../../tracking/snapshot-value';
+import { snapshotProviderValueCopies } from '../../tracking/snapshot-value';
 import { ensurePolicyPropertyPath } from '../policy-property-path';
 import { toBoundProviderValue } from '../../model/value-converter/store-value';
 import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
@@ -23,36 +26,29 @@ export function writeGeneratedRow<TEntity extends object>(
 ): readonly AppliedPropertyValue[] {
     const applied: AppliedPropertyValue[] = [];
     for (const property of properties) {
-        const persistedValue = writeGeneratedValue(
+        applied.push(writeGeneratedValue(
             entity,
             property,
             row[property.columnName],
             mutations,
             valueReader,
             metadata,
-        );
-        applied.push({
-            propertyName: property.propertyName,
-            persistedValue,
-            boundValue: generatedBoundValue(
-                row[property.columnName],
-                property,
-                metadata.entityName,
-            ),
-        });
+        ));
     }
     return applied;
 }
 
-export function generatedBoundValue(
-    storeValue: unknown,
+function generatedBoundValue(
+    providerValue: unknown,
     property: PropertyMetadata,
-    entityName: string,
+    entityName?: string,
 ): unknown {
     return cloneSnapshotValue(toBoundProviderValue(
-        storeValue,
+        providerValue,
         property.columnType,
-        `${entityName}.${property.propertyName}`,
+        entityName
+            ? `${entityName}.${property.propertyName}`
+            : property.propertyName,
     ));
 }
 
@@ -64,21 +60,29 @@ export function writeGeneratedValue<TEntity extends object>(
     valueReader?: StoreValueReader,
     metadata?: EntityMetadata<TEntity>,
     entityName = metadata?.entityName,
-): unknown {
-    const value = readStoreValue(
+): AppliedPropertyValue {
+    const providerValue = readStoreProviderValue(
         storeValue,
         property,
         valueReader,
-        entityName,
     );
     const context = entityName
         ? `${entityName}.${property.propertyName}`
         : property.propertyName;
-    const { persistedValue, liveValue } = snapshotPropertyValueCopies(
-        value,
+    const { persistedValue, liveValue } = snapshotProviderValueCopies(
+        providerValue,
         property.converter,
         context,
     );
+    const result = {
+        propertyName: property.propertyName,
+        persistedValue,
+        boundValue: generatedBoundValue(
+            providerValue,
+            property,
+            entityName,
+        ),
+    };
     if (metadata && liveValue !== null && liveValue !== undefined) {
         ensurePolicyPropertyPath(
             metadata,
@@ -93,7 +97,7 @@ export function writeGeneratedValue<TEntity extends object>(
         parentPath.length > 0 &&
         (parent === null || parent === undefined)
     ) {
-        return persistedValue;
+        return result;
     }
     const previous = readPropertyValue(entity, property);
     try {
@@ -120,5 +124,5 @@ export function writeGeneratedValue<TEntity extends object>(
         applied,
         context,
     );
-    return persistedValue;
+    return result;
 }

@@ -1,11 +1,13 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, EntityState } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
+import { internalEntityEntry } from './support/public-api-internals';
 
 class SqliteGeneratedRow {
     public id = 0;
     public label!: string;
     public createdAt!: Date;
+    public payload!: { source: string };
 }
 
 class SqliteGeneratedContext extends DbContext {
@@ -28,6 +30,9 @@ class SqliteGeneratedContext extends DbContext {
                 .hasColumnName('created_at').hasColumnType('timestamp').isRequired()
                 .hasDefaultSql('current_timestamp')
                 .valueGeneratedOnAdd();
+            entity.property(row => row.payload).hasColumnType('json').isRequired()
+                .hasDefaultSql('\'{"source":"database"}\'')
+                .valueGeneratedOnAdd();
         });
     }
 }
@@ -40,12 +45,15 @@ describe('SQLite database-generated values', () => {
             values: [],
         });
         const row = { label: 'sqlite' } as SqliteGeneratedRow;
-        db.rows.add(row);
+        const entry = db.rows.add(row);
 
         await expect(db.saveChanges()).resolves.toBe(1);
 
         expect(row.id).toBe(1);
         expect(row.createdAt).toBeInstanceOf(Date);
+        expect(row.payload).toEqual({ source: 'database' });
+        expect(internalEntityEntry(entry).originalBoundValues.payload)
+            .toBe('{"source":"database"}');
         db.changeTracker.clear();
         await expect(db.rows.find(1)).resolves.toMatchObject({
             id: 1,

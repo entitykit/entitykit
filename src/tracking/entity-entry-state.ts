@@ -1,6 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { EntityEntry } from './entity-entry';
 import { cloneEntityValues, hasEntityModifications, hasEntityValueModifications, modifiedEntityProperties, readEntityValues } from './entity-entry-snapshot';
+import { cloneBoundEntityValues } from './bound-entity-value-clone';
 import { EntityState } from './entity-state';
 import { assertEntityEntryStateMutation } from './entity-entry-mutation-guard';
 import { acceptNavigationSnapshotValues, refreshNavigationSnapshots, type NavigationSnapshotValues } from './navigation-snapshot';
@@ -10,7 +11,6 @@ export class EntityEntryState<TEntity extends object> {
     private snapshot: Record<string, unknown>;
     private boundSnapshot: Record<string, unknown>;
     private readonly navigations = new EntityEntryNavigationState();
-
     constructor(
         private readonly owner: EntityEntry<TEntity>,
         private readonly metadata: EntityMetadata<TEntity>,
@@ -115,7 +115,7 @@ export class EntityEntryState<TEntity extends object> {
         navigations: NavigationSnapshotValues,
         state: EntityState = EntityState.Unchanged,
     ): void {
-        this.snapshot = cloneEntityValues(this.metadata, values);
+        this.snapshot = cloneBoundEntityValues(this.metadata, values, boundValues);
         this.boundSnapshot = cloneBoundValues(boundValues);
         acceptNavigationSnapshotValues(entry, navigations);
         this.currentState = state;

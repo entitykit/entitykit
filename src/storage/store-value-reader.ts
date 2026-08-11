@@ -48,15 +48,7 @@ export function readStoreValue(
     reader?: StoreValueReader,
     entityName?: string,
 ): unknown {
-    let stored = value;
-    if (reader && value !== null && value !== undefined) {
-        stored = reader.readValue(value, property.columnType);
-        assertSynchronousCallbackResult(
-            stored,
-            'StoreValueReader.readValue()',
-            message => new TypeError(message),
-        );
-    }
+    const stored = readStoreProviderValue(value, property, reader);
 
     const context = property.propertyName === undefined
         ? undefined
@@ -68,4 +60,22 @@ export function readStoreValue(
         property.converter as ValueConverter | undefined,
         context,
     );
+}
+
+/** Apply provider read normalization without invoking a model converter. */
+export function readStoreProviderValue(
+    value: unknown,
+    property: StoreValueProperty,
+    reader?: StoreValueReader,
+): unknown {
+    let stored = value;
+    if (reader && value !== null && value !== undefined) {
+        stored = reader.readValue(value, property.columnType);
+        assertSynchronousCallbackResult(
+            stored,
+            'StoreValueReader.readValue()',
+            message => new TypeError(message),
+        );
+    }
+    return stored;
 }

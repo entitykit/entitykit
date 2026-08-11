@@ -85,6 +85,26 @@ export function fromProviderValue<TProperty>(
     return converted;
 }
 
+/** Rebuild a model value from the representation retained for SQL binding. */
+export function fromBoundPropertyValue(
+    boundValue: unknown,
+    property: PropertyMetadata,
+    entityName?: string,
+): unknown {
+    const columnType = property.columnType.trim().toLowerCase();
+    const providerValue = (columnType === 'json' || columnType === 'jsonb') &&
+        typeof boundValue === 'string'
+        ? JSON.parse(boundValue) as unknown
+        : boundValue;
+    return fromProviderValue(
+        providerValue,
+        property.converter,
+        entityName
+            ? `${entityName}.${property.propertyName}`
+            : property.propertyName,
+    );
+}
+
 function converterOperation(
     direction: 'toProvider' | 'fromProvider',
     context?: string,

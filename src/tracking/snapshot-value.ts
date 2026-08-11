@@ -34,13 +34,26 @@ export function snapshotPropertyValueCopies(
     context?: string,
 ): SnapshotPropertyValueCopies {
     if (value === null || value === undefined || !converter) {
-        return {
-            providerValue: cloneSnapshotValue(value),
-            persistedValue: cloneSnapshotValue(value),
-            liveValue: cloneSnapshotValue(value),
-        };
+        return snapshotProviderValueCopies(value, converter, context);
     }
     const providerSnapshot = snapshotProviderValue(value, converter, context);
+    return snapshotProviderValueCopies(providerSnapshot, converter, context);
+}
+
+/** Reconstruct independent model copies from one already-captured provider fact. */
+export function snapshotProviderValueCopies(
+    providerValue: unknown,
+    converter?: ValueConverter,
+    context?: string,
+): SnapshotPropertyValueCopies {
+    const providerSnapshot = cloneSnapshotValue(providerValue);
+    if (providerSnapshot === null || providerSnapshot === undefined || !converter) {
+        return {
+            providerValue: cloneSnapshotValue(providerSnapshot),
+            persistedValue: cloneSnapshotValue(providerSnapshot),
+            liveValue: cloneSnapshotValue(providerSnapshot),
+        };
+    }
     return {
         providerValue: cloneSnapshotValue(providerSnapshot),
         persistedValue: modelValueFromSnapshot(

@@ -1,5 +1,5 @@
 import type { EntityEntry } from './entity-entry';
-import { cloneEntityValues } from './entity-entry-snapshot';
+import { cloneBoundEntityValues } from './bound-entity-value-clone';
 import { EntityState } from './entity-state';
 import { captureNavigationSnapshotValues } from './navigation-snapshot';
 import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
@@ -51,9 +51,10 @@ export class ChangeTrackerAcceptance {
             return {
                 entry: snapshot.entry,
                 state: snapshot.entry.state,
-                originalValues: cloneEntityValues(
+                originalValues: cloneBoundEntityValues(
                     snapshot.entry.metadata,
                     { ...snapshot.entry.originalValues },
+                    snapshot.entry.originalBoundValues,
                 ),
                 originalBoundValues: cloneBoundValues(
                     snapshot.entry.originalBoundValues,
