@@ -7,7 +7,6 @@ import {
     temporaryGeneratedProperty,
     type TemporaryGeneratedProperty,
 } from '../../tracking/temporary-generated-identity';
-import { toProviderValue } from '../../model/value-converter/store-value';
 import { snapshotValuesEqual } from '../../tracking/snapshot-value-equality';
 
 export function generatedKeyPropagations(
@@ -54,13 +53,11 @@ export function generatedKeyPropagations(
             if (
                 !isMissing(foreignKeyValue) &&
                 !matchesTemporaryValue(
-                    foreignKeyValue,
                     dependent,
                     foreignKeyName,
                     temporary,
                 ) && !(
                     generated && matchesPrincipalValue(
-                        foreignKeyValue,
                         dependent,
                         foreignKeyName,
                         principal,
@@ -93,27 +90,14 @@ export function generatedKeyPropagations(
 }
 
 function matchesPrincipalValue(
-    foreignKeyValue: unknown,
     dependent: PersistedEntrySnapshot,
     foreignKeyName: string,
     principal: PersistedEntrySnapshot,
     principalPropertyName: string,
 ): boolean {
-    const foreignKey = dependent.entry.metadata.getProperty(foreignKeyName);
-    const principalProperty = principal.entry.metadata.getProperty(
-        principalPropertyName,
-    );
     return snapshotValuesEqual(
-        toProviderValue(
-            foreignKeyValue,
-            foreignKey.converter,
-            `${dependent.entry.metadata.entityName}.${foreignKeyName}`,
-        ),
-        toProviderValue(
-            principal.values[principalPropertyName],
-            principalProperty.converter,
-            `${principal.entry.metadata.entityName}.${principalPropertyName}`,
-        ),
+        dependent.boundValues[foreignKeyName],
+        principal.boundValues[principalPropertyName],
     );
 }
 
@@ -122,7 +106,6 @@ function isMissing(value: unknown): boolean {
 }
 
 function matchesTemporaryValue(
-    value: unknown,
     dependent: PersistedEntrySnapshot,
     propertyName: string,
     temporary: TemporaryGeneratedProperty | undefined,
@@ -130,11 +113,8 @@ function matchesTemporaryValue(
     if (!temporary) {
         return false;
     }
-    const property = dependent.entry.metadata.getProperty(propertyName);
-    const providerValue = toProviderValue(
-        value,
-        property.converter,
-        `${dependent.entry.metadata.entityName}.${propertyName}`,
+    return snapshotValuesEqual(
+        dependent.boundValues[propertyName],
+        temporary.providerValue,
     );
-    return snapshotValuesEqual(providerValue, temporary.providerValue);
 }
