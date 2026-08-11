@@ -10,12 +10,11 @@ import type {
 import { SaveTimeMutationLog } from '../save-time-mutations';
 import { propagateGeneratedKeys } from './generated-key-propagator';
 import { buildGeneratedValueRefresh } from './generated-value-refresh';
-import { assertGeneratedIdentityAvailable } from './generated-identity-assertion';
 import { writeGeneratedRow } from './generated-value-writer';
 import type { AppliedPropertyValue, GeneratedValueAcceptance } from './applied-generated-value';
 import { GeneratedValueRecorder } from './generated-value-recorder';
 import { applyGeneratedInsertIdentity } from './generated-insert-identity';
-import type { EntityMetadata } from '../../model/entity-metadata';
+import { assertFinalGeneratedIdentity } from './generated-final-identity';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
     private readonly recorded: GeneratedValueRecorder;
@@ -68,7 +67,9 @@ export class GeneratedValueHydrator {
                 this.mutations,
                 this.valueReader,
             ));
-            this.assertFinalIdentity(
+            assertFinalGeneratedIdentity(
+                this.changeTracker,
+                this.recorded,
                 entry,
                 plan.metadata,
                 persistedValues,
@@ -115,7 +116,9 @@ export class GeneratedValueHydrator {
                 this.valueReader,
             ));
         }
-        this.assertFinalIdentity(
+        assertFinalGeneratedIdentity(
+            this.changeTracker,
+            this.recorded,
             entry,
             plan.metadata,
             persistedValues,
@@ -140,29 +143,6 @@ export class GeneratedValueHydrator {
                 (principal, propertyName) =>
                     this.recorded.find(principal, propertyName),
             ),
-        );
-    }
-
-    private assertFinalIdentity(
-        entry: SavePlanEntry,
-        metadata: EntityMetadata,
-        persistedValues: Readonly<Record<string, unknown>>,
-        persistedBoundValues: Readonly<Record<string, unknown>>,
-    ): void {
-        const keyValues = metadata.keyProperties.map(propertyName =>
-            this.recorded.find(entry.entity, propertyName)?.persistedValue ??
-            persistedValues[propertyName]);
-        assertGeneratedIdentityAvailable(
-            this.changeTracker,
-            entry,
-            keyValues,
-            Object.fromEntries(metadata.properties.map(property => [
-                property.propertyName,
-                this.recorded.find(
-                    entry.entity,
-                    property.propertyName,
-                )?.boundValue ?? persistedBoundValues[property.propertyName],
-            ])),
         );
     }
 }
