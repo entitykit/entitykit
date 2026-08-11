@@ -107,6 +107,11 @@ export class SaveTimeMutationLog {
         });
     }
 
+    /** Record a guarded non-scalar policy mutation such as navigation fix-up. */
+    public recordRestoration(restore: () => void): void {
+        this.mutations.push({ restore });
+    }
+
     public restore(): void {
         this.takeRollback()();
     }

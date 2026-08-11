@@ -12,7 +12,10 @@ import { formatSavePlanDebug } from './save-plan/format-debug-view';
 import { freezeSavePlan } from './save-plan/freeze-plan';
 import { buildOutboxSavePlan } from './save-plan/outbox-plan';
 import { orderSaveEntries } from './save-plan/order-entries';
-import { capturePersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import {
+    capturePersistedEntrySnapshot,
+    refreshPersistedEntryRelationships,
+} from '../tracking/persisted-entry-snapshot';
 
 /** Dependencies the save-plan coordinator receives from its context. */
 export interface SavePlanBuilderDeps {
@@ -52,9 +55,13 @@ export class SavePlanBuilder {
     private buildPreparedPlan(): SavePlanEntry[] {
         this.deps.changeTracker.detectSaveRelationships();
         const tracked = this.deps.changeTracker.entries();
-        const snapshots = this.deps.saveTimeWrites.applyTo(
+        let snapshots = this.deps.saveTimeWrites.applyTo(
             tracked.map(capturePersistedEntrySnapshot),
         );
+        this.deps.saveTimeWrites.reconcileRelationships(
+            this.deps.changeTracker,
+        );
+        snapshots = snapshots.map(refreshPersistedEntryRelationships);
         const pending = orderSaveEntries(snapshots.filter(snapshot =>
             snapshot.state === EntityState.Added ||
             snapshot.state === EntityState.Modified ||

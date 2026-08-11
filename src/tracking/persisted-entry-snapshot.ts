@@ -1,12 +1,22 @@
 import type { EntityEntry } from './entity-entry';
 import {
+    captureCurrentNavigationSnapshotValues,
     captureNavigationSnapshotValues,
     type NavigationSnapshotValues,
 } from './navigation-snapshot';
-import { readPropertyPath } from '../model/property-value-access';
+import {
+    readPropertyPath,
+    readPropertyValue,
+} from '../model/property-value-access';
 import type { EntityState } from './entity-state';
-import { cloneBoundValues } from './bound-value-snapshot';
-import { captureMissingBoundEntityValues } from './bound-value-snapshot';
+import {
+    captureMissingBoundEntityValues,
+    cloneBoundValues,
+} from './bound-value-snapshot';
+import { snapshotValuesEqual } from './snapshot-value-equality';
+import { snapshotPropertyValueCopies } from './snapshot-value';
+import { toBoundProviderValue } from '../model/value-converter/store-value';
+import { cloneSnapshotValue } from './snapshot-value-clone';
 
 /** Exact tracked state represented by one executable save plan. */
 export interface PersistedEntrySnapshot {
@@ -80,4 +90,48 @@ export function persistedEntryKeyValue(
     const values = snapshot.entry.metadata.keyProperties.map(propertyName =>
         snapshot.values[propertyName]);
     return snapshot.entry.metadata.hasCompositeKey ? values : values[0];
+}
+
+/** Refresh graph facts changed by final save-time relationship fix-up. */
+export function refreshPersistedEntryRelationships(
+    snapshot: PersistedEntrySnapshot,
+): PersistedEntrySnapshot {
+    const { entry } = snapshot;
+    const foreignKeys = new Set(entry.metadata.relationships.flatMap(
+        relationship => relationship.foreignKeyProperties as readonly string[],
+    ));
+    for (const propertyName of foreignKeys) {
+        const property = entry.metadata.getProperty(propertyName);
+        const liveValue = readPropertyValue(entry.entity, property);
+        if (snapshotValuesEqual(liveValue, snapshot.values[propertyName])) {
+            continue;
+        }
+        const context = `${entry.metadata.entityName}.${propertyName}`;
+        const copies = snapshotPropertyValueCopies(
+            liveValue,
+            property.converter,
+            context,
+        );
+        snapshot.values[propertyName] = copies.persistedValue;
+        snapshot.boundValues[propertyName] = cloneSnapshotValue(
+            toBoundProviderValue(
+                copies.providerValue,
+                property.columnType,
+                context,
+            ),
+        );
+    }
+    return {
+        ...snapshot,
+        state: entry.state,
+        relationshipValues: Object.fromEntries(
+            entry.metadata.relationships.map(relationship => [
+                String(relationship.navigationProperty),
+                (entry.entity as Record<string, unknown>)[
+                    relationship.navigationProperty
+                ],
+            ]),
+        ),
+        navigations: captureCurrentNavigationSnapshotValues(entry),
+    };
 }

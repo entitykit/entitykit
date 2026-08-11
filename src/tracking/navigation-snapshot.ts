@@ -92,6 +92,18 @@ export function captureNavigationSnapshotValues(
     );
 }
 
+/** Capture the live graph after save-time relationship reconciliation. */
+export function captureCurrentNavigationSnapshotValues(
+    entry: EntityEntry<object>,
+): NavigationSnapshotValues {
+    const properties = snapshots.get(entry)?.keys() ?? [];
+    const entity = entry.entity as Record<string, unknown>;
+    return new Map(Array.from(properties, property => [
+        property,
+        cloneNavigationValue(entity[property]),
+    ]));
+}
+
 /** Accept an exact relationship baseline without observing later mutations. */
 export function acceptNavigationSnapshotValues(
     entry: EntityEntry<object>,
