@@ -7,6 +7,7 @@ import { EntityEntryState } from './entity-entry-state';
 import { EntityState } from './entity-state';
 import { collectionEntry, referenceEntry, type CollectionNavigationEntry, type EntityNavigationLoader, type ReferenceNavigationEntry } from './navigation-entry';
 import type { NavigationSnapshotValues } from './navigation-snapshot';
+import { persistedEntryKeyValue } from './persisted-entry-key-value';
 export { cloneSnapshotValue } from './entity-entry-snapshot';
 export class EntityEntry<TEntity extends object> {
     private readonly trackedState: EntityEntryState<TEntity>;
@@ -35,9 +36,9 @@ export class EntityEntry<TEntity extends object> {
         return this.trackedState.originalBoundValues;
     }
     public get keyValue(): unknown {
-        return this.metadata.hasCompositeKey
-            ? this.metadata.getKeyValues(this.entity)
-            : this.metadata.getKeyValue(this.entity);
+        return persistedEntryKeyValue(
+            this.metadata, this.originalValues, this.originalBoundValues,
+        );
     }
     public currentValues(): Record<string, unknown> {
         return this.trackedState.currentValues();
