@@ -15,12 +15,13 @@ import {
 import { relationshipConnects } from './relationship-resolution';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
+import { navigationChangeDetectionAllowed } from './navigation-change-detection-state';
 
 export function detectInverseChanges(
     tracker: ChangeTracker,
     model: Model,
     entries: ReadonlyArray<EntityEntry<object>>,
-    captured?: RelationshipDetectionValues,
+    captured: RelationshipDetectionValues,
 ): void {
     for (const principal of entries) {
         if (principal.state === EntityState.Detached) {
@@ -52,10 +53,13 @@ function detectInverseChange(
     model: Model,
     principal: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
-    captured?: RelationshipDetectionValues,
+    captured: RelationshipDetectionValues,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
     if (!inverse) {
+        return;
+    }
+    if (!navigationChangeDetectionAllowed(principal, inverse)) {
         return;
     }
     const snapshot = navigationSnapshot(principal, inverse);

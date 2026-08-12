@@ -14,7 +14,7 @@ import type { RelationshipDetectionValues } from './relationship-detection-value
 export function detectTrackedCascades(
     tracker: ChangeTracker,
     model: Model,
-    captured?: RelationshipDetectionValues,
+    captured: RelationshipDetectionValues,
 ): void {
     let changed = true;
     while (changed) {

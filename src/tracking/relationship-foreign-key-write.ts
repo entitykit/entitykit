@@ -1,32 +1,37 @@
 import { readPropertyValue, writePropertyValue } from '../model/property-value-access';
 import type { EntityEntry } from './entity-entry';
 import {
-    snapshotPropertyValue,
     snapshotPropertyValuesEqual,
 } from './snapshot-value';
+import type { RelationshipDetectionValues } from './relationship-detection-values';
+import {
+    relationshipBoundValuesFor,
+    relationshipValuesFor,
+    setRelationshipDetectionProperty,
+} from './relationship-detection-values';
+import { capturePropertyPersistenceFact } from './entity-persistence-fact-capture';
+import { snapshotValuesEqual } from './snapshot-value-equality';
 
 export function writeRelationshipForeignKey(
     dependent: EntityEntry<object>,
     properties: readonly string[],
     values: readonly unknown[],
-    captured?: Record<string, unknown>,
+    captured?: RelationshipDetectionValues,
 ): void {
     properties.forEach((property, index) => {
         const metadata = dependent.metadata.getProperty(property);
         const context = `${dependent.metadata.entityName}.${property}`;
-        const intended = snapshotPropertyValue(
-            values[index], metadata.converter, context,
+        const fact = capturePropertyPersistenceFact(
+            dependent.metadata, metadata, values[index],
         );
         const unchanged = captured
-            ? snapshotPropertyValuesEqual(
-                captured[property],
-                values[index],
-                metadata.converter,
-                context,
+            ? snapshotValuesEqual(
+                relationshipBoundValuesFor(dependent, captured)[property],
+                fact.boundValue,
             )
             : snapshotPropertyValuesEqual(
                 readPropertyValue(dependent.entity, metadata),
-                intended,
+                fact.modelValue,
                 metadata.converter,
                 context,
             );
@@ -34,7 +39,13 @@ export function writeRelationshipForeignKey(
             writePropertyValue(dependent.entity, metadata, values[index]);
         }
         if (captured) {
-            captured[property] = intended;
+            setRelationshipDetectionProperty(
+                dependent,
+                property,
+                fact.modelValue,
+                fact.boundValue,
+                captured,
+            );
         }
     });
 }
@@ -42,21 +53,25 @@ export function writeRelationshipForeignKey(
 export function clearOptionalRelationshipForeignKey(
     dependent: EntityEntry<object>,
     properties: readonly string[],
-    captured?: Record<string, unknown>,
+    captured?: RelationshipDetectionValues,
 ): void {
     for (const property of properties) {
         const metadata = dependent.metadata.getProperty(property);
         if (!metadata.isRequired) {
             const context = `${dependent.metadata.entityName}.${property}`;
             const current = captured
-                ? captured[property]
+                ? relationshipValuesFor(dependent, captured)[property]
                 : readPropertyValue(dependent.entity, metadata);
             if (!snapshotPropertyValuesEqual(
                 current, null, metadata.converter, context,
             )) {
                 writePropertyValue(dependent.entity, metadata, null);
             }
-            if (captured) captured[property] = null;
+            if (captured) {
+                setRelationshipDetectionProperty(
+                    dependent, property, null, null, captured,
+                );
+            }
         }
     }
 }

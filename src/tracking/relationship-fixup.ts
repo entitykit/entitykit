@@ -1,7 +1,6 @@
 import { DbValidationError } from '../errors/entity-kit-error';
 import type { Model } from '../model/model';
 import { DeleteBehavior } from '../model/relationship-metadata';
-import { principalValuesForDependent } from '../model/relationship-key-translation';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
@@ -15,7 +14,7 @@ import {
     writeRelationshipForeignKey,
 } from './relationship-foreign-key-write';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
-import { relationshipValuesFor } from './relationship-detection-values';
+import { foreignKeyValuesForPrincipal } from './relationship-principal-foreign-key';
 
 export function linkDependent(
     tracker: ChangeTracker,
@@ -40,19 +39,19 @@ export function linkDependent(
         relationship.principalEntity,
     );
     const principalEntry = tracker.entry(principal);
-    const key = principalValuesForDependent(
+    const key = foreignKeyValuesForPrincipal(
+        dependent,
         relationship,
-        dependent.metadata,
         principalMetadata,
-        principalEntry
-            ? relationshipValuesFor(principalEntry, captured)
-            : principal as Record<string, unknown>,
+        principal,
+        principalEntry,
+        captured,
     );
     writeRelationshipForeignKey(
         dependent,
         relationship.foreignKeyProperties,
         key,
-        captured?.get(dependent),
+        captured,
     );
     values[relationship.navigationProperty] = principal;
     addToRelationshipInverse(
@@ -92,7 +91,7 @@ export function severDependent(
         clearOptionalRelationshipForeignKey(
             dependent,
             relationship.foreignKeyProperties,
-            captured?.get(dependent),
+            captured,
         );
     }
     const values = dependent.entity as Record<string, unknown>;

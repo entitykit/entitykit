@@ -17,15 +17,18 @@ import {
     relationshipForeignKeyMatchesPrincipal,
 } from './relationship-resolution';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
-import { modifiedEntityValueProperties } from './entity-entry-snapshot';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
-import { relationshipValuesFor } from './relationship-detection-values';
+import {
+    relationshipPropertyWasModified,
+    relationshipValuesFor,
+} from './relationship-detection-values';
+import { relationshipForeignKeyMatchesUntrackedPrincipal } from './relationship-untracked-principal-match';
 
 export function detectReferenceChanges(
     tracker: ChangeTracker,
     model: Model,
     entries: ReadonlyArray<EntityEntry<object>>,
-    captured?: RelationshipDetectionValues,
+    captured: RelationshipDetectionValues,
 ): void {
     for (const dependent of entries) {
         if (
@@ -49,7 +52,7 @@ function detectReferenceChange(
     model: Model,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
-    captured?: RelationshipDetectionValues,
+    captured: RelationshipDetectionValues,
 ): void {
     const values = relationshipValuesFor(dependent, captured);
     const current = (dependent.entity as Record<string, unknown>)[
@@ -61,13 +64,10 @@ function detectReferenceChange(
     );
     const navigationChanged = snapshot.known &&
         navigationValueChanged(snapshot.value, current);
-    const modified = captured
-        ? modifiedEntityValueProperties(
-            dependent.metadata, values, dependent.originalValues,
-        )
-        : dependent.modifiedProperties();
     const foreignKeyChanged = relationship.foreignKeyProperties.some(
-        property => modified.includes(property),
+        property => relationshipPropertyWasModified(
+            dependent, property, captured,
+        ),
     );
 
     if (navigationChanged || dependent.state === EntityState.Added && current) {
@@ -104,15 +104,17 @@ function detectReferenceChange(
         : undefined;
     const currentEntry = currentObject ? tracker.entry(currentObject) : undefined;
     const currentMatches = currentObject
-        ? relationshipForeignKeyMatchesPrincipal(
-            model,
-            dependent,
-            relationship,
-            currentEntry
-                ? relationshipValuesFor(currentEntry, captured)
-                : currentObject as Record<string, unknown>,
-            captured,
-        )
+        ? currentEntry
+            ? relationshipForeignKeyMatchesPrincipal(
+                dependent, relationship, currentEntry, captured,
+            )
+            : relationshipForeignKeyMatchesUntrackedPrincipal(
+                model,
+                dependent,
+                relationship,
+                currentObject as Record<string, unknown>,
+                captured,
+            )
         : relationship.foreignKeyProperties.every(property =>
             values[property] === null || values[property] === undefined);
     if (!foreignKeyChanged && currentMatches) {

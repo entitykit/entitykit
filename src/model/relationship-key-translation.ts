@@ -2,6 +2,11 @@ import type { EntityMetadata } from './entity-metadata';
 import type { PropertyMetadata } from './property-metadata';
 import { translatePropertyValue } from './property-value-translation';
 import type { RelationshipKeyMetadata } from './relationship-key-codec';
+import {
+    fromProviderValue,
+    providerValueFromBoundProperty,
+} from './value-converter/store-value';
+import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
 
 type ModelValues = Readonly<Record<string, unknown>>;
 
@@ -56,6 +61,35 @@ export function dependentValuesForPrincipal<
         principalMetadata,
         property,
     ));
+}
+
+export function principalBoundValuesForDependent<
+    TDependent extends object,
+    TPrincipal extends object,
+>(
+    relationship: RelationshipKeyMetadata,
+    dependentMetadata: EntityMetadata<TDependent>,
+    principalMetadata: EntityMetadata<TPrincipal>,
+    principalBoundValues: Readonly<Record<string, unknown>>,
+): readonly unknown[] {
+    const principalProperties = principalKeyMetadata(
+        relationship, principalMetadata,
+    );
+    assertMatchingKeyShape(
+        relationship.foreignKeyProperties.length,
+        principalProperties.length,
+    );
+    return relationship.foreignKeyProperties.map((propertyName, index) => {
+        const target = dependentMetadata.getProperty(propertyName);
+        const source = principalProperties[index];
+        return fromProviderValue(
+            cloneSnapshotValue(providerValueFromBoundProperty(
+                principalBoundValues[source.propertyName], source,
+            )),
+            target.converter,
+            `${dependentMetadata.entityName}.${target.propertyName}`,
+        );
+    });
 }
 
 function principalKeyMetadata<TEntity extends object>(

@@ -2,20 +2,22 @@ import type { Model } from '../model/model';
 import {
     dependentRelationshipBoundKey,
     principalRelationshipBoundKey,
-    relationshipKeyValuesEqual,
 } from '../model/relationship-key-codec';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
-import { relationshipValuesFor } from './relationship-detection-values';
+import {
+    relationshipBoundValuesFor,
+    relationshipValuesFor,
+} from './relationship-detection-values';
 
 export function findTrackedPrincipal(
     tracker: ChangeTracker,
     model: Model,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
-    captured?: RelationshipDetectionValues,
+    captured: RelationshipDetectionValues,
 ): EntityEntry<object> | undefined {
     const values = relationshipValuesFor(dependent, captured);
     const foreignKey = relationship.foreignKeyProperties.map(
@@ -27,15 +29,17 @@ export function findTrackedPrincipal(
     const principalMetadata = model.getEntity<Record<string, unknown>>(
         relationship.principalEntity,
     );
+    const key = dependentRelationshipBoundKey(
+        relationship,
+        relationshipBoundValuesFor(dependent, captured),
+    );
     return tracker.entries().find(entry =>
         entry.metadata === principalMetadata &&
-        relationshipKeyValuesEqual(
+        principalRelationshipBoundKey(
             relationship,
-            dependent.metadata,
-            values,
             principalMetadata,
-            relationshipValuesFor(entry, captured),
-        ));
+            relationshipBoundValuesFor(entry, captured),
+        ) === key);
 }
 
 export function findTrackedPrincipalByBoundValues(
@@ -72,7 +76,7 @@ export function relationshipConnects(
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     principal: EntityEntry<object>,
-    captured?: RelationshipDetectionValues,
+    captured: RelationshipDetectionValues,
 ): boolean {
     const live = dependent.entity as Record<string, unknown>;
     const values = relationshipValuesFor(dependent, captured);
@@ -83,36 +87,35 @@ export function relationshipConnects(
         property => values[property],
     );
     return !foreignKey.some(value => value === null || value === undefined) &&
-        relationshipKeyValuesEqual(
+        dependentRelationshipBoundKey(
             relationship,
-            dependent.metadata,
-            values,
+            relationshipBoundValuesFor(dependent, captured),
+        ) === principalRelationshipBoundKey(
+            relationship,
             model.getEntity<Record<string, unknown>>(
                 relationship.principalEntity,
             ),
-            relationshipValuesFor(principal, captured),
+            relationshipBoundValuesFor(principal, captured),
         );
 }
 
 export function relationshipForeignKeyMatchesPrincipal(
-    model: Model,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
-    principalValues: Readonly<Record<string, unknown>>,
-    captured?: RelationshipDetectionValues,
+    principal: EntityEntry<object>,
+    captured: RelationshipDetectionValues,
 ): boolean {
     const values = relationshipValuesFor(dependent, captured);
     const foreignKey = relationship.foreignKeyProperties.map(
         property => values[property],
     );
     return !foreignKey.some(value => value === null || value === undefined) &&
-        relationshipKeyValuesEqual(
+        dependentRelationshipBoundKey(
             relationship,
-            dependent.metadata,
-            values,
-            model.getEntity<Record<string, unknown>>(
-                relationship.principalEntity,
-            ),
-            principalValues,
+            relationshipBoundValuesFor(dependent, captured),
+        ) === principalRelationshipBoundKey(
+            relationship,
+            principal.metadata,
+            relationshipBoundValuesFor(principal, captured),
         );
 }

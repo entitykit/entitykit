@@ -91,11 +91,7 @@ export function fromBoundPropertyValue(
     property: PropertyMetadata,
     entityName?: string,
 ): unknown {
-    const columnType = property.columnType.trim().toLowerCase();
-    const providerValue = (columnType === 'json' || columnType === 'jsonb') &&
-        typeof boundValue === 'string'
-        ? JSON.parse(boundValue) as unknown
-        : boundValue;
+    const providerValue = providerValueFromBoundProperty(boundValue, property);
     return fromProviderValue(
         providerValue,
         property.converter,
@@ -103,6 +99,17 @@ export function fromBoundPropertyValue(
             ? `${entityName}.${property.propertyName}`
             : property.propertyName,
     );
+}
+
+export function providerValueFromBoundProperty(
+    boundValue: unknown,
+    property: PropertyMetadata,
+): unknown {
+    const columnType = property.columnType.trim().toLowerCase();
+    return (columnType === 'json' || columnType === 'jsonb') &&
+        typeof boundValue === 'string'
+        ? JSON.parse(boundValue) as unknown
+        : boundValue;
 }
 
 function converterOperation(

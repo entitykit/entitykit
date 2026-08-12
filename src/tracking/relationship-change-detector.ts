@@ -9,7 +9,7 @@ import type { RelationshipDetectionValues } from './relationship-detection-value
 export function detectRelationshipChanges(
     tracker: ChangeTracker,
     model: Model,
-    values?: RelationshipDetectionValues,
+    values: RelationshipDetectionValues,
 ): void {
     const entries = tracker.entries();
     detectReferenceChanges(tracker, model, entries, values);

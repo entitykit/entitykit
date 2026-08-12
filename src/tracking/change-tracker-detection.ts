@@ -4,6 +4,7 @@ import { changeTrackerModel } from './change-tracker-model';
 import { detectRelationshipChanges } from './relationship-change-detector';
 import { detectReferenceChanges } from './relationship-reference-detector';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
+import { captureRelationshipDetectionValues } from './relationship-detection-values';
 import { captureRelationshipFixupBaseline } from './relationship-fixup-baseline';
 
 export function detectTrackedChanges(
@@ -24,13 +25,16 @@ export function detectTrackedRelationships(
 ): void {
     const configuredModel = changeTrackerModel(tracker);
     if (configuredModel) {
+        const captured = captureRelationshipDetectionValues(
+            tracker.entries(), values,
+        );
         const acceptFixup = refreshBaselines
             ? captureRelationshipFixupBaseline(tracker.entries())
             : undefined;
         if (entries) {
-            detectReferenceChanges(tracker, configuredModel, entries, values);
+            detectReferenceChanges(tracker, configuredModel, entries, captured);
         } else {
-            detectRelationshipChanges(tracker, configuredModel, values);
+            detectRelationshipChanges(tracker, configuredModel, captured);
         }
         acceptFixup?.();
     }

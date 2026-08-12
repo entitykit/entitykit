@@ -1,7 +1,12 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, lazy, valueConverter } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { EntityEntry as InternalEntityEntry } from '../src/tracking/entity-entry';
 import { requireDefined } from './support/require-defined';
+import {
+    internalChangeTracker,
+    internalEntityEntry,
+} from './support/public-api-internals';
 
 let providerFacts: string[] = [];
 let providerFallback = 'one';
@@ -282,6 +287,60 @@ describe('navigation bound provider facts', () => {
             .collection(row => row.children).load();
 
         expect(children.map(row => row.id)).toEqual(['child-one']);
+        expect(providerConversions).toBe(1);
+        await db.dispose();
+    });
+
+    it('detects an unchanged relationship from one captured provider tuple', () => {
+        const db = BoundNavigationContext.create();
+        providerFallback = 'one';
+        providerFacts = [];
+        const parent = Object.assign(new BoundNavigationParent(), {
+            name: 'parent',
+        });
+        const child = Object.assign(new BoundNavigationChild(), {
+            id: 'child', parent,
+        });
+        parent.children = [child];
+        db.parents.attach(parent);
+        db.children.attach(child);
+        providerFacts = Array.from(
+            { length: 20 }, (_, index) => index % 2 === 0 ? 'one' : 'two',
+        );
+        providerConversions = 0;
+
+        internalChangeTracker(db.changeTracker).detectSaveRelationships();
+
+        expect(child.parent).toBe(parent);
+        expect(parent.children).toEqual([child]);
+        expect(providerConversions).toBe(0);
+    });
+
+    it('reuses a tracked principal tuple while fixing a navigation change', async () => {
+        const db = await openBoundNavigation();
+        const firstChild = requireDefined(await db.children.find('child-one'));
+        const firstParent = requireDefined(
+            await requireDefined(db.entry(firstChild))
+                .reference(row => row.parent).load(),
+        );
+        const secondChild = requireDefined(await db.children.find('child-two'));
+        const secondParent = requireDefined(
+            await requireDefined(db.entry(secondChild))
+                .reference(row => row.parent).load(),
+        );
+        firstChild.parent = secondParent;
+        providerFacts = ['two'];
+        providerConversions = 0;
+        const detected = internalEntityEntry(
+            requireDefined(db.entry(firstChild)),
+        ) as unknown as InternalEntityEntry<object>;
+
+        internalChangeTracker(db.changeTracker)
+            .detectSaveRelationships([detected]);
+
+        expect(firstChild.parent).toBe(secondParent);
+        expect(firstParent.children).toEqual([]);
+        expect(secondParent.children).toEqual([secondChild, firstChild]);
         expect(providerConversions).toBe(1);
         await db.dispose();
     });

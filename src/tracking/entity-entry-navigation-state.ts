@@ -1,9 +1,10 @@
 import type { EntityEntry } from './entity-entry';
-import {
-    captureNavigation,
-    forgetNavigation,
-} from './navigation-snapshot';
+import { captureNavigation } from './navigation-snapshot';
 import { loadedReferenceKey } from './loaded-reference-state';
+import {
+    allowNavigationChangeDetection,
+    suppressNavigationChangeDetection,
+} from './navigation-change-detection-state';
 
 export class EntityEntryNavigationState {
     private readonly loaded: Map<string, string | null> = new Map();
@@ -13,6 +14,7 @@ export class EntityEntryNavigationState {
         property: string,
         boundValues?: Readonly<Record<string, unknown>>,
     ): void {
+        allowNavigationChangeDetection(entry, property);
         this.loaded.set(
             property, loadedReferenceKey(entry, property, boundValues),
         );
@@ -21,7 +23,7 @@ export class EntityEntryNavigationState {
 
     public markNotLoaded(entry: EntityEntry<object>, property: string): void {
         this.loaded.delete(property);
-        forgetNavigation(entry, property);
+        suppressNavigationChangeDetection(entry, property);
     }
 
     public isLoaded(entry: EntityEntry<object>, property: string): boolean {
@@ -30,7 +32,7 @@ export class EntityEntryNavigationState {
         if (loadedKey === null || loadedKey === loadedReferenceKey(entry, property)) {
             return true;
         }
-        this.markNotLoaded(entry, property);
+        this.loaded.delete(property);
         return false;
     }
 
