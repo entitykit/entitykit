@@ -62,9 +62,11 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         );
 
         if (foreignKeyTuples.length === 0) {
-            for (const { entity } of roots) {
+            for (const { entity, boundValues } of roots) {
                 (entity as Record<string, unknown>)[relationship.navigationProperty] = null;
-                this.markLoaded(entity, relationship.navigationProperty);
+                this.markLoaded(
+                    entity, relationship.navigationProperty, boundValues,
+                );
             }
             this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'skipped', roots.length, 0, 0, 0, elapsed());
             return { metadata: principalMetadata, roots: [] };
@@ -108,7 +110,9 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                 );
                 loadedPrincipals.push(principalRoot);
             }
-            this.markLoaded(entity, relationship.navigationProperty);
+            this.markLoaded(
+                entity, relationship.navigationProperty, boundValues,
+            );
         }
 
         const uniquePrincipals = uniqueIncludeRoots(loadedPrincipals);

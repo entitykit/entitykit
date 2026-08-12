@@ -124,24 +124,26 @@ export class EntityEntryState<TEntity extends object> {
     public detach(): void {
         this.currentState = EntityState.Detached;
     }
-
     public markNavigationLoaded(
-        entry: EntityEntry<object>, property: string,
+        entry: EntityEntry<object>,
+        property: string,
+        boundValues?: Readonly<Record<string, unknown>>,
     ): void {
-        this.navigations.markLoaded(entry, property);
+        this.navigations.markLoaded(entry, property, boundValues);
     }
-
     public markNavigationNotLoaded(
         entry: EntityEntry<object>, property: string,
     ): void {
         this.navigations.markNotLoaded(entry, property);
     }
-
     public isNavigationLoaded(property: string): boolean {
-        return this.navigations.isLoaded(property);
+        return this.navigations.isLoaded(
+            this.owner as unknown as EntityEntry<object>, property,
+        );
     }
-
     public loadedNavigationProperties(): readonly string[] {
-        return this.navigations.properties();
+        return this.navigations.properties(
+            this.owner as unknown as EntityEntry<object>,
+        );
     }
 }

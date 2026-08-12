@@ -1,5 +1,6 @@
 import type { IncludeDiagnosticEvent } from '../diagnostics/runtime/events';
 import type { IncludeLoaderContext } from './include-loader-context';
+import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
 
 /**
  * Shared foundation for the per-kind eager-load strategies.
@@ -17,8 +18,14 @@ import type { IncludeLoaderContext } from './include-loader-context';
 export abstract class IncludeStrategyBase {
     constructor(protected readonly ctx: IncludeLoaderContext) {}
 
-    protected markLoaded(entity: object, navigationProperty: string): void {
-        this.ctx.changeTracker.entry(entity)?.markNavigationLoaded(navigationProperty);
+    protected markLoaded(
+        entity: object,
+        navigationProperty: string,
+        boundValues?: Readonly<Record<string, unknown>>,
+    ): void {
+        markIncludeNavigationLoaded(
+            this.ctx, entity, navigationProperty, boundValues,
+        );
     }
 
     protected emitIncludeDiagnostic(

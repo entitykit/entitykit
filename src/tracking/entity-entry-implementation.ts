@@ -97,11 +97,11 @@ export class EntityEntry<TEntity extends object> {
     public markDeleted(): void {
         this.trackedState.transitionTo(EntityState.Deleted);
     }
-    public markNavigationLoaded(navigationProperty: string): void {
-        this.trackedState.markNavigationLoaded(
-            this as unknown as EntityEntry<object>,
-            navigationProperty,
-        );
+    public markNavigationLoaded(
+        navigationProperty: string,
+        boundValues?: Readonly<Record<string, unknown>>,
+    ): void {
+        this.trackedState.markNavigationLoaded(this as unknown as EntityEntry<object>, navigationProperty, boundValues);
     }
     public markNavigationNotLoaded(navigationProperty: string): void {
         this.trackedState.markNavigationNotLoaded(

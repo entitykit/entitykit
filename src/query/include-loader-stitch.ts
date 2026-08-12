@@ -16,6 +16,7 @@ import {
     manyToManyRowStitchKey,
     principalStitchKey,
 } from './include-stitch-keys';
+import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
 export class IncludeStitcher {
     constructor(private readonly ctx: IncludeLoaderContext) {}
 
@@ -52,7 +53,12 @@ export class IncludeStitcher {
             const principal = principalsByKey.get(key);
             if (principal) {
                 (dependent as Record<string, unknown>)[relationship.navigationProperty] = principal;
-                this.markLoaded(dependent, relationship.navigationProperty);
+                markIncludeNavigationLoaded(
+                    this.ctx,
+                    dependent,
+                    relationship.navigationProperty,
+                    dependentRoot.boundValues,
+                );
             }
         }
 
@@ -81,7 +87,7 @@ export class IncludeStitcher {
                 relationship.cardinality === RelationshipCardinality.OneToOne
                     ? group[0] ?? null
                     : group;
-            this.markLoaded(principal, inverseNavigation);
+            markIncludeNavigationLoaded(this.ctx, principal, inverseNavigation);
         }
 
         return uniqueIncludeRoots(dependents);
@@ -122,8 +128,9 @@ export class IncludeStitcher {
                 manyToManyEntityStitchKey(info, boundValues),
             )?.items ?? [];
             (entity as Record<string, unknown>)[info.navigationProperty] = group;
-            this.markLoaded(entity, info.navigationProperty);
-
+            markIncludeNavigationLoaded(
+                this.ctx, entity, info.navigationProperty,
+            );
             if (inverseParentsByRelated) {
                 for (const related of group) {
                     pushUniqueObject(getUniqueObjectList(inverseParentsByRelated, related), entity);
@@ -138,9 +145,5 @@ export class IncludeStitcher {
         }
 
         return uniqueIncludeRoots(relatedRoots);
-    }
-
-    private markLoaded(entity: object, navigationProperty: string): void {
-        this.ctx.changeTracker.entry(entity)?.markNavigationLoaded(navigationProperty);
     }
 }

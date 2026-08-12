@@ -98,6 +98,7 @@ export function severDependent(
     const values = dependent.entity as Record<string, unknown>;
     const previous = principal ?? values[relationship.navigationProperty];
     values[relationship.navigationProperty] = null;
+    dependent.markNavigationNotLoaded(relationship.navigationProperty);
     if (previous) {
         removeFromRelationshipInverse(
             tracker,
@@ -128,7 +129,6 @@ export function cascadeDeleteDependent(
         dependent.entity,
     );
 }
-
 export function clearStaleReference(
     tracker: ChangeTracker,
     dependent: EntityEntry<object>,
@@ -137,6 +137,7 @@ export function clearStaleReference(
     const values = dependent.entity as Record<string, unknown>;
     const previous = values[relationship.navigationProperty];
     values[relationship.navigationProperty] = null;
+    dependent.markNavigationNotLoaded(relationship.navigationProperty);
     if (previous) {
         removeFromRelationshipInverse(
             tracker,

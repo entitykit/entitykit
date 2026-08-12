@@ -12,7 +12,10 @@ import {
     linkDependent,
     severDependent,
 } from './relationship-fixup';
-import { findTrackedPrincipal } from './relationship-resolution';
+import {
+    findTrackedPrincipal,
+    relationshipForeignKeyMatchesPrincipal,
+} from './relationship-resolution';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import { modifiedEntityValueProperties } from './entity-entry-snapshot';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
@@ -96,7 +99,23 @@ function detectReferenceChange(
         return;
     }
 
-    if (!foreignKeyChanged) {
+    const currentObject = current && typeof current === 'object'
+        ? current
+        : undefined;
+    const currentEntry = currentObject ? tracker.entry(currentObject) : undefined;
+    const currentMatches = currentObject
+        ? relationshipForeignKeyMatchesPrincipal(
+            model,
+            dependent,
+            relationship,
+            currentEntry
+                ? relationshipValuesFor(currentEntry, captured)
+                : currentObject as Record<string, unknown>,
+            captured,
+        )
+        : relationship.foreignKeyProperties.every(property =>
+            values[property] === null || values[property] === undefined);
+    if (!foreignKeyChanged && currentMatches) {
         return;
     }
     const principal = findTrackedPrincipal(

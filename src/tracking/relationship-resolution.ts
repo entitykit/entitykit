@@ -93,3 +93,26 @@ export function relationshipConnects(
             relationshipValuesFor(principal, captured),
         );
 }
+
+export function relationshipForeignKeyMatchesPrincipal(
+    model: Model,
+    dependent: EntityEntry<object>,
+    relationship: TrackedRelationshipMetadata,
+    principalValues: Readonly<Record<string, unknown>>,
+    captured?: RelationshipDetectionValues,
+): boolean {
+    const values = relationshipValuesFor(dependent, captured);
+    const foreignKey = relationship.foreignKeyProperties.map(
+        property => values[property],
+    );
+    return !foreignKey.some(value => value === null || value === undefined) &&
+        relationshipKeyValuesEqual(
+            relationship,
+            dependent.metadata,
+            values,
+            model.getEntity<Record<string, unknown>>(
+                relationship.principalEntity,
+            ),
+            principalValues,
+        );
+}

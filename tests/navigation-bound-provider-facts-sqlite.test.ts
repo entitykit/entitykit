@@ -232,8 +232,10 @@ describe('navigation bound provider facts', () => {
         driftDuringLoad();
 
         const parent = await lazy(child).parent;
+        const cached = await lazy(child).parent;
 
         expect(parent.name).toBe('parent-one');
+        expect(cached).toBe(parent);
         expect(providerConversions).toBe(0);
         await db.dispose();
     });
