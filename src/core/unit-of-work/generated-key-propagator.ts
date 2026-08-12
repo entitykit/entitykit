@@ -9,6 +9,10 @@ import {
     toBoundProviderValue,
 } from '../../model/value-converter/store-value';
 import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
+import {
+    readPropertyValue,
+    writePropertyValue,
+} from '../../model/property-value-access';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
@@ -22,7 +26,6 @@ export function propagateGeneratedKeys(
         propertyName: string,
     ) => AppliedPropertyValue | undefined,
 ): readonly AppliedPropertyValue[] {
-    const liveValues = entry.entity as Record<string, unknown>;
     const applied: AppliedPropertyValue[] = [];
     for (const propagation of propagations) {
         for (const property of propagation.properties) {
@@ -80,19 +83,21 @@ export function propagateGeneratedKeys(
                 foreignKey.converter,
                 context,
             );
-            const previousLiveValue = liveValues[property.foreignKeyProperty];
+            const previousLiveValue = readPropertyValue(entry.entity, foreignKey);
             if (snapshotPropertyValuesEqual(
                 previousLiveValue,
                 property.foreignKeyValue,
                 foreignKey.converter,
                 context,
             )) {
-                mutations.recordCaptured(
-                    liveValues,
-                    property.foreignKeyProperty,
+                writePropertyValue(entry.entity, foreignKey, liveValue);
+                mutations.recordApplied(
+                    entry.entity,
+                    foreignKey,
                     previousLiveValue,
+                    readPropertyValue(entry.entity, foreignKey),
+                    context,
                 );
-                liveValues[property.foreignKeyProperty] = liveValue;
             }
             persistedValues[property.foreignKeyProperty] = persistedValue;
             persistedBoundValues[property.foreignKeyProperty] = boundValue;
