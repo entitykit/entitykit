@@ -19,6 +19,22 @@ class MutatingConverterRow {
     public payload: MutableValue = { value: '' };
 }
 
+class FailingFactoryRow {
+    public id = '';
+    readonly #writes: string[] = [];
+
+    public get name(): string {
+        return this.#writes.at(-1) ?? '';
+    }
+
+    public set name(value: string) {
+        this.#writes.push(value);
+        if (this.#writes.length === 1) {
+            throw new Error('materialized setter failed');
+        }
+    }
+}
+
 const mutatingConverter = valueConverter<MutableValue, MutableValue>({
     toProvider: value => ({ ...value }),
     fromProvider: value => {
@@ -29,6 +45,7 @@ const mutatingConverter = valueConverter<MutableValue, MutableValue>({
 });
 
 let singleton = new FactoryRow();
+let failingSingleton = new FailingFactoryRow();
 
 function factoryMetadata(): EntityMetadata<FactoryRow> {
     const model = new ModelBuilderImplementation();
@@ -45,6 +62,7 @@ function factoryMetadata(): EntityMetadata<FactoryRow> {
 describe('materializer fresh-instance contract', () => {
     beforeEach(() => {
         singleton = new FactoryRow();
+        failingSingleton = new FailingFactoryRow();
     });
 
     it('rejects a tracked factory result before applying another row', () => {
@@ -170,5 +188,26 @@ describe('materializer fresh-instance contract', () => {
             metadata, { id: 'two' }, tracker,
         )).toThrow('A materializer must return a fresh instance.');
         expect(first.id).toBe('one');
+    });
+
+    it('reserves a factory result before applying row values', () => {
+        const model = new ModelBuilderImplementation();
+        model.entity(FailingFactoryRow, entity => {
+            entity.toTable('failing_factory_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.name).hasColumnType('text').isRequired();
+            entity.materialize(() => failingSingleton);
+        });
+        const metadata = model.build().getEntity(FailingFactoryRow);
+
+        expect(() => new Materializer().materializeUntracked(
+            metadata, { id: 'one', name: 'first' },
+        )).toThrow('materialized setter failed');
+
+        expect(() => new Materializer().materializeUntracked(
+            metadata, { id: 'two', name: 'second' },
+        )).toThrow('A materializer must return a fresh instance.');
+        expect(failingSingleton.id).toBe('one');
     });
 });

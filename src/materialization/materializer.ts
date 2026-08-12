@@ -5,8 +5,8 @@ import { EntityState } from '../tracking/entity-state';
 import { applyMaterializedValues } from './complex-value-materializer';
 import type { MaterializedRow } from './materialized-row';
 import {
-    hasMaterializedPersistenceFacts,
     rememberMaterializedPersistenceFacts,
+    reserveMaterializedEntity,
 } from './materialized-bound-values';
 import { captureMaterializedValues } from './materialized-value-capture';
 import {
@@ -123,7 +123,7 @@ export class Materializer {
         const entity = constructMaterializedEntity(metadata, values);
         if (
             this.materializedEntities.has(entity) ||
-            hasMaterializedPersistenceFacts(entity) ||
+            !reserveMaterializedEntity(entity) ||
             changeTracker?.entry(entity)
         ) {
             throw reusedMaterializedEntityError(metadata.entityName);
