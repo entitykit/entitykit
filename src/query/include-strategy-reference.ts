@@ -7,7 +7,6 @@ import { IncludeStrategyBase } from './include-strategy-base';
 import { isCompleteTuple } from './include-key-helpers';
 import { uniquePropertyTuples } from './include-property-key-helpers';
 import { uniqueIncludeRoots } from './include-load-root';
-import { RelationshipCardinality } from '../model/relationship-metadata';
 import {
     relationshipPrincipalKeyProperties,
 } from '../model/relationship-key';
@@ -20,6 +19,7 @@ import {
     boundQueryTuple,
     dependentBoundTuple,
 } from './include-bound-key';
+import { fixupIncludedReference } from './include-reference-fixup';
 
 /**
  * Reference (many-to-one) eager load.
@@ -63,7 +63,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
 
         if (foreignKeyTuples.length === 0) {
             for (const { entity, boundValues } of roots) {
-                (entity as Record<string, unknown>)[relationship.navigationProperty] = null;
+                fixupIncludedReference(this.ctx, entity, relationship, null);
                 this.markLoaded(
                     entity, relationship.navigationProperty, boundValues,
                 );
@@ -101,13 +101,8 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                 )) ?? null
                 : null;
             const principal = principalRoot?.entity ?? null;
-            (entity as Record<string, unknown>)[relationship.navigationProperty] = principal;
+            fixupIncludedReference(this.ctx, entity, relationship, principal);
             if (principalRoot) {
-                this.fixOneToOneInverse(
-                    entity,
-                    principalRoot.entity,
-                    relationship,
-                );
                 loadedPrincipals.push(principalRoot);
             }
             this.markLoaded(
@@ -120,26 +115,4 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         return { metadata: principalMetadata, roots: uniquePrincipals };
     }
 
-    private fixOneToOneInverse<TEntity extends object>(
-        dependent: TEntity,
-        principal: object,
-        relationship: RelationshipMetadata<TEntity>,
-    ): void {
-        const inverse: unknown = relationship.inverseNavigationProperty;
-        if (
-            relationship.cardinality !== RelationshipCardinality.OneToOne ||
-            typeof inverse !== 'string'
-        ) {
-            return;
-        }
-        const principalValues = principal as Record<string, unknown>;
-        const existing = principalValues[inverse];
-        if (existing && existing !== dependent) {
-            throw new Error(
-                `One-to-one relationship '${inverse}' matched more than one dependent entity.`,
-            );
-        }
-        principalValues[inverse] = dependent;
-        this.markLoaded(principal, inverse);
-    }
 }

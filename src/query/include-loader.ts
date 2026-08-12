@@ -37,12 +37,14 @@ export class IncludeLoader {
         diagnostics?: (event: Omit<IncludeDiagnosticEvent, 'kind' | 'provider'>) => void,
         valueReader?: StoreValueReader,
         operationOptions?: DatabaseOperationOptions,
+        fixupTrackedGraph = true,
     ) {
         this.strategies = new IncludeStrategyRunner({
             model,
             database,
             operationOptions,
             changeTracker,
+            fixupTrackedGraph,
             applyQueryFilters,
             dialect,
             diagnostics,

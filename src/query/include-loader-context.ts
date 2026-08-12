@@ -61,6 +61,7 @@ export interface IncludeLoaderContext {
     readonly database: DatabaseConnection;
     readonly operationOptions?: DatabaseOperationOptions;
     readonly changeTracker: ChangeTracker;
+    readonly fixupTrackedGraph: boolean;
     readonly applyQueryFilters?: QueryFilterApplier;
     readonly dialect: SqlDialect;
     readonly diagnostics?: (event: Omit<IncludeDiagnosticEvent, 'kind' | 'provider'>) => void;

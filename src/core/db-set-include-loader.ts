@@ -30,5 +30,6 @@ export async function loadDbSetIncludes<TEntity extends object>(
         },
         context.valueReader,
         options,
+        changeTracker === context.changeTracker,
     ).loadRoots(metadata, roots, model.includes);
 }
