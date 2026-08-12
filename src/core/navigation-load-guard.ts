@@ -11,9 +11,8 @@ import { snapshotValuesEqual } from '../tracking/snapshot-value-equality';
 import { TenantOwnershipError } from '../errors/tenant-ownership-error';
 import {
     captureEntityPersistenceFacts,
-    capturePropertyPersistenceFact,
 } from '../tracking/entity-persistence-fact-capture';
-import { readPropertyValue } from '../model/property-value-access';
+import { captureReferenceForeignKeyFacts } from '../tracking/reference-foreign-key-facts';
 
 export interface NavigationLoadSnapshot {
     readonly modelValues: Readonly<Record<string, unknown>>;
@@ -57,21 +56,17 @@ export function captureNavigationLoadValues<TEntity extends object>(
         entry.entity,
         identityProperties,
     );
-    for (const propertyName of referenceProperties) {
-        if (identityProperties.has(propertyName)) continue;
-        const property = entry.metadata.getProperty(propertyName);
-        const liveValue = readPropertyValue(entry.entity, property);
-        if (snapshotValuesEqual(
-            liveValue,
-            entry.originalValues[propertyName],
-        )) {
-            continue;
-        }
-        const captured = capturePropertyPersistenceFact(
-            entry.metadata, property, liveValue,
+    if (reference) {
+        const referenceFacts = captureReferenceForeignKeyFacts(
+            entry as unknown as EntityEntry<object>,
+            {
+                foreignKeyProperties: reference.foreignKeyProperties.filter(
+                    property => !identityProperties.has(property),
+                ),
+            },
         );
-        current.modelValues[propertyName] = captured.modelValue;
-        current.boundValues[propertyName] = captured.boundValue;
+        Object.assign(current.modelValues, referenceFacts.modelValues);
+        Object.assign(current.boundValues, referenceFacts.boundValues);
     }
     const currentValues = { ...entry.originalValues };
     assertNoKeyModifications(
@@ -130,7 +125,6 @@ export function captureNavigationLoadValues<TEntity extends object>(
     }
     return { modelValues: currentValues, boundValues };
 }
-
 function navigationIdentityProperties<TEntity extends object>(
     entry: EntityEntry<TEntity>,
 ): Set<string> {
