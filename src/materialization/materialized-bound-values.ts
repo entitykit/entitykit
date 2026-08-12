@@ -9,6 +9,10 @@ interface MaterializedPersistenceFacts {
 
 const facts: WeakMap<object, MaterializedPersistenceFacts> = new WeakMap();
 
+export function hasMaterializedPersistenceFacts(entity: object): boolean {
+    return facts.has(entity);
+}
+
 export function rememberMaterializedPersistenceFacts<
     TEntity extends object,
 >(

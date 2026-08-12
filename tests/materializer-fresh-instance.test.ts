@@ -150,4 +150,25 @@ describe('materializer fresh-instance contract', () => {
             .toBe('{"value":"original"}');
         expect(tracker.entry(row)?.modifiedProperties()).toEqual([]);
     });
+
+    it('rejects a reused keyless instance across materializers', () => {
+        const model = new ModelBuilderImplementation();
+        model.entity(FactoryRow, entity => {
+            entity.toTable('keyless_factory_rows').hasNoKey();
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.ignore(row => row.name);
+            entity.materialize(() => singleton);
+        });
+        const metadata = model.build().getEntity(FactoryRow);
+        const tracker = new ChangeTracker();
+
+        const first = new Materializer().materialize(
+            metadata, { id: 'one' }, tracker,
+        );
+
+        expect(() => new Materializer().materialize(
+            metadata, { id: 'two' }, tracker,
+        )).toThrow('A materializer must return a fresh instance.');
+        expect(first.id).toBe('one');
+    });
 });

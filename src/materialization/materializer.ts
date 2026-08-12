@@ -4,7 +4,10 @@ import type { ChangeTracker } from '../tracking/change-tracker';
 import { EntityState } from '../tracking/entity-state';
 import { applyMaterializedValues } from './complex-value-materializer';
 import type { MaterializedRow } from './materialized-row';
-import { rememberMaterializedPersistenceFacts } from './materialized-bound-values';
+import {
+    hasMaterializedPersistenceFacts,
+    rememberMaterializedPersistenceFacts,
+} from './materialized-bound-values';
 import { captureMaterializedValues } from './materialized-value-capture';
 import {
     constructMaterializedEntity,
@@ -48,8 +51,14 @@ export class Materializer {
             metadata, row, this.valueReader,
         );
         if (metadata.isKeyless) {
+            const entity = this.createFreshEntity(
+                metadata, values, changeTracker,
+            );
+            rememberMaterializedPersistenceFacts(
+                entity, metadata, values, boundValues,
+            );
             return {
-                entity: this.createFreshEntity(metadata, values, changeTracker),
+                entity,
                 values,
                 boundValues,
             };
@@ -114,6 +123,7 @@ export class Materializer {
         const entity = constructMaterializedEntity(metadata, values);
         if (
             this.materializedEntities.has(entity) ||
+            hasMaterializedPersistenceFacts(entity) ||
             changeTracker?.entry(entity)
         ) {
             throw reusedMaterializedEntityError(metadata.entityName);
