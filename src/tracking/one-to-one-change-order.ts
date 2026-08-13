@@ -26,18 +26,18 @@ function addIntentEdges(
     outgoing: Map<EntityEntry<object>, Set<EntityEntry<object>>>,
     incoming: Map<EntityEntry<object>, number>,
 ): void {
-    const previousOwner: Map<
-        EntityEntry<object>, OneToOneIntent
-    > = new Map();
+    const previousOwner: Map<string, OneToOneIntent> = new Map();
     for (const intent of intents) {
-        if (intent.previous) previousOwner.set(intent.previous, intent);
+        if (intent.previousTarget) {
+            previousOwner.set(intent.previousTarget, intent);
+        }
     }
     for (const incomingIntent of intents) {
-        if (!incomingIntent.changed || !incomingIntent.desired) continue;
-        const occupant = previousOwner.get(incomingIntent.desired);
+        if (!incomingIntent.changed || !incomingIntent.desiredTarget) continue;
+        const occupant = previousOwner.get(incomingIntent.desiredTarget);
         if (
             !occupant?.changed || occupant === incomingIntent ||
-            occupant.desired === incomingIntent.desired ||
+            occupant.desiredTarget === incomingIntent.desiredTarget ||
             !included.has(occupant.dependent) ||
             !included.has(incomingIntent.dependent)
         ) continue;
