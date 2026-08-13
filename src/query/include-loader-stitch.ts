@@ -2,21 +2,15 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import type { IncludeLoaderContext, IncludeLoadRoot, ManyToManyRelationshipInfo } from './include-loader-context';
-import {
-    getUniqueObjectList,
-    mergeNavigationItems,
-    pushUnique,
-    pushUniqueObject,
-    type UniqueObjectList,
-} from './include-navigation-helpers';
+import { pushUnique } from './include-navigation-helpers';
 import { uniqueIncludeRoots } from './include-load-root';
 import {
     dependentStitchKey,
-    manyToManyEntityStitchKey,
-    manyToManyRowStitchKey,
     principalStitchKey,
 } from './include-stitch-keys';
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
+import { includeNavigationHasPendingIntent } from './include-pending-relationship';
+import { assignManyToManyRelated } from './include-many-to-many-stitch';
 export class IncludeStitcher {
     constructor(private readonly ctx: IncludeLoaderContext) {}
 
@@ -51,7 +45,12 @@ export class IncludeStitcher {
             dependentsByPrincipalKey.set(key, group);
 
             const principal = principalsByKey.get(key);
-            if (principal) {
+            if (principal && !includeNavigationHasPendingIntent(
+                this.ctx,
+                dependent,
+                String(relationship.navigationProperty),
+                relationship,
+            )) {
                 (dependent as Record<string, unknown>)[relationship.navigationProperty] = principal;
                 markIncludeNavigationLoaded(
                     this.ctx,
@@ -69,6 +68,9 @@ export class IncludeStitcher {
             );
         }
         for (const { entity: principal, boundValues } of principals) {
+            if (includeNavigationHasPendingIntent(
+                this.ctx, principal, inverseNavigation,
+            )) continue;
             const key = principalStitchKey(
                 principalMetadata,
                 relationship,
@@ -99,51 +101,8 @@ export class IncludeStitcher {
         currentEntities: readonly IncludeLoadRoot[],
         info: ManyToManyRelationshipInfo,
     ): IncludeLoadRoot[] {
-        const relatedByParentKey: Map<string, UniqueObjectList> = new Map();
-        const inverseParentsByRelated = info.relatedInverseNavigationProperty
-            ? new Map<object, UniqueObjectList>()
-            : undefined;
-
-        for (let index = 0; index < rows.length; index++) {
-            const relatedRoot = relatedRoots.at(index);
-            if (!relatedRoot) {
-                continue;
-            }
-            const related = relatedRoot.entity;
-
-            const row = rows.at(index);
-            if (!row) {
-                continue;
-            }
-            const parentKey = manyToManyRowStitchKey(
-                info,
-                row,
-                this.ctx.valueReader,
-            );
-            pushUniqueObject(getUniqueObjectList(relatedByParentKey, parentKey), related);
-        }
-
-        for (const { entity, boundValues } of currentEntities) {
-            const group = relatedByParentKey.get(
-                manyToManyEntityStitchKey(info, boundValues),
-            )?.items ?? [];
-            (entity as Record<string, unknown>)[info.navigationProperty] = group;
-            markIncludeNavigationLoaded(
-                this.ctx, entity, info.navigationProperty,
-            );
-            if (inverseParentsByRelated) {
-                for (const related of group) {
-                    pushUniqueObject(getUniqueObjectList(inverseParentsByRelated, related), entity);
-                }
-            }
-        }
-
-        if (inverseParentsByRelated && info.relatedInverseNavigationProperty) {
-            for (const [related, parents] of inverseParentsByRelated) {
-                mergeNavigationItems(related as Record<string, unknown>, info.relatedInverseNavigationProperty, parents.items);
-            }
-        }
-
-        return uniqueIncludeRoots(relatedRoots);
+        return assignManyToManyRelated(
+            this.ctx, rows, relatedRoots, currentEntities, info,
+        );
     }
 }

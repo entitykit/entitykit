@@ -11,6 +11,7 @@ import type { IncludeFilterModel } from './query-model';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { boundQueryTuple, principalBoundTuple } from './include-bound-key';
+import { includeNavigationHasPendingIntent } from './include-pending-relationship';
 
 /**
  * One-to-many eager load (principal -> collection of dependents).
@@ -70,6 +71,9 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
 
         if (principalKeys.length === 0) {
             for (const { entity: principal } of principals) {
+                if (includeNavigationHasPendingIntent(
+                    this.ctx, principal, inverseNavigation,
+                )) continue;
                 (principal as Record<string, unknown>)[inverseNavigation] =
                     relationship.cardinality === RelationshipCardinality.OneToOne
                         ? null

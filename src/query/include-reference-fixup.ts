@@ -5,13 +5,20 @@ import { fixupLoadedReference } from '../tracking/loaded-reference-fixup';
 import type { TrackedRelationshipMetadata } from '../tracking/tracked-relationship-metadata';
 import type { IncludeLoaderContext } from './include-loader-context';
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
+import { includeNavigationHasPendingIntent } from './include-pending-relationship';
 
 export function fixupIncludedReference<TEntity extends object>(
     ctx: IncludeLoaderContext,
     entity: TEntity,
     relationship: RelationshipMetadata<TEntity>,
     principal: object | null,
-): void {
+): boolean {
+    if (includeNavigationHasPendingIntent(
+        ctx,
+        entity,
+        relationship.navigationProperty,
+        relationship,
+    )) return false;
     const entry = ctx.changeTracker.entry(entity);
     if (entry && ctx.fixupTrackedGraph) {
         fixupLoadedReference(
@@ -34,6 +41,7 @@ export function fixupIncludedReference<TEntity extends object>(
             Boolean(entry) && ctx.fixupTrackedGraph,
         );
     }
+    return true;
 }
 
 function fixupOneToOneInverse<TEntity extends object>(

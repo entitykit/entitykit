@@ -78,6 +78,59 @@ class IncludeManyToManyContext extends DbContext {
 }
 
 describe('many-to-many include loading', () => {
+    it('preserves a queued local link during an ordinary tracking include', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = IncludeManyToManyContext.createWith(connection);
+        const post = new Post({ id: 'post_1', title: 'Hello' });
+        const local = new Tag({
+            id: 'local', workspaceId: 'wrk_1', name: 'Local',
+        });
+        db.posts.attach(post);
+        db.tags.attach(local);
+        db.link(post, item => item.tags, local);
+        connection.queueResult({
+            rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1,
+        });
+        connection.queueResult({
+            rows: [{
+                __entitykit_parent_key: 'post_1', id: 'stored',
+                workspace_id: 'wrk_1', name: 'Stored', deleted_at: null,
+            }],
+            rowCount: 1,
+        });
+
+        const queried = await db.posts.include(item => item.tags).single();
+
+        expect(queried).toBe(post);
+        expect(post.tags).toEqual([local]);
+    });
+
+    it('preserves a queued local unlink during an ordinary tracking include', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = IncludeManyToManyContext.createWith(connection);
+        const tag = new Tag({
+            id: 'tag_1', workspaceId: 'wrk_1', name: 'TypeScript',
+        });
+        const post = new Post({ id: 'post_1', title: 'Hello', tags: [tag] });
+        db.posts.attach(post);
+        db.tags.attach(tag);
+        db.unlink(post, item => item.tags, tag);
+        connection.queueResult({
+            rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1,
+        });
+        connection.queueResult({
+            rows: [{
+                __entitykit_parent_key: 'post_1', id: 'tag_1',
+                workspace_id: 'wrk_1', name: 'TypeScript', deleted_at: null,
+            }],
+            rowCount: 1,
+        });
+
+        await db.posts.include(item => item.tags).single();
+
+        expect(post.tags).toEqual([]);
+    });
+
     it('rejects a mutated root key before a many-to-many query', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = IncludeManyToManyContext.createWith(connection);

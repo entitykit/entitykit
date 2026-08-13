@@ -4,8 +4,8 @@ import type { EntityEntry } from './entity-entry';
 import type { EntityState } from './entity-state';
 import {
     clearNavigationSnapshots,
-    initializeNavigationSnapshots,
 } from './navigation-snapshot';
+import { initializeNavigationSnapshots } from './navigation-snapshot-initialization';
 import { clearTemporaryGeneratedIdentity } from './temporary-generated-identity';
 import type { TrackedIdentityMap } from './tracked-identity-map';
 import type {

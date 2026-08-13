@@ -1,6 +1,4 @@
-import type { Model } from '../model/model';
 import type { EntityEntry } from './entity-entry';
-import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 
 export interface NavigationSnapshot {
     readonly known: boolean;
@@ -13,32 +11,6 @@ const snapshots: WeakMap<
     EntityEntry<object>,
     Map<string, unknown>
 > = new WeakMap();
-
-/** Capture every reference and inverse navigation declared for this entity. */
-export function initializeNavigationSnapshots(
-    entry: EntityEntry<object>,
-    model: Model,
-): void {
-    const properties: Set<string> = new Set(
-        entry.metadata.relationships.map(relationship =>
-            String(relationship.navigationProperty)),
-    );
-    for (const dependent of model.entities) {
-        const relationships = dependent.relationships as
-            readonly TrackedRelationshipMetadata[];
-        for (const relationship of relationships) {
-            if (
-                relationship.principalEntity === entry.metadata.ctor &&
-                relationship.inverseNavigationProperty
-            ) {
-                properties.add(relationship.inverseNavigationProperty);
-            }
-        }
-    }
-    for (const property of properties) {
-        captureNavigation(entry, property);
-    }
-}
 
 export function captureNavigation(
     entry: EntityEntry<object>,

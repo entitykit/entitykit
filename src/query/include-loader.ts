@@ -38,6 +38,7 @@ export class IncludeLoader {
         valueReader?: StoreValueReader,
         operationOptions?: DatabaseOperationOptions,
         fixupTrackedGraph = true,
+        preservePendingRelationships = false,
     ) {
         this.strategies = new IncludeStrategyRunner({
             model,
@@ -45,6 +46,7 @@ export class IncludeLoader {
             operationOptions,
             changeTracker,
             fixupTrackedGraph,
+            preservePendingRelationships,
             applyQueryFilters,
             dialect,
             diagnostics,
