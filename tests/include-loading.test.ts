@@ -84,12 +84,21 @@ class IncludeDbContext extends DbContext {
     public readonly includeEvents: Array<Extract<RuntimeDiagnosticEvent, { kind: 'include' }>> = [];
     public readonly connection = new CountingConnection();
 
+    constructor(private readonly parameterLimit?: number) {
+        super();
+    }
+
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useConnection(
             this.connection,
             {
                 provider: 'sqlite',
-                dialect: sqliteProviderServices.dialect,
+                dialect: this.parameterLimit === undefined
+                    ? sqliteProviderServices.dialect
+                    : {
+                        ...sqliteProviderServices.dialect,
+                        maxStatementParameters: () => this.parameterLimit,
+                    },
                 migrationDialect: sqliteProviderServices.migrationDialect,
                 createMigrationBuilder:
                     sqliteProviderServices.createMigrationBuilder,
@@ -130,8 +139,13 @@ class IncludeDbContext extends DbContext {
     }
 }
 
-async function seed(authors: number, postsPerAuthor: number, commentsPerPost = 0): Promise<IncludeDbContext> {
-    const db =  IncludeDbContext.create();
+async function seed(
+    authors: number,
+    postsPerAuthor: number,
+    commentsPerPost = 0,
+    parameterLimit?: number,
+): Promise<IncludeDbContext> {
+    const db =  IncludeDbContext.create(parameterLimit);
     await db.database.connection.query({ text: 'create table authors (id text primary key, name text not null)', values: [] });
     await db.database.connection.query({ text: 'create table posts (id text primary key, author_id text not null, title text not null)', values: [] });
     await db.database.connection.query({ text: 'create table comments (id text primary key, post_id text not null, body text not null)', values: [] });
@@ -227,18 +241,16 @@ describe('include loading', () => {
     });
 
     it('splits a parent set too large to bind into statements that fit', async () => {
-    // 40_000 parent keys is past SQLite's 32_766 cap. The key list is
-    // EntityKit's own construction, not the caller's, so it is split across
-    // statements and the results concatenated — where a caller's own oversized
-    // `in([...])` is refused, because there the count is the caller's data.
-        const db = await seed(40000, 0);
+    // This test dialect lowers SQLite's real 32_766 cap to 100. The key list is
+    // EntityKit's own construction, so it is split and concatenated — where a
+    // caller's oversized `in([...])` is refused as caller-owned data.
+        const db = await seed(50, 0, 0, 100);
 
         const authors = await db.authors.include(author => author.posts).toArray();
 
-        expect(authors).toHaveLength(40000);
+        expect(authors).toHaveLength(50);
         // Root query plus two chunks.
-        expect(db.connection.statements.length).toBeGreaterThan(2);
-        expect(db.connection.statements.length).toBeLessThan(6);
+        expect(db.connection.statements).toHaveLength(3);
         await db.dispose();
     }, 120000);
 
