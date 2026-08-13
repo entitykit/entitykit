@@ -4,6 +4,7 @@ import type { EntityEntry } from './entity-entry';
 import { configureEntityEntryStore } from './entity-entry-concurrency';
 import type { EntityEntryStore } from './entity-entry-store';
 import { configureEntityEntryMutationGuard } from './entity-entry-mutation-guard';
+import { configureChangeTrackerTenantCapability } from './change-tracker-tenant-capability';
 
 const models: WeakMap<ChangeTracker, Model> = new WeakMap();
 const stores: WeakMap<ChangeTracker, EntityEntryStore> = new WeakMap();
@@ -12,8 +13,10 @@ const stores: WeakMap<ChangeTracker, EntityEntryStore> = new WeakMap();
 export function configureChangeTrackerModel(
     tracker: ChangeTracker,
     model: Model,
+    allowsCrossTenantAccess = false,
 ): void {
     models.set(tracker, model);
+    configureChangeTrackerTenantCapability(tracker, allowsCrossTenantAccess);
 }
 
 export function changeTrackerModel(tracker: ChangeTracker): Model | undefined {

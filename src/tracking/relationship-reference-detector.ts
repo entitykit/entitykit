@@ -2,16 +2,10 @@ import type { Model } from '../model/model';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
-import {
-    captureNavigation,
-    navigationSnapshot,
-    navigationValueChanged,
-} from './navigation-snapshot';
-import {
-    clearStaleReference,
-    linkDependent,
-    severDependent,
-} from './relationship-fixup';
+import { captureNavigation, navigationSnapshot,
+    navigationValueChanged } from './navigation-snapshot';
+import { clearStaleReference, linkDependent,
+    severDependent } from './relationship-fixup';
 import {
     findTrackedPrincipal,
     relationshipForeignKeyMatchesPrincipal,
@@ -106,7 +100,7 @@ function detectReferenceChange(
     const currentMatches = currentObject
         ? currentEntry
             ? relationshipForeignKeyMatchesPrincipal(
-                dependent, relationship, currentEntry, captured,
+                tracker, dependent, relationship, currentEntry, captured,
             )
             : relationshipForeignKeyMatchesUntrackedPrincipal(
                 model,
@@ -120,6 +114,11 @@ function detectReferenceChange(
     if (!foreignKeyChanged && currentMatches) {
         return;
     }
+    if (
+        !current &&
+        !foreignKeyChanged &&
+        dependent.isNavigationLoaded(relationship.navigationProperty)
+    ) return;
     const principal = findTrackedPrincipal(
         tracker,
         model,

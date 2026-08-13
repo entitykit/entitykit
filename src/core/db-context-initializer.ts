@@ -67,7 +67,11 @@ export function initializeDbContext(
 
     const { options, model } = bootstrapDbContext(configure, buildModel);
     state.initialize(options, model);
-    configureChangeTrackerModel(changeTracker, model);
+    configureChangeTrackerModel(
+        changeTracker,
+        model,
+        options.tenantScope?.allowCrossTenantAccess === true,
+    );
 
     if (options.lazyLoading) {
         changeTracker.observeTracked(entity => {

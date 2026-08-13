@@ -37,6 +37,7 @@ export function detectTrackedCascades(
                     if (
                         relationship.principalEntity !== principal.metadata.ctor ||
                         !relationshipConnects(
+                            tracker,
                             model,
                             dependent,
                             relationship,

@@ -4,10 +4,8 @@ import { DeleteBehavior } from '../model/relationship-metadata';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
-import {
-    addToRelationshipInverse,
-    removeFromRelationshipInverse,
-} from './relationship-inverse-fixup';
+import { addToRelationshipInverse,
+    removeFromRelationshipInverse } from './relationship-inverse-fixup';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import {
     clearOptionalRelationshipForeignKey,
@@ -24,6 +22,7 @@ export function linkDependent(
     principal: object,
     previousPrincipal?: unknown,
     captured?: RelationshipDetectionValues,
+    reassigned?: ReadonlySet<EntityEntry<object>>,
 ): void {
     const values = dependent.entity as Record<string, unknown>;
     const previous = previousPrincipal ?? values[relationship.navigationProperty];
@@ -60,6 +59,7 @@ export function linkDependent(
         principal,
         dependent,
         previousEntry => {
+            if (reassigned?.has(previousEntry)) return;
             severDependent(
                 tracker, previousEntry, relationship, principal, captured,
             );

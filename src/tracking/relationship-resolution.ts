@@ -11,6 +11,8 @@ import {
     relationshipBoundValuesFor,
     relationshipValuesFor,
 } from './relationship-detection-values';
+import { changeTrackerAllowsCrossTenantAccess } from './change-tracker-tenant-capability';
+import { snapshotValuesEqual } from './snapshot-value-equality';
 
 export function findTrackedPrincipal(
     tracker: ChangeTracker,
@@ -35,6 +37,7 @@ export function findTrackedPrincipal(
     );
     return tracker.entries().find(entry =>
         entry.metadata === principalMetadata &&
+        tenantsAreCompatible(tracker, dependent, entry) &&
         principalRelationshipBoundKey(
             relationship,
             principalMetadata,
@@ -64,6 +67,7 @@ export function findTrackedPrincipalByBoundValues(
     );
     return tracker.entries().find(entry =>
         entry.metadata === principalMetadata &&
+        tenantsAreCompatible(tracker, dependent, entry) &&
         principalRelationshipBoundKey(
             relationship,
             principalMetadata,
@@ -72,6 +76,7 @@ export function findTrackedPrincipalByBoundValues(
 }
 
 export function relationshipConnects(
+    tracker: ChangeTracker,
     model: Model,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
@@ -81,12 +86,13 @@ export function relationshipConnects(
     const live = dependent.entity as Record<string, unknown>;
     const values = relationshipValuesFor(dependent, captured);
     if (live[relationship.navigationProperty] === principal.entity) {
-        return true;
+        return tenantsAreCompatible(tracker, dependent, principal);
     }
     const foreignKey = relationship.foreignKeyProperties.map(
         property => values[property],
     );
-    return !foreignKey.some(value => value === null || value === undefined) &&
+    return tenantsAreCompatible(tracker, dependent, principal) &&
+        !foreignKey.some(value => value === null || value === undefined) &&
         dependentRelationshipBoundKey(
             relationship,
             relationshipBoundValuesFor(dependent, captured),
@@ -100,6 +106,7 @@ export function relationshipConnects(
 }
 
 export function relationshipForeignKeyMatchesPrincipal(
+    tracker: ChangeTracker,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     principal: EntityEntry<object>,
@@ -109,7 +116,8 @@ export function relationshipForeignKeyMatchesPrincipal(
     const foreignKey = relationship.foreignKeyProperties.map(
         property => values[property],
     );
-    return !foreignKey.some(value => value === null || value === undefined) &&
+    return tenantsAreCompatible(tracker, dependent, principal) &&
+        !foreignKey.some(value => value === null || value === undefined) &&
         dependentRelationshipBoundKey(
             relationship,
             relationshipBoundValuesFor(dependent, captured),
@@ -118,4 +126,22 @@ export function relationshipForeignKeyMatchesPrincipal(
             principal.metadata,
             relationshipBoundValuesFor(principal, captured),
         );
+}
+
+function tenantsAreCompatible(
+    tracker: ChangeTracker,
+    dependent: EntityEntry<object>,
+    principal: EntityEntry<object>,
+): boolean {
+    if (changeTrackerAllowsCrossTenantAccess(tracker)) return true;
+    const dependentTenant: unknown = dependent.metadata.tenantKeyProperty;
+    const principalTenant: unknown = principal.metadata.tenantKeyProperty;
+    if (
+        typeof dependentTenant !== 'string' ||
+        typeof principalTenant !== 'string'
+    ) return true;
+    return snapshotValuesEqual(
+        dependent.originalBoundValues[dependentTenant],
+        principal.originalBoundValues[principalTenant],
+    );
 }
