@@ -130,7 +130,6 @@ export class SavePlanBuilder {
         });
 
         return freezeSavePlan(assembleSavePlan(
-            pending,
             entityPlan,
             manyToManyPlan,
             relationshipAuthorization,
