@@ -8,6 +8,7 @@ import { acceptNavigationSnapshotValues, refreshNavigationSnapshots, type Naviga
 import { captureBoundEntityValues, cloneBoundValues } from './bound-value-snapshot';
 import { EntityEntryNavigationState } from './entity-entry-navigation-state';
 import { captureInitialTrackedEntrySnapshot } from './initial-tracked-entry-snapshot';
+import { registerEntryNavigationCheckpoint } from './entity-entry-navigation-checkpoint';
 export class EntityEntryState<TEntity extends object> {
     private snapshot: Record<string, unknown>;
     private boundSnapshot: Record<string, unknown>;
@@ -25,8 +26,8 @@ export class EntityEntryState<TEntity extends object> {
         );
         this.snapshot = captured.values;
         this.boundSnapshot = captured.boundValues;
+        registerEntryNavigationCheckpoint(owner as unknown as EntityEntry<object>, this.navigations);
     }
-
     public get state(): EntityState {
         return this.currentState;
     }
@@ -55,7 +56,6 @@ export class EntityEntryState<TEntity extends object> {
         ) {
             return;
         }
-
         this.currentState = hasEntityModifications(this.metadata, this.entity, this.snapshot)
             ? EntityState.Modified
             : EntityState.Unchanged;

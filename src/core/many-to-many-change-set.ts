@@ -62,13 +62,23 @@ export class ManyToManyChangeSet {
     }
 
     /** Drop queued join work whose source or target left the context. */
-    public cancelFor(entity: object): void {
+    public cancelFor(entity: object): () => void {
+        const removed: Array<{
+            readonly index: number;
+            readonly change: ManyToManyChange;
+        }> = [];
         for (let index = this.changes.length - 1; index >= 0; index -= 1) {
             const change = this.changes[index];
             if (change.source === entity || change.target === entity) {
+                removed.push({ index, change });
                 this.changes.splice(index, 1);
             }
         }
+        return () => {
+            for (const item of removed.reverse()) {
+                this.changes.splice(item.index, 0, item.change);
+            }
+        };
     }
 
     public buildSavePlan(

@@ -4,15 +4,13 @@ import { DeleteBehavior } from '../model/relationship-metadata';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
-import { addToRelationshipInverse,
-    removeFromRelationshipInverse } from './relationship-inverse-fixup';
+import { addToRelationshipInverse, removeFromRelationshipInverse } from './relationship-inverse-fixup';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
-import {
-    clearOptionalRelationshipForeignKey,
-    writeRelationshipForeignKey,
-} from './relationship-foreign-key-write';
+import { clearOptionalRelationshipForeignKey, writeRelationshipForeignKey } from './relationship-foreign-key-write';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
 import { foreignKeyValuesForPrincipal } from './relationship-principal-foreign-key';
+import { assertRelationshipTenantCompatible } from './relationship-tenant-validation';
+import { detachRelationshipEntry } from './change-tracker-relationship-detection-registry';
 
 export function linkDependent(
     tracker: ChangeTracker,
@@ -36,6 +34,9 @@ export function linkDependent(
     }
     const principalMetadata = model.getEntity<Record<string, unknown>>(
         relationship.principalEntity,
+    );
+    assertRelationshipTenantCompatible(
+        tracker, dependent, principalMetadata, principal, captured,
     );
     const principalEntry = tracker.entry(principal);
     const key = foreignKeyValuesForPrincipal(
@@ -66,7 +67,6 @@ export function linkDependent(
         },
     );
 }
-
 export function severDependent(
     tracker: ChangeTracker,
     dependent: EntityEntry<object>,
@@ -83,7 +83,7 @@ export function severDependent(
             );
         }
         if (dependent.state === EntityState.Added) {
-            tracker.detach(dependent.entity);
+            detachRelationshipEntry(tracker, dependent.entity);
         } else {
             dependent.markDeleted();
         }
@@ -107,7 +107,6 @@ export function severDependent(
         );
     }
 }
-
 export function cascadeDeleteDependent(
     tracker: ChangeTracker,
     dependent: EntityEntry<object>,
@@ -115,7 +114,7 @@ export function cascadeDeleteDependent(
     principal: object,
 ): void {
     if (dependent.state === EntityState.Added) {
-        tracker.detach(dependent.entity);
+        detachRelationshipEntry(tracker, dependent.entity);
     } else {
         dependent.markDeleted();
     }

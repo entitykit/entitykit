@@ -107,7 +107,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
             const applied = fixupIncludedReference(
                 this.ctx, entity, relationship, principal,
             );
-            if (principalRoot) {
+            if (applied && principalRoot) {
                 loadedPrincipals.push(principalRoot);
             }
             if (applied) {

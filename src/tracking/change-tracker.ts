@@ -18,23 +18,25 @@ export class ChangeTracker {
             this.saveGuard.assertMutation(operation, entity, identityKey);
         },
         entity => this.onTracked?.(entity),
+        entity => this.onDetached?.(entity),
     );
     private readonly acceptance = createChangeTrackerAcceptance(
         this.registry,
         this.saveGuard,
     );
     private onTracked?: (entity: object) => (() => void) | undefined;
-    private onDetached?: (entity: object) => void;
+    private onDetached?: (entity: object) => (() => void) | undefined;
     private onAcceptedAll?: () => void;
     public observeTracked(
         observer: (entity: object) => (() => void) | undefined,
     ): void {
         this.onTracked = observer;
     }
-    public observeDetached(observer: (entity: object) => void): void {
+    public observeDetached(observer: (
+        entity: object,
+    ) => (() => void) | undefined): void {
         this.onDetached = observer;
     }
-
     public observeAcceptedAll(observer: () => void): void {
         this.onAcceptedAll = observer;
     }
@@ -133,13 +135,11 @@ export class ChangeTracker {
             this.onDetached?.(entity);
         }
     }
-
     public debugView(): string {
         this.saveGuard.assertNoExecution('debugView()');
         detectTrackedChanges(this, this.registry.entries());
         return formatChangeTracker(this.entries());
     }
-
     public beginSaveExecution(): () => void {
         return this.saveGuard.beginExecution();
     }

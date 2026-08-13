@@ -16,7 +16,7 @@ export abstract class DbContextRelationships extends DbContextRawSql {
     protected constructor() {
         super();
         this.changeTracker.observeDetached(entity => {
-            this.manyToMany.cancelFor(entity);
+            return this.manyToMany.cancelFor(entity);
         });
         this.changeTracker.observeAcceptedAll(() => {
             this.manyToMany.clear();

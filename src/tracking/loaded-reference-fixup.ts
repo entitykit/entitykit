@@ -6,6 +6,7 @@ import {
     removeFromRelationshipInverse,
 } from './relationship-inverse-fixup';
 import { navigationSnapshot } from './navigation-snapshot';
+import { captureNavigation } from './navigation-snapshot';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 
 /** Atomically stitch one loaded reference through both tracked inverse sides. */
@@ -28,6 +29,7 @@ export function fixupLoadedReference(
             removeFromRelationshipInverse(
                 tracker, relationship, previous, dependent.entity,
             );
+            captureInverseBaseline(tracker, relationship, previous);
         }
     }
     values[relationship.navigationProperty] = principal;
@@ -39,6 +41,17 @@ export function fixupLoadedReference(
         dependent,
         () => undefined,
     );
+    captureInverseBaseline(tracker, relationship, principal);
+}
+
+function captureInverseBaseline(
+    tracker: ChangeTracker,
+    relationship: TrackedRelationshipMetadata,
+    principal: object,
+): void {
+    const inverse = relationship.inverseNavigationProperty;
+    const entry = tracker.entry(principal);
+    if (inverse && entry) captureNavigation(entry, inverse);
 }
 
 function assertOneToOneSlotAvailable(

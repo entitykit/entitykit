@@ -6,6 +6,8 @@ import { detectReferenceChanges } from './relationship-reference-detector';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
 import { captureRelationshipDetectionValues } from './relationship-detection-values';
 import { captureRelationshipFixupBaseline } from './relationship-fixup-baseline';
+import { captureRelationshipDetectionJournal } from './relationship-detection-journal';
+import { assertSupportedOneToOneChanges } from './one-to-one-change-validation';
 
 export function detectTrackedChanges(
     tracker: ChangeTracker,
@@ -28,14 +30,30 @@ export function detectTrackedRelationships(
         const captured = captureRelationshipDetectionValues(
             tracker.entries(), values,
         );
+        const journal = captureRelationshipDetectionJournal(
+            tracker,
+            configuredModel,
+            captured,
+        );
         const acceptFixup = refreshBaselines
             ? captureRelationshipFixupBaseline(tracker.entries())
             : undefined;
-        if (entries) {
-            detectReferenceChanges(tracker, configuredModel, entries, captured);
-        } else {
-            detectRelationshipChanges(tracker, configuredModel, captured);
+        try {
+            assertSupportedOneToOneChanges(
+                tracker,
+                configuredModel,
+                captured,
+            );
+            if (entries) {
+                detectReferenceChanges(tracker, configuredModel, entries, captured);
+            } else {
+                detectRelationshipChanges(tracker, configuredModel, captured);
+            }
+            acceptFixup?.();
+            journal.commit();
+        } catch (error) {
+            journal.rollback();
+            throw error;
         }
-        acceptFixup?.();
     }
 }

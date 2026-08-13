@@ -1,5 +1,5 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import { DbContext, DeleteBehavior, EntityState } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { requireDefined } from './support/require-defined';
 
@@ -57,7 +57,8 @@ class FilterReferenceContext extends DbContext {
                 .hasColumnType('text').isRequired();
             entity.hasOne(FilterParent, row => row.parent)
                 .withMany(parent => parent.children)
-                .hasForeignKey(row => row.parentId);
+                .hasForeignKey(row => row.parentId)
+                .onDelete(DeleteBehavior.NoAction);
         });
     }
 }
@@ -100,6 +101,63 @@ describe('filtered null reference state', () => {
 
         expect(child.parent).toBeNull();
         expect(deleted.children).toEqual([]);
+        await db.dispose();
+    });
+
+    it('accepts loader removal from a previously loaded hidden inverse', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: `insert into filter_parents (id, tenant_id, deleted_at)
+                values (?, ?, ?)`,
+            values: ['p', 't1', '2026-01-01'],
+        });
+        await db.database.connection.query({
+            text: `insert into filter_children (id, tenant_id, parent_id)
+                values (?, ?, ?)`,
+            values: ['c', 't1', 'p'],
+        });
+        const hidden = await db.parents.ignoreQueryFilters()
+            .include(row => row.children).single();
+        const child = requireDefined(hidden.children[0]);
+
+        await expect(requireDefined(db.entry(child))
+            .reference(row => row.parent).load()).resolves.toBeNull();
+        expect(hidden.children).toEqual([]);
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).not.toThrow();
+        expect(db.entry(child)?.state).toBe(EntityState.Unchanged);
+        expect(child.parentId).toBe('p');
+        await expect(db.saveChanges()).resolves.toBe(0);
+        await db.dispose();
+    });
+
+    it('accepts loader removal from a previously loaded tenant-excluded inverse', async () => {
+        const db = await open();
+        await db.database.connection.query({
+            text: `insert into filter_parents (id, tenant_id, deleted_at)
+                values (?, ?, null)`,
+            values: ['p', 't2'],
+        });
+        await db.database.connection.query({
+            text: `insert into filter_children (id, tenant_id, parent_id)
+                values (?, ?, ?)`,
+            values: ['c', 't1', 'p'],
+        });
+        const other = await db.parents.ignoreTenantScope()
+            .include(row => row.children).single();
+        const child = requireDefined(other.children[0]);
+
+        await expect(requireDefined(db.entry(child))
+            .reference(row => row.parent).load()).resolves.toBeNull();
+        expect(other.children).toEqual([]);
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).not.toThrow();
+        expect(db.entry(child)?.state).toBe(EntityState.Unchanged);
+        expect(child.parentId).toBe('p');
+        db.parents.detach(other);
+        await expect(db.saveChanges()).resolves.toBe(0);
         await db.dispose();
     });
 

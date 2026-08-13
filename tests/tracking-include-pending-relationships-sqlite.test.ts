@@ -138,8 +138,33 @@ describe('tracking includes preserve pending relationship intent', () => {
             .thenInclude(parent => parent.children).single();
 
         expect(child.parent).toBe(next);
+        const stale = db.changeTracker.entries()
+            .map(entry => entry.entity)
+            .find(entity => entity instanceof PendingParent && entity.id === 'p1');
+        expect(stale).toBeInstanceOf(PendingParent);
+        expect((stale as PendingParent).children).toEqual([]);
         db.changeTracker.detectChanges();
         expect(child.parentId).toBe('p2');
+        expect((stale as PendingParent).children).toEqual([]);
+        expect(next.children).toEqual([child]);
+        await db.dispose();
+    });
+
+    it('does not recurse through dependents skipped by a pending collection', async () => {
+        const db = await open();
+        const parent = await db.parents.include(row => row.children)
+            .where(row => row.id.eq('p1')).single();
+        const child = requireDefined(parent.children[0]);
+        parent.children = [];
+
+        await db.parents.include(row => row.children)
+            .thenInclude(item => item.parent)
+            .where(row => row.id.eq('p1')).single();
+
+        expect(parent.children).toEqual([]);
+        db.changeTracker.detectChanges();
+        expect(db.entry(child)?.state).toBe(EntityState.Deleted);
+        expect(parent.children).toEqual([]);
         await db.dispose();
     });
 

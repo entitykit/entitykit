@@ -22,6 +22,19 @@ export class IncludeStitcher {
         dependents: readonly IncludeLoadRoot[],
     ): IncludeLoadRoot[] {
         const dependentsByPrincipalKey: Map<string, object[]> = new Map();
+        const appliedDependents: Set<object> = new Set();
+        const appliedPrincipalKeys = new Set(principals.flatMap(principal => {
+            if (includeNavigationHasPendingIntent(
+                this.ctx,
+                principal.entity,
+                String(relationship.inverseNavigationProperty),
+            )) return [];
+            return [principalStitchKey(
+                principalMetadata,
+                relationship,
+                principal.boundValues,
+            )];
+        }));
         const principalsByKey = new Map(
             principals.map(principal => [
                 principalStitchKey(
@@ -40,17 +53,22 @@ export class IncludeStitcher {
                 relationship,
                 dependentRoot.boundValues,
             );
+            if (
+                !appliedPrincipalKeys.has(key) ||
+                includeNavigationHasPendingIntent(
+                    this.ctx,
+                    dependent,
+                    String(relationship.navigationProperty),
+                    relationship,
+                )
+            ) continue;
             const group = dependentsByPrincipalKey.get(key) ?? [];
             pushUnique(group, dependent);
             dependentsByPrincipalKey.set(key, group);
+            appliedDependents.add(dependent);
 
             const principal = principalsByKey.get(key);
-            if (principal && !includeNavigationHasPendingIntent(
-                this.ctx,
-                dependent,
-                String(relationship.navigationProperty),
-                relationship,
-            )) {
+            if (principal) {
                 (dependent as Record<string, unknown>)[relationship.navigationProperty] = principal;
                 markIncludeNavigationLoaded(
                     this.ctx,
@@ -92,7 +110,8 @@ export class IncludeStitcher {
             markIncludeNavigationLoaded(this.ctx, principal, inverseNavigation);
         }
 
-        return uniqueIncludeRoots(dependents);
+        return uniqueIncludeRoots(dependents.filter(root =>
+            appliedDependents.has(root.entity)));
     }
 
     public assignManyToManyRelated(

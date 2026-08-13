@@ -1,81 +1,11 @@
-import type { DbContextOptionsBuilder } from '../src';
-import { DbContext, type ModelBuilder } from '../src';
-import type { SqlDialect } from '../src/adapter';
 import { sqliteDialect } from '../src/providers/sqlite/sqlite-dialect';
 import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
-
-class Tag {
-    public id!: string;
-    public workspaceId!: string;
-    public name!: string;
-    public deletedAt?: Date | null;
-    public posts: Post[] = [];
-    constructor(data?: Partial<Tag>) {
-        Object.assign(this, data);
-    }
-}
-
-class Post {
-    public id!: string;
-    public title!: string;
-    public tags: Tag[] = [];
-    constructor(data?: Partial<Post>) {
-        Object.assign(this, data);
-    }
-}
-
-class IncludeManyToManyContext extends DbContext {
-    public posts = this.set(Post);
-    public tags = this.set(Tag);
-
-    constructor(private readonly connection: RecordingDatabaseConnection, private readonly injectedDialect?: SqlDialect) {
-        super();
-    }
-
-    protected override configure(options: DbContextOptionsBuilder): void {
-        if (this.injectedDialect) {
-            options.useConnection(this.connection, {
-                provider: this.injectedDialect.name,
-                dialect: this.injectedDialect,
-            });
-        } else {
-            options.useConnection(this.connection);
-        }
-        options.useTenantScope(() => 'wrk_1');
-    }
-
-    protected override model(model: ModelBuilder): void {
-        model.entity(Post, entity => {
-            entity.toTable('posts');
-            entity.hasKey(post => post.id);
-            entity.property(post => post.id).hasColumnName('id').hasColumnType('text').isRequired();
-            entity.property(post => post.title).hasColumnName('title').hasColumnType('text').isRequired();
-            entity.hasManyToMany(Tag, post => post.tags)
-                .withMany(tag => tag.posts)
-                .usingJoinTable('post_tags', join => {
-                    join.sourceForeignKey('post_id');
-                    join.targetForeignKey('tag_id');
-                });
-        });
-
-        model.entity(Tag, entity => {
-            entity.toTable('tags');
-            entity.hasKey(tag => tag.id);
-            entity.tenantKey(tag => tag.workspaceId);
-            entity.softDelete(tag => tag.deletedAt);
-            entity.property(tag => tag.id).hasColumnName('id').hasColumnType('text').isRequired();
-            entity.property(tag => tag.workspaceId).hasColumnName('workspace_id').hasColumnType('text').isRequired();
-            entity.property(tag => tag.name).hasColumnName('name').hasColumnType('text').isRequired();
-            entity.property(tag => tag.deletedAt).hasColumnName('deleted_at').hasColumnType('timestamptz');
-        });
-    }
-
-    public static createWith(connection: RecordingDatabaseConnection, dialect?: SqlDialect): IncludeManyToManyContext {
-        const context = IncludeManyToManyContext.create(connection, dialect);
-        return context;
-    }
-}
+import {
+    IncludeManyToManyContext,
+    Post,
+    Tag,
+} from './support/many-to-many-include-context';
 
 describe('many-to-many include loading', () => {
     it('preserves a queued local link during an ordinary tracking include', async () => {
@@ -129,6 +59,33 @@ describe('many-to-many include loading', () => {
         await db.posts.include(item => item.tags).single();
 
         expect(post.tags).toEqual([]);
+    });
+
+    it('does not recurse through a stored link skipped by pending unlink intent', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = IncludeManyToManyContext.createWith(connection);
+        const tag = new Tag({
+            id: 'tag_1', workspaceId: 'wrk_1', name: 'TypeScript',
+        });
+        const post = new Post({ id: 'post_1', title: 'Hello', tags: [tag] });
+        db.posts.attach(post);
+        db.tags.attach(tag);
+        db.unlink(post, item => item.tags, tag);
+        connection.queueResult({
+            rows: [{ id: 'post_1', title: 'Hello' }], rowCount: 1,
+        });
+        connection.queueResult({
+            rows: [{
+                __entitykit_parent_key: 'post_1', id: 'tag_1',
+                workspace_id: 'wrk_1', name: 'TypeScript', deleted_at: null,
+            }],
+            rowCount: 1,
+        });
+
+        await db.posts.include(item => item.tags)
+            .thenInclude(item => item.posts).single();
+        expect(post.tags).toEqual([]);
+        expect(connection.statements).toHaveLength(2);
     });
 
     it('rejects a mutated root key before a many-to-many query', async () => {

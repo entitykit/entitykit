@@ -2,6 +2,7 @@ import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snap
 import { EntityState } from '../../tracking/entity-state';
 import type { EntityConstructor } from '../../types';
 import { findPrincipalEntry } from './find-principal-entry';
+import { addOneToOneDisplacementEdges } from './one-to-one-ordering';
 
 /** Order dependencies, then unrelated modified, added, and deleted entries. */
 export function orderSaveEntries(
@@ -86,6 +87,8 @@ export function orderSaveEntries(
             }
         }
     }
+
+    addOneToOneDisplacementEdges(entries, addEdge);
 
     return stableTopologicalOrder(entries, outgoing, incoming, originalIndex);
 }

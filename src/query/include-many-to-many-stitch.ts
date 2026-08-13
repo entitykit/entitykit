@@ -29,6 +29,7 @@ export function assignManyToManyRelated(
     const inverseParents = info.relatedInverseNavigationProperty
         ? new Map<object, UniqueObjectList>()
         : undefined;
+    const appliedRelated: Set<object> = new Set();
     for (let index = 0; index < rows.length; index++) {
         const related = relatedRoots.at(index)?.entity;
         const row = rows.at(index);
@@ -46,6 +47,7 @@ export function assignManyToManyRelated(
         (entity as Record<string, unknown>)[info.navigationProperty] = group;
         markIncludeNavigationLoaded(ctx, entity, info.navigationProperty);
         for (const related of group) {
+            appliedRelated.add(related);
             if (inverseParents) {
                 pushUniqueObject(
                     getUniqueObjectList(inverseParents, related), entity,
@@ -54,7 +56,8 @@ export function assignManyToManyRelated(
         }
     }
     stitchManyToManyInverses(ctx, inverseParents, info);
-    return uniqueIncludeRoots(relatedRoots);
+    return uniqueIncludeRoots(relatedRoots.filter(root =>
+        appliedRelated.has(root.entity)));
 }
 
 function stitchManyToManyInverses(

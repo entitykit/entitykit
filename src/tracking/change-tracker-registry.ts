@@ -9,10 +9,8 @@ import { assertTrackingIdentityRegistration, clearTemporaryGeneratedIdentity } f
 import { reuseTrackedEntry } from './tracked-entry-reuse';
 import { trackingCollisionError } from './tracking-collision-error';
 import { createTrackedEntry } from './tracked-entry-factory';
-import {
-    prepareTrackedRegistration,
-    publishTrackedRegistration,
-} from './tracked-entry-registration';
+import { prepareTrackedRegistration, publishTrackedRegistration } from './tracked-entry-registration';
+import { registerRelationshipDetectionRegistry } from './change-tracker-relationship-detection-registry';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -29,7 +27,10 @@ export class ChangeTrackerRegistry {
         private readonly notifyTracked: (
             entity: object,
         ) => (() => void) | undefined,
-    ) {}
+        notifyDetached: (entity: object) => (() => void) | undefined,
+    ) {
+        registerRelationshipDetectionRegistry(owner, this, notifyDetached);
+    }
     public track<TEntity extends object>(
         entity: TEntity,
         metadata: EntityMetadata<TEntity>,
@@ -120,12 +121,10 @@ export class ChangeTrackerRegistry {
         this.assertInvariant();
         return entry;
     }
-
     public restore(entry: EntityEntry<object>): void {
         this.entriesByEntity.set(entry.entity, entry);
         this.trackedEntries.add(entry);
     }
-
     public clear(): void {
         for (const entry of this.trackedEntries) {
             entry.markDetached();
@@ -136,7 +135,6 @@ export class ChangeTrackerRegistry {
         this.trackedEntries.clear();
         this.assertInvariant();
     }
-
     public assertInvariant(): void {
         this.identities.assertConsistent(this.trackedEntries);
         for (const entry of this.trackedEntries) {

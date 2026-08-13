@@ -9,6 +9,8 @@ import type { ManyToManyEndpointKey } from './modification-sql-helpers';
 import { ModificationSqlCapturedBuilder } from './modification-sql-captured-builder';
 import { postgresDialect, type SqlDialect } from './sql-dialect';
 import type { SqlStatement } from './sql-statement';
+import type { AuthorizedRelationshipEndpoint } from './many-to-many-authorization';
+import { buildRelationshipAuthorizationQuery } from './relationship-authorization-query';
 
 /** Owns join-table DML and its endpoint-authorization statements. */
 export abstract class ModificationSqlRelationshipBuilder
@@ -55,6 +57,15 @@ export abstract class ModificationSqlRelationshipBuilder
         pairs: readonly AuthorizedManyToManyPair[],
     ): SqlStatement {
         return buildManyToManyAuthorizationQuery(this.relationshipDialect, pairs);
+    }
+
+    public buildRelationshipAuthorization(
+        endpoint: AuthorizedRelationshipEndpoint,
+    ): SqlStatement {
+        return buildRelationshipAuthorizationQuery(
+            this.relationshipDialect,
+            endpoint,
+        );
     }
 
     public buildAuthorizedManyToMany(

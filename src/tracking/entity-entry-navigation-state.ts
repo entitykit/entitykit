@@ -41,4 +41,15 @@ export class EntityEntryNavigationState {
             .filter(property => this.isLoaded(entry, property))
             .sort();
     }
+
+    public capture(): ReadonlyMap<string, string | null> {
+        return new Map(this.loaded);
+    }
+
+    public restore(values: ReadonlyMap<string, string | null>): void {
+        this.loaded.clear();
+        for (const [property, key] of values) {
+            this.loaded.set(property, key);
+        }
+    }
 }

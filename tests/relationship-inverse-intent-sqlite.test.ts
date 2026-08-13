@@ -63,7 +63,8 @@ class InverseIntentContext extends DbContext {
                 .hasColumnType('text').isRequired();
             entity.hasOne(IntentParent, row => row.parent)
                 .withOne(parent => parent.profile)
-                .hasForeignKey(row => row.parentId);
+                .hasForeignKey(row => row.parentId)
+                .onDelete(DeleteBehavior.Cascade);
         });
     }
 }
@@ -115,6 +116,31 @@ async function storedParent(db: InverseIntentContext): Promise<string | null> {
         text: 'select parent_id from intent_children where id = ?', values: ['c'],
     });
     return result.rows[0]?.parent_id ?? null;
+}
+
+async function occupiedOneToOne(db: InverseIntentContext): Promise<{
+    readonly firstParent: IntentParent;
+    readonly secondParent: IntentParent;
+    readonly first: IntentProfile;
+    readonly second: IntentProfile;
+}> {
+    await db.database.connection.query({
+        text: 'insert into intent_profiles (id, parent_id) values (?, ?)',
+        values: ['profile-2', 'p2'],
+    });
+    const parents = await db.parents.include(row => row.profile)
+        .orderBy(row => row.id).toArray();
+    const firstParent: IntentParent | undefined = parents.at(0);
+    const secondParent: IntentParent | undefined = parents.at(1);
+    if (!firstParent || !secondParent) {
+        throw new Error('Expected both one-to-one parents.');
+    }
+    const first = firstParent.profile;
+    const second = secondParent.profile;
+    if (!first || !second) {
+        throw new Error('Expected both one-to-one profiles.');
+    }
+    return { firstParent, secondParent, first, second };
 }
 
 describe('relationship inverse intent resolution', () => {
@@ -206,6 +232,107 @@ describe('relationship inverse intent resolution', () => {
         }).toThrow(
             'appears in more than one final inverse navigation',
         );
+        await db.dispose();
+    });
+
+    it('restores every earlier relationship mutation after later validation fails', async () => {
+        const db = await open(DeleteBehavior.NoAction);
+        const oldParent = Object.assign(new IntentParent(), { id: 'p1' });
+        const newParent = Object.assign(new IntentParent(), { id: 'p2' });
+        const moved = Object.assign(new IntentChild(), {
+            id: 'c1', parentId: 'p1', parent: oldParent,
+        });
+        const orphaned = Object.assign(new IntentChild(), {
+            id: 'c2', parentId: 'p1', parent: oldParent,
+        });
+        oldParent.children = [moved, orphaned];
+        db.parents.attach(oldParent);
+        db.parents.attach(newParent);
+        db.children.attach(moved);
+        db.children.attach(orphaned);
+        oldParent.children = [];
+        newParent.children = [moved];
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).toThrow(
+            'Required relationship \'IntentChild.parent\' was severed',
+        );
+
+        expect(moved.parent).toBe(oldParent);
+        expect(moved.parentId).toBe('p1');
+        expect(orphaned.parent).toBe(oldParent);
+        expect(orphaned.parentId).toBe('p1');
+        expect(oldParent.children).toEqual([]);
+        expect(newParent.children).toEqual([moved]);
+        expect(db.entry(moved)?.state).toBe(EntityState.Unchanged);
+        expect(db.entry(orphaned)?.state).toBe(EntityState.Unchanged);
+        await db.dispose();
+    });
+
+    it('deletes an occupied one-to-one slot before updating its replacement', async () => {
+        const db = await open();
+        const { first, second, secondParent } = await occupiedOneToOne(db);
+        first.parent = secondParent;
+
+        db.changeTracker.detectChanges();
+
+        expect(db.entry(first)?.state).toBe(EntityState.Modified);
+        expect(db.entry(second)?.state).toBe(EntityState.Deleted);
+        await expect(db.saveChanges()).resolves.toBe(2);
+        const stored = await db.database.connection.query<{
+            id: string; parent_id: string;
+        }>({
+            text: 'select id, parent_id from intent_profiles order by id',
+            values: [],
+        });
+        expect(stored.rows).toEqual([{ id: 'profile', parent_id: 'p2' }]);
+        await db.dispose();
+    });
+
+    it('rejects a direct required one-to-one swap before tracker mutation', async () => {
+        const db = await open();
+        const {
+            firstParent, secondParent, first, second,
+        } = await occupiedOneToOne(db);
+        first.parent = secondParent;
+        second.parent = firstParent;
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).toThrow(
+            'cannot atomically swap one-to-one relationships',
+        );
+        expect(first.parent).toBe(secondParent);
+        expect(first.parentId).toBe('p1');
+        expect(second.parent).toBe(firstParent);
+        expect(second.parentId).toBe('p2');
+        expect(firstParent.profile).toBe(first);
+        expect(secondParent.profile).toBe(second);
+        expect(db.entry(first)?.state).toBe(EntityState.Unchanged);
+        expect(db.entry(second)?.state).toBe(EntityState.Unchanged);
+        await db.dispose();
+    });
+
+    it('rejects an inverse required one-to-one swap before tracker mutation', async () => {
+        const db = await open();
+        const {
+            firstParent, secondParent, first, second,
+        } = await occupiedOneToOne(db);
+        firstParent.profile = second;
+        secondParent.profile = first;
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).toThrow(
+            'cannot atomically swap one-to-one relationships',
+        );
+        expect(first.parent).toBe(firstParent);
+        expect(second.parent).toBe(secondParent);
+        expect(firstParent.profile).toBe(second);
+        expect(secondParent.profile).toBe(first);
+        expect(db.entry(first)?.state).toBe(EntityState.Unchanged);
+        expect(db.entry(second)?.state).toBe(EntityState.Unchanged);
         await db.dispose();
     });
 });

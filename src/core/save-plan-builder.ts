@@ -17,6 +17,8 @@ import {
     refreshPersistedEntryRelationships,
 } from '../tracking/persisted-entry-snapshot';
 import { refreshRelationshipPlanSnapshot } from './relationship-plan-snapshot';
+import { buildRelationshipAuthorizationSavePlan } from './relationship-authorization-save-plan';
+import { assembleSavePlan } from './save-plan/assemble-plan';
 
 /** Dependencies the save-plan coordinator receives from its context. */
 export interface SavePlanBuilderDeps {
@@ -105,6 +107,11 @@ export class SavePlanBuilder {
         const dialect = this.deps.getDialect();
         const sql = new ModificationSqlBuilder(dialect);
         const entityPlan = buildEntitySavePlan(sql, dialect, pending);
+        const relationshipAuthorization = buildRelationshipAuthorizationSavePlan(
+            sql,
+            this.deps.changeTracker,
+            snapshots,
+        );
         const snapshotsByEntity = new Map(snapshots.map(snapshot => [
             snapshot.entry.entity,
             snapshot,
@@ -113,10 +120,6 @@ export class SavePlanBuilder {
             sql,
             snapshotsByEntity,
         );
-        const unlinkPlan = manyToManyPlan.filter(entry => entry.state === EntityState.Deleted);
-        const linkPlan = manyToManyPlan.filter(entry => entry.state === EntityState.Added);
-        const entityNonDeletes = entityPlan.filter(entry => entry.state !== EntityState.Deleted);
-        const entityDeletes = entityPlan.filter(entry => entry.state === EntityState.Deleted);
         const outboxPlan = buildOutboxSavePlan({
             sql,
             dialect,
@@ -126,13 +129,13 @@ export class SavePlanBuilder {
             currentAuditTimestamp: this.deps.currentAuditTimestamp,
         });
 
-        return freezeSavePlan([
-            ...entityNonDeletes,
-            ...linkPlan,
-            ...unlinkPlan,
-            ...entityDeletes,
-            ...outboxPlan,
-        ]);
+        return freezeSavePlan(assembleSavePlan(
+            pending,
+            entityPlan,
+            manyToManyPlan,
+            relationshipAuthorization,
+            outboxPlan,
+        ));
     }
 
     /** A human-readable view of the pending save plan, for debugging. */
