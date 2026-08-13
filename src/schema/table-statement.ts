@@ -2,8 +2,8 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { Model } from '../model/model';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import {
-    defaultForeignKeyName,
     defaultIndexName,
+    foreignKeyConstraintName,
 } from '../sql/identifiers';
 import type { SqlDialect } from '../sql/sql-dialect';
 import { relationshipPrincipalKeyMetadata } from '../model/relationship-key';
@@ -92,7 +92,8 @@ function buildRelationshipConstraint(
         );
     }
 
-    const constraintName = relationship.constraintName ?? defaultForeignKeyName(
+    const constraintName = foreignKeyConstraintName(
+        relationship.constraintName,
         entity.tableName,
         principal.tableName,
         foreignKeyProperties.map(property => property.columnName),

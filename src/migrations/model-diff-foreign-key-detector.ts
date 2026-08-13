@@ -2,7 +2,7 @@ import type {
     EntitySnapshot,
     RelationshipSnapshot,
 } from '../model/model-snapshot-types';
-import { defaultForeignKeyName as sharedForeignKeyName } from '../sql/identifiers';
+import { foreignKeyConstraintName } from '../sql/identifiers';
 import type { AddForeignKeyOperation, DropForeignKeyOperation, ModelDiffOperation } from './model-diff-operations';
 import { entityKey, propertyColumn } from './model-diff-helpers';
 
@@ -55,7 +55,7 @@ export function createForeignKeyOperation(
         entityName: entity.entityName,
         tableName: entity.tableName,
         schemaName: entity.schemaName,
-        name: relationship.constraintName ?? defaultForeignKeyName(entity, relationship, principal.tableName),
+        name: resolvedForeignKeyName(entity, relationship, principal.tableName),
         columns: foreignKeyProperties(relationship).map(propertyName => propertyColumn(entity, propertyName)),
         principalTableName: principal.tableName,
         principalSchemaName: principal.schemaName,
@@ -89,7 +89,11 @@ function foreignKeyKey(
         : '';
     return [
         entityKey(entity),
-        relationship.constraintName ?? defaultForeignKeyName(entity, relationship, principal?.tableName ?? relationship.principalEntityName),
+        resolvedForeignKeyName(
+            entity,
+            relationship,
+            principal?.tableName ?? relationship.principalEntityName,
+        ),
         dependentColumn,
         principalTable,
         principalColumn,
@@ -103,8 +107,14 @@ function foreignKeyKey(
  * name (`fk_<child>_<principal>_<columns>`) or a later migration would try to
  * drop a constraint that does not exist under the name it computed.
  */
-function defaultForeignKeyName(entity: EntitySnapshot, relationship: RelationshipSnapshot, principalTable: string): string {
-    return sharedForeignKeyName(entity.tableName, principalTable, foreignKeyProperties(relationship).map(propertyName => propertyColumn(entity, propertyName)));
+function resolvedForeignKeyName(entity: EntitySnapshot, relationship: RelationshipSnapshot, principalTable: string): string {
+    return foreignKeyConstraintName(
+        relationship.constraintName,
+        entity.tableName,
+        principalTable,
+        foreignKeyProperties(relationship).map(propertyName =>
+            propertyColumn(entity, propertyName)),
+    );
 }
 
 /** Foreign key property names, tolerating snapshots written before composite keys. */
