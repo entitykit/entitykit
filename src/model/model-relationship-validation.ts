@@ -36,6 +36,20 @@ export function validateModelRelationships(
                     `Relationship '${String(relationship.navigationProperty)}' on entity '${entity.entityName}' cannot target keyless principal '${principal.entityName}'.`,
                 );
             }
+            if (
+                relationship.deleteBehavior === DeleteBehavior.Cascade &&
+                entity.softDelete !== undefined &&
+                principal.softDelete === undefined
+            ) {
+                throw new Error(
+                    `Relationship '${String(relationship.navigationProperty)}' ` +
+                    `on soft-deletable entity '${entity.entityName}' cannot ` +
+                    'use Cascade to hard-deletable principal ' +
+                    `'${principal.entityName}', because the database would ` +
+                    'physically delete a row retained by the soft-delete ' +
+                    'tracker.',
+                );
+            }
             const principalKey = relationship.principalKeyProperties ??
                 principal.keyProperties;
             if (!isDeclaredPrincipalKey(principal, principalKey)) {

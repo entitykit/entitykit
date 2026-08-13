@@ -92,7 +92,7 @@ export class CrudAppDbContext extends DbContext {
             entity.hasOne(Project, task => task.project)
                 .withMany(project => project.tasks)
                 .hasForeignKey(task => task.projectId)
-                .onDelete(DeleteBehavior.Cascade);
+                .onDelete(DeleteBehavior.NoAction);
             entity.hasOne(AppUser, task => task.assignee)
                 .withMany(user => user.assignedTasks)
                 .hasForeignKey(task => task.assigneeId)

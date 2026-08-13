@@ -4,6 +4,7 @@ import { sqliteProviderServices } from '../src/providers/sqlite';
 
 class SoftSlotParent {
     public id = '';
+    public deletedAt: Date | null = null;
     public profile: SoftSlotProfile | null = null;
 }
 
@@ -30,7 +31,10 @@ class SoftSlotContext extends DbContext {
         model.entity(SoftSlotParent, entity => {
             entity.toTable('soft_slot_parents');
             entity.hasKey(row => row.id);
+            entity.softDelete(row => row.deletedAt);
             entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.deletedAt).hasColumnName('deleted_at')
+                .hasColumnType('timestamp').isOptional();
         });
         model.entity(SoftSlotProfile, entity => {
             entity.toTable('soft_slot_profiles');

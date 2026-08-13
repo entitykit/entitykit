@@ -17,7 +17,7 @@ export function validateModelRelationshipOwnership(
         for (const relationship of entity.relationships) {
             const navigation = String(relationship.navigationProperty);
             const tuple = relationship.foreignKeyProperties
-                .map(String).join('\0');
+                .map(String).sort().join('\0');
             const previousTuple = tuples.get(tuple);
             if (previousTuple) {
                 throw new Error(

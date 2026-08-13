@@ -118,7 +118,7 @@ export class TrackerDbContext extends DbContext {
             entity.hasOne(Project, issue => issue.project)
                 .withMany(project => project.issues)
                 .hasForeignKey(issue => issue.projectId)
-                .onDelete(DeleteBehavior.Cascade);
+                .onDelete(DeleteBehavior.NoAction);
             entity.hasOne(Member, issue => issue.assignee)
                 .hasForeignKey(issue => issue.assigneeId);
             entity.hasManyToMany(Label, issue => issue.labels)
