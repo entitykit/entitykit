@@ -1,6 +1,8 @@
 import type { Model } from '../model/model';
+import { RelationshipCardinality } from '../model/relationship-metadata';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
+import { EntityState } from './entity-state';
 import {
     navigationSnapshot,
     navigationValueChanged,
@@ -15,6 +17,34 @@ export interface OneToOneIntent {
     readonly previous?: EntityEntry<object>;
     readonly desired?: EntityEntry<object>;
     readonly changed: boolean;
+}
+
+export interface OneToOneIntentGroup {
+    readonly relationship: TrackedRelationshipMetadata;
+    readonly intents: readonly OneToOneIntent[];
+}
+
+export function captureOneToOneIntentGroups(
+    tracker: ChangeTracker,
+    model: Model,
+    captured: RelationshipDetectionValues,
+): readonly OneToOneIntentGroup[] {
+    return model.entities.flatMap(dependentMetadata =>
+        (dependentMetadata.relationships as
+            readonly TrackedRelationshipMetadata[])
+            .filter(relationship =>
+                relationship.cardinality === RelationshipCardinality.OneToOne)
+            .map(relationship => ({
+                relationship,
+                intents: tracker.entries()
+                    .filter(entry =>
+                        entry.metadata === dependentMetadata &&
+                        entry.state !== EntityState.Detached)
+                    .map(entry => captureOneToOneIntent(
+                        tracker, model, entry, relationship, captured,
+                    )),
+            })),
+    );
 }
 
 export function captureOneToOneIntent(

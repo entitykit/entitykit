@@ -1,37 +1,52 @@
-import type { Model } from '../model/model';
-import { RelationshipCardinality } from '../model/relationship-metadata';
-import type { ChangeTracker } from './change-tracker';
+import { DeleteBehavior } from '../model/relationship-metadata';
 import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
-import type { RelationshipDetectionValues } from './relationship-detection-values';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import {
-    captureOneToOneIntent,
     type OneToOneIntent,
+    type OneToOneIntentGroup,
 } from './one-to-one-change-intent';
 
 export function assertSupportedOneToOneChanges(
-    tracker: ChangeTracker,
-    model: Model,
-    captured: RelationshipDetectionValues,
+    groups: readonly OneToOneIntentGroup[],
 ): void {
-    for (const dependentMetadata of model.entities) {
-        for (const relationship of dependentMetadata.relationships as
-            readonly TrackedRelationshipMetadata[]) {
-            if (relationship.cardinality !== RelationshipCardinality.OneToOne) {
-                continue;
-            }
-            const intents = tracker.entries()
-                .filter(entry =>
-                    entry.metadata === dependentMetadata &&
-                    entry.state !== EntityState.Deleted &&
-                    entry.state !== EntityState.Detached)
-                .map(entry => captureOneToOneIntent(
-                    tracker, model, entry, relationship, captured,
-                ));
-            assertNoCompetingExplicitOwners(intents, relationship);
-            assertNoOwnershipCycle(intents);
-        }
+    for (const { relationship, intents } of groups) {
+        assertNoCompetingExplicitOwners(intents, relationship);
+        assertNoOwnershipCycle(intents);
+        assertNoSoftDeleteDisplacement(intents, relationship);
+    }
+}
+
+function assertNoSoftDeleteDisplacement(
+    intents: readonly OneToOneIntent[],
+    relationship: TrackedRelationshipMetadata,
+): void {
+    const previousOwner: Map<
+        EntityEntry<object>, OneToOneIntent
+    > = new Map();
+    for (const intent of intents) {
+        if (intent.previous) previousOwner.set(intent.previous, intent);
+    }
+    const unsupported = intents.find(intent => {
+        if (!intent.changed || !intent.desired) return false;
+        const occupant = previousOwner.get(intent.desired);
+        return occupant !== undefined &&
+            occupant.dependent !== intent.dependent &&
+            occupant.dependent.metadata.softDelete !== undefined &&
+            (occupant.dependent.state === EntityState.Deleted ||
+                relationship.deleteBehavior === DeleteBehavior.Cascade &&
+                relationship.foreignKeyProperties.every(property =>
+                    occupant.dependent.metadata.getProperty(property)
+                        .isRequired) &&
+                (!occupant.changed || occupant.desired === undefined ||
+                    occupant.desired === intent.desired));
+    });
+    if (unsupported) {
+        throw new Error(
+            'One-to-one replacement cannot displace a soft-deletable ' +
+            'dependent because its unique relationship slot is retained. ' +
+            'Delete or reassign the existing dependent explicitly first.',
+        );
     }
 }
 

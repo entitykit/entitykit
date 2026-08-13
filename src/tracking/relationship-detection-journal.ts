@@ -1,5 +1,4 @@
 import type { Model } from '../model/model';
-import { cloneBoundEntityValues } from './bound-entity-value-clone';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { cloneSnapshotValue } from './entity-entry';
@@ -89,10 +88,10 @@ function captureEntry(
         entry,
         identityKey,
         state: entry.state,
-        originalValues: cloneBoundEntityValues(
-            entry.metadata,
-            { ...entry.originalValues },
-            entry.originalBoundValues,
+        originalValues: Object.fromEntries(
+            Object.entries(entry.originalValues).map(([key, value]) => [
+                key, cloneSnapshotValue(value),
+            ]),
         ),
         originalBoundValues: cloneBoundValues(entry.originalBoundValues),
         navigations: captureNavigationSnapshotValues(entry),
