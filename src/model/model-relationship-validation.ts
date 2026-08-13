@@ -3,6 +3,7 @@ import type { EntityMetadata } from './entity-metadata';
 import { isDeclaredPrincipalKey } from './relationship-key';
 import { DeleteBehavior } from './relationship-metadata';
 import { ValueGenerated } from './value-generated';
+import { validateModelNavigationOwnership } from './model-navigation-ownership-validation';
 
 export function validateModelRelationships(
     entities: readonly EntityMetadata[],
@@ -11,6 +12,7 @@ export function validateModelRelationships(
         EntityMetadata
     >,
 ): void {
+    validateModelNavigationOwnership(entities, entitiesByConstructor);
     for (const entity of entities) {
         if (
             entity.isKeyless &&
