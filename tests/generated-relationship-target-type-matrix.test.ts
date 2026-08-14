@@ -1,23 +1,19 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, valueConverter } from '../src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
-
 class BigTarget {
     public id = 0n;
     public dependents: BigDependent[] = [];
 }
-
 class BigDependent {
     public id = '';
     public targetId: bigint | null | undefined = 0n;
     public target: BigTarget | null = null;
 }
-
 class ConvertedTarget {
     public id = '0';
     public dependents: ConvertedDependent[] = [];
 }
-
 class ConvertedDependent {
     public id = '';
     public targetId = '0';
@@ -165,6 +161,17 @@ function expectAmbiguous(operation: () => void): void {
 }
 
 describe('generated relationship target type matrix', () => {
+    it('rejects one BigInt zero placeholder without navigation', () => {
+        const db = context();
+        db.bigTargets.add(new BigTarget());
+        db.bigDependents.add(Object.assign(new BigDependent(), { id: 'child' }));
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        })
+            .toThrow('cannot infer a newly added principal');
+    });
+
     it('rejects repeated BigInt zero placeholders', () => {
         const db = context();
         db.bigTargets.add(new BigTarget());
@@ -189,6 +196,19 @@ describe('generated relationship target type matrix', () => {
         });
     });
 
+    it('rejects one converted placeholder without navigation', () => {
+        const db = context();
+        db.convertedTargets.add(new ConvertedTarget());
+        db.convertedDependents.add(Object.assign(new ConvertedDependent(), {
+            id: 'child', targetId: '0',
+        }));
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        })
+            .toThrow('cannot infer a newly added principal');
+    });
+
     it('rejects a repeated temporary component in a composite tuple', () => {
         const db = context();
         db.compositeTargets.add(Object.assign(new CompositeTarget(), {
@@ -204,6 +224,21 @@ describe('generated relationship target type matrix', () => {
         expectAmbiguous(() => {
             db.changeTracker.detectChanges();
         });
+    });
+
+    it('rejects one generated composite placeholder without navigation', () => {
+        const db = context();
+        db.compositeTargets.add(Object.assign(new CompositeTarget(), {
+            region: 'north',
+        }));
+        db.compositeDependents.add(Object.assign(new CompositeDependent(), {
+            id: 'child', targetRegion: 'north', targetId: 0,
+        }));
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        })
+            .toThrow('cannot infer a newly added principal');
     });
 
     it.each([null, undefined] as const)(
@@ -224,7 +259,7 @@ describe('generated relationship target type matrix', () => {
         },
     );
 
-    it('scopes equal temporary provider keys to the dependent tenant', () => {
+    it('requires navigation even when tenant scope leaves one candidate', () => {
         const db = context();
         const tenantA = Object.assign(new TenantTarget(), {
             tenantId: 'tenant-a',
@@ -243,11 +278,12 @@ describe('generated relationship target type matrix', () => {
 
         expect(() => {
             db.changeTracker.detectChanges();
-        }).not.toThrow();
+        })
+            .toThrow('cannot infer a newly added principal');
 
-        expect(dependent.target).toBe(tenantB);
+        expect(dependent.target).toBeNull();
         expect(tenantA.dependents).toEqual([]);
-        expect(tenantB.dependents).toEqual([dependent]);
+        expect(tenantB.dependents).toEqual([]);
     });
 
     it('propagates a generated BigInt key through one explicit added graph', async () => {

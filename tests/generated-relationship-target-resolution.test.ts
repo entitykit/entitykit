@@ -90,8 +90,36 @@ const ambiguity = 'has an ambiguous FK-only target';
 const unresolved = 'Cannot assign existing \'TargetChild\' to newly added ' +
     '\'TargetParent\' because the relationship key \'TargetParent.id\' has not ' +
     'been generated yet. Save the principal first, then assign the relationship.';
+const explicitRequired = 'cannot infer a newly added principal from an ' +
+    'unresolved store-generated FK value';
 
 describe('generated relationship target resolution', () => {
+    it.each(['principal-first', 'dependent-first'] as const)(
+        'rejects one FK-only temporary target with %s tracking',
+        order => {
+            const db = RelationshipTargetContext.create(
+                new RecordingDatabaseConnection(),
+            );
+            const parent = Object.assign(new TargetParent(), { name: 'new' });
+            const child = Object.assign(new TargetChild(), { id: 'child' });
+            if (order === 'principal-first') {
+                db.parents.add(parent);
+                db.children.add(child);
+            } else {
+                db.children.add(child);
+                db.parents.add(parent);
+            }
+
+            expect(() => {
+                db.changeTracker.detectChanges();
+            })
+                .toThrow(explicitRequired);
+
+            expect(child).toMatchObject({ parentId: 0, parent: null });
+            expect(parent.children).toEqual([]);
+        },
+    );
+
     it.each(['principals-first', 'dependent-first'] as const)(
         'rejects two temporary many-to-one targets with %s tracking',
         async order => {
@@ -233,6 +261,26 @@ describe('generated relationship target resolution', () => {
         expect(parent.children).toEqual([]);
         expect(db.entry(child)?.state).toBe(EntityState.Unchanged);
         expect(connection.statements).toEqual([]);
+    });
+
+    it('validates an unresolved target already present at attachment', () => {
+        const db = RelationshipTargetContext.create(
+            new RecordingDatabaseConnection(),
+        );
+        const parent = Object.assign(new TargetParent(), { name: 'new' });
+        const child = Object.assign(new TargetChild(), {
+            id: 'persisted', parentId: 0, parent,
+        });
+        db.parents.add(parent);
+        db.children.attach(child);
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).toThrow(unresolved);
+
+        expect(db.entry(child)?.state).toBe(EntityState.Unchanged);
+        expect(child.parent).toBe(parent);
+        expect(parent.children).toEqual([]);
     });
 
     it('rejects an existing scalar FK changed to an unresolved placeholder', async () => {

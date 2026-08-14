@@ -52,6 +52,21 @@ class GeneratedAlternateKeyContext extends DbContext {
 }
 
 describe('database-generated alternate keys', () => {
+    it('rejects one generated alternate placeholder without navigation', () => {
+        GeneratedAlternateKeyContext.connection =
+            new RecordingDatabaseConnection();
+        const db = GeneratedAlternateKeyContext.create();
+        db.principals.add({ id: 'principal_1', code: '' });
+        db.dependents.add({
+            id: 'dependent_1', principalCode: '',
+        } as GeneratedDependent);
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        })
+            .toThrow('cannot infer a newly added principal');
+    });
+
     it('rejects multiple stable tracked principals with one relationship key', () => {
         GeneratedAlternateKeyContext.connection =
             new RecordingDatabaseConnection();
