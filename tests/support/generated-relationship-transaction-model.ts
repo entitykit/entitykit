@@ -18,6 +18,11 @@ export class TransactionNumberProfile {
     public principalId = 0;
     public principal: TransactionNumberPrincipal | null = null;
 }
+export class TransactionOptionalNumberDependent {
+    public id = '';
+    public principalId: number | null = null;
+    public principal: TransactionNumberPrincipal | null = null;
+}
 export class TransactionBigIntPrincipal {
     public id = 0n;
     public children: TransactionBigIntDependent[] = [];
@@ -67,6 +72,9 @@ export class GeneratedRelationshipTransactionContext extends DbContext {
     public numberPrincipals = this.set(TransactionNumberPrincipal);
     public numberDependents = this.set(TransactionNumberDependent);
     public numberProfiles = this.set(TransactionNumberProfile);
+    public optionalNumberDependents = this.set(
+        TransactionOptionalNumberDependent,
+    );
     public bigintPrincipals = this.set(TransactionBigIntPrincipal);
     public bigintDependents = this.set(TransactionBigIntDependent);
     public convertedPrincipals = this.set(TransactionConvertedPrincipal);
@@ -112,6 +120,15 @@ export class GeneratedRelationshipTransactionContext extends DbContext {
                 .isRequired();
             entity.hasOne(TransactionNumberPrincipal, row => row.principal)
                 .withOne(row => row.profile)
+                .hasForeignKey(row => row.principalId);
+        });
+        model.entity(TransactionOptionalNumberDependent, entity => {
+            entity.toTable('transaction_optional_number_dependents');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.principalId).hasColumnType('integer');
+            entity.hasOne(TransactionNumberPrincipal, row => row.principal)
+                .withMany()
                 .hasForeignKey(row => row.principalId);
         });
         model.entity(TransactionBigIntPrincipal, entity => {

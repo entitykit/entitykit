@@ -4,6 +4,7 @@ import {
     startGeneratedManyToManyContext,
 } from './support/generated-many-to-many-context';
 import type { SavePlanEntry } from '../src';
+import { EntityState } from '../src';
 
 function relationshipEntry(
     plan: readonly SavePlanEntry[],
@@ -122,6 +123,46 @@ describe('generated many-to-many endpoint keys', () => {
             values: [],
         });
         expect(rows.rows).toEqual([{ post_id: post.id, tag_id: tag.id }]);
+        await db.dispose();
+    });
+
+    it('retargets links after generated endpoint rollback and retry', async () => {
+        const db = await startGeneratedManyToManyContext();
+        const post = Object.assign(new GeneratedPost(), { title: 'retried' });
+        const tag = Object.assign(new GeneratedTag(), { name: 'retried' });
+        db.posts.add(post);
+        db.tags.add(tag);
+        db.link(post, item => item.tags, tag);
+
+        await expect(db.transaction(async tx => {
+            await tx.saveChanges();
+            expect([post.id, tag.id]).toEqual([1, 1]);
+            throw new Error('abort generated link');
+        })).rejects.toThrow('abort generated link');
+
+        expect([post.id, tag.id]).toEqual([0, 0]);
+        expect(db.entry(post)?.state).toBe(EntityState.Added);
+        expect(db.entry(tag)?.state).toBe(EntityState.Added);
+        await db.database.connection.query({
+            text: 'insert into generated_posts (title) values (?)',
+            values: ['unrelated'],
+        });
+        await db.database.connection.query({
+            text: 'insert into generated_tags (name) values (?)',
+            values: ['unrelated'],
+        });
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect([post.id, tag.id]).toEqual([2, 2]);
+        const rows = await db.database.connection.query<{
+            post_id: number;
+            tag_id: number;
+        }>({
+            text: 'select post_id, tag_id from generated_post_tags',
+            values: [],
+        });
+        expect(rows.rows).toEqual([{ post_id: 2, tag_id: 2 }]);
         await db.dispose();
     });
 });

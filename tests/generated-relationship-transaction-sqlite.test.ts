@@ -66,11 +66,12 @@ async function open(): Promise<GeneratedRelationshipSqliteContext> {
 
 async function storedParentId(
     db: GeneratedRelationshipSqliteContext,
+    childId = 'existing-child',
 ): Promise<number> {
     const result = await db.database.connection.query<{ parent_id: number }>({
         text: `select parent_id from transaction_sqlite_children
             where id = ?`,
-        values: ['existing-child'],
+        values: [childId],
     });
     return result.rows[0]?.parent_id ?? -1;
 }
@@ -146,6 +147,44 @@ describe('generated relationship transactions on SQLite', () => {
         const tracked = internalEntityEntry(parentEntry) as unknown as
             EntityEntry<object>;
         expect(activeTemporaryGeneratedIdentity(tracked)).toBeDefined();
+        await db.dispose();
+    });
+
+    it('retargets an FK-only child when a rolled-back ID is reused', async () => {
+        const db = await open();
+        const parent = Object.assign(new SqliteTransactionParent(), {
+            name: 'retried-generated-parent',
+        });
+        const child = Object.assign(new SqliteTransactionChild(), {
+            id: 'later-child',
+        });
+
+        await expect(db.transaction(async tx => {
+            tx.parents.add(parent);
+            await tx.saveChanges();
+            expect(parent.id).toBe(3);
+            child.parentId = parent.id;
+            tx.children.add(child);
+            await tx.saveChanges();
+            throw new Error('abort outer');
+        })).rejects.toThrow('abort outer');
+
+        expect(parent.id).toBe(0);
+        expect(child).toMatchObject({ parentId: 3, parent: null });
+        await db.database.connection.query({
+            text: `insert into transaction_sqlite_parents (name)
+                values (?)`,
+            values: ['unrelated'],
+        });
+        const retryChild = db.getSavePlan().find(entry =>
+            entry.entity === child);
+        expect(retryChild?.statement.values).not.toContain(3);
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect(parent.id).toBe(4);
+        expect(child).toMatchObject({ parentId: 4, parent });
+        await expect(storedParentId(db, child.id)).resolves.toBe(4);
         await db.dispose();
     });
 });
