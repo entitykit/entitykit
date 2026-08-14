@@ -118,6 +118,10 @@ describe('generated relationship provenance transaction lifecycle', () => {
 
         expect(parent.id).toBe(0);
         expect(child).toMatchObject({ principalId: 0, principal: null });
+        await expect(db.saveChanges()).rejects.toThrow(
+            'restored after a generated-key rollback',
+        );
+        child.principal = parent;
         queueGraph(connection, 87);
         await expect(db.saveChanges()).resolves.toBe(2);
         expect(child).toMatchObject({ principalId: 87, principal: parent });

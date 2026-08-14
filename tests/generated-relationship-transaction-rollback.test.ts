@@ -162,4 +162,57 @@ describe('generated relationship identity transaction rollback', () => {
         expect(activeTemporaryGeneratedIdentity(internal(db, parent)))
             .toBeDefined();
     });
+
+    it('captures an unplanned dependent after a nested commit', async () => {
+        const { db, connection } = context();
+        const parent = new TransactionNumberPrincipal();
+        const child = Object.assign(new TransactionNumberDependent(), {
+            id: 'unplanned-nested-commit',
+        });
+
+        await expect(db.transaction(async outer => {
+            await outer.transaction(async inner => {
+                inner.numberPrincipals.add(parent);
+                connection.queueResult({ rows: [{ id: 55 }], rowCount: 1 });
+                await inner.saveChanges();
+            });
+            child.principalId = parent.id;
+            outer.numberDependents.add(child);
+            throw new Error('abort unplanned outer');
+        })).rejects.toThrow('abort unplanned outer');
+
+        expect(parent.id).toBe(0);
+        expect(child).toMatchObject({ principalId: 55, principal: null });
+        connection.queueResult({ rows: [{ id: 56 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+        await expect(db.saveChanges()).resolves.toBe(2);
+        expect(child).toMatchObject({ principalId: 56, principal: parent });
+    });
+
+    it('captures an unplanned dependent during a nested rollback', async () => {
+        const { db, connection } = context();
+        const parent = new TransactionNumberPrincipal();
+        const child = Object.assign(new TransactionNumberDependent(), {
+            id: 'unplanned-nested-rollback',
+        });
+
+        await db.transaction(async outer => {
+            await expect(outer.transaction(async inner => {
+                inner.numberPrincipals.add(parent);
+                connection.queueResult({ rows: [{ id: 57 }], rowCount: 1 });
+                await inner.saveChanges();
+                child.principalId = parent.id;
+                inner.numberDependents.add(child);
+                throw new Error('abort unplanned nested');
+            })).rejects.toThrow('abort unplanned nested');
+
+            expect(parent.id).toBe(0);
+            expect(child).toMatchObject({ principalId: 57, principal: null });
+            connection.queueResult({ rows: [{ id: 58 }], rowCount: 1 });
+            connection.queueResult({ rowCount: 1 });
+            await expect(outer.saveChanges()).resolves.toBe(2);
+        });
+
+        expect(child).toMatchObject({ principalId: 58, principal: parent });
+    });
 });

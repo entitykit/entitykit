@@ -247,7 +247,7 @@ describe('generated relationship transactions on SQLite', () => {
         ['required', false],
         ['optional', true],
     ] as const)(
-        'retargets an undefined %s FK after two real rollbacks',
+        'requires navigation for an undefined %s FK after two rollbacks',
         async (_name, optional) => {
             const db = await open();
             const parent = Object.assign(new SqliteUndefinedParent(), {
@@ -260,15 +260,12 @@ describe('generated relationship transactions on SQLite', () => {
                 : Object.assign(new SqliteUndefinedChild(), {
                     id: 'required-retried',
                 });
-
             await expect(db.transaction(async tx => {
                 tx.undefinedParents.add(parent);
                 await tx.saveChanges();
                 child.parentId = parent.id;
                 if (optional) {
-                    tx.optionalUndefinedChildren.add(
-                        child,
-                    );
+                    tx.optionalUndefinedChildren.add(child);
                 } else {
                     tx.undefinedChildren.add(child as SqliteUndefinedChild);
                 }
@@ -285,7 +282,6 @@ describe('generated relationship transactions on SQLite', () => {
                 expect(child.parentId).toBe(2);
                 throw new Error('abort second SQLite attempt');
             })).rejects.toThrow('abort second SQLite attempt');
-
             expect(parent.id).toBeUndefined();
             expect(child.parentId).toBeUndefined();
             await db.database.connection.query({
@@ -293,6 +289,10 @@ describe('generated relationship transactions on SQLite', () => {
                     values (?)`,
                 values: ['second blocker'],
             });
+            await expect(db.saveChanges()).rejects.toThrow(
+                'restored after a generated-key rollback',
+            );
+            child.parent = parent;
             await expect(db.saveChanges()).resolves.toBe(2);
             expect(child).toMatchObject({ parentId: 3, parent });
             const table = optional

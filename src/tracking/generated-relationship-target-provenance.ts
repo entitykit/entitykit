@@ -12,6 +12,10 @@ import {
     generatedRelationshipTarget,
     storeGeneratedRelationshipTarget,
 } from './generated-relationship-target-store';
+import {
+    ambiguousRestoredGeneratedRelationshipTarget,
+    staleGeneratedRelationshipTarget,
+} from './generated-relationship-target-error';
 
 /** Remember the exact principal behind a resolved generated FK tuple. */
 export function rememberGeneratedRelationshipTarget(
@@ -83,6 +87,12 @@ export function rolledBackGeneratedRelationshipTarget(
         principal, principalProperties,
     );
     if (!temporary) return undefined;
+    if (remembered.currentValueIsFrameworkOwned &&
+        navigation !== principal.entity) {
+        throw ambiguousRestoredGeneratedRelationshipTarget(
+            dependent, relationship,
+        );
+    }
     return principal;
 }
 
@@ -124,16 +134,4 @@ function sameForeignKey(
 ): boolean {
     return relationship.foreignKeyProperties.every((property, index) =>
         snapshotValuesEqual(current[property], generated[index]));
-}
-
-function staleGeneratedRelationshipTarget(
-    dependent: EntityEntry<object>,
-    relationship: TrackedRelationshipMetadata,
-): Error {
-    return new Error(
-        `Relationship '${dependent.metadata.entityName}.` +
-        `${relationship.navigationProperty}' retains a rolled-back ` +
-        'store-generated FK for a principal that is no longer tracked. ' +
-        'Assign another principal navigation or foreign key before saving.',
-    );
 }

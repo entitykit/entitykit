@@ -4,6 +4,7 @@ import type { ManyToManyChange } from '../many-to-many-change';
 import type { SaveTimeWrites } from '../save-time-writes';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import type { SaveStateAcceptance } from './save-state-acceptance';
+import { captureGeneratedRelationshipRollback } from '../../tracking/generated-relationship-rollback-capture';
 
 interface SaveStateAcceptorOptions {
     readonly changeTracker: ChangeTracker;
@@ -17,6 +18,10 @@ interface SaveStateAcceptorOptions {
 export function acceptSaveState(
     options: SaveStateAcceptorOptions,
 ): SaveStateAcceptance {
+    const rollbackGeneratedRelationships =
+        captureGeneratedRelationshipRollback(
+            options.changeTracker, options.persistedEntries,
+        );
     let rollbackSaveTimeWrites = (): void => {
         options.saveTimeWrites.restore();
     };
@@ -42,10 +47,32 @@ export function acceptSaveState(
             tracker.commit();
         },
         rollback: () => {
-            tracker.rollback();
-            options.rollbackVersions();
-            rollbackSaveTimeWrites();
-            rollbackManyToMany();
+            rollbackAll([
+                rollbackGeneratedRelationships,
+                () => {
+                    tracker.rollback();
+                },
+                options.rollbackVersions,
+                rollbackSaveTimeWrites,
+                rollbackManyToMany,
+            ]);
         },
     };
+}
+
+function rollbackAll(actions: ReadonlyArray<() => void>): void {
+    let firstError: unknown;
+    for (const action of actions) {
+        try {
+            action();
+        } catch (error) {
+            firstError ??= error;
+        }
+    }
+    if (firstError instanceof Error) throw firstError;
+    if (firstError !== undefined) {
+        throw new Error('Save rollback cleanup failed.', {
+            cause: firstError,
+        });
+    }
 }

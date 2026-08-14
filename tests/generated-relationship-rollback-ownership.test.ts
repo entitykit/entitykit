@@ -1,8 +1,12 @@
 import {
     TransactionAlternateDependent,
     TransactionAlternatePrincipal,
+    TransactionBigIntDependent,
+    TransactionBigIntPrincipal,
     TransactionCompositeDependent,
     TransactionCompositePrincipal,
+    TransactionConvertedDependent,
+    TransactionConvertedPrincipal,
     TransactionNullDependent,
     TransactionNullPrincipal,
     TransactionOptionalUndefinedDependent,
@@ -78,6 +82,12 @@ describe('generated relationship rollback ownership', () => {
                 currentExpectedProviderValues: [undefined],
                 currentValueIsFrameworkOwned: true,
             });
+            const statements = connection.statements.length;
+            await expect(db.saveChanges()).rejects.toThrow(
+                'restored after a generated-key rollback',
+            );
+            expect(connection.statements).toHaveLength(statements);
+            child.principal = parent;
             connection.queueResult({ rows: [{ id: 103 }], rowCount: 1 });
             connection.queueResult({ rowCount: 1 });
             await expect(db.saveChanges()).resolves.toBe(2);
@@ -116,6 +126,10 @@ describe('generated relationship rollback ownership', () => {
             currentExpectedProviderValues: [null],
             currentValueIsFrameworkOwned: true,
         });
+        await expect(db.saveChanges()).rejects.toThrow(
+            'restored after a generated-key rollback',
+        );
+        child.principal = parent;
         await retryGeneratedRelationship(db, connection, { id: 106 });
         expect(child).toMatchObject({ principalId: 106, principal: parent });
     });
@@ -146,19 +160,23 @@ describe('generated relationship rollback ownership', () => {
 
         expect(child).toMatchObject({ principalRegion: 'north' });
         expect(child.principalId).toBeUndefined();
+        await expect(db.saveChanges()).rejects.toThrow(
+            'restored after a generated-key rollback',
+        );
+        child.principal = parent;
         await retryGeneratedRelationship(db, connection, { id: 109 });
         expect(child).toMatchObject({
             principalRegion: 'north', principalId: 109, principal: parent,
         });
     });
 
-    it('preserves an undefined alternate key through two rollbacks', async () => {
+    it('preserves an empty alternate key through two rollbacks', async () => {
         const { db, connection } = generatedRelationshipContext();
         const parent = Object.assign(new TransactionAlternatePrincipal(), {
-            id: 'undefined-alternate-parent',
+            id: 'empty-alternate-parent', code: '',
         });
         const child = Object.assign(new TransactionAlternateDependent(), {
-            id: 'undefined-alternate-child',
+            id: 'empty-alternate-child', principalCode: '',
         });
         await establishGeneratedRelationshipProvenance({
             db, connection,
@@ -178,14 +196,108 @@ describe('generated relationship rollback ownership', () => {
             throw new Error('abort alternate retry');
         })).rejects.toThrow('abort alternate retry');
 
-        expect(parent.code).toBeUndefined();
-        expect(child.principalCode).toBeUndefined();
+        expect(parent.code).toBe('');
+        expect(child.principalCode).toBe('');
+        await expect(db.saveChanges()).rejects.toThrow(
+            'restored after a generated-key rollback',
+        );
+        child.principal = parent;
         await retryGeneratedRelationship(db, connection, {
             code: 'third-code',
         });
         expect(child).toMatchObject({
             principalCode: 'third-code', principal: parent,
         });
+    });
+
+    it('requires navigation for a framework-owned bigint zero', async () => {
+        const { db, connection } = generatedRelationshipContext();
+        const parent = new TransactionBigIntPrincipal();
+        const child = Object.assign(new TransactionBigIntDependent(), {
+            id: 'owned-bigint-zero',
+        });
+        await establishGeneratedRelationshipProvenance({
+            db, connection,
+            addPrincipal: () => db.bigintPrincipals.add(parent),
+            addDependent: () => db.bigintDependents.add(child),
+            assignGeneratedForeignKey: () => {
+                child.principalId = parent.id;
+            },
+            generatedRow: { id: 112n },
+        });
+        await expect(db.transaction(async tx => {
+            connection.queueResult({ rows: [{ id: 113n }], rowCount: 1 });
+            connection.queueResult({ rowCount: 1 });
+            await tx.saveChanges();
+            throw new Error('abort bigint retry');
+        })).rejects.toThrow('abort bigint retry');
+
+        expect(child.principalId).toBe(0n);
+        await expect(db.saveChanges()).rejects.toThrow(
+            'restored after a generated-key rollback',
+        );
+        child.principal = parent;
+        await retryGeneratedRelationship(db, connection, { id: 114n });
+        expect(child).toMatchObject({ principalId: 114n, principal: parent });
+    });
+
+    it('requires navigation for a framework-owned converted zero', async () => {
+        const { db, connection } = generatedRelationshipContext();
+        const parent = new TransactionConvertedPrincipal();
+        const child = Object.assign(new TransactionConvertedDependent(), {
+            id: 'owned-converted-zero',
+        });
+        await establishGeneratedRelationshipProvenance({
+            db, connection,
+            addPrincipal: () => db.convertedPrincipals.add(parent),
+            addDependent: () => db.convertedDependents.add(child),
+            assignGeneratedForeignKey: () => {
+                child.principalId = parent.id;
+            },
+            generatedRow: { id: 115 },
+        });
+        await expect(db.transaction(async tx => {
+            connection.queueResult({ rows: [{ id: 116 }], rowCount: 1 });
+            connection.queueResult({ rowCount: 1 });
+            await tx.saveChanges();
+            throw new Error('abort converted retry');
+        })).rejects.toThrow('abort converted retry');
+
+        expect(child.principalId).toBe('0');
+        await expect(db.saveChanges()).rejects.toThrow(
+            'restored after a generated-key rollback',
+        );
+        child.principal = parent;
+        await retryGeneratedRelationship(db, connection, { id: 117 });
+        expect(child).toMatchObject({ principalId: '117', principal: parent });
+    });
+
+    it('clears provenance when rollback cannot restore its FK write', async () => {
+        const { db, connection } = generatedRelationshipContext();
+        const parent = new TransactionUndefinedPrincipal();
+        const child = Object.assign(new TransactionUndefinedDependent(), {
+            id: 'failed-restoration',
+        });
+        await establishGeneratedRelationshipProvenance({
+            db, connection,
+            addPrincipal: () => db.undefinedPrincipals.add(parent),
+            addDependent: () => db.undefinedDependents.add(child),
+            assignGeneratedForeignKey: () => {
+                child.principalId = parent.id;
+            },
+            generatedRow: { id: 110 },
+        });
+
+        await expect(db.transaction(async tx => {
+            connection.queueResult({ rows: [{ id: 111 }], rowCount: 1 });
+            connection.queueResult({ rowCount: 1 });
+            await tx.saveChanges();
+            child.principalId = 999;
+            throw new Error('abort with caller mutation');
+        })).rejects.toThrow('abort with caller mutation');
+
+        expect(child.principalId).toBe(999);
+        expect(provenanceFor(db, child)).toBeUndefined();
     });
 
 });
