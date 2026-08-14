@@ -16,6 +16,10 @@ import {
     scopedPrincipalRelationshipTarget,
 } from './relationship-target-scope';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import {
+    rememberGeneratedRelationshipTarget,
+    rolledBackGeneratedRelationshipTarget,
+} from './generated-relationship-target-provenance';
 
 export { assertTrackedTargetCanBeAssigned };
 export type { RelationshipTargetResolution };
@@ -38,6 +42,12 @@ export function resolveRelationshipTarget(
 ): RelationshipTargetResolution {
     const bound = relationshipBoundValuesFor(dependent, captured);
     if (relationshipTargetIsMissing(relationship, bound)) return { kind: 'none' };
+    const rolledBack = rolledBackGeneratedRelationshipTarget(
+        tracker, dependent, relationship, bound,
+    );
+    if (rolledBack) {
+        return relationshipTargetCandidate(relationship, rolledBack);
+    }
     const target = scopedDependentRelationshipTarget(
         tracker, model, dependent, relationship, bound,
     );
@@ -45,7 +55,15 @@ export function resolveRelationshipTarget(
         tracker, model, dependent, relationship, captured,
     )
         .get(target) ?? [];
-    return selectRelationshipTarget(dependent, relationship, bound, matches);
+    const resolved = selectRelationshipTarget(
+        dependent, relationship, bound, matches,
+    );
+    if (resolved.kind === 'stable') {
+        rememberGeneratedRelationshipTarget(
+            dependent, relationship, resolved.principal, bound,
+        );
+    }
+    return resolved;
 }
 
 /** Resolve reloaded provider facts against captured tracked principal facts. */
