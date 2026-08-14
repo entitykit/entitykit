@@ -12,7 +12,6 @@ import { foreignKeyValuesForPrincipal } from './relationship-principal-foreign-k
 import { assertRelationshipTenantCompatible } from './relationship-tenant-validation';
 import { detachRelationshipEntry } from './change-tracker-relationship-detection-registry';
 import { assertTrackedTargetCanBeAssigned } from './relationship-target-resolver';
-
 export function linkDependent(
     tracker: ChangeTracker,
     model: Model,
@@ -24,9 +23,8 @@ export function linkDependent(
     reassigned?: ReadonlySet<EntityEntry<object>>,
 ): void {
     const principalEntry = tracker.entry(principal);
-    if (principalEntry) {
+    if (principalEntry)
         assertTrackedTargetCanBeAssigned(dependent, relationship, principalEntry);
-    }
     const values = dependent.entity as Record<string, unknown>;
     const previous = previousPrincipal ?? values[relationship.navigationProperty];
     if (previous && previous !== principal) {
