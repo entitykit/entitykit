@@ -103,7 +103,7 @@ export function captureOneToOneIntent(
         desired = inverse.desired;
         desiredTarget = desired
             ? principalTargetIdentity(
-                tracker, model, dependent.metadata, relationship,
+                tracker, model, dependent, relationship,
                 desired.entity, captured,
             )
             : undefined;
@@ -143,7 +143,7 @@ function targetForNavigation(
 ): string | undefined {
     return value && typeof value === 'object'
         ? principalTargetIdentity(
-            tracker, model, dependent.metadata, relationship, value, captured,
+            tracker, model, dependent, relationship, value, captured,
         )
         : undefined;
 }

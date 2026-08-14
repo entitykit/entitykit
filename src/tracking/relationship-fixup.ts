@@ -11,6 +11,7 @@ import type { RelationshipDetectionValues } from './relationship-detection-value
 import { foreignKeyValuesForPrincipal } from './relationship-principal-foreign-key';
 import { assertRelationshipTenantCompatible } from './relationship-tenant-validation';
 import { detachRelationshipEntry } from './change-tracker-relationship-detection-registry';
+import { assertTrackedTargetCanBeAssigned } from './relationship-target-resolver';
 
 export function linkDependent(
     tracker: ChangeTracker,
@@ -22,6 +23,10 @@ export function linkDependent(
     captured?: RelationshipDetectionValues,
     reassigned?: ReadonlySet<EntityEntry<object>>,
 ): void {
+    const principalEntry = tracker.entry(principal);
+    if (principalEntry) {
+        assertTrackedTargetCanBeAssigned(dependent, relationship, principalEntry);
+    }
     const values = dependent.entity as Record<string, unknown>;
     const previous = previousPrincipal ?? values[relationship.navigationProperty];
     if (previous && previous !== principal) {
@@ -38,7 +43,6 @@ export function linkDependent(
     assertRelationshipTenantCompatible(
         tracker, dependent, principalMetadata, principal, captured,
     );
-    const principalEntry = tracker.entry(principal);
     const key = foreignKeyValuesForPrincipal(
         dependent,
         relationship,

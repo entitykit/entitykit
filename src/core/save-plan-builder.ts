@@ -19,6 +19,7 @@ import {
 import { refreshRelationshipPlanSnapshot } from './relationship-plan-snapshot';
 import { buildRelationshipAuthorizationSavePlan } from './relationship-authorization-save-plan';
 import { assembleSavePlan } from './save-plan/assemble-plan';
+import { changeTrackerModel } from '../tracking/change-tracker-model';
 
 /** Dependencies the save-plan coordinator receives from its context. */
 export interface SavePlanBuilderDeps {
@@ -98,11 +99,15 @@ export class SavePlanBuilder {
             snapshots.filter(snapshot =>
                 (reconciled.get(snapshot.entry.entity)?.navigations.size ?? 0) > 0),
         );
+        const configuredModel = changeTrackerModel(this.deps.changeTracker);
+        if (!configuredModel) {
+            throw new Error('Save planning requires a configured model.');
+        }
         const pending = orderSaveEntries(snapshots.filter(snapshot =>
             snapshot.state === EntityState.Added ||
             snapshot.state === EntityState.Modified ||
             snapshot.state === EntityState.Deleted,
-        ));
+        ), this.deps.changeTracker, configuredModel, snapshots);
 
         const dialect = this.deps.getDialect();
         const sql = new ModificationSqlBuilder(dialect);

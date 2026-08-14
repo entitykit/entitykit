@@ -52,6 +52,64 @@ class GeneratedAlternateKeyContext extends DbContext {
 }
 
 describe('database-generated alternate keys', () => {
+    it('rejects multiple stable tracked principals with one relationship key', () => {
+        GeneratedAlternateKeyContext.connection =
+            new RecordingDatabaseConnection();
+        const db = GeneratedAlternateKeyContext.create();
+        db.principals.attach({
+            id: 'principal_1', code: 'duplicate-code',
+        });
+        db.principals.attach({
+            id: 'principal_2', code: 'duplicate-code',
+        });
+        db.dependents.add({
+            id: 'dependent_1', principalCode: 'duplicate-code',
+        } as GeneratedDependent);
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).toThrow('has an ambiguous FK-only target');
+    });
+
+    it('rejects an FK-only placeholder shared by generated alternate keys', () => {
+        GeneratedAlternateKeyContext.connection =
+            new RecordingDatabaseConnection();
+        const db = GeneratedAlternateKeyContext.create();
+        db.principals.add({
+            id: 'principal_1', code: '',
+        });
+        db.principals.add({
+            id: 'principal_2', code: '',
+        });
+        db.dependents.add({
+            id: 'dependent_1', principalCode: '',
+        } as GeneratedDependent);
+
+        expect(() => {
+            db.changeTracker.detectChanges();
+        }).toThrow('has an ambiguous FK-only target');
+    });
+
+    it('rejects an existing dependent assigned to an unresolved alternate key', async () => {
+        const connection = new RecordingDatabaseConnection();
+        GeneratedAlternateKeyContext.connection = connection;
+        const db = GeneratedAlternateKeyContext.create();
+        const dependent = {
+            id: 'dependent_1', principalCode: 'persisted-code',
+        } as GeneratedDependent;
+        const principal = { id: 'principal_1' } as GeneratedPrincipal;
+        db.dependents.attach(dependent);
+        db.principals.add(principal);
+        dependent.principal = principal;
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'relationship key \'GeneratedPrincipal.code\' has not been generated',
+        );
+
+        expect(dependent.principalCode).toBe('persisted-code');
+        expect(connection.statements).toEqual([]);
+    });
+
     it('hydrates and propagates a generated principal tuple before dependent SQL', async () => {
         const connection = new RecordingDatabaseConnection();
         GeneratedAlternateKeyContext.connection = connection;

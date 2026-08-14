@@ -10,13 +10,16 @@ import { changeTrackerAllowsCrossTenantAccess } from './change-tracker-tenant-ca
 import type { EntityEntry } from './entity-entry';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
 import { relationshipBoundValuesFor } from './relationship-detection-values';
-import { resolveTemporaryPrincipalTarget } from './one-to-one-temporary-target';
 import { untrackedPrincipalTargetFacts } from './one-to-one-untracked-target-facts';
 import {
     temporaryGeneratedIdentity,
     temporaryGeneratedProperty,
 } from './temporary-generated-identity';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import {
+    assertTrackedTargetCanBeAssigned,
+    resolveRelationshipTarget,
+} from './relationship-target-resolver';
 
 /** Final provider-key target represented by a dependent's captured FK facts. */
 export function dependentTargetIdentity(
@@ -33,25 +36,18 @@ export function dependentTargetIdentity(
     const principal = model.getEntity<Record<string, unknown>>(
         relationship.principalEntity,
     );
-    const target = providerIdentity(
+    const providerTarget = providerIdentity(
         dependentRelationshipBoundKey(relationship, bound),
         tenantScope(
             tracker, dependent.metadata, bound, principal,
         ),
     );
-    return resolveTemporaryPrincipalTarget(
-        tracker, relationship, captured, target, entry => {
-            const principalBound = relationshipBoundValuesFor(entry, captured);
-            return providerIdentity(
-                principalRelationshipBoundKey(
-                    relationship, principal, principalBound,
-                ),
-                tenantScope(
-                    tracker, principal, principalBound, dependent.metadata,
-                ),
-            );
-        },
+    const resolved = resolveRelationshipTarget(
+        tracker, model, dependent, relationship, captured,
     );
+    return resolved.kind === 'temporary'
+        ? `temporary:${resolved.identity}`
+        : providerTarget;
 }
 
 /** Persisted provider-key target from the dependent's original snapshot. */
@@ -78,7 +74,7 @@ export function originalDependentTargetIdentity(
 export function principalTargetIdentity(
     tracker: ChangeTracker,
     model: Model,
-    dependentMetadata: EntityMetadata,
+    dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     principal: object,
     captured: RelationshipDetectionValues,
@@ -88,6 +84,7 @@ export function principalTargetIdentity(
     );
     const entry = tracker.entry(principal);
     if (entry) {
+        assertTrackedTargetCanBeAssigned(dependent, relationship, entry);
         const targetProperties = relationship.principalKeyProperties ??
             metadata.keyProperties;
         const temporary = targetProperties.some(property =>
@@ -98,7 +95,7 @@ export function principalTargetIdentity(
         const bound = relationshipBoundValuesFor(entry, captured);
         return providerIdentity(
             principalRelationshipBoundKey(relationship, metadata, bound),
-            tenantScope(tracker, metadata, bound, dependentMetadata),
+            tenantScope(tracker, metadata, bound, dependent.metadata),
         );
     }
     const bound = untrackedPrincipalTargetFacts(
@@ -106,7 +103,7 @@ export function principalTargetIdentity(
     );
     return providerIdentity(
         principalRelationshipBoundKey(relationship, metadata, bound),
-        tenantScope(tracker, metadata, bound, dependentMetadata),
+        tenantScope(tracker, metadata, bound, dependent.metadata),
     );
 }
 

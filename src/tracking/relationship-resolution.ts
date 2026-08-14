@@ -13,6 +13,10 @@ import {
 } from './relationship-detection-values';
 import { changeTrackerAllowsCrossTenantAccess } from './change-tracker-tenant-capability';
 import { snapshotValuesEqual } from './snapshot-value-equality';
+import {
+    resolveRelationshipTarget,
+    resolveRelationshipTargetByBoundValues,
+} from './relationship-target-resolver';
 
 export function findTrackedPrincipal(
     tracker: ChangeTracker,
@@ -21,28 +25,12 @@ export function findTrackedPrincipal(
     relationship: TrackedRelationshipMetadata,
     captured: RelationshipDetectionValues,
 ): EntityEntry<object> | undefined {
-    const values = relationshipValuesFor(dependent, captured);
-    const foreignKey = relationship.foreignKeyProperties.map(
-        property => values[property],
+    const resolved = resolveRelationshipTarget(
+        tracker, model, dependent, relationship, captured,
     );
-    if (foreignKey.some(value => value === null || value === undefined)) {
-        return undefined;
-    }
-    const principalMetadata = model.getEntity<Record<string, unknown>>(
-        relationship.principalEntity,
-    );
-    const key = dependentRelationshipBoundKey(
-        relationship,
-        relationshipBoundValuesFor(dependent, captured),
-    );
-    return tracker.entries().find(entry =>
-        entry.metadata === principalMetadata &&
-        tenantsAreCompatible(tracker, dependent, entry) &&
-        principalRelationshipBoundKey(
-            relationship,
-            principalMetadata,
-            relationshipBoundValuesFor(entry, captured),
-        ) === key);
+    return resolved.kind === 'stable' || resolved.kind === 'temporary'
+        ? resolved.principal
+        : undefined;
 }
 
 export function findTrackedPrincipalByBoundValues(
@@ -52,27 +40,12 @@ export function findTrackedPrincipalByBoundValues(
     relationship: TrackedRelationshipMetadata,
     dependentBoundValues: Readonly<Record<string, unknown>>,
 ): EntityEntry<object> | undefined {
-    const foreignKey = relationship.foreignKeyProperties.map(
-        property => dependentBoundValues[property],
+    const resolved = resolveRelationshipTargetByBoundValues(
+        tracker, model, dependent, relationship, dependentBoundValues,
     );
-    if (foreignKey.some(value => value === null || value === undefined)) {
-        return undefined;
-    }
-    const principalMetadata = model.getEntity<Record<string, unknown>>(
-        relationship.principalEntity,
-    );
-    const key = dependentRelationshipBoundKey(
-        relationship,
-        dependentBoundValues,
-    );
-    return tracker.entries().find(entry =>
-        entry.metadata === principalMetadata &&
-        tenantsAreCompatible(tracker, dependent, entry) &&
-        principalRelationshipBoundKey(
-            relationship,
-            principalMetadata,
-            entry.originalBoundValues,
-        ) === key);
+    return resolved.kind === 'stable' || resolved.kind === 'temporary'
+        ? resolved.principal
+        : undefined;
 }
 
 export function relationshipConnects(
@@ -84,25 +57,14 @@ export function relationshipConnects(
     captured: RelationshipDetectionValues,
 ): boolean {
     const live = dependent.entity as Record<string, unknown>;
-    const values = relationshipValuesFor(dependent, captured);
     if (live[relationship.navigationProperty] === principal.entity) {
         return tenantsAreCompatible(tracker, dependent, principal);
     }
-    const foreignKey = relationship.foreignKeyProperties.map(
-        property => values[property],
+    const resolved = resolveRelationshipTarget(
+        tracker, model, dependent, relationship, captured,
     );
-    return tenantsAreCompatible(tracker, dependent, principal) &&
-        !foreignKey.some(value => value === null || value === undefined) &&
-        dependentRelationshipBoundKey(
-            relationship,
-            relationshipBoundValuesFor(dependent, captured),
-        ) === principalRelationshipBoundKey(
-            relationship,
-            model.getEntity<Record<string, unknown>>(
-                relationship.principalEntity,
-            ),
-            relationshipBoundValuesFor(principal, captured),
-        );
+    return (resolved.kind === 'stable' || resolved.kind === 'temporary') &&
+        resolved.principal === principal;
 }
 
 export function relationshipForeignKeyMatchesPrincipal(

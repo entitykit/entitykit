@@ -24,23 +24,31 @@ export class TrackingIdentityFactory {
         values: Readonly<Record<string, unknown>>,
         boundValues: Readonly<Record<string, unknown>>,
     ): CapturedTrackingIdentity {
-        const keyValues = metadata.keyProperties.map(
-            propertyName => values[propertyName],
-        );
+        const generatedIdentityProperties = [
+            ...metadata.keyProperties.map(String),
+            ...metadata.alternateKeys.flatMap(key =>
+                key.propertyNames.map(String)),
+        ].filter((property, index, all) => all.indexOf(property) === index)
+            .map(property => metadata.getProperty(property));
         const properties = state === EntityState.Added
-            ? metadata.keyPropertiesMetadata.flatMap((property, index) =>
+            ? generatedIdentityProperties.flatMap(property =>
                 isGeneratedOnAdd(property.valueGenerated)
                     ? [captureTemporaryGeneratedProperty(
-                        keyValues[index],
+                        values[property.propertyName],
                         boundValues[property.propertyName],
                         property,
                     )]
                     : [])
             : [];
         if (properties.length > 0) {
-            const identityKey = `\0entitykit:${metadata.entityName}:${
-                String(this.nextTemporaryIdentity++)
-            }`;
+            const generatedPrimaryKey = metadata.keyPropertiesMetadata.some(
+                property => isGeneratedOnAdd(property.valueGenerated),
+            );
+            const identityKey = generatedPrimaryKey
+                ? `\0entitykit:${metadata.entityName}:${
+                    String(this.nextTemporaryIdentity++)
+                }`
+                : trackingIdentityKeyForBoundValues(metadata, boundValues);
             return {
                 identityKey,
                 temporaryGeneratedIdentity: { identityKey, properties },

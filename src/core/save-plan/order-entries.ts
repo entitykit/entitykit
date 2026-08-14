@@ -3,10 +3,15 @@ import { EntityState } from '../../tracking/entity-state';
 import type { EntityConstructor } from '../../types';
 import { findPrincipalEntry } from './find-principal-entry';
 import { addOneToOneDisplacementEdges } from './one-to-one-ordering';
+import type { ChangeTracker } from '../../tracking/change-tracker';
+import type { Model } from '../../model/model';
 
 /** Order dependencies, then unrelated modified, added, and deleted entries. */
 export function orderSaveEntries(
     entries: readonly PersistedEntrySnapshot[],
+    tracker: ChangeTracker,
+    model: Model,
+    trackedEntries: readonly PersistedEntrySnapshot[] = entries,
 ): PersistedEntrySnapshot[] {
     const outgoing: Map<
         PersistedEntrySnapshot,
@@ -21,10 +26,12 @@ export function orderSaveEntries(
     > = new Map();
 
     entries.forEach((snapshot, index) => {
-        const { entry } = snapshot;
         outgoing.set(snapshot, new Set());
         incoming.set(snapshot, 0);
         originalIndex.set(snapshot, index);
+    });
+    trackedEntries.forEach(snapshot => {
+        const { entry } = snapshot;
         entriesByEntity.set(entry.entity, snapshot);
         const typed = entriesByType.get(entry.metadata.ctor) ?? [];
         typed.push(snapshot);
@@ -48,8 +55,10 @@ export function orderSaveEntries(
             if (entry.state === EntityState.Deleted) {
                 const principal = findPrincipalEntry(
                     relationship,
-                    entry.metadata,
-                    entry.originalValues,
+                    dependent,
+                    'original',
+                    tracker,
+                    model,
                     entriesByType,
                     entriesByEntity,
                 );
@@ -61,11 +70,10 @@ export function orderSaveEntries(
 
             const principal = findPrincipalEntry(
                 relationship,
-                entry.metadata,
-                {
-                    ...dependent.values,
-                    ...dependent.relationshipValues,
-                },
+                dependent,
+                'current',
+                tracker,
+                model,
                 entriesByType,
                 entriesByEntity,
             );
@@ -76,8 +84,10 @@ export function orderSaveEntries(
             if (entry.state === EntityState.Modified) {
                 const previousPrincipal = findPrincipalEntry(
                     relationship,
-                    entry.metadata,
-                    entry.originalValues,
+                    dependent,
+                    'original',
+                    tracker,
+                    model,
                     entriesByType,
                     entriesByEntity,
                 );

@@ -204,6 +204,88 @@ describe('generated provider key facts', () => {
         await db.dispose();
     });
 
+    it('does not rewire a persisted zero FK to an unrelated new principal', async () => {
+        resetGeneratedConverter();
+        const db = GeneratedProviderGraphContext.create();
+        await db.database.connection.query({
+            text: db.database.createScript(), values: [],
+        });
+        await db.database.connection.query({
+            text: `insert into generated_provider_parents (id, name)
+                values (?, ?)`,
+            values: [0, 'existing-zero'],
+        });
+        await db.database.connection.query({
+            text: `insert into generated_provider_children (id, parent_id)
+                values (?, ?)`,
+            values: ['persisted-child', 0],
+        });
+        const child = await db.children.find('persisted-child');
+        const parent = Object.assign(new GeneratedProviderParent(), {
+            name: 'unrelated-new-parent',
+        });
+        db.parents.add(parent);
+
+        await expect(db.saveChanges()).resolves.toBe(1);
+
+        expect(parent.id).toBe(1);
+        expect(child).toMatchObject({ parentId: 0 });
+        expect(child?.parent).toBeNull();
+        const stored = await db.database.connection.query<{
+            parent_id: number;
+        }>({
+            text: `select parent_id from generated_provider_children
+                where id = ?`,
+            values: ['persisted-child'],
+        });
+        expect(stored.rows).toEqual([{ parent_id: 0 }]);
+        await db.dispose();
+    });
+
+    it('rejects an existing dependent assigned to an unresolved new key', async () => {
+        resetGeneratedConverter();
+        const db = GeneratedProviderGraphContext.create();
+        await db.database.connection.query({
+            text: db.database.createScript(), values: [],
+        });
+        await db.database.connection.query({
+            text: `insert into generated_provider_parents (id, name)
+                values (?, ?)`,
+            values: [2, 'persisted-parent'],
+        });
+        await db.database.connection.query({
+            text: `insert into generated_provider_children (id, parent_id)
+                values (?, ?)`,
+            values: ['persisted-child', 2],
+        });
+        const child = await db.children.find('persisted-child');
+        const parent = Object.assign(new GeneratedProviderParent(), {
+            name: 'unresolved-parent',
+        });
+        db.parents.add(parent);
+        if (!child) throw new Error('Expected the persisted child.');
+        child.parent = parent;
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'Cannot assign existing \'GeneratedProviderChild\' to newly added ' +
+            '\'GeneratedProviderParent\' because the relationship key ' +
+            '\'GeneratedProviderParent.id\' has not been generated yet.',
+        );
+
+        expect(child).toMatchObject({ parentId: 2, parent });
+        expect(parent).toMatchObject({ id: 0, children: [] });
+        const stored = await db.database.connection.query<{
+            parent_id: number;
+        }>({
+            text: `select parent_id from generated_provider_children
+                where id = ?`,
+            values: ['persisted-child'],
+        });
+        expect(stored.rows).toEqual([{ parent_id: 2 }]);
+        await expect(db.parents.count()).resolves.toBe(1);
+        await db.dispose();
+    });
+
     it('links a many-to-many row with the exact generated endpoint key', async () => {
         resetGeneratedConverter();
         const db = GeneratedProviderManyToManyContext.create();
