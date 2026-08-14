@@ -249,4 +249,65 @@ describe('generated relationship target type matrix', () => {
         expect(tenantA.dependents).toEqual([]);
         expect(tenantB.dependents).toEqual([dependent]);
     });
+
+    it('propagates a generated BigInt key through one explicit added graph', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = RelationshipTargetTypeContext.create(connection);
+        const target = new BigTarget();
+        const dependent = Object.assign(new BigDependent(), {
+            id: 'child', target,
+        });
+        db.bigDependents.add(dependent);
+        db.bigTargets.add(target);
+        connection.queueResult({ rows: [{ id: 41n }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect(target.id).toBe(41n);
+        expect(dependent.targetId).toBe(41n);
+        expect(connection.statements[1]?.values).toContain(41n);
+    });
+
+    it('propagates a converted generated key through one explicit added graph', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = RelationshipTargetTypeContext.create(connection);
+        const target = new ConvertedTarget();
+        const dependent = Object.assign(new ConvertedDependent(), {
+            id: 'child', target,
+        });
+        db.convertedDependents.add(dependent);
+        db.convertedTargets.add(target);
+        connection.queueResult({ rows: [{ id: 41 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect(target.id).toBe('41');
+        expect(dependent.targetId).toBe('41');
+        expect(connection.statements[1]?.values).toContain(41);
+    });
+
+    it('propagates one generated component through an added composite graph', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const db = RelationshipTargetTypeContext.create(connection);
+        const target = Object.assign(new CompositeTarget(), {
+            region: 'north',
+        });
+        const dependent = Object.assign(new CompositeDependent(), {
+            id: 'child', target,
+        });
+        db.compositeDependents.add(dependent);
+        db.compositeTargets.add(target);
+        connection.queueResult({ rows: [{ id: 41 }], rowCount: 1 });
+        connection.queueResult({ rowCount: 1 });
+
+        await expect(db.saveChanges()).resolves.toBe(2);
+
+        expect(target.id).toBe(41);
+        expect(dependent).toMatchObject({
+            targetRegion: 'north', targetId: 41,
+        });
+        expect(connection.statements[1]?.values).toContain(41);
+    });
 });
