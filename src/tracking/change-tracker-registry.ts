@@ -11,6 +11,7 @@ import { trackingCollisionError } from './tracking-collision-error';
 import { createTrackedEntry } from './tracked-entry-factory';
 import { prepareTrackedRegistration, publishTrackedRegistration } from './tracked-entry-registration';
 import { registerRelationshipDetectionRegistry } from './change-tracker-relationship-detection-registry';
+import { assertTemporaryPrincipalCanDetach } from './temporary-principal-detachment';
 
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
@@ -111,13 +112,13 @@ export class ChangeTrackerRegistry {
     public detach<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         const entry = this.entry(entity);
         if (!entry) return undefined;
+        const tracked = entry as unknown as EntityEntry<object>;
+        assertTemporaryPrincipalCanDetach(this.owner, tracked);
         entry.markDetached();
-        clearTemporaryGeneratedIdentity(
-            entry as unknown as EntityEntry<object>,
-        );
+        clearTemporaryGeneratedIdentity(tracked);
         this.entriesByEntity.delete(entity);
-        this.identities.remove(entry as unknown as EntityEntry<object>);
-        this.trackedEntries.delete(entry as unknown as EntityEntry<object>);
+        this.identities.remove(tracked);
+        this.trackedEntries.delete(tracked);
         this.assertInvariant();
         return entry;
     }

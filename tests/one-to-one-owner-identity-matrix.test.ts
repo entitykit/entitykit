@@ -247,7 +247,7 @@ describe('one-to-one final owner provider identities', () => {
         });
     });
 
-    it('matches navigation and FK claims to one temporary numeric principal', () => {
+    it('rejects an FK-only claim beside temporary numeric navigation', () => {
         const db = IdentityMatrixContext.create(new RecordingDatabaseConnection());
         const owner = new GeneratedOwner();
         db.generatedOwners.add(owner);
@@ -258,12 +258,12 @@ describe('one-to-one final owner provider identities', () => {
             id: 'b', ownerId: 0,
         }));
 
-        expectConflict(() => {
+        expect(() => {
             db.changeTracker.detectChanges();
-        });
+        }).toThrow('cannot infer a newly added principal');
     });
 
-    it('matches navigation and FK claims to one temporary BigInt principal', () => {
+    it('rejects an FK-only claim beside temporary BigInt navigation', () => {
         const db = IdentityMatrixContext.create(new RecordingDatabaseConnection());
         const owner = new GeneratedBigIntOwner();
         db.generatedBigIntOwners.add(owner);
@@ -274,9 +274,9 @@ describe('one-to-one final owner provider identities', () => {
             new GeneratedBigIntProfile(), { id: 'b', ownerId: 0n },
         ));
 
-        expectConflict(() => {
+        expect(() => {
             db.changeTracker.detectChanges();
-        });
+        }).toThrow('cannot infer a newly added principal');
     });
 
     it('rejects an ambiguous FK shared by temporary generated principals', () => {

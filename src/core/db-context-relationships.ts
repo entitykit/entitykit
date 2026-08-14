@@ -45,8 +45,4 @@ export abstract class DbContextRelationships extends DbContextRawSql {
         this.navigationLinks.unlink(source, navigationSelector, target);
     }
 
-    protected override cancelAddedEntity(entity: object): void {
-        this.manyToMany.cancelFor(entity);
-        super.cancelAddedEntity(entity);
-    }
 }

@@ -14,6 +14,7 @@ import {
 import { changeTrackerAllowsCrossTenantAccess } from './change-tracker-tenant-capability';
 import { snapshotValuesEqual } from './snapshot-value-equality';
 import {
+    assertTrackedTargetCanBeAssigned,
     resolveRelationshipTarget,
     resolveRelationshipTargetByBoundValues,
 } from './relationship-target-resolver';
@@ -58,6 +59,7 @@ export function relationshipConnects(
 ): boolean {
     const live = dependent.entity as Record<string, unknown>;
     if (live[relationship.navigationProperty] === principal.entity) {
+        assertTrackedTargetCanBeAssigned(dependent, relationship, principal);
         return tenantsAreCompatible(tracker, dependent, principal);
     }
     const resolved = resolveRelationshipTarget(
@@ -74,6 +76,7 @@ export function relationshipForeignKeyMatchesPrincipal(
     principal: EntityEntry<object>,
     captured: RelationshipDetectionValues,
 ): boolean {
+    assertTrackedTargetCanBeAssigned(dependent, relationship, principal);
     const values = relationshipValuesFor(dependent, captured);
     const foreignKey = relationship.foreignKeyProperties.map(
         property => values[property],

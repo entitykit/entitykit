@@ -55,7 +55,13 @@ export function selectRelationshipTarget(
     }
     if (eligible.length === 0) return { kind: 'untracked' };
     const resolved = eligible[0];
-    if (resolved.kind === 'temporary' && dependent.state !== EntityState.Added) {
+    if (resolved.kind === 'temporary') {
+        if (resolved.principal === dependent) {
+            throw generatedSelfTarget(dependent, relationship);
+        }
+        if (dependent.state === EntityState.Added) {
+            throw fkOnlyTemporaryTarget(dependent, relationship);
+        }
         throw unresolvedTarget(dependent, resolved.principal, relationship);
     }
     return resolved;
@@ -67,9 +73,33 @@ export function assertTrackedTargetCanBeAssigned(
     principal: EntityEntry<object>,
 ): void {
     const resolved = relationshipTargetCandidate(relationship, principal);
-    if (resolved.kind === 'temporary' && dependent.state !== EntityState.Added) {
+    if (resolved.kind !== 'temporary') return;
+    if (principal === dependent) throw generatedSelfTarget(dependent, relationship);
+    if (dependent.state !== EntityState.Added)
         throw unresolvedTarget(dependent, principal, relationship);
-    }
+}
+
+function fkOnlyTemporaryTarget(
+    dependent: EntityEntry<object>,
+    relationship: TrackedRelationshipMetadata,
+): Error {
+    return new Error(
+        `Relationship '${dependent.metadata.entityName}.` +
+        `${relationship.navigationProperty}' cannot infer a newly added ` +
+        'principal from an unresolved store-generated FK value. Set the ' +
+        `navigation '${relationship.navigationProperty}' explicitly.`,
+    );
+}
+
+function generatedSelfTarget(
+    dependent: EntityEntry<object>,
+    relationship: TrackedRelationshipMetadata,
+): Error {
+    return new Error(
+        `Relationship '${dependent.metadata.entityName}.` +
+        `${relationship.navigationProperty}' cannot target the same newly ` +
+        'added entity through an unresolved store-generated key.',
+    );
 }
 
 function unresolvedTarget(

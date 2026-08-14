@@ -291,7 +291,7 @@ describe('tenant-owned ordinary relationship writes', () => {
         await db.dispose();
     });
 
-    it('resolves a generated placeholder only through the final tracked graph', async () => {
+    it('does not infer a generated target from a tenant-owned FK', async () => {
         const db = GeneratedTenantRelationshipContext.create();
         await db.database.connection.query({
             text: db.database.createScript(), values: [],
@@ -303,9 +303,13 @@ describe('tenant-owned ordinary relationship writes', () => {
         db.children.add(child);
         db.parents.add(parent);
 
-        await expect(db.saveChanges()).resolves.toBe(2);
-        expect(child.parent).toBe(parent);
-        expect(child.parentId).toBe(parent.id);
+        await expect(db.saveChanges()).rejects.toThrow(
+            'cannot infer a newly added principal',
+        );
+        expect(child.parent).toBeUndefined();
+        expect(child.parentId).toBe(0);
+        await expect(db.parents.count()).resolves.toBe(0);
+        await expect(db.children.count()).resolves.toBe(0);
         await db.dispose();
     });
 
