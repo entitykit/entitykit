@@ -1,8 +1,7 @@
 import { DbValidationError } from '../errors/entity-kit-error';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { EntityEntry } from '../tracking/entity-entry';
-import { EntityState } from '../tracking/entity-state';
-import { temporaryGeneratedProperty } from '../tracking/temporary-generated-identity';
+import { activeTemporaryGeneratedIdentity } from '../tracking/temporary-generated-identity';
 import type { ManyToManyChange } from './many-to-many-change';
 
 export function validateManyToManyKeyValues(
@@ -48,6 +47,7 @@ function isTemporaryGeneratedProperty(
     entry: EntityEntry<object> | undefined,
     propertyName: string,
 ): boolean {
-    return entry?.state === EntityState.Added &&
-        temporaryGeneratedProperty(entry, propertyName) !== undefined;
+    return entry !== undefined && activeTemporaryGeneratedIdentity(
+        entry, [propertyName],
+    ) !== undefined;
 }

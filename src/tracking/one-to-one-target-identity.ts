@@ -12,8 +12,7 @@ import type { RelationshipDetectionValues } from './relationship-detection-value
 import { relationshipBoundValuesFor } from './relationship-detection-values';
 import { untrackedPrincipalTargetFacts } from './one-to-one-untracked-target-facts';
 import {
-    temporaryGeneratedIdentity,
-    temporaryGeneratedProperty,
+    activeTemporaryGeneratedIdentity,
 } from './temporary-generated-identity';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import {
@@ -87,10 +86,9 @@ export function principalTargetIdentity(
         assertTrackedTargetCanBeAssigned(dependent, relationship, entry);
         const targetProperties = relationship.principalKeyProperties ??
             metadata.keyProperties;
-        const temporary = targetProperties.some(property =>
-            temporaryGeneratedProperty(entry, property) !== undefined)
-            ? temporaryGeneratedIdentity(entry)
-            : undefined;
+        const temporary = activeTemporaryGeneratedIdentity(
+            entry, targetProperties,
+        );
         if (temporary) return `temporary:${temporary.identityKey}`;
         const bound = relationshipBoundValuesFor(entry, captured);
         return providerIdentity(

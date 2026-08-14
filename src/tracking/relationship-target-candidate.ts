@@ -2,8 +2,7 @@ import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
 import { snapshotValuesEqual } from './snapshot-value-equality';
 import {
-    temporaryGeneratedIdentity,
-    temporaryGeneratedProperty,
+    activeTemporaryGeneratedIdentity,
 } from './temporary-generated-identity';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 
@@ -24,10 +23,7 @@ export function relationshipTargetCandidate(
 ): RelationshipTargetCandidate {
     const properties = relationship.principalKeyProperties ??
         entry.metadata.keyProperties;
-    const temporary = properties.some(property =>
-        temporaryGeneratedProperty(entry, property) !== undefined)
-        ? temporaryGeneratedIdentity(entry)
-        : undefined;
+    const temporary = activeTemporaryGeneratedIdentity(entry, properties);
     return temporary
         ? { kind: 'temporary', principal: entry, identity: temporary.identityKey }
         : { kind: 'stable', principal: entry };
@@ -107,9 +103,14 @@ function unresolvedTarget(
     principal: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
 ): Error {
-    const properties = (relationship.principalKeyProperties ??
-        principal.metadata.keyProperties).filter(property =>
-        temporaryGeneratedProperty(principal, property) !== undefined);
+    const targetProperties = relationship.principalKeyProperties ??
+        principal.metadata.keyProperties;
+    const temporary = activeTemporaryGeneratedIdentity(
+        principal, targetProperties,
+    );
+    const properties = targetProperties.filter(property =>
+        temporary?.properties.some(candidate =>
+            candidate.propertyName === property) === true);
     const key = properties.map(property =>
         `${principal.metadata.entityName}.${property}`).join(', ');
     return new Error(

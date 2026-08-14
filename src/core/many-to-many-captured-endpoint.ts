@@ -3,7 +3,7 @@ import { isGeneratedOnAdd } from '../model/value-generated';
 import { EntityState } from '../tracking/entity-state';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import {
-    temporaryGeneratedIdentity,
+    activeTemporaryGeneratedIdentity,
 } from '../tracking/temporary-generated-identity';
 import {
     encodeSaveIdentityTuple,
@@ -31,11 +31,9 @@ export function captureRelationshipEndpoint(
     const providerKeyValues = metadata.keyProperties.map(
         propertyName => snapshot.boundValues[propertyName],
     );
-    const temporary = temporaryGeneratedIdentity(snapshot.entry);
-    const activeTemporaryIdentity =
-        snapshot.state === EntityState.Added && temporary
-            ? temporary.identityKey
-            : undefined;
+    const activeTemporaryIdentity = activeTemporaryGeneratedIdentity(
+        snapshot.entry, metadata.keyProperties.map(String),
+    )?.identityKey;
     return {
         entity,
         metadata,

@@ -1,7 +1,7 @@
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import { navigationSnapshot } from './navigation-snapshot';
-import { temporaryGeneratedProperty } from './temporary-generated-identity';
+import { activeTemporaryGeneratedIdentity } from './temporary-generated-identity';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 
 /** Keep unresolved tracked identity from becoming a durable FK by detachment. */
@@ -34,9 +34,10 @@ function relationshipUsesTemporaryKey(
     principal: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
 ): boolean {
-    return (relationship.principalKeyProperties ??
-        principal.metadata.keyProperties).some(property =>
-        temporaryGeneratedProperty(principal, property) !== undefined);
+    return activeTemporaryGeneratedIdentity(
+        principal,
+        relationship.principalKeyProperties ?? principal.metadata.keyProperties,
+    ) !== undefined;
 }
 
 function targetsPrincipal(

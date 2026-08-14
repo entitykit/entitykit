@@ -106,6 +106,21 @@ export function temporaryGeneratedIdentity(
     return temporaryByEntry.get(entry);
 }
 
+/** Return rollback metadata only while its generated identity is unresolved. */
+export function activeTemporaryGeneratedIdentity(
+    entry: EntityEntry<object>,
+    propertyNames?: readonly string[],
+): TemporaryGeneratedIdentity | undefined {
+    if (entry.state !== EntityState.Added) return undefined;
+    const temporary = temporaryByEntry.get(entry);
+    if (!temporary || propertyNames === undefined) return temporary;
+    return propertyNames.some(propertyName => temporary.properties.some(
+        property => property.propertyName === propertyName,
+    ))
+        ? temporary
+        : undefined;
+}
+
 export function temporaryGeneratedProperty(
     entry: EntityEntry<object>,
     propertyName: string,

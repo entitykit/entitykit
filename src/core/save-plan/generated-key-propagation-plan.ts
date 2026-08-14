@@ -4,7 +4,7 @@ import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snap
 import { EntityState } from '../../tracking/entity-state';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
 import {
-    temporaryGeneratedProperty,
+    activeTemporaryGeneratedIdentity,
     type TemporaryGeneratedProperty,
 } from '../../tracking/temporary-generated-identity';
 import { snapshotValuesEqual } from '../../tracking/snapshot-value-equality';
@@ -46,10 +46,10 @@ export function generatedKeyPropagations(
                     principalProperty,
                 ).valueGenerated,
             );
-            const temporary = temporaryGeneratedProperty(
-                principal.entry,
-                principalProperty,
-            );
+            const temporary = activeTemporaryGeneratedIdentity(
+                principal.entry, [principalProperty],
+            )?.properties.find(property =>
+                property.propertyName === principalProperty);
             if (
                 !isMissing(foreignKeyValue) &&
                 !matchesTemporaryValue(
