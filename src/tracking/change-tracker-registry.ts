@@ -12,7 +12,7 @@ import { createTrackedEntry } from './tracked-entry-factory';
 import { prepareTrackedRegistration, publishTrackedRegistration } from './tracked-entry-registration';
 import { registerRelationshipDetectionRegistry } from './change-tracker-relationship-detection-registry';
 import { assertTemporaryPrincipalCanDetach } from './temporary-principal-detachment';
-
+import { detachGeneratedRelationshipTargets } from './generated-relationship-target-store';
 export class ChangeTrackerRegistry {
     private entriesByEntity: WeakMap<object, EntityEntry<object>> = new WeakMap();
     private readonly trackedEntries: Set<EntityEntry<object>> = new Set();
@@ -68,7 +68,6 @@ export class ChangeTrackerRegistry {
         if (existingByIdentity) {
             throw trackingCollisionError(metadata, values, state);
         }
-
         const entry = createTrackedEntry(
             this.owner,
             entity,
@@ -114,6 +113,7 @@ export class ChangeTrackerRegistry {
         if (!entry) return undefined;
         const tracked = entry as unknown as EntityEntry<object>;
         assertTemporaryPrincipalCanDetach(this.owner, tracked);
+        detachGeneratedRelationshipTargets(tracked);
         entry.markDetached();
         clearTemporaryGeneratedIdentity(tracked);
         this.entriesByEntity.delete(entity);
@@ -128,6 +128,7 @@ export class ChangeTrackerRegistry {
     }
     public clear(): void {
         for (const entry of this.trackedEntries) {
+            detachGeneratedRelationshipTargets(entry);
             entry.markDetached();
             clearTemporaryGeneratedIdentity(entry);
         }

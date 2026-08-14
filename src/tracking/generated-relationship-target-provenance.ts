@@ -7,17 +7,11 @@ import {
     temporaryGeneratedIdentity,
 } from './temporary-generated-identity';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
-
-interface GeneratedRelationshipTargetProvenance {
-    readonly principal: EntityEntry<object>;
-    readonly generatedProviderValues: readonly unknown[];
-    readonly temporaryProviderValues: readonly unknown[];
-}
-
-const targets: WeakMap<
-    EntityEntry<object>,
-    Map<TrackedRelationshipMetadata, GeneratedRelationshipTargetProvenance>
-> = new WeakMap();
+import {
+    deleteGeneratedRelationshipTarget,
+    generatedRelationshipTarget,
+    storeGeneratedRelationshipTarget,
+} from './generated-relationship-target-store';
 
 /** Remember the exact principal behind a resolved generated FK tuple. */
 export function rememberGeneratedRelationshipTarget(
@@ -34,21 +28,14 @@ export function rememberGeneratedRelationshipTarget(
         temporary.properties.some(candidate =>
             candidate.propertyName === property))) return;
 
-    const byRelationship = targets.get(dependent) ?? new Map<
-        TrackedRelationshipMetadata,
-        GeneratedRelationshipTargetProvenance
-    >();
-    byRelationship.set(relationship, {
+    storeGeneratedRelationshipTarget(dependent, relationship, {
+        kind: 'active',
         principal,
-        generatedProviderValues: relationship.foreignKeyProperties.map(
+        currentExpectedProviderValues: relationship.foreignKeyProperties.map(
             property => cloneSnapshotValue(dependentBoundValues[property]),
         ),
-        temporaryProviderValues: principalProperties.map(property =>
-            cloneSnapshotValue(temporary.properties.find(candidate =>
-                candidate.propertyName === property)?.providerValue ??
-            principal.originalBoundValues[property])),
+        currentValueIsFrameworkOwned: false,
     });
-    targets.set(dependent, byRelationship);
 }
 
 /** Resolve a rolled-back generated FK tuple to its exact tracked principal. */
@@ -58,32 +45,35 @@ export function rolledBackGeneratedRelationshipTarget(
     relationship: TrackedRelationshipMetadata,
     dependentBoundValues: Readonly<Record<string, unknown>>,
 ): EntityEntry<object> | undefined {
-    const byRelationship = targets.get(dependent);
-    if (!byRelationship) return undefined;
-    const remembered = byRelationship.get(relationship);
+    const remembered = generatedRelationshipTarget(dependent, relationship);
     if (!remembered) return undefined;
-
-    const { principal } = remembered;
     const navigation = (dependent.entity as Record<string, unknown>)[
         relationship.navigationProperty
     ];
     if (
         navigation !== null && navigation !== undefined &&
-        navigation !== principal.entity
-    ) return undefined;
+        (remembered.kind === 'invalid' ||
+            navigation !== remembered.principal.entity)
+    ) {
+        deleteGeneratedRelationshipTarget(dependent, relationship);
+        return undefined;
+    }
     const matchesRemembered = sameForeignKey(
         relationship, dependentBoundValues,
-        remembered.generatedProviderValues,
-    ) || sameForeignKey(
-        relationship, dependentBoundValues,
-        remembered.temporaryProviderValues,
+        remembered.currentExpectedProviderValues,
     );
-    if (tracker.entry(principal.entity) !== principal) {
-        byRelationship.delete(relationship);
-        if (matchesRemembered) {
-            throw staleGeneratedRelationshipTarget(dependent, relationship);
-        }
+    if (!matchesRemembered) {
+        deleteGeneratedRelationshipTarget(dependent, relationship);
         return undefined;
+    }
+    if (remembered.kind === 'invalid') {
+        deleteGeneratedRelationshipTarget(dependent, relationship);
+        throw staleGeneratedRelationshipTarget(dependent, relationship);
+    }
+    const { principal } = remembered;
+    if (tracker.entry(principal.entity) !== principal) {
+        deleteGeneratedRelationshipTarget(dependent, relationship);
+        throw staleGeneratedRelationshipTarget(dependent, relationship);
     }
 
     const principalProperties = principalKeyProperties(
@@ -93,8 +83,31 @@ export function rolledBackGeneratedRelationshipTarget(
         principal, principalProperties,
     );
     if (!temporary) return undefined;
-    return matchesRemembered ? principal : undefined;
+    return principal;
 }
+
+/** Advance provenance only when generated-key rollback restored its write. */
+export function generatedRelationshipTargetWasRestored(
+    dependent: EntityEntry<object>,
+    relationship: TrackedRelationshipMetadata,
+    principal: EntityEntry<object>,
+    restoredProviderValues: readonly unknown[],
+    frameworkWriteWasRestored: boolean,
+): void {
+    const remembered = generatedRelationshipTarget(dependent, relationship);
+    if (remembered?.kind !== 'active' ||
+        remembered.principal !== principal) return;
+    if (!frameworkWriteWasRestored) {
+        deleteGeneratedRelationshipTarget(dependent, relationship);
+        return;
+    }
+    remembered.currentExpectedProviderValues = restoredProviderValues.map(
+        cloneSnapshotValue,
+    );
+    remembered.currentValueIsFrameworkOwned = true;
+}
+
+export { deleteGeneratedRelationshipTarget };
 
 function principalKeyProperties(
     relationship: TrackedRelationshipMetadata,

@@ -3,6 +3,7 @@ import { EntityState } from './entity-state';
 import type { NavigationSnapshotValues } from './navigation-snapshot';
 import type { TrackedIdentityMap } from './tracked-identity-map';
 import { clearTemporaryGeneratedIdentity } from './temporary-generated-identity';
+import { acceptGeneratedRelationshipTargets } from './generated-relationship-target-store';
 
 export interface TrackedAcceptance {
     commit(): void;
@@ -33,6 +34,7 @@ export class TrackedAcceptanceJournal implements TrackedAcceptance {
         if (!this.pending) return;
         this.pending = false;
         for (const checkpoint of this.checkpoints) {
+            acceptGeneratedRelationshipTargets(checkpoint.entry);
             if (checkpoint.state === EntityState.Added) {
                 clearTemporaryGeneratedIdentity(checkpoint.entry);
             }

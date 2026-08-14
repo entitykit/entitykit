@@ -14,19 +14,15 @@ import {
 interface SaveTimeMutation {
     restore(): void;
 }
-
 /** Records temporary entity writes so a failed save can put them back. */
 export class SaveTimeMutationLog {
     private mutations: SaveTimeMutation[] = [];
-
     public reset(): void {
         this.mutations = [];
     }
-
     public record(values: Record<string, unknown>, property: string): void {
         this.recordCaptured(values, property, values[property]);
     }
-
     /** Record a value already read by the executable entity capture. */
     public recordCaptured(
         values: Record<string, unknown>,
@@ -64,6 +60,7 @@ export class SaveTimeMutationLog {
         previous: unknown,
         applied: unknown,
         context: string,
+        onRestored?: (restored: boolean) => void,
     ): void {
         const appliedSnapshot = snapshotPropertyValue(
             applied,
@@ -76,18 +73,24 @@ export class SaveTimeMutationLog {
         ).target;
         this.mutations.push({
             restore: () => {
-                const parentPath = property.propertyPath.slice(0, -1);
-                const currentTarget = parentPath.length === 0
-                    ? entity
-                    : readPropertyPath(entity, parentPath);
-                if (currentTarget !== appliedTarget) return;
-                if (snapshotPropertyValuesEqual(
-                    readPropertyValue(entity, property),
-                    appliedSnapshot,
-                    property.converter,
-                    context,
-                )) {
-                    writePropertyValue(entity, property, previous);
+                let restored = false;
+                try {
+                    const parentPath = property.propertyPath.slice(0, -1);
+                    const currentTarget = parentPath.length === 0
+                        ? entity
+                        : readPropertyPath(entity, parentPath);
+                    if (currentTarget !== appliedTarget) return;
+                    if (snapshotPropertyValuesEqual(
+                        readPropertyValue(entity, property),
+                        appliedSnapshot,
+                        property.converter,
+                        context,
+                    )) {
+                        writePropertyValue(entity, property, previous);
+                        restored = true;
+                    }
+                } finally {
+                    onRestored?.(restored);
                 }
             },
         });

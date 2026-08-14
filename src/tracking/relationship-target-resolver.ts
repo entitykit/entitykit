@@ -41,13 +41,13 @@ export function resolveRelationshipTarget(
     captured: RelationshipDetectionValues,
 ): RelationshipTargetResolution {
     const bound = relationshipBoundValuesFor(dependent, captured);
-    if (relationshipTargetIsMissing(relationship, bound)) return { kind: 'none' };
     const rolledBack = rolledBackGeneratedRelationshipTarget(
         tracker, dependent, relationship, bound,
     );
     if (rolledBack) {
         return relationshipTargetCandidate(relationship, rolledBack);
     }
+    if (relationshipTargetIsMissing(relationship, bound)) return { kind: 'none' };
     const target = scopedDependentRelationshipTarget(
         tracker, model, dependent, relationship, bound,
     );

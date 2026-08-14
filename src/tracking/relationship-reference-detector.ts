@@ -17,7 +17,7 @@ import {
     relationshipValuesFor,
 } from './relationship-detection-values';
 import { relationshipForeignKeyMatchesUntrackedPrincipal } from './relationship-untracked-principal-match';
-
+import { deleteGeneratedRelationshipTarget } from './generated-relationship-target-provenance';
 export function detectReferenceChanges(
     tracker: ChangeTracker,
     model: Model,
@@ -65,6 +65,9 @@ function detectReferenceChange(
     );
 
     if (navigationChanged || dependent.state === EntityState.Added && current) {
+        if (navigationChanged) {
+            deleteGeneratedRelationshipTarget(dependent, relationship);
+        }
         let handled = false;
         if (current && typeof current === 'object') {
             linkDependent(

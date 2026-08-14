@@ -135,6 +135,7 @@ export class GeneratedValueHydrator {
         this.recorded.record(
             entry.entity,
             propagateGeneratedKeys(
+                this.changeTracker,
                 entry,
                 persistedValues,
                 persistedBoundValues,

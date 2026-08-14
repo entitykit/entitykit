@@ -22,18 +22,21 @@ describe('save-time property mutation log', () => {
         const previous = new Uint8Array([1, 2]);
         const entity: ByteEntity = { value: new Uint8Array([3, 4]) };
         const log = new SaveTimeMutationLog();
+        const restored = jest.fn((value: boolean) => value);
         log.recordApplied(
             entity,
             property,
             previous,
             entity.value,
             'ByteEntity.value',
+            restored,
         );
         entity.value = new Uint8Array([3, 4]);
 
         log.restore();
 
         expect(entity.value).toBe(previous);
+        expect(restored).toHaveBeenCalledWith(true);
     });
 
     it('preserves an in-place application mutation of the policy value', () => {
@@ -41,12 +44,14 @@ describe('save-time property mutation log', () => {
         const applied = new Uint8Array([3, 4]);
         const entity: ByteEntity = { value: applied };
         const log = new SaveTimeMutationLog();
+        const restored = jest.fn((value: boolean) => value);
         log.recordApplied(
             entity,
             property,
             previous,
             applied,
             'ByteEntity.value',
+            restored,
         );
         applied[0] = 9;
 
@@ -54,6 +59,7 @@ describe('save-time property mutation log', () => {
 
         expect(entity.value).toBe(applied);
         expect([...entity.value]).toEqual([9, 4]);
+        expect(restored).toHaveBeenCalledWith(false);
     });
 
     it('attempts every restoration before reporting the first failure', () => {

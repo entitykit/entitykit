@@ -8,6 +8,8 @@ import {
     type TemporaryGeneratedProperty,
 } from '../../tracking/temporary-generated-identity';
 import { snapshotValuesEqual } from '../../tracking/snapshot-value-equality';
+import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
+import type { TrackedRelationshipMetadata } from '../../tracking/tracked-relationship-metadata';
 
 export function generatedKeyPropagations(
     dependent: PersistedEntrySnapshot,
@@ -83,6 +85,10 @@ export function generatedKeyPropagations(
             principal: principal.entry.entity,
             principalMetadata: principal.entry.metadata,
             dependentMetadata: dependent.entry.metadata,
+            relationship: relationship as TrackedRelationshipMetadata,
+            restoredForeignKeyBoundValues:
+                relationship.foreignKeyProperties.map(property =>
+                    cloneSnapshotValue(dependent.boundValues[property])),
             properties,
         }];
     });

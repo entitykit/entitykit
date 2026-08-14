@@ -1,6 +1,7 @@
 import { EntityState } from '../src';
 import type { EntityEntry } from '../src/tracking/entity-entry';
 import { rolledBackGeneratedRelationshipTarget } from '../src/tracking/generated-relationship-target-provenance';
+import { generatedRelationshipTarget } from '../src/tracking/generated-relationship-target-store';
 import type { TrackedRelationshipMetadata } from '../src/tracking/tracked-relationship-metadata';
 import {
     GeneratedRelationshipTransactionContext,
@@ -227,5 +228,93 @@ describe('generated relationship provenance transaction lifecycle', () => {
 
         const childPlan = db.getSavePlan().find(item => item.entity === child);
         expect(childPlan?.statement.values).toContain(100);
+    });
+
+    it('clears provenance when the dependent is detached', async () => {
+        const { db, connection } = context();
+        const { parent, child } = graph('detached-dependent');
+        await expect(db.transaction(async tx => {
+            tx.numberPrincipals.add(parent);
+            connection.queueResult({ rows: [{ id: 93 }], rowCount: 1 });
+            await tx.saveChanges();
+            child.principalId = parent.id;
+            tx.numberDependents.add(child);
+            connection.queueResult({ rowCount: 1 });
+            await tx.saveChanges();
+            throw new Error('abort detached dependent');
+        })).rejects.toThrow('abort detached dependent');
+        const publicEntry = db.entry(child);
+        if (!publicEntry) throw new Error('Expected tracked child.');
+        const entry = internalEntityEntry(publicEntry) as unknown as
+            EntityEntry<object>;
+        const relationship = entry.metadata.relationships[0] as
+            TrackedRelationshipMetadata;
+        expect(generatedRelationshipTarget(entry, relationship)).toBeDefined();
+
+        db.numberDependents.detach(child);
+        expect(generatedRelationshipTarget(entry, relationship)).toBeUndefined();
+        expect(rolledBackGeneratedRelationshipTarget(
+            internalChangeTracker(db.changeTracker),
+            entry,
+            relationship,
+            { principalId: 93 },
+        )).toBeUndefined();
+    });
+
+    it('clears provenance when the tracker is cleared', async () => {
+        const { db, connection } = context();
+        const { parent, child } = graph('cleared-tracker');
+        await expect(db.transaction(async tx => {
+            tx.numberPrincipals.add(parent);
+            connection.queueResult({ rows: [{ id: 94 }], rowCount: 1 });
+            await tx.saveChanges();
+            child.principalId = parent.id;
+            tx.numberDependents.add(child);
+            connection.queueResult({ rowCount: 1 });
+            await tx.saveChanges();
+            throw new Error('abort clear setup');
+        })).rejects.toThrow('abort clear setup');
+        const publicEntry = db.entry(child);
+        if (!publicEntry) throw new Error('Expected tracked child.');
+        const entry = internalEntityEntry(publicEntry) as unknown as
+            EntityEntry<object>;
+        const relationship = entry.metadata.relationships[0] as
+            TrackedRelationshipMetadata;
+
+        db.changeTracker.clear();
+        expect(generatedRelationshipTarget(entry, relationship)).toBeUndefined();
+        expect(rolledBackGeneratedRelationshipTarget(
+            internalChangeTracker(db.changeTracker),
+            entry,
+            relationship,
+            { principalId: 94 },
+        )).toBeUndefined();
+    });
+
+    it('clears provenance after the outer transaction commits', async () => {
+        const { db, connection } = context();
+        const { parent, child } = graph('committed-provenance');
+        let entry: EntityEntry<object> | undefined;
+        let relationship: TrackedRelationshipMetadata | undefined;
+        await db.transaction(async tx => {
+            tx.numberPrincipals.add(parent);
+            connection.queueResult({ rows: [{ id: 95 }], rowCount: 1 });
+            await tx.saveChanges();
+            child.principalId = parent.id;
+            tx.numberDependents.add(child);
+            connection.queueResult({ rowCount: 1 });
+            await tx.saveChanges();
+            const publicEntry = tx.entry(child);
+            if (!publicEntry) throw new Error('Expected tracked child.');
+            entry = internalEntityEntry(publicEntry) as unknown as
+                EntityEntry<object>;
+            relationship = entry.metadata.relationships[0] as
+                TrackedRelationshipMetadata;
+            expect(generatedRelationshipTarget(entry, relationship))
+                .toBeDefined();
+        });
+
+        if (!entry || !relationship) throw new Error('Expected provenance.');
+        expect(generatedRelationshipTarget(entry, relationship)).toBeUndefined();
     });
 });

@@ -13,9 +13,12 @@ import {
     readPropertyValue,
     writePropertyValue,
 } from '../../model/property-value-access';
+import type { ChangeTracker } from '../../tracking/change-tracker';
+import { generatedRelationshipTargetWasRestored } from '../../tracking/generated-relationship-target-provenance';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
+    changeTracker: ChangeTracker,
     entry: SavePlanEntry,
     persistedValues: Record<string, unknown>,
     persistedBoundValues: Record<string, unknown>,
@@ -28,7 +31,21 @@ export function propagateGeneratedKeys(
 ): readonly AppliedPropertyValue[] {
     const applied: AppliedPropertyValue[] = [];
     for (const propagation of propagations) {
+        const dependent = changeTracker.entry(entry.entity);
+        const principal = changeTracker.entry(propagation.principal);
+        const restored: boolean[] = [];
+        mutations.recordRestoration(() => {
+            if (!dependent || !principal) return;
+            generatedRelationshipTargetWasRestored(
+                dependent,
+                propagation.relationship,
+                principal,
+                propagation.restoredForeignKeyBoundValues,
+                restored.length > 0 && restored.every(Boolean),
+            );
+        });
         for (const property of propagation.properties) {
+            const restorationIndex = restored.push(false) - 1;
             const foreignKey = propagation.dependentMetadata.getProperty(
                 property.foreignKeyProperty,
             );
@@ -97,6 +114,9 @@ export function propagateGeneratedKeys(
                     previousLiveValue,
                     readPropertyValue(entry.entity, foreignKey),
                     context,
+                    wasRestored => {
+                        restored[restorationIndex] = wasRestored;
+                    },
                 );
             }
             persistedValues[property.foreignKeyProperty] = persistedValue;

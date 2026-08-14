@@ -23,6 +23,29 @@ export class TransactionOptionalNumberDependent {
     public principalId: number | null = null;
     public principal: TransactionNumberPrincipal | null = null;
 }
+export class TransactionUndefinedPrincipal {
+    public id!: number;
+    public children: TransactionUndefinedDependent[] = [];
+}
+export class TransactionUndefinedDependent {
+    public id = '';
+    public principalId!: number;
+    public principal: TransactionUndefinedPrincipal | null = null;
+}
+export class TransactionNullPrincipal {
+    public id: number | null = null;
+    public children: TransactionNullDependent[] = [];
+}
+export class TransactionNullDependent {
+    public id = '';
+    public principalId: number | null = null;
+    public principal: TransactionNullPrincipal | null = null;
+}
+export class TransactionOptionalUndefinedDependent {
+    public id = '';
+    public principalId: number | null = null;
+    public principal: TransactionUndefinedPrincipal | null = null;
+}
 export class TransactionBigIntPrincipal {
     public id = 0n;
     public children: TransactionBigIntDependent[] = [];
@@ -43,23 +66,23 @@ export class TransactionConvertedDependent {
 }
 export class TransactionCompositePrincipal {
     public region = '';
-    public id = 0;
+    public id!: number;
     public children: TransactionCompositeDependent[] = [];
 }
 export class TransactionCompositeDependent {
     public id = '';
     public principalRegion = '';
-    public principalId = 0;
+    public principalId!: number;
     public principal: TransactionCompositePrincipal | null = null;
 }
 export class TransactionAlternatePrincipal {
     public id = '';
-    public code = '';
+    public code!: string;
     public children: TransactionAlternateDependent[] = [];
 }
 export class TransactionAlternateDependent {
     public id = '';
-    public principalCode = '';
+    public principalCode!: string;
     public principal: TransactionAlternatePrincipal | null = null;
 }
 
@@ -75,6 +98,13 @@ export class GeneratedRelationshipTransactionContext extends DbContext {
     public optionalNumberDependents = this.set(
         TransactionOptionalNumberDependent,
     );
+    public undefinedPrincipals = this.set(TransactionUndefinedPrincipal);
+    public undefinedDependents = this.set(TransactionUndefinedDependent);
+    public optionalUndefinedDependents = this.set(
+        TransactionOptionalUndefinedDependent,
+    );
+    public nullPrincipals = this.set(TransactionNullPrincipal);
+    public nullDependents = this.set(TransactionNullDependent);
     public bigintPrincipals = this.set(TransactionBigIntPrincipal);
     public bigintDependents = this.set(TransactionBigIntDependent);
     public convertedPrincipals = this.set(TransactionConvertedPrincipal);
@@ -129,6 +159,46 @@ export class GeneratedRelationshipTransactionContext extends DbContext {
             entity.property(row => row.principalId).hasColumnType('integer');
             entity.hasOne(TransactionNumberPrincipal, row => row.principal)
                 .withMany()
+                .hasForeignKey(row => row.principalId);
+        });
+        model.entity(TransactionUndefinedPrincipal, entity => {
+            entity.toTable('transaction_undefined_principals');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('integer')
+                .isRequired().valueGeneratedOnAdd();
+        });
+        model.entity(TransactionUndefinedDependent, entity => {
+            entity.toTable('transaction_undefined_dependents');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.principalId).hasColumnType('integer')
+                .isRequired();
+            entity.hasOne(TransactionUndefinedPrincipal, row => row.principal)
+                .withMany(row => row.children)
+                .hasForeignKey(row => row.principalId);
+        });
+        model.entity(TransactionOptionalUndefinedDependent, entity => {
+            entity.toTable('transaction_optional_undefined_dependents');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.principalId).hasColumnType('integer');
+            entity.hasOne(TransactionUndefinedPrincipal, row => row.principal)
+                .withMany()
+                .hasForeignKey(row => row.principalId);
+        });
+        model.entity(TransactionNullPrincipal, entity => {
+            entity.toTable('transaction_null_principals');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('integer')
+                .isRequired().valueGeneratedOnAdd();
+        });
+        model.entity(TransactionNullDependent, entity => {
+            entity.toTable('transaction_null_dependents');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.principalId).hasColumnType('integer');
+            entity.hasOne(TransactionNullPrincipal, row => row.principal)
+                .withMany(row => row.children)
                 .hasForeignKey(row => row.principalId);
         });
         model.entity(TransactionBigIntPrincipal, entity => {

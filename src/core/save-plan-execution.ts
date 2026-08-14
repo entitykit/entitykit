@@ -6,6 +6,7 @@ import type { ManyToManyChange } from './many-to-many-change';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { SqlStatement } from '../sql/sql-statement';
 import { assertTenantKeyNotStoreGenerated } from '../model/generated-tenant-key-validation';
+import type { TrackedRelationshipMetadata } from '../tracking/tracked-relationship-metadata';
 
 export interface GeneratedValuesPlan<TEntity extends object = object> {
     readonly metadata: EntityMetadata<TEntity>;
@@ -25,6 +26,8 @@ export interface GeneratedKeyPropagation {
     readonly principal: object;
     readonly principalMetadata: EntityMetadata;
     readonly dependentMetadata: EntityMetadata;
+    readonly relationship: TrackedRelationshipMetadata;
+    readonly restoredForeignKeyBoundValues: readonly unknown[];
     readonly properties: readonly GeneratedKeyPropertyPropagation[];
 }
 
