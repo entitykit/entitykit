@@ -230,7 +230,10 @@ describe('runtime coverage contract', () => {
         expect(packageJson).toContain('check-runtime-coverage.js');
         expect(jestConfig).toContain('collectCoverageFrom: [\'src/**/*.ts\']');
         expect(jestConfig).toContain('coverageReporters: [\'json-summary\', \'html\', \'lcov\', \'text\']');
-        expect(jestConfig).toContain('testPathIgnorePatterns: [\'/tests/integration/\']');
+        expect(jestConfig).toContain(
+            'testPathIgnorePatterns: '
+            + '[\'/tests/integration/\', \'/node_modules/\', \'/.claude/\']',
+        );
     });
 
     it('keeps mutation testing bounded to critical pure modules', () => {

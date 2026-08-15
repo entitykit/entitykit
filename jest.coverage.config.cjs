@@ -6,5 +6,5 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.ts'],
   coverageDirectory: 'coverage',
   coverageReporters: ['json-summary', 'html', 'lcov', 'text'],
-  testPathIgnorePatterns: ['/tests/integration/'],
+  testPathIgnorePatterns: ['/tests/integration/', '/node_modules/', '/.claude/'],
 };

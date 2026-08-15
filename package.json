@@ -96,7 +96,7 @@
     "check:publish-alpha": "node scripts/check-alpha-publish.js",
     "lint": "eslint . --ignore-pattern temp/ --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/",
+    "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/ --testPathIgnorePatterns=/node_modules/ --testPathIgnorePatterns=/.claude/",
     "test:coverage": "jest --config jest.coverage.config.cjs --runInBand && node scripts/check-runtime-coverage.js",
     "test:mutation": "stryker run",
     "test:mutation:dry": "stryker run --dryRunOnly",
