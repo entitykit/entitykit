@@ -36,9 +36,7 @@ export class DbContextState {
         if (!this.initialized || !this.databaseConnection) {
             throw new ContextNotInitializedError();
         }
-        if (this.stateRestorationFailure) {
-            throw this.stateRestorationFailure;
-        }
+        this.assertUsable();
         this.databaseConnection.assertUsable();
         return this.databaseConnection;
     }
@@ -82,6 +80,12 @@ export class DbContextState {
     ): void {
         this.stateRestorationFailure ??=
             new ContextStateRestorationError(phase, cause);
+    }
+
+    public assertUsable(): void {
+        if (this.stateRestorationFailure) {
+            throw this.stateRestorationFailure;
+        }
     }
 
     private get databaseOperationInProgress(): boolean {

@@ -27,6 +27,9 @@ export class ChangeTracker {
     private onTracked?: (entity: object) => (() => void) | undefined;
     private onDetached?: (entity: object) => (() => void) | undefined;
     private onAcceptedAll?: () => void;
+    constructor(assertUsable: (operation: string) => void = () => undefined) {
+        this.saveGuard.useUsabilityGuard(assertUsable);
+    }
     public observeTracked(
         observer: (entity: object) => (() => void) | undefined,
     ): void {
@@ -40,7 +43,6 @@ export class ChangeTracker {
     public observeAcceptedAll(observer: () => void): void {
         this.onAcceptedAll = observer;
     }
-
     public track<TEntity extends object>(
         entity: TEntity,
         metadata: EntityMetadata<TEntity>,
@@ -52,18 +54,15 @@ export class ChangeTracker {
             entity, metadata, state, originalValues, originalBoundValues,
         );
     }
-
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.registry.entry(entity);
     }
-
     public tryGetByIdentity<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         keyValue: unknown,
     ): EntityEntry<TEntity> | undefined {
         return this.tryGetByIdentityValues(metadata, [keyValue]);
     }
-
     public tryGetByIdentityValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         keyValues: readonly unknown[],
@@ -107,6 +106,7 @@ export class ChangeTracker {
         entries?: ReadonlyArray<EntityEntry<object>>, values?: RelationshipDetectionValues,
         refreshBaselines = true,
     ): void {
+        this.saveGuard.assertNoExecution('detectSaveRelationships()');
         detectTrackedRelationships(this, entries, values, refreshBaselines);
     }
     public acceptAllChanges(): void {

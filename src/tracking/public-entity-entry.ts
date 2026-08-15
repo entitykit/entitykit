@@ -54,7 +54,9 @@ class PublicEntityEntry<TEntity extends object> implements EntityEntry<TEntity> 
         return state(this).internal.modifiedProperties();
     }
     public detectChanges(): void {
-        state(this).internal.detectChanges();
+        const current = state(this);
+        current.loader?.assertStateUsable?.('EntityEntry.detectChanges()');
+        current.internal.detectChanges();
     }
     public async getDatabaseValues(): Promise<EntityDatabaseValues<TEntity> | null> {
         return state(this).internal.getDatabaseValues();
@@ -143,6 +145,5 @@ function requireLoader<TEntity extends object>(
     }
     return state.loader;
 }
-
 type CollectionElement<TCollection> = NonNullable<TCollection> extends
 ReadonlyArray<infer TElement> ? NonNullable<TElement> : never;

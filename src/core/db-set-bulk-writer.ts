@@ -136,7 +136,7 @@ export class DbSetBulkWriter<TEntity extends object> {
             );
             return affected;
         } catch (error) {
-            mutations.restoreAfterFailure(cause => {
+            mutations.restoreAfterFailure(error, cause => {
                 this.context.markStateRestorationFailure(cause);
             });
             throw error;

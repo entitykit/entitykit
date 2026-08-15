@@ -113,11 +113,11 @@ export class SavePlanExecutor {
         return acceptance;
     }
     public restoreGeneratedValues(): void {
-        this.generatedValues?.restore();
+        const generated = this.generatedValues;
         this.generatedValues = undefined;
+        generated?.restore();
     }
 }
-
 function ensureAffectedRows(
     entry: SavePlanEntry,
     rowCount: number,
@@ -138,7 +138,6 @@ function ensureAffectedRows(
         );
     }
 }
-
 function publicConcurrencyEntry(
     changeTracker: ChangeTracker,
     navigationLoader: EntityNavigationLoader,

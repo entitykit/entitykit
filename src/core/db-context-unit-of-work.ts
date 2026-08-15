@@ -44,6 +44,9 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         navigationLoader: this,
         getDatabase: () => this.databaseConnection,
         getOptions: () => this.options,
+        markStateRestorationFailure: error => {
+            this.state.markStateRestorationFailure('rollback', error);
+        },
     });
 
     protected get transactionDepth(): number {
@@ -65,6 +68,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     }
 
     public getSavePlan(): readonly SavePlanEntry[] {
+        this.assertContextUsable('getSavePlan()');
         this.assertSaveNotInProgress('getSavePlan()');
         try {
             return this.savePlanBuilder.build();
@@ -74,6 +78,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     }
 
     public getSavePlanDebugView(): string {
+        this.assertContextUsable('getSavePlanDebugView()');
         this.assertSaveNotInProgress('getSavePlanDebugView()');
         try {
             return this.savePlanBuilder.debugView();
@@ -83,13 +88,14 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
     }
 
     public clearChanges(): void {
+        this.assertContextUsable('clearChanges()');
         this.assertSaveNotInProgress('clearChanges()');
         this.changeTracker.clear();
         this.manyToMany.clear();
     }
 
     public async saveChanges(options?: DatabaseOperationOptions): Promise<number> {
-        this.assertNotDisposed('saveChanges()');
+        this.assertContextUsable('saveChanges()');
         throwIfOperationAborted(options?.signal);
         if (this.saveInProgress) {
             throw new ContextConcurrentOperationError(
@@ -120,7 +126,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         work: (context: this) => TResult | Promise<TResult>,
         options?: TransactionOptions,
     ): Promise<TResult> {
-        this.assertNotDisposed('transaction()');
+        this.assertContextUsable('transaction()');
         return this.transactionCoordinator.run(async () => work(this), options);
     }
 

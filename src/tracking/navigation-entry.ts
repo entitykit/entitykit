@@ -4,6 +4,7 @@ import type { EntityEntry } from './entity-entry';
 
 export interface EntityNavigationLoader {
     loadNavigation<TEntity extends object>(entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
+    assertStateUsable?(operation: string): void;
 }
 
 export class ReferenceNavigationEntry<TEntity extends object, TNavigation> {

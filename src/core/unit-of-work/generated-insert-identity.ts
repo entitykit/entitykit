@@ -4,7 +4,8 @@ import { EntityState } from '../../tracking/entity-state';
 import type { SavePlanEntry } from '../save-plan';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedValueRecorder } from './generated-value-recorder';
-import { writeGeneratedValue } from './generated-value-writer';
+import { applyPreparedGeneratedValue } from './generated-value-writer';
+import { prepareGeneratedValue } from './prepared-generated-value';
 
 /** Apply and record a provider insert ID when it is the entity's sole key. */
 export function applyGeneratedInsertIdentity(
@@ -24,16 +25,22 @@ export function applyGeneratedInsertIdentity(
         return undefined;
     }
     const property = generatedKeys[0];
-    const applied = writeGeneratedValue(
-        entry.entity,
+    const prepared = prepareGeneratedValue(
         property,
         insertId,
-        mutations,
         valueReader,
-        undefined,
         entry.entityName,
     );
-    recorder.record(entry.entity, [applied], persistedBoundValues);
+    const tracked = recorder.register(
+        entry.entity,
+        [prepared],
+        persistedBoundValues,
+    );
+    recorder.recordApplied(tracked, [applyPreparedGeneratedValue(
+        entry.entity,
+        prepared,
+        mutations,
+    )]);
     return property;
 }
 

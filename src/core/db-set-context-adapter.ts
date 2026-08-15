@@ -14,6 +14,7 @@ interface DbSetContextAdapterOptions {
     readonly model: () => Model;
     readonly changeTracker: ChangeTracker;
     readonly assertCanQuery: (operation: string) => void;
+    readonly assertStateUsable: (operation: string) => void;
     readonly applyQueryFilters: <TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         query: QueryModel<TEntity>,
@@ -52,6 +53,7 @@ export function createDbSetContextAdapter(options: DbSetContextAdapterOptions): 
         },
         changeTracker: options.changeTracker,
         assertCanQuery: options.assertCanQuery,
+        assertStateUsable: options.assertStateUsable,
         applyQueryFilters: options.applyQueryFilters,
         beginQueryOperation: options.beginQueryOperation,
         currentTenantIdForWrites: options.currentTenantIdForWrites,

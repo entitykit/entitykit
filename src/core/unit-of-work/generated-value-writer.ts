@@ -5,50 +5,27 @@ import {
     writePropertyValue,
 } from '../../model/property-value-access';
 import type { PropertyMetadata } from '../../model/property-metadata';
-import {
-    readStoreProviderValue,
-    type StoreValueReader,
-} from '../../storage/store-value-reader';
+import type { StoreValueReader } from '../../storage/store-value-reader';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { AppliedPropertyValue } from './applied-generated-value';
-import { snapshotProviderValueCopies } from '../../tracking/snapshot-value';
 import { ensurePolicyPropertyPath } from '../policy-property-path';
-import { toBoundProviderValue } from '../../model/value-converter/store-value';
-import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
+import {
+    prepareGeneratedValue,
+    type PreparedGeneratedValue,
+} from './prepared-generated-value';
+import { associateRestorationFailure } from '../restoration-failures';
 
-export function writeGeneratedRow<TEntity extends object>(
+export function applyPreparedGeneratedRow<TEntity extends object>(
     entity: TEntity,
     metadata: EntityMetadata<TEntity>,
-    properties: ReadonlyArray<PropertyMetadata<TEntity>>,
-    row: Record<string, unknown>,
+    values: ReadonlyArray<PreparedGeneratedValue<TEntity>>,
     mutations: SaveTimeMutationLog,
-    valueReader?: StoreValueReader,
 ): readonly AppliedPropertyValue[] {
-    const applied: AppliedPropertyValue[] = [];
-    for (const property of properties) {
-        applied.push(writeGeneratedValue(
-            entity,
-            property,
-            row[property.columnName],
-            mutations,
-            valueReader,
-            metadata,
-        ));
-    }
-    return applied;
-}
-
-function generatedBoundValue(
-    providerValue: unknown,
-    property: PropertyMetadata,
-    entityName?: string,
-): unknown {
-    return cloneSnapshotValue(toBoundProviderValue(
-        providerValue,
-        property.columnType,
-        entityName
-            ? `${entityName}.${property.propertyName}`
-            : property.propertyName,
+    return values.map(value => applyPreparedGeneratedValue(
+        entity,
+        value,
+        mutations,
+        metadata,
     ));
 }
 
@@ -61,28 +38,31 @@ export function writeGeneratedValue<TEntity extends object>(
     metadata?: EntityMetadata<TEntity>,
     entityName = metadata?.entityName,
 ): AppliedPropertyValue {
-    const providerValue = readStoreProviderValue(
-        storeValue,
-        property,
-        valueReader,
+    return applyPreparedGeneratedValue(
+        entity,
+        prepareGeneratedValue(
+            property,
+            storeValue,
+            valueReader,
+            entityName,
+        ),
+        mutations,
+        metadata,
     );
+}
+
+export function applyPreparedGeneratedValue<TEntity extends object>(
+    entity: TEntity,
+    prepared: PreparedGeneratedValue<TEntity>,
+    mutations: SaveTimeMutationLog,
+    metadata?: EntityMetadata<TEntity>,
+    onRestored?: (restored: boolean) => void,
+): AppliedPropertyValue {
+    const { property, liveValue } = prepared;
+    const entityName = metadata?.entityName;
     const context = entityName
         ? `${entityName}.${property.propertyName}`
         : property.propertyName;
-    const { persistedValue, liveValue } = snapshotProviderValueCopies(
-        providerValue,
-        property.converter,
-        context,
-    );
-    const result = {
-        propertyName: property.propertyName,
-        persistedValue,
-        boundValue: generatedBoundValue(
-            providerValue,
-            property,
-            entityName,
-        ),
-    };
     if (metadata && liveValue !== null && liveValue !== undefined) {
         ensurePolicyPropertyPath(
             metadata,
@@ -97,7 +77,7 @@ export function writeGeneratedValue<TEntity extends object>(
         parentPath.length > 0 &&
         (parent === null || parent === undefined)
     ) {
-        return result;
+        return appliedValue(prepared);
     }
     const previous = readPropertyValue(entity, property);
     try {
@@ -105,8 +85,8 @@ export function writeGeneratedValue<TEntity extends object>(
     } catch (error) {
         try {
             writePropertyValue(entity, property, previous);
-        } catch {
-            // Preserve the setter failure that interrupted generated hydration.
+        } catch (restorationError) {
+            associateRestorationFailure(error, restorationError);
         }
         throw error;
     }
@@ -114,7 +94,11 @@ export function writeGeneratedValue<TEntity extends object>(
     try {
         applied = readPropertyValue(entity, property);
     } catch (error) {
-        writePropertyValue(entity, property, previous);
+        try {
+            writePropertyValue(entity, property, previous);
+        } catch (restorationError) {
+            associateRestorationFailure(error, restorationError);
+        }
         throw error;
     }
     mutations.recordApplied(
@@ -123,6 +107,17 @@ export function writeGeneratedValue<TEntity extends object>(
         previous,
         applied,
         context,
+        onRestored,
     );
-    return result;
+    return appliedValue(prepared);
+}
+
+function appliedValue(
+    prepared: PreparedGeneratedValue,
+): AppliedPropertyValue {
+    return {
+        propertyName: prepared.propertyName,
+        persistedValue: prepared.persistedValue,
+        boundValue: prepared.boundValue,
+    };
 }

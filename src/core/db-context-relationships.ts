@@ -31,6 +31,7 @@ export abstract class DbContextRelationships extends DbContextRawSql {
         >,
         target: TTarget,
     ): void {
+        this.assertStateUsable();
         this.navigationLinks.link(source, navigationSelector, target);
     }
 
@@ -42,6 +43,7 @@ export abstract class DbContextRelationships extends DbContextRawSql {
         >,
         target: TTarget,
     ): void {
+        this.assertStateUsable();
         this.navigationLinks.unlink(source, navigationSelector, target);
     }
 

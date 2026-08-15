@@ -11,10 +11,11 @@ import {
 import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
 import {
     readPropertyValue,
-    writePropertyValue,
 } from '../../model/property-value-access';
 import type { ChangeTracker } from '../../tracking/change-tracker';
 import { generatedRelationshipTargetWasRestored } from '../../tracking/generated-relationship-target-provenance';
+import type { PreparedGeneratedValue } from './prepared-generated-value';
+import { applyPreparedGeneratedValue } from './generated-value-writer';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
@@ -28,6 +29,9 @@ export function propagateGeneratedKeys(
         principal: object,
         propertyName: string,
     ) => AppliedPropertyValue | undefined,
+    registerPrepared: (
+        value: PreparedGeneratedValue,
+    ) => void = () => undefined,
 ): readonly AppliedPropertyValue[] {
     const applied: AppliedPropertyValue[] = [];
     for (const propagation of propagations) {
@@ -100,6 +104,14 @@ export function propagateGeneratedKeys(
                 foreignKey.converter,
                 context,
             );
+            const prepared: PreparedGeneratedValue = Object.freeze({
+                property: foreignKey,
+                propertyName: property.foreignKeyProperty,
+                persistedValue,
+                boundValue,
+                liveValue,
+            });
+            registerPrepared(prepared);
             const previousLiveValue = readPropertyValue(entry.entity, foreignKey);
             if (snapshotPropertyValuesEqual(
                 previousLiveValue,
@@ -107,13 +119,11 @@ export function propagateGeneratedKeys(
                 foreignKey.converter,
                 context,
             )) {
-                writePropertyValue(entry.entity, foreignKey, liveValue);
-                mutations.recordApplied(
+                applyPreparedGeneratedValue(
                     entry.entity,
-                    foreignKey,
-                    previousLiveValue,
-                    readPropertyValue(entry.entity, foreignKey),
-                    context,
+                    prepared,
+                    mutations,
+                    propagation.dependentMetadata,
                     wasRestored => {
                         restored[restorationIndex] = wasRestored;
                     },
@@ -121,11 +131,7 @@ export function propagateGeneratedKeys(
             }
             persistedValues[property.foreignKeyProperty] = persistedValue;
             persistedBoundValues[property.foreignKeyProperty] = boundValue;
-            applied.push({
-                propertyName: property.foreignKeyProperty,
-                persistedValue,
-                boundValue,
-            });
+            applied.push(prepared);
         }
     }
     return applied;

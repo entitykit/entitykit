@@ -12,6 +12,7 @@ export function addDbSetEntity<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entity: TEntity,
 ): EntityEntry<TEntity> {
+    context.assertStateUsable?.('add()');
     metadata.assertWritable('add()');
     const rollbackTenant = applyTenantOnAdd(
         metadata,

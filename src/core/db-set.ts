@@ -80,6 +80,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
 
     /** Start tracking an existing entity as `Unchanged`. */
     public attach(entity: TEntity): EntityEntry<TEntity> {
+        this.context.assertStateUsable?.('attach()');
         this.metadata.assertWritable('attach()');
         return publicEntityEntry(
             this.context.changeTracker.track(
@@ -93,6 +94,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
 
     /** Mark an entity as deleted, or cancel it when it was just added. */
     public remove(entity: TEntity): EntityEntry<TEntity> {
+        this.context.assertStateUsable?.('remove()');
         this.metadata.assertWritable('remove()');
         const entry = this.context.changeTracker.entry(entity) ??
             this.context.changeTracker.track(
@@ -110,6 +112,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
 
     /** Stop tracking an entity instance. */
     public detach(entity: TEntity): EntityEntry<TEntity> | undefined {
+        this.context.assertStateUsable?.('detach()');
         const entry = this.context.changeTracker.detach(entity);
         return entry ? publicEntityEntry(entry, this.context) : undefined;
     }
@@ -136,6 +139,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         entities: readonly TEntity[],
         options: UpsertSqlOptions<TEntity> & DatabaseOperationOptions = {},
     ): Promise<number> {
+        this.context.assertStateUsable?.('upsert()');
         this.metadata.assertWritable('upsert()');
         return this.writer.upsert(entities, options);
     }

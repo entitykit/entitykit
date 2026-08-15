@@ -23,10 +23,9 @@ import type { QueryFilterOperation } from './query-filter-operation';
 export abstract class DbContextRuntime {
     protected readonly state = new DbContextState();
     private disposePromise?: Promise<void>;
-    public readonly changeTracker = new ChangeTracker();
-    private readonly lazyNavigation = new LazyNavigationCoordinator(
-        this, this.assertNotDisposed.bind(this),
-    );
+    public readonly changeTracker = new ChangeTracker(
+        this.assertStateUsable.bind(this));
+    private readonly lazyNavigation = new LazyNavigationCoordinator(this, this.assertNotDisposed.bind(this));
     protected abstract get transactionDepth(): number;
     protected abstract registerTransactionState(afterCommit: () => void, afterRollback: () => void): void;
     public abstract loadNavigation<TEntity extends object>(entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
@@ -37,7 +36,7 @@ export abstract class DbContextRuntime {
         return this.state.options;
     }
     protected get databaseConnection(): DatabaseConnection {
-        this.assertNotDisposed('database connection access');
+        this.assertContextUsable('database connection access');
         this.ensureInitialized();
         return this.state.database;
     }
@@ -51,14 +50,8 @@ export abstract class DbContextRuntime {
         this.ensureInitialized();
         return this.state.model;
     }
-    protected configure(options: DbContextOptionsBuilder): unknown {
-        void options;
-        return undefined;
-    }
-    protected model(model: ModelBuilder): unknown {
-        void model;
-        return undefined;
-    }
+    protected abstract configure(options: DbContextOptionsBuilder): unknown;
+    protected abstract model(model: ModelBuilder): unknown;
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.changeTracker.entry(entity)?.useNavigationLoader(this);
     }
@@ -76,10 +69,11 @@ export abstract class DbContextRuntime {
                 model: () => this.modelMetadata,
                 changeTracker: this.changeTracker,
                 assertCanQuery: operation => {
-                    this.assertNotDisposed(operation);
+                    this.assertContextUsable(operation);
                     this.ensureInitialized();
                     void this.state.database;
                 },
+                assertStateUsable: this.assertStateUsable.bind(this),
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),
                 beginQueryOperation: () => this.beginQueryOperation(),
                 currentTenantIdForWrites: () => this.currentTenantIdForWrites(),
@@ -90,9 +84,7 @@ export abstract class DbContextRuntime {
                 loadNavigation: async (entry, navigationProperty) =>
                     this.loadNavigation(entry, navigationProperty),
             }), entityType,
-            entity => {
-                this.cancelAddedEntity(entity);
-            },
+            this.cancelAddedEntity.bind(this),
         );
         this.state.addSet(entityType, created);
         return created;
@@ -115,6 +107,13 @@ export abstract class DbContextRuntime {
         if (this.state.disposed) {
             throw new ContextDisposedError(operation);
         }
+    }
+    public assertContextUsable(operation: string): void {
+        this.assertNotDisposed(operation);
+        this.state.assertUsable();
+    }
+    public assertStateUsable(): void {
+        this.state.assertUsable();
     }
     protected currentAuditTimestamp(): Date {
         return readSynchronousDate(this.options.auditing?.now, 'The audit clock') ?? new Date();

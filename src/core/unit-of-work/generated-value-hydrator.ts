@@ -8,14 +8,14 @@ import type {
     GeneratedValuesPlan,
 } from '../save-plan-execution';
 import { SaveTimeMutationLog } from '../save-time-mutations';
-import { propagateGeneratedKeys } from './generated-key-propagator';
 import { buildGeneratedValueRefresh } from './generated-value-refresh';
-import { writeGeneratedRow } from './generated-value-writer';
 import type { AppliedPropertyValue, GeneratedValueAcceptance } from './applied-generated-value';
 import { GeneratedValueRecorder } from './generated-value-recorder';
 import { applyGeneratedInsertIdentity } from './generated-insert-identity';
 import { assertFinalGeneratedIdentity } from './generated-final-identity';
 import { restoreGeneratedValuesAfterFailure } from './generated-value-rollback';
+import { applyTrackedGeneratedRow } from './tracked-generated-row';
+import { applyTrackedGeneratedKeyPropagation } from './tracked-generated-key-propagation';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
     private readonly recorded: GeneratedValueRecorder;
@@ -33,14 +33,16 @@ export class GeneratedValueHydrator {
         return {
             values: this.recorded.take(),
             rollback: () => {
-                restoreGeneratedValuesAfterFailure(this.changeTracker,
-                    sources, rollback);
+                restoreGeneratedValuesAfterFailure(
+                    this.changeTracker, sources, rollback);
             },
         };
     }
     public restore(): void {
+        const sources = this.recorded.rollbackSources();
+        this.recorded.take();
         restoreGeneratedValuesAfterFailure(
-            this.changeTracker, this.recorded.rollbackSources(),
+            this.changeTracker, sources,
             this.mutations.restore.bind(this.mutations),
         );
     }
@@ -58,28 +60,26 @@ export class GeneratedValueHydrator {
         persistedBoundValues: Readonly<Record<string, unknown>> = {},
         options?: DatabaseOperationOptions,
     ): Promise<void> {
-        if (!plan) {
-            return;
-        }
-
+        if (!plan) return;
         const properties = plan.propertyNames.map(propertyName =>
             plan.metadata.getProperty(propertyName as never));
         if (result.rows.length > 0) {
-            this.recorded.record(
-                entry.entity,
-                writeGeneratedRow(
-                    entry.entity, plan.metadata, properties, result.rows[0],
-                    this.mutations, this.valueReader,
-                ),
-                persistedBoundValues,
-            );
+            applyTrackedGeneratedRow({
+                entity: entry.entity,
+                metadata: plan.metadata,
+                properties,
+                row: result.rows[0],
+                sourceBoundValues: persistedBoundValues,
+                recorder: this.recorded,
+                mutations: this.mutations,
+                valueReader: this.valueReader,
+            });
             assertFinalGeneratedIdentity(
                 this.changeTracker, this.recorded, entry, plan.metadata,
                 persistedValues, persistedBoundValues,
             );
             return;
         }
-
         const insertedIdentity = applyGeneratedInsertIdentity(
             entry,
             properties,
@@ -89,8 +89,7 @@ export class GeneratedValueHydrator {
             persistedBoundValues,
             this.valueReader,
         );
-        const remaining = properties.filter(property =>
-            property !== insertedIdentity);
+        const remaining = properties.filter(property => property !== insertedIdentity);
         if (remaining.length > 0) {
             const refresh = await this.database.query(
                 buildGeneratedValueRefresh(
@@ -110,40 +109,36 @@ export class GeneratedValueHydrator {
                     `The '${this.dialect.name}' provider saved '${entry.entityName}' but could not refresh its database-generated values.`,
                 );
             }
-            this.recorded.record(
-                entry.entity,
-                writeGeneratedRow(
-                    entry.entity, plan.metadata, remaining, refresh.rows[0],
-                    this.mutations, this.valueReader,
-                ),
-                persistedBoundValues,
-            );
+            applyTrackedGeneratedRow({
+                entity: entry.entity,
+                metadata: plan.metadata,
+                properties: remaining,
+                row: refresh.rows[0],
+                sourceBoundValues: persistedBoundValues,
+                recorder: this.recorded,
+                mutations: this.mutations,
+                valueReader: this.valueReader,
+            });
         }
         assertFinalGeneratedIdentity(
             this.changeTracker, this.recorded, entry, plan.metadata,
             persistedValues, persistedBoundValues,
         );
     }
-
     public propagateGeneratedKeys(
         entry: SavePlanEntry,
         persistedValues: Record<string, unknown>,
         persistedBoundValues: Record<string, unknown>,
         propagations?: readonly GeneratedKeyPropagation[],
     ): void {
-        this.recorded.record(
-            entry.entity,
-            propagateGeneratedKeys(
-                this.changeTracker,
-                entry,
-                persistedValues,
-                persistedBoundValues,
-                this.mutations,
-                propagations,
-                (principal, propertyName) =>
-                    this.recorded.find(principal, propertyName),
-            ),
+        applyTrackedGeneratedKeyPropagation({
+            tracker: this.changeTracker,
+            entry,
+            persistedValues,
             persistedBoundValues,
-        );
+            mutations: this.mutations,
+            recorder: this.recorded,
+            propagations,
+        });
     }
 }

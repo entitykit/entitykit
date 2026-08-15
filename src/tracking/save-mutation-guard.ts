@@ -9,7 +9,18 @@ export class SaveMutationGuard {
     private upsertReservationCount = 0;
     private readonly upsertReservations: WeakMap<object, number> = new WeakMap();
 
+    constructor(
+        private assertUsable: (operation: string) => void = () => undefined,
+    ) {}
+
+    public useUsabilityGuard(
+        assertUsable: (operation: string) => void,
+    ): void {
+        this.assertUsable = assertUsable;
+    }
+
     public beginExecution(): () => void {
+        this.assertUsable('saveChanges()');
         this.executionDepth += 1;
         let active = true;
         return () => {
@@ -58,6 +69,7 @@ export class SaveMutationGuard {
     }
 
     public reserveUpsertInputs(entities: readonly object[]): () => void {
+        this.assertUsable('upsert()');
         const reserved: Set<object> = new Set(entities);
         for (const entity of reserved) {
             if (this.upsertReservations.has(entity)) {
@@ -117,6 +129,7 @@ export class SaveMutationGuard {
         operation: string,
         action = 'run',
     ): void {
+        this.assertUsable(operation);
         if (this.executionDepth > 0) {
             throw new ContextConcurrentOperationError(
                 operation,

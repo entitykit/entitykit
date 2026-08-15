@@ -2,6 +2,11 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import { BulkUpsertGeneratedValues } from './bulk-upsert-generated-values';
 import type { ChangeTracker } from '../tracking/change-tracker';
+import {
+    associatedRestorationFailures,
+    restorationFailureFrom,
+    runRestorationActions,
+} from './restoration-failures';
 
 /** One rollback journal for every framework-owned mutation in an upsert. */
 export class BulkUpsertMutations<TEntity extends object> {
@@ -38,37 +43,25 @@ export class BulkUpsertMutations<TEntity extends object> {
     }
 
     public restore(): void {
-        const failures: unknown[] = [];
-        try {
-            this.generatedValues.restore(this.changeTracker);
-        } catch (error) {
-            failures.push(error);
-        }
-        for (const rollback of [...this.tenantRollbacks].reverse()) {
-            try {
-                rollback();
-            } catch (error) {
-                failures.push(error);
-            }
-        }
+        const tenantRollbacks = [...this.tenantRollbacks].reverse();
         this.tenantRollbacks.length = 0;
-        try {
-            this.releaseReservation();
-        } catch (error) {
-            failures.push(error);
-        }
-        if (failures.length > 0) {
-            throw failures[0];
-        }
+        runRestorationActions([
+            () => {
+                this.generatedValues.restore(this.changeTracker);
+            },
+            ...tenantRollbacks,
+            this.releaseReservation,
+        ]);
     }
 
     public restoreAfterFailure(
+        operationError: unknown,
         markStateRestorationFailure: (cause: unknown) => void,
     ): void {
-        try {
-            this.restore();
-        } catch (error) {
-            markStateRestorationFailure(error);
-        }
+        const failure = restorationFailureFrom(
+            [this.restore.bind(this)],
+            associatedRestorationFailures(operationError),
+        );
+        if (failure !== undefined) markStateRestorationFailure(failure);
     }
 }

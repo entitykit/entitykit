@@ -5,6 +5,7 @@ import type { SaveTimeWrites } from '../save-time-writes';
 import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 import type { SaveStateAcceptance } from './save-state-acceptance';
 import { captureGeneratedRelationshipRollback } from '../../tracking/generated-relationship-rollback-capture';
+import { runRestorationActions } from '../restoration-failures';
 
 interface SaveStateAcceptorOptions {
     readonly changeTracker: ChangeTracker;
@@ -66,18 +67,5 @@ export function acceptSaveState(
 }
 
 function rollbackAll(actions: ReadonlyArray<() => void>): void {
-    let firstError: unknown;
-    for (const action of actions) {
-        try {
-            action();
-        } catch (error) {
-            firstError ??= error;
-        }
-    }
-    if (firstError instanceof Error) throw firstError;
-    if (firstError !== undefined) {
-        throw new Error('Save rollback cleanup failed.', {
-            cause: firstError,
-        });
-    }
+    runRestorationActions(actions);
 }

@@ -3,15 +3,14 @@ import type {
     AppliedGeneratedValue,
     AppliedPropertyValue,
 } from './applied-generated-value';
-import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
-import { cloneBoundValues } from '../../tracking/bound-value-snapshot';
 import type { GeneratedIdentityRollbackSource } from '../../tracking/generated-identity-rollback-source';
+import type { EntityEntry } from '../../tracking/entity-entry';
+import { generatedRollbackSource } from './generated-rollback-source';
+import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
 
 export class GeneratedValueRecorder {
     private readonly values: AppliedGeneratedValue[] = [];
-    private readonly sourceBoundValues: Map<
-        AppliedGeneratedValue['entry'], Record<string, unknown>
-    > = new Map();
+    private readonly sources: GeneratedIdentityRollbackSource[] = [];
 
     constructor(private readonly changeTracker: ChangeTracker) {}
 
@@ -20,15 +19,30 @@ export class GeneratedValueRecorder {
         values: readonly AppliedPropertyValue[],
         sourceBoundValues: Readonly<Record<string, unknown>>,
     ): void {
-        const entry = this.changeTracker.entry(entity);
-        if (!entry) {
-            throw new Error('Generated values require their entity to remain tracked.');
-        }
-        if (!this.sourceBoundValues.has(entry)) {
-            this.sourceBoundValues.set(
-                entry, cloneBoundValues(sourceBoundValues),
-            );
-        }
+        const entry = this.register(entity, values, sourceBoundValues);
+        this.recordApplied(entry, values);
+    }
+
+    public register(
+        entity: object,
+        values: readonly AppliedPropertyValue[],
+        sourceBoundValues: Readonly<Record<string, unknown>>,
+    ): EntityEntry<object> {
+        const entry = this.requireEntry(entity);
+        this.sources.push(generatedRollbackSource(
+            entry.metadata,
+            entry.entity,
+            values,
+            sourceBoundValues,
+            entry,
+        ));
+        return entry;
+    }
+
+    public recordApplied(
+        entry: EntityEntry<object>,
+        values: readonly AppliedPropertyValue[],
+    ): void {
         for (const value of values) {
             this.values.push({
                 entry,
@@ -58,39 +72,19 @@ export class GeneratedValueRecorder {
     }
 
     public take(): readonly AppliedGeneratedValue[] {
-        this.sourceBoundValues.clear();
+        this.sources.length = 0;
         return this.values.splice(0);
     }
 
     public rollbackSources(): readonly GeneratedIdentityRollbackSource[] {
-        const grouped: Map<
-            AppliedGeneratedValue['entry'], AppliedGeneratedValue[]
-        > = new Map();
-        for (const value of this.values) {
-            const entryValues = grouped.get(value.entry) ?? [];
-            entryValues.push(value);
-            grouped.set(value.entry, entryValues);
+        return [...this.sources];
+    }
+
+    private requireEntry(entity: object): EntityEntry<object> {
+        const entry = this.changeTracker.entry(entity);
+        if (!entry) {
+            throw new Error('Generated values require their entity to remain tracked.');
         }
-        return [...grouped].map(([entry, generated]) => {
-            const boundValues = cloneBoundValues(
-                this.sourceBoundValues.get(entry) ?? {},
-            );
-            for (const value of generated) {
-                boundValues[value.propertyName] = cloneSnapshotValue(
-                    value.boundValue,
-                );
-            }
-            return {
-                entity: entry.entity,
-                entityType: entry.metadata.ctor,
-                keyProperties: entry.metadata.keyProperties.map(String),
-                tenantKeyProperty: entry.metadata.tenantKeyProperty,
-                principal: entry,
-                generatedProperties: new Set(generated.map(
-                    value => value.propertyName,
-                )),
-                boundValues,
-            };
-        });
+        return entry;
     }
 }
