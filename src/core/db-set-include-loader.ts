@@ -15,11 +15,11 @@ import type { IncludeLoadRoot } from '../query/include-loader-context';
  * Load one query's include graph through its immutable filter operation.
  *
  * The whole include tree is one failure-atomic operation: a refused navigation
- * unwinds every graph write already stitched for this query and detaches the
- * related entities it was the first to track, leaving the materialized roots
- * without a contradictory relationship graph. A `asNoTracking()` query stitches
- * into a throwaway tracker that is discarded either way, so its restoration
- * failures are not allowed to poison the context.
+ * unwinds every graph write already stitched for this query and detaches only
+ * the related entities it recorded tracking itself, leaving the materialized
+ * roots without a contradictory relationship graph. A `asNoTracking()` query
+ * stitches into a throwaway tracker that is discarded either way, so its
+ * restoration failures are not allowed to poison the context.
  */
 export async function loadDbSetIncludes<TEntity extends object>(
     context: DbSetContext,
@@ -37,7 +37,7 @@ export async function loadDbSetIncludes<TEntity extends object>(
         error => {
             if (tracked) context.markStateRestorationFailure(error);
         },
-        async journal => new IncludeLoader(
+        async scope => new IncludeLoader(
             context.modelMetadata,
             context.database,
             changeTracker,
@@ -50,7 +50,7 @@ export async function loadDbSetIncludes<TEntity extends object>(
             options,
             tracked,
             tracked,
-            journal,
+            scope,
         ).loadRoots(metadata, roots, model.includes),
     );
 }

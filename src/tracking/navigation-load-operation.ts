@@ -1,6 +1,7 @@
 import { RestorationScope } from '../restoration-scope';
 import type { ChangeTracker } from './change-tracker';
 import { captureNavigationLoadCheckpoint } from './navigation-load-checkpoint';
+import type { NavigationLoadScope } from './navigation-load-scope';
 import { NavigationWriteJournal } from './navigation-write-journal';
 
 /**
@@ -10,19 +11,25 @@ import { NavigationWriteJournal } from './navigation-write-journal';
  * loading all publish graph writes, loaded flags, navigation baselines, and
  * newly tracked related entities. When any of that fails part-way, the caller
  * must not be left with half a relationship: the journal restores every graph
- * write in reverse, the checkpoint restores the tracker facts and detaches the
- * entities this load was the first to track, the original failure is preserved,
- * and a restoration that cannot complete poisons the context.
+ * write in reverse, the checkpoint restores the tracker facts and detaches only
+ * the entities this load itself tracked, the original failure is preserved, and
+ * a restoration that cannot complete poisons the context. The load's own result
+ * is produced inside the boundary, so reading it is covered by the rollback too.
  */
 export async function runNavigationLoadOperation<TResult>(
     tracker: ChangeTracker,
     markRestorationFailure: (error: unknown) => void,
-    load: (journal: NavigationWriteJournal) => Promise<TResult>,
+    load: (scope: NavigationLoadScope) => Promise<TResult>,
 ): Promise<TResult> {
     const checkpoint = captureNavigationLoadCheckpoint(tracker);
     const journal = new NavigationWriteJournal();
     try {
-        return await load(journal);
+        return await load({
+            journal,
+            recordTrackedByLoad: (entity: object): void => {
+                checkpoint.recordTrackedByLoad(entity);
+            },
+        });
     } catch (error) {
         const scope = new RestorationScope(markRestorationFailure);
         scope.capturePrimary(error);

@@ -13,10 +13,8 @@ import { IncludeStrategyRunner } from './include-loader-strategies';
 import { groupIncludes } from './include-navigation-helpers';
 import { captureIncludeRoots } from './include-load-root';
 import type { SuppliedIncludeValues } from './include-load-root';
-import {
-    directNavigationWriter,
-    type NavigationWriter,
-} from '../tracking/navigation-writer';
+import { directNavigationWriter } from '../tracking/navigation-writer';
+import type { NavigationLoadScope } from '../tracking/navigation-load-scope';
 
 /**
  * Eager relationship/navigation loading for `include(...)`.
@@ -43,14 +41,21 @@ export class IncludeLoader {
         operationOptions?: DatabaseOperationOptions,
         fixupTrackedGraph = true,
         preservePendingRelationships = false,
-        journal: NavigationWriter = directNavigationWriter,
+        scope?: NavigationLoadScope,
     ) {
+        // The load's tracking provenance rides with its journal: one recorder per
+        // operation, shared by every strategy and every `loadRoots` recursion.
+        const recordTrackedByLoad = scope
+            ? (entity: object): void => {
+                scope.recordTrackedByLoad(entity);
+            }
+            : undefined;
         this.strategies = new IncludeStrategyRunner({
             model,
             database,
             operationOptions,
             changeTracker,
-            journal,
+            journal: scope?.journal ?? directNavigationWriter,
             fixupTrackedGraph,
             preservePendingRelationships,
             applyQueryFilters,
@@ -58,7 +63,7 @@ export class IncludeLoader {
             diagnostics,
             valueReader,
             selectSql: new SelectSqlBuilder(dialect),
-            materializer: new Materializer(valueReader),
+            materializer: new Materializer(valueReader, recordTrackedByLoad),
         });
     }
 

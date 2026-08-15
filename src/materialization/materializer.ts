@@ -17,7 +17,11 @@ import {
 export class Materializer {
     private readonly materializedEntities: WeakSet<object> = new WeakSet();
 
-    constructor(private readonly valueReader?: StoreValueReader) {}
+    /** `onFreshEntityTracked` fires only for entities this instance first tracked. */
+    constructor(
+        private readonly valueReader?: StoreValueReader,
+        private readonly onFreshEntityTracked?: (entity: object) => void,
+    ) {}
 
     /** Materialize one entity without identity resolution or tracker retention. */
     public materializeUntracked<TEntity extends object>(
@@ -86,6 +90,9 @@ export class Materializer {
             values,
             boundValues,
         );
+        // The only moment anyone knows this tracking is ours: the identity lookup
+        // above missed, the entity is brand new, and registration just succeeded.
+        this.onFreshEntityTracked?.(entry.entity);
         return { entity: entry.entity, values, boundValues };
     }
 

@@ -6,6 +6,10 @@ import {
     restoreEntryLoadedNavigations,
 } from './entity-entry-navigation-checkpoint';
 import {
+    captureNavigationChangeDetectionState,
+    restoreNavigationChangeDetectionState,
+} from './navigation-change-detection-state';
+import {
     acceptNavigationSnapshotValues,
     captureNavigationSnapshotValues,
     type NavigationSnapshotValues,
@@ -15,39 +19,43 @@ interface LoadedEntryCheckpoint {
     readonly entry: EntityEntry<object>;
     readonly loaded: ReadonlyMap<string, string | null>;
     readonly navigations: NavigationSnapshotValues;
+    readonly suppressed: ReadonlySet<string>;
 }
 
 /** Tracker facts a navigation load may change, with their restorations. */
 export interface NavigationLoadCheckpoint {
+    /** Record an entity this load was the first to track. */
+    recordTrackedByLoad(entity: object): void;
     restorationActions(): Array<() => void>;
 }
 
-/** Capture loaded flags, navigation baselines, and the tracked entity set. */
+/** Capture loaded flags, navigation baselines, and suppression per entry. */
 export function captureNavigationLoadCheckpoint(
     tracker: ChangeTracker,
 ): NavigationLoadCheckpoint {
-    const entries = tracker.entries();
-    const checkpoints: LoadedEntryCheckpoint[] = entries.map(entry => ({
+    const checkpoints: LoadedEntryCheckpoint[] = tracker.entries().map(entry => ({
         entry,
         loaded: captureEntryLoadedNavigations(entry),
         navigations: captureNavigationSnapshotValues(entry),
+        suppressed: captureNavigationChangeDetectionState(entry),
     }));
-    const tracked: ReadonlySet<object> = new Set(
-        entries.map(entry => entry.entity),
-    );
+    const trackedByLoad: Set<object> = new Set();
     return {
+        recordTrackedByLoad: (entity: object): void => {
+            trackedByLoad.add(entity);
+        },
         restorationActions: (): Array<() => void> => [
             ...checkpoints.map(checkpoint => () => {
                 restoreEntryCheckpoint(checkpoint);
             }),
             () => {
-                detachEntitiesTrackedSince(tracker, tracked);
+                detachEntitiesTrackedByLoad(tracker, trackedByLoad);
             },
         ],
     };
 }
 
-/** Put one entry's loaded flags and navigation baselines back. */
+/** Put one entry's loaded flags, baselines, and suppression back. */
 function restoreEntryCheckpoint(checkpoint: LoadedEntryCheckpoint): void {
     runRestorationActions([
         () => {
@@ -58,17 +66,20 @@ function restoreEntryCheckpoint(checkpoint: LoadedEntryCheckpoint): void {
                 checkpoint.entry, checkpoint.navigations,
             );
         },
+        () => {
+            restoreNavigationChangeDetectionState(
+                checkpoint.entry, checkpoint.suppressed,
+            );
+        },
     ]);
 }
 
-/** Detach every entity the failed load was the first to track. */
-function detachEntitiesTrackedSince(
+/** Detach exactly the entities this load recorded as freshly tracked. */
+function detachEntitiesTrackedByLoad(
     tracker: ChangeTracker,
-    tracked: ReadonlySet<object>,
+    trackedByLoad: ReadonlySet<object>,
 ): void {
-    runRestorationActions(tracker.entries()
-        .filter(entry => !tracked.has(entry.entity))
-        .map(entry => () => {
-            tracker.detach(entry.entity);
-        }));
+    runRestorationActions([...trackedByLoad].map(entity => () => {
+        tracker.detach(entity);
+    }));
 }

@@ -1,10 +1,8 @@
 import { EntityState } from '../src';
 import { requireDefined } from './support/require-defined';
-import type {
-    RefusalDependent,
-    RefusalPrincipal,
-} from './support/accessor-refusal-support';
+import type { RefusalDependent } from './support/accessor-refusal-support';
 import {
+    RefusalPrincipal,
     openRefusalGraph,
     refusalMessage,
     rejection,
@@ -16,6 +14,7 @@ const writeLog: string[] = [];
 function interceptCollection(
     principal: RefusalPrincipal,
     store: (value: RefusalDependent[]) => RefusalDependent[],
+    onWrite?: () => void,
 ): void {
     let stored = principal.dependents;
     Object.defineProperty(principal, 'dependents', {
@@ -26,6 +25,7 @@ function interceptCollection(
             writeLog.push(`dependents(${principal.id})=${
                 value.map(row => row.id).join(',')}`);
             stored = store(value);
+            onWrite?.();
         },
     });
 }
@@ -126,8 +126,16 @@ describe('navigation load atomicity', () => {
 
     it('detaches only the entities the failed include first tracked', async () => {
         const db = await openRefusalGraph();
+        const first = requireDefined(await db.principals.find('p1'));
         const second = requireDefined(await db.principals.find('p2'));
         const kept = requireDefined(await db.dependents.find('d2'));
+        const added = new RefusalPrincipal();
+        added.id = 'p3';
+        // Tracked from outside the load, after its checkpoint, while it is still
+        // in flight: temporal ordering must not be read as the load's ownership.
+        interceptCollection(first, value => value, () => {
+            if (!db.entry(added)) db.principals.add(added);
+        });
         interceptCollection(second, () => []);
 
         await rejection(async () => db.principals
@@ -135,12 +143,73 @@ describe('navigation load atomicity', () => {
 
         expect(db.changeTracker.entries().map(row =>
             (row.entity as { id: string }).id).sort()).toEqual([
-            'd2', 'p1', 'p2',
+            'd2', 'p1', 'p2', 'p3',
         ]);
+        expect(requireDefined(db.entry(added)).state).toBe(EntityState.Added);
         expect(kept.principal).toBeNull();
         expect(requireDefined(db.entry(kept)).state)
             .toBe(EntityState.Unchanged);
         await expect(db.principals.count()).resolves.toBe(2);
         await db.dispose();
     });
+
+    it('resolves an explicit load with the value it read inside the boundary', async () => {
+        const reads = await countCollectionReads();
+        const db = await openRefusalGraph();
+        const second = requireDefined(await db.principals.find('p2'));
+        const entry = requireDefined(db.entry(second));
+        let seen = 0;
+        interceptRefusingRead(second, () => {
+            seen += 1;
+            return seen === reads;
+        });
+
+        const failure = await rejection(async () =>
+            entry.collection(row => row.dependents).load());
+
+        // The result read is inside the operation, so a getter that refuses it
+        // fails the load *and* unwinds it: no half-loaded graph behind a rejection.
+        expect(refusalMessage(failure)).toBe('post-stitch read refused');
+        expect(second.dependents).toEqual([]);
+        expect(entry.isNavigationLoaded('dependents')).toBe(false);
+        expect(db.changeTracker.entries().map(row => row.state)).toEqual([
+            EntityState.Unchanged,
+        ]);
+        expect(db.changeTracker.entries()).toHaveLength(1);
+        await db.dispose();
+    });
 });
+
+/** Total reads of the collection during one successful explicit load. */
+async function countCollectionReads(): Promise<number> {
+    const db = await openRefusalGraph();
+    const second = requireDefined(await db.principals.find('p2'));
+    let reads = 0;
+    interceptRefusingRead(second, () => {
+        reads += 1;
+        return false;
+    });
+    await requireDefined(db.entry(second))
+        .collection(row => row.dependents).load();
+    await db.dispose();
+    return reads;
+}
+
+/** Count every read of the collection, refusing exactly the ones asked for. */
+function interceptRefusingRead(
+    principal: RefusalPrincipal,
+    refuse: () => boolean,
+): void {
+    let stored = principal.dependents;
+    Object.defineProperty(principal, 'dependents', {
+        configurable: true,
+        enumerable: true,
+        get: () => {
+            if (refuse()) throw new Error('post-stitch read refused');
+            return stored;
+        },
+        set: (value: RefusalDependent[]) => {
+            stored = value;
+        },
+    });
+}

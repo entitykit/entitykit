@@ -31,27 +31,33 @@ export abstract class DbContextQuery extends DbContextConcurrency {
                 : undefined,
             operation.allowsCrossTenantAccess,
         );
-        await runNavigationLoadOperation(
+        // The navigation is read inside the boundary, so the operation's resolved
+        // value is the loaded value and a refusing getter unwinds the whole load.
+        return runNavigationLoadOperation(
             this.changeTracker,
             this.state.markStateRestorationFailure.bind(this.state, 'rollback'),
-            async journal => new IncludeLoader(
-                this.modelMetadata,
-                this.databaseConnection,
-                this.changeTracker,
-                (metadata, query) => operation.apply(metadata, query),
-                this.dialect,
-                undefined,
-                this.valueReader,
-                undefined,
-                true,
-                false,
-                journal,
-            ).load(entry.metadata, [entry.entity], [{
-                navigationProperty: navigationProperty as never,
-                navigationPath: [navigationProperty],
-            }], new Map([[entry.entity, values]])),
+            async scope => {
+                await new IncludeLoader(
+                    this.modelMetadata,
+                    this.databaseConnection,
+                    this.changeTracker,
+                    (metadata, query) => operation.apply(metadata, query),
+                    this.dialect,
+                    undefined,
+                    this.valueReader,
+                    undefined,
+                    true,
+                    false,
+                    scope,
+                ).load(entry.metadata, [entry.entity], [{
+                    navigationProperty: navigationProperty as never,
+                    navigationPath: [navigationProperty],
+                }], new Map([[entry.entity, values]]));
+                return (entry.entity as Record<string, unknown>)[
+                    navigationProperty
+                ];
+            },
         );
-        return (entry.entity as Record<string, unknown>)[navigationProperty];
     }
 
     public override applyQueryFilters<TEntity extends object>(
