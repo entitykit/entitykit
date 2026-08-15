@@ -16,6 +16,7 @@ import { assertFinalGeneratedIdentity } from './generated-final-identity';
 import { restoreGeneratedValuesAfterFailure } from './generated-value-rollback';
 import { applyTrackedGeneratedRow } from './tracked-generated-row';
 import { applyTrackedGeneratedKeyPropagation } from './tracked-generated-key-propagation';
+import type { RestorationScope } from '../../restoration-scope';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
     private readonly recorded: GeneratedValueRecorder;
@@ -23,6 +24,7 @@ export class GeneratedValueHydrator {
         private readonly database: DatabaseConnection,
         private readonly dialect: SqlDialect,
         private readonly changeTracker: ChangeTracker,
+        private readonly scope: RestorationScope,
         private readonly valueReader?: StoreValueReader,
     ) {
         this.recorded = new GeneratedValueRecorder(changeTracker);
@@ -72,6 +74,7 @@ export class GeneratedValueHydrator {
                 sourceBoundValues: persistedBoundValues,
                 recorder: this.recorded,
                 mutations: this.mutations,
+                scope: this.scope,
                 valueReader: this.valueReader,
             });
             assertFinalGeneratedIdentity(
@@ -87,6 +90,7 @@ export class GeneratedValueHydrator {
             this.mutations,
             this.recorded,
             persistedBoundValues,
+            this.scope,
             this.valueReader,
         );
         const remaining = properties.filter(property => property !== insertedIdentity);
@@ -117,6 +121,7 @@ export class GeneratedValueHydrator {
                 sourceBoundValues: persistedBoundValues,
                 recorder: this.recorded,
                 mutations: this.mutations,
+                scope: this.scope,
                 valueReader: this.valueReader,
             });
         }
@@ -127,8 +132,7 @@ export class GeneratedValueHydrator {
     }
     public propagateGeneratedKeys(
         entry: SavePlanEntry,
-        persistedValues: Record<string, unknown>,
-        persistedBoundValues: Record<string, unknown>,
+        persistedValues: Record<string, unknown>, persistedBoundValues: Record<string, unknown>,
         propagations?: readonly GeneratedKeyPropagation[],
     ): void {
         applyTrackedGeneratedKeyPropagation({
@@ -138,6 +142,7 @@ export class GeneratedValueHydrator {
             persistedBoundValues,
             mutations: this.mutations,
             recorder: this.recorded,
+            scope: this.scope,
             propagations,
         });
     }

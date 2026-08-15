@@ -1,6 +1,8 @@
 import type { ChangeTracker } from './change-tracker';
 import type { ChangeTrackerRegistry } from './change-tracker-registry';
 import type { EntityEntry } from './entity-entry';
+import { runRestorationActions } from '../restoration-actions';
+import type { RestorationScope } from '../restoration-scope';
 
 interface RelationshipDetectionRegistryState {
     readonly registry: ChangeTrackerRegistry;
@@ -29,6 +31,7 @@ export function relationshipDetectionIdentityKey(
 
 export function beginRelationshipDetectionDetachScope(
     tracker: ChangeTracker,
+    restoration: RestorationScope,
 ): { commit(): void; rollback(): void } {
     const state = requireState(tracker);
     const detached: Set<object> = new Set();
@@ -43,7 +46,8 @@ export function beginRelationshipDetectionDetachScope(
                     if (rollback) rollbacks.push(rollback);
                 }
             } catch (error) {
-                for (const rollback of rollbacks.reverse()) rollback();
+                restoration.capturePrimary(error);
+                restoration.attemptAll(rollbacks.reverse());
                 throw error;
             }
         },
@@ -72,12 +76,20 @@ export function restoreRelationshipDetectionEntries(
     }>,
 ): void {
     const registry = requireState(tracker).registry;
-    for (const checkpoint of checkpoints) registry.restore(checkpoint.entry);
-    registry.identities.restoreKeys(checkpoints.map(checkpoint => ({
-        entry: checkpoint.entry,
-        key: checkpoint.identityKey,
-    })));
-    registry.assertInvariant();
+    runRestorationActions([
+        ...checkpoints.map(checkpoint => () => {
+            registry.restore(checkpoint.entry);
+        }),
+        () => {
+            registry.identities.restoreKeys(checkpoints.map(checkpoint => ({
+                entry: checkpoint.entry,
+                key: checkpoint.identityKey,
+            })));
+        },
+        () => {
+            registry.assertInvariant();
+        },
+    ]);
 }
 
 function requireState(tracker: ChangeTracker): RelationshipDetectionRegistryState {

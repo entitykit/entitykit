@@ -4,12 +4,14 @@ import {
     propertyValueTarget,
     readPropertyPath,
     readPropertyValue,
-    writePropertyValue,
 } from '../model/property-value-access';
 import {
     snapshotPropertyValue,
     snapshotPropertyValuesEqual,
 } from '../tracking/snapshot-value';
+import { runRestorationActions } from '../restoration-actions';
+import { restorePropertyValue } from '../property-value-restoration';
+import { createdAncestorRestoration } from './created-ancestor-restoration';
 
 interface SaveTimeMutation {
     restore(): void;
@@ -35,7 +37,6 @@ export class SaveTimeMutationLog {
             },
         });
     }
-
     /** Remove only the exact framework-created ancestor while it stays pristine. */
     public recordCreatedAncestor(
         target: Record<string, unknown>,
@@ -43,16 +44,13 @@ export class SaveTimeMutationLog {
         previous: unknown,
         created: object,
         isPristine: () => boolean,
-    ): void {
-        this.mutations.push({
-            restore: () => {
-                if (target[property] === created && isPristine()) {
-                    target[property] = previous;
-                }
-            },
-        });
+    ): () => void {
+        const restoration = createdAncestorRestoration(
+            target, property, previous, created, isPristine,
+        );
+        this.mutations.push({ restore: restoration.rollback });
+        return restoration.restoreAfterWriteFailure;
     }
-
     /** Restore a policy write only while its provisional value is still live. */
     public recordApplied(
         entity: object,
@@ -67,6 +65,11 @@ export class SaveTimeMutationLog {
             property.converter,
             context,
         );
+        const previousSnapshot = snapshotPropertyValue(
+            previous,
+            property.converter,
+            context,
+        );
         const appliedTarget = propertyValueTarget(
             entity,
             property.propertyPath,
@@ -76,9 +79,7 @@ export class SaveTimeMutationLog {
                 let restored = false;
                 try {
                     const parentPath = property.propertyPath.slice(0, -1);
-                    const currentTarget = parentPath.length === 0
-                        ? entity
-                        : readPropertyPath(entity, parentPath);
+                    const currentTarget = readPropertyPath(entity, parentPath);
                     if (currentTarget !== appliedTarget) return;
                     if (snapshotPropertyValuesEqual(
                         readPropertyValue(entity, property),
@@ -86,7 +87,10 @@ export class SaveTimeMutationLog {
                         property.converter,
                         context,
                     )) {
-                        writePropertyValue(entity, property, previous);
+                        restorePropertyValue(
+                            entity, property, previous,
+                            previousSnapshot, context,
+                        );
                         restored = true;
                     }
                 } finally {
@@ -133,17 +137,10 @@ export class SaveTimeMutationLog {
                 return;
             }
             pending = false;
-            const failures: unknown[] = [];
-            for (const mutation of [...accepted].reverse()) {
-                try {
-                    mutation.restore();
-                } catch (error) {
-                    failures.push(error);
-                }
-            }
-            if (failures.length > 0) {
-                throw failures[0];
-            }
+            runRestorationActions(
+                [...accepted].reverse().map(mutation =>
+                    mutation.restore.bind(mutation)),
+            );
         };
     }
 }

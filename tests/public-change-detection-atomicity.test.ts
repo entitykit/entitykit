@@ -3,7 +3,7 @@ import type {
     ModelBuilder,
     ValueConverter,
 } from '../src';
-import { DbContext, EntityState } from '../src';
+import { ContextStateRestorationError, DbContext, EntityState } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 
 class DetectionParent {
@@ -20,10 +20,11 @@ class DetectionChild {
 class DetectionBomb {
     public id = '';
     public throwGetter = false;
+    public failure: unknown = new Error('scalar getter failed');
     private storedValue = 'safe';
 
     public get value(): string {
-        if (this.throwGetter) throw new Error('scalar getter failed');
+        if (this.throwGetter) throw this.failure;
         return this.storedValue;
     }
 
@@ -191,6 +192,102 @@ describe('public change detection atomicity', () => {
         expectUnapplied(value);
         expect(value.db.entry(value.navigationBomb)?.state)
             .toBe(EntityState.Unchanged);
+        await value.db.dispose();
+    });
+
+    it.each(['throw', 'ignore'] as const)(
+        'preserves a primitive failure and poisons when FK rollback must %s',
+        async restorationMode => {
+            const value = graph();
+            const restoration = new Error('relationship FK restoration failed');
+            let parentId = 'p1';
+            Object.defineProperty(value.child, 'parentId', {
+                configurable: true,
+                get: () => parentId,
+                set: (next: string) => {
+                    if (next === 'p1') {
+                        if (restorationMode === 'throw') throw restoration;
+                        return;
+                    }
+                    parentId = next;
+                },
+            });
+            value.bomb.throwGetter = true;
+            value.bomb.failure = 47;
+
+            let primary: unknown;
+            try {
+                value.db.changeTracker.detectChanges();
+            } catch (error) {
+                primary = error;
+            }
+            expect(primary).toBe(47);
+            expect(value.child.parentId).toBe('p2');
+            expect(value.child.parent).toBe(value.next);
+            expect(value.previous.children).toEqual([value.child]);
+            expect(value.next.children).toEqual([]);
+
+            let unusable: unknown;
+            try {
+                await value.db.children.count();
+            } catch (error) {
+                unusable = error;
+            }
+            expect(unusable).toBeInstanceOf(ContextStateRestorationError);
+            if (restorationMode === 'throw') {
+                expect(unusable).toMatchObject({ cause: restoration });
+            } else {
+                expect((unusable as Error).cause).toMatchObject({
+                    message: 'Property \'DetectionChild.parentId\' refused its restoration value.',
+                });
+            }
+            expect(() => value.db.children.add(new DetectionChild()))
+                .toThrow(unusable as Error);
+            expect(() => value.db.children.attach(new DetectionChild()))
+                .toThrow(unusable as Error);
+            expect(() => {
+                value.db.changeTracker.clear();
+            })
+                .toThrow(unusable as Error);
+            expect(() => value.db.getSavePlan()).toThrow(unusable as Error);
+            await expect(value.db.transaction(() => undefined))
+                .rejects.toBe(unusable);
+        },
+    );
+
+    it('poisons when a navigation silently refuses rollback', async () => {
+        const value = graph();
+        let children = value.previous.children;
+        Object.defineProperty(value.previous, 'children', {
+            configurable: true,
+            get: () => children,
+            set: (next: DetectionChild[]) => {
+                if (next.length === 1 && next[0] === value.child) return;
+                children = next;
+            },
+        });
+        const primary: unknown = Symbol('detection primary');
+        value.bomb.throwGetter = true;
+        value.bomb.failure = primary;
+
+        let failure: unknown;
+        try {
+            value.db.changeTracker.detectChanges();
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure).toBe(primary);
+        expect(value.previous.children).toEqual([]);
+        let unusable: unknown;
+        try {
+            await value.db.children.count();
+        } catch (error) {
+            unusable = error;
+        }
+        expect(unusable).toBeInstanceOf(ContextStateRestorationError);
+        expect((unusable as Error).cause).toMatchObject({
+            message: 'Navigation \'DetectionParent.children\' refused its restoration value.',
+        });
         await value.db.dispose();
     });
 });

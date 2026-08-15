@@ -1,8 +1,6 @@
 import type { EntityMetadata } from '../../model/entity-metadata';
 import {
     readPropertyPath,
-    readPropertyValue,
-    writePropertyValue,
 } from '../../model/property-value-access';
 import type { PropertyMetadata } from '../../model/property-metadata';
 import type { StoreValueReader } from '../../storage/store-value-reader';
@@ -13,18 +11,21 @@ import {
     prepareGeneratedValue,
     type PreparedGeneratedValue,
 } from './prepared-generated-value';
-import { associateRestorationFailure } from '../restoration-failures';
+import type { RestorationScope } from '../../restoration-scope';
+import { writeFailureAtomicProperty } from '../../failure-atomic-property-write';
 
 export function applyPreparedGeneratedRow<TEntity extends object>(
     entity: TEntity,
     metadata: EntityMetadata<TEntity>,
     values: ReadonlyArray<PreparedGeneratedValue<TEntity>>,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
 ): readonly AppliedPropertyValue[] {
     return values.map(value => applyPreparedGeneratedValue(
         entity,
         value,
         mutations,
+        scope,
         metadata,
     ));
 }
@@ -34,6 +35,7 @@ export function writeGeneratedValue<TEntity extends object>(
     property: PropertyMetadata<TEntity>,
     storeValue: unknown,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
     valueReader?: StoreValueReader,
     metadata?: EntityMetadata<TEntity>,
     entityName = metadata?.entityName,
@@ -47,6 +49,7 @@ export function writeGeneratedValue<TEntity extends object>(
             entityName,
         ),
         mutations,
+        scope,
         metadata,
     );
 }
@@ -55,6 +58,7 @@ export function applyPreparedGeneratedValue<TEntity extends object>(
     entity: TEntity,
     prepared: PreparedGeneratedValue<TEntity>,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
     metadata?: EntityMetadata<TEntity>,
     onRestored?: (restored: boolean) => void,
 ): AppliedPropertyValue {
@@ -69,6 +73,7 @@ export function applyPreparedGeneratedValue<TEntity extends object>(
             entity,
             property,
             mutations,
+            scope,
         );
     }
     const parentPath = property.propertyPath.slice(0, -1);
@@ -79,36 +84,23 @@ export function applyPreparedGeneratedValue<TEntity extends object>(
     ) {
         return appliedValue(prepared);
     }
-    const previous = readPropertyValue(entity, property);
-    try {
-        writePropertyValue(entity, property, liveValue);
-    } catch (error) {
-        try {
-            writePropertyValue(entity, property, previous);
-        } catch (restorationError) {
-            associateRestorationFailure(error, restorationError);
-        }
-        throw error;
-    }
-    let applied: unknown;
-    try {
-        applied = readPropertyValue(entity, property);
-    } catch (error) {
-        try {
-            writePropertyValue(entity, property, previous);
-        } catch (restorationError) {
-            associateRestorationFailure(error, restorationError);
-        }
-        throw error;
-    }
-    mutations.recordApplied(
+    writeFailureAtomicProperty({
         entity,
         property,
-        previous,
-        applied,
+        value: liveValue,
+        scope,
         context,
-        onRestored,
-    );
+        recordApplied: (previous, applied) => {
+            mutations.recordApplied(
+                entity,
+                property,
+                previous,
+                applied,
+                context,
+                onRestored,
+            );
+        },
+    });
     return appliedValue(prepared);
 }
 

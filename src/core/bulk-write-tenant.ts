@@ -3,7 +3,6 @@ import { TenantScopeUnavailableError } from '../errors/tenant-scope-unavailable-
 import type { EntityMetadata } from '../model/entity-metadata';
 import {
     readPropertyValue,
-    writePropertyValue,
 } from '../model/property-value-access';
 import {
     snapshotPropertyValueCopies,
@@ -14,6 +13,8 @@ import { snapshotValuesEqual } from '../tracking/snapshot-value-equality';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { ensurePolicyPropertyPath } from './policy-property-path';
 import { SaveTimeMutationLog } from './save-time-mutations';
+import type { RestorationScope } from '../restoration-scope';
+import { writeFailureAtomicProperty } from '../failure-atomic-property-write';
 
 /** Apply the tenant boundary to one set-based entity write. */
 export function applyBulkWriteTenant<TEntity extends object>(
@@ -21,6 +22,7 @@ export function applyBulkWriteTenant<TEntity extends object>(
     entity: TEntity,
     tenantId: unknown,
     allowsCrossTenantAccess: boolean,
+    scope: RestorationScope,
 ): () => void {
     const tenantProperty = metadata.tenantKeyProperty;
     if (!tenantProperty || allowsCrossTenantAccess) {
@@ -46,26 +48,20 @@ export function applyBulkWriteTenant<TEntity extends object>(
                 entity,
                 property,
                 mutations,
+                scope,
             );
-            const previous = readPropertyValue(entity, property);
-            try {
-                writePropertyValue(entity, property, liveValue);
-            } catch (error) {
-                try {
-                    writePropertyValue(entity, property, previous);
-                } catch {
-                    // Preserve the setter failure that interrupted tenant stamping.
-                }
-                throw error;
-            }
-            current = readPropertyValue(entity, property);
-            mutations.recordApplied(
+            current = writeFailureAtomicProperty({
                 entity,
                 property,
-                previous,
-                current,
+                value: liveValue,
+                scope,
                 context,
-            );
+                recordApplied: (previous, applied) => {
+                    mutations.recordApplied(
+                        entity, property, previous, applied, context,
+                    );
+                },
+            });
         }
 
         if (!snapshotPropertyValuesEqual(
@@ -82,7 +78,8 @@ export function applyBulkWriteTenant<TEntity extends object>(
             mutations.restore();
         };
     } catch (error) {
-        mutations.restore();
+        scope.capturePrimary(error);
+        scope.attempt(mutations.restore.bind(mutations));
         throw error;
     }
 }

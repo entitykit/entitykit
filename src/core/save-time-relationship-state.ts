@@ -5,6 +5,7 @@ import {
     rememberSaveTimeRelationshipWrites,
     reconcileSaveTimeRelationships,
 } from './save-time-relationship-reconciliation';
+import type { RestorationScope } from '../restoration-scope';
 
 export interface SaveTimeRelationshipChanges {
     readonly foreignKeys: ReadonlySet<string>;
@@ -35,10 +36,12 @@ export class SaveTimeRelationshipState {
     public reconcile(
         tracker: ChangeTracker,
         mutations: SaveTimeMutationLog,
+        restoration: RestorationScope,
     ): ReadonlyMap<object, SaveTimeRelationshipChanges> {
         const navigations = reconcileSaveTimeRelationships(
             tracker,
             mutations,
+            restoration,
             tracker.entries().filter(entry =>
                 this.properties.has(entry.entity)),
         );

@@ -8,7 +8,8 @@ import { OutboxEventTracker } from './outbox-event-tracker';
 import type { DatabaseOperationOptions, TransactionOptions } from '../storage/database-connection';
 import { ContextConcurrentOperationError } from '../errors/runtime-errors';
 import { throwIfOperationAborted } from '../storage/operation-cancellation';
-
+import { RestorationScope } from '../restoration-scope';
+import { inspectSavePlan } from './save-plan-inspection';
 /** Save planning, persistence, and transaction ownership for a context. */
 export abstract class DbContextUnitOfWork extends DbContextRelationships {
     private saveInProgress = false;
@@ -44,15 +45,10 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         navigationLoader: this,
         getDatabase: () => this.databaseConnection,
         getOptions: () => this.options,
-        markStateRestorationFailure: error => {
-            this.state.markStateRestorationFailure('rollback', error);
-        },
     });
-
     protected get transactionDepth(): number {
         return this.transactionCoordinator.depth;
     }
-
     protected registerTransactionState(
         afterCommit: () => void,
         afterRollback: () => void,
@@ -66,34 +62,34 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
             afterRollback,
         );
     }
-
     public getSavePlan(): readonly SavePlanEntry[] {
         this.assertContextUsable('getSavePlan()');
         this.assertSaveNotInProgress('getSavePlan()');
-        try {
-            return this.savePlanBuilder.build();
-        } finally {
-            this.saveTimeWrites.restore();
-        }
+        return inspectSavePlan(
+            this.state.markStateRestorationFailure.bind(
+                this.state, 'rollback',
+            ),
+            this.saveTimeWrites,
+            restoration => this.savePlanBuilder.build(restoration),
+        );
     }
-
     public getSavePlanDebugView(): string {
         this.assertContextUsable('getSavePlanDebugView()');
         this.assertSaveNotInProgress('getSavePlanDebugView()');
-        try {
-            return this.savePlanBuilder.debugView();
-        } finally {
-            this.saveTimeWrites.restore();
-        }
+        return inspectSavePlan(
+            this.state.markStateRestorationFailure.bind(
+                this.state, 'rollback',
+            ),
+            this.saveTimeWrites,
+            restoration => this.savePlanBuilder.debugView(restoration),
+        );
     }
-
     public clearChanges(): void {
         this.assertContextUsable('clearChanges()');
         this.assertSaveNotInProgress('clearChanges()');
         this.changeTracker.clear();
         this.manyToMany.clear();
     }
-
     public async saveChanges(options?: DatabaseOperationOptions): Promise<number> {
         this.assertContextUsable('saveChanges()');
         throwIfOperationAborted(options?.signal);
@@ -103,25 +99,37 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
                 'A saveChanges() is already in progress on this DbContext. Await the first one, or use a separate context per concurrent unit of work.',
             );
         }
-
-        const plan = this.savePlanBuilder.build();
-        if (plan.length === 0) {
-            this.saveTimeWrites.restore();
-            return 0;
-        }
-
-        this.saveInProgress = true;
+        const restoration = new RestorationScope(
+            this.state.markStateRestorationFailure.bind(this.state, 'rollback'),
+        );
         try {
-            return await this.saver.run(
+            const plan = this.savePlanBuilder.build(restoration);
+            if (plan.length === 0) {
+                restoration.attempt(
+                    this.saveTimeWrites.restore.bind(this.saveTimeWrites),
+                );
+                restoration.throwIfFailed();
+                return 0;
+            }
+            this.saveInProgress = true;
+            const affected = await this.saver.run(
                 plan,
-                () => this.savePlanBuilder.build({ continueSaveAttempt: true }),
+                () => this.savePlanBuilder.build(
+                    restoration,
+                    { continueSaveAttempt: true },
+                ),
+                restoration,
                 options,
             );
+            restoration.throwIfFailed();
+            return affected;
+        } catch (error) {
+            restoration.capturePrimary(error);
+            return restoration.rethrowPrimary();
         } finally {
             this.saveInProgress = false;
         }
     }
-
     public async transaction<TResult>(
         work: (context: this) => TResult | Promise<TResult>,
         options?: TransactionOptions,

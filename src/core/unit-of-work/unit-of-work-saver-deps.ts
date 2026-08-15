@@ -16,5 +16,4 @@ export interface UnitOfWorkSaverDeps {
     readonly navigationLoader: EntityNavigationLoader;
     readonly getDatabase: () => DatabaseConnection;
     readonly getOptions: () => DbContextOptions;
-    readonly markStateRestorationFailure: (error: unknown) => void;
 }

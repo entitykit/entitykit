@@ -2,12 +2,14 @@ import { EntityState } from '../tracking/entity-state';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import { writeSaveTimeProperty } from './save-time-property-write';
+import type { RestorationScope } from '../restoration-scope';
 
 export function applyAuditWrites(
     snapshot: PersistedEntrySnapshot,
     now: () => Date,
     userId: () => unknown,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
 ): void {
     const { entry } = snapshot;
     const audit = entry.metadata.audit;
@@ -30,6 +32,7 @@ export function applyAuditWrites(
                     value(),
                     onlyIfMissing,
                     mutations,
+                    scope,
                 );
             }
         }
@@ -45,6 +48,7 @@ export function applyAuditWrites(
                 now(),
                 false,
                 mutations,
+                scope,
             );
         }
         const updatedByProperty = readPropertyName(audit.updatedByProperty);
@@ -55,6 +59,7 @@ export function applyAuditWrites(
                 userId(),
                 false,
                 mutations,
+                scope,
             );
         }
     }
@@ -70,6 +75,7 @@ function setIfConfigured(
     value: unknown,
     onlyIfMissing: boolean,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
 ): void {
     if (value === undefined) {
         return;
@@ -83,5 +89,7 @@ function setIfConfigured(
         return;
     }
 
-    writeSaveTimeProperty(snapshot, propertyName, value, mutations);
+    writeSaveTimeProperty(
+        snapshot, propertyName, value, mutations, scope,
+    );
 }

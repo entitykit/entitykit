@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder, ValueConverter } from '../src';
+import { ContextStateRestorationError, DbContext, EntityState } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { navigationSnapshot } from '../src/tracking/navigation-snapshot';
 import {
@@ -40,6 +40,17 @@ class AtomicValue {
     public name = '';
 }
 
+const acceptanceConverterControl = { failRestoration: false };
+const acceptanceKeyConverter: ValueConverter<string, string> = {
+    toProvider: value => value,
+    fromProvider: value => {
+        if (acceptanceConverterControl.failRestoration) {
+            throw new Error('acceptance baseline restoration failed');
+        }
+        return value;
+    },
+};
+
 class AtomicParent {
     public id = '';
     public children: AtomicChild[] = [];
@@ -54,11 +65,15 @@ class AtomicChild {
 class ThrowingAcceptRow {
     public name = '';
     public idReads = 0;
+    public failure: unknown = new Error('accept getter failed');
+    public failEarlierRestoration = false;
 
     public get id(): string {
         this.idReads += 1;
         if (this.idReads >= 3) {
-            throw new Error('accept getter failed');
+            acceptanceConverterControl.failRestoration =
+                this.failEarlierRestoration;
+            throw this.failure;
         }
         return 'throwing';
     }
@@ -79,6 +94,9 @@ class AtomicAcceptanceContext extends DbContext {
             entity.toTable('atomic_values');
             entity.hasKey(value => value.id);
             entity.property(value => value.id).hasColumnType('text').isRequired();
+            entity.property(value => value.id).hasConversion(
+                acceptanceKeyConverter,
+            );
             entity.property(value => value.name).hasColumnType('text').isRequired();
         });
         model.entity(AtomicParent, entity => {
@@ -107,6 +125,9 @@ class AtomicAcceptanceContext extends DbContext {
 }
 
 describe('acceptAllChanges atomicity', () => {
+    beforeEach(() => {
+        acceptanceConverterControl.failRestoration = false;
+    });
     it('keeps identity and baseline on one capture so deletion cannot redirect', async () => {
         const db = WrongRowContext.create();
         await db.database.connection.query({
@@ -190,5 +211,49 @@ describe('acceptAllChanges atomicity', () => {
             >[0],
             'children',
         )).toEqual({ known: true, value: [child] });
+    });
+
+    it('preserves a primitive failure and poisons after exhaustive rollback', async () => {
+        const db = AtomicAcceptanceContext.create();
+        const value = Object.assign(new AtomicValue(), {
+            id: 'value-one', name: 'before',
+        });
+        const valueEntry = db.values.attach(value);
+        value.name = 'after';
+        db.changeTracker.detectChanges();
+        const throwing = Object.assign(new ThrowingAcceptRow(), {
+            name: 'throwing',
+            failure: 'accept primary failure',
+            failEarlierRestoration: true,
+        });
+        db.throwingRows.attach(throwing);
+
+        let primary: unknown;
+        try {
+            db.changeTracker.acceptAllChanges();
+        } catch (error) {
+            primary = error;
+        }
+        expect(primary).toBe('accept primary failure');
+        expect(internalEntityEntry(valueEntry).originalValues.name).toBe('after');
+        let unusable: unknown;
+        try {
+            await db.values.count();
+        } catch (error) {
+            unusable = error;
+        }
+        expect(unusable).toBeInstanceOf(ContextStateRestorationError);
+        expect((unusable as Error).cause).toMatchObject({
+            message: 'acceptance baseline restoration failed',
+        });
+        expect(() => db.values.add(new AtomicValue()))
+            .toThrow(unusable as Error);
+        expect(() => db.values.attach(new AtomicValue()))
+            .toThrow(unusable as Error);
+        expect(() => {
+            db.changeTracker.clear();
+        }).toThrow(unusable as Error);
+        expect(() => db.getSavePlan()).toThrow(unusable as Error);
+        await expect(db.transaction(() => undefined)).rejects.toBe(unusable);
     });
 });

@@ -10,7 +10,8 @@ import type { GeneratedIdentityRollbackSource } from '../tracking/generated-iden
 import { captureGeneratedRelationshipRollbackTargets } from '../tracking/generated-relationship-rollback-scan';
 import { prepareGeneratedRow } from './unit-of-work/prepared-generated-value';
 import { generatedRollbackSource } from './unit-of-work/generated-rollback-source';
-import { runRestorationActions } from './restoration-failures';
+import { runRestorationActions } from '../restoration-actions';
+import type { RestorationScope } from '../restoration-scope';
 
 /** Correlates and journals generated values for one-row upsert statements. */
 export class BulkUpsertGeneratedValues<TEntity extends object> {
@@ -20,6 +21,7 @@ export class BulkUpsertGeneratedValues<TEntity extends object> {
 
     constructor(
         private readonly metadata: EntityMetadata<TEntity>,
+        private readonly scope: RestorationScope,
         private readonly valueReader?: StoreValueReader,
     ) {
         this.properties = upsertGeneratedProperties(metadata);
@@ -59,6 +61,7 @@ export class BulkUpsertGeneratedValues<TEntity extends object> {
             this.metadata,
             prepared,
             this.mutations,
+            this.scope,
         );
     }
 

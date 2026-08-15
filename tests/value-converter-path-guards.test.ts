@@ -6,6 +6,7 @@ import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
 import { SelectSqlBuilder } from '../src/sql/select-sql-builder';
 import { SaveTimeMutationLog } from '../src/core/save-time-mutations';
 import { writeGeneratedValue } from '../src/core/unit-of-work/generated-value-writer';
+import { RestorationScope } from '../src/restoration-scope';
 
 interface ConverterControl {
     toAsync: boolean;
@@ -171,6 +172,7 @@ describe('value converter path guards', () => {
             metadata.getProperty('generated'),
             'generated:database',
             new SaveTimeMutationLog(),
+            new RestorationScope(() => undefined),
             undefined,
             metadata as unknown as EntityMetadata,
         )).toThrow('Value converter for \'ConverterRecord.generated\' fromProvider()');

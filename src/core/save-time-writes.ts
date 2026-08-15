@@ -14,7 +14,7 @@ import {
     type SaveTimeRelationshipChanges,
 } from './save-time-relationship-state';
 import { SaveTimeRelationshipGeneration } from './save-time-relationship-generation';
-
+import type { RestorationScope } from '../restoration-scope';
 /**
  * The writes a save makes into entities before persisting them: audit
  * timestamps and users, the soft-delete marker, and the tenant key.
@@ -42,9 +42,10 @@ export class SaveTimeWrites {
         this.tenantIdInitialized = false;
     }
     /** Rebuild the plan while retaining stable request-scoped save values. */
-    public beginGeneration(): void {
-        this.mutations.restore();
+    public beginGeneration(restoration: RestorationScope): void {
+        restoration.attempt(this.mutations.restore.bind(this.mutations));
         this.relationships.reset();
+        restoration.throwIfFailed();
     }
     /**
      * Apply policy writes to the captured values and mirror them into the live
@@ -52,6 +53,7 @@ export class SaveTimeWrites {
      */
     public applyTo(
         snapshots: readonly PersistedEntrySnapshot[],
+        restoration: RestorationScope,
     ): PersistedEntrySnapshot[] {
         const currentTime = (): Date => {
             this.nowMs ??= this.scope.now().getTime();
@@ -71,7 +73,6 @@ export class SaveTimeWrites {
             }
             return this.tenantId;
         };
-
         return snapshots.map(snapshot => {
             const tenantId = currentTenant();
             const allowsCrossTenantAccess = this.scope.allowsCrossTenantAccess();
@@ -80,17 +81,20 @@ export class SaveTimeWrites {
                 tenantId,
                 allowsCrossTenantAccess,
                 this.mutations,
+                restoration,
             );
             const prepared = applySoftDeleteWrite(
                 snapshot,
                 currentTime,
                 this.mutations,
+                restoration,
             );
             applyAuditWrites(
                 prepared,
                 currentTime,
                 currentUser,
                 this.mutations,
+                restoration,
             );
             this.relationships.remember(prepared, tenantWritten);
             capturePreparedTenantProviderFacts(
@@ -106,36 +110,32 @@ export class SaveTimeWrites {
             return prepared;
         });
     }
-
     /** Reconcile graph state after final policy-managed FK writes. */
     public reconcileRelationships(
         changeTracker: ChangeTracker,
+        restoration: RestorationScope,
     ): ReadonlyMap<object, SaveTimeRelationshipChanges> {
         return this.relationships.reconcile(
             changeTracker,
             this.mutations,
+            restoration,
         );
     }
-
     public beginRelationshipGeneration(snapshots: readonly PersistedEntrySnapshot[]): SaveTimeRelationshipGeneration {
         return new SaveTimeRelationshipGeneration(snapshots, this.mutations);
     }
-
     public rememberRelationshipAcceptance(
         snapshots: readonly PersistedEntrySnapshot[],
     ): void {
         this.relationships.rememberAcceptance(snapshots);
     }
-
     public relationshipAcceptanceSnapshots(): readonly PersistedEntrySnapshot[] {
         return this.relationships.acceptanceSnapshots();
     }
-
     /** Undo the writes, newest first, so an entity survives a failure unchanged. */
     public restore(): void {
         this.mutations.restore();
     }
-
     /** Accept the writes; called once a save has committed. */
     public accept(): void {
         this.mutations.accept();

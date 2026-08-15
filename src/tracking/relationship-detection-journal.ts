@@ -24,6 +24,8 @@ import {
     captureEntryLoadedNavigations,
 } from './entity-entry-navigation-checkpoint';
 import { restoreRelationshipDetection } from './relationship-detection-restore';
+import { runRestorationActions } from '../restoration-actions';
+import type { RestorationScope } from '../restoration-scope';
 
 export interface RelationshipDetectionCheckpoint {
     readonly entry: EntityEntry<object>;
@@ -42,17 +44,24 @@ export function captureRelationshipDetectionJournal(
     tracker: ChangeTracker,
     model: Model,
     captured: RelationshipDetectionValues,
+    restoration: RestorationScope,
 ): { commit(): void; rollback(): void } {
     const checkpoints = tracker.entries().map(entry =>
         captureEntry(tracker, model, entry, captured));
-    const detachScope = beginRelationshipDetectionDetachScope(tracker);
+    const detachScope = beginRelationshipDetectionDetachScope(
+        tracker, restoration,
+    );
     return {
         commit(): void {
             detachScope.commit();
         },
         rollback(): void {
-            restoreRelationshipDetection(tracker, checkpoints);
-            detachScope.rollback();
+            runRestorationActions([
+                () => {
+                    restoreRelationshipDetection(tracker, checkpoints);
+                },
+                detachScope.rollback.bind(detachScope),
+            ]);
         },
     };
 }

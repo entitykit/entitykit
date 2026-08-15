@@ -10,14 +10,20 @@ import { captureRelationshipDetectionJournal } from './relationship-detection-jo
 import { assertSupportedOneToOneChanges } from './one-to-one-change-validation';
 import { captureOneToOneIntentGroups } from './one-to-one-change-intent';
 import { orderOneToOneChanges } from './one-to-one-change-order';
+import type { RestorationScope } from '../restoration-scope';
 
 export function detectTrackedChanges(
     tracker: ChangeTracker,
     entries: ReadonlyArray<EntityEntry<object>>,
+    restoration: RestorationScope,
 ): void {
-    runTrackedDetection(tracker, undefined, undefined, true, () => {
-        for (const entry of entries) entry.detectChanges();
-    });
+    runTrackedDetection(
+        tracker, undefined, undefined, true, restoration,
+        () => {
+            for (const entry of entries) entry.detectChanges();
+        },
+        () => undefined,
+    );
 }
 
 export function detectTrackedRelationships(
@@ -25,9 +31,16 @@ export function detectTrackedRelationships(
     entries?: ReadonlyArray<EntityEntry<object>>,
     values?: RelationshipDetectionValues,
     refreshBaselines = true,
+    restoration?: RestorationScope,
+    beforeCommit: () => void = () => undefined,
 ): void {
+    if (!restoration) {
+        throw new Error('Relationship detection requires a restoration scope.');
+    }
     runTrackedDetection(
-        tracker, entries, values, refreshBaselines, () => undefined,
+        tracker, entries, values, refreshBaselines, restoration,
+        () => undefined,
+        beforeCommit,
     );
 }
 
@@ -36,17 +49,20 @@ function runTrackedDetection(
     entries: ReadonlyArray<EntityEntry<object>> | undefined,
     values: RelationshipDetectionValues | undefined,
     refreshBaselines: boolean,
+    restoration: RestorationScope,
     afterRelationships: () => void,
+    beforeCommit: () => void,
 ): void {
     const configuredModel = changeTrackerModel(tracker);
     if (!configuredModel) {
         afterRelationships();
+        beforeCommit();
         return;
     }
     const tracked = tracker.entries();
     const captured = captureRelationshipDetectionValues(tracked, values);
     const journal = captureRelationshipDetectionJournal(
-        tracker, configuredModel, captured,
+        tracker, configuredModel, captured, restoration,
     );
     const acceptFixup = refreshBaselines
         ? captureRelationshipFixupBaseline(tracked)
@@ -68,9 +84,11 @@ function runTrackedDetection(
         }
         afterRelationships();
         acceptFixup?.();
+        beforeCommit();
         journal.commit();
     } catch (error) {
-        journal.rollback();
+        restoration.capturePrimary(error);
+        restoration.attempt(journal.rollback.bind(journal));
         throw error;
     }
 }

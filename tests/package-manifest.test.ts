@@ -8,6 +8,7 @@ interface PackageManifest {
     readonly types?: string;
     readonly files?: readonly string[];
     readonly bin?: Readonly<Record<string, string>>;
+    readonly publishConfig?: Readonly<Record<string, string>>;
     readonly exports?: Readonly<Record<string, unknown>>;
     readonly scripts?: Readonly<Record<string, string>>;
     readonly peerDependenciesMeta?: Readonly<Record<
@@ -28,7 +29,8 @@ describe('package manifest', () => {
         expect(manifest.main).toBe('./dist/index.js');
         expect(manifest.types).toBe('./dist/index.d.ts');
         expect(manifest.files).toEqual(['dist']);
-        expect(manifest.bin).toEqual({ entitykit: './dist/cli/index.js' });
+        expect(manifest.bin).toEqual({ entitykit: 'dist/cli/index.js' });
+        expect(manifest.publishConfig).toEqual({ tag: 'alpha' });
         expect(Object.keys(manifest.exports ?? {}).sort()).toEqual([
             '.',
             './adapter',

@@ -252,6 +252,12 @@ describe('runtime coverage contract', () => {
         expect(strykerConfig).toContain('src/tracking/snapshot-value-equality.ts');
         expect(strykerConfig).toContain('src/migrations/model-diff-operation-description.ts');
         expect(strykerConfig).toContain('src/migrations/migration-column-builder.ts');
+        expect(strykerConfig).toContain('src/restoration-scope.ts');
+        expect(strykerConfig).toContain('src/failure-atomic-property-write.ts');
+        expect(strykerConfig).toContain('src/core/created-ancestor-restoration.ts');
+        expect(strykerConfig).toContain('src/core/save-plan-inspection.ts');
+        expect(strykerConfig).toContain('src/core/unit-of-work/tracked-version-acceptance.ts');
+        expect(strykerConfig).toContain('src/tracking/tracked-acceptance-journal.ts');
         expect(mutationJestConfig).not.toContain('tests/integration');
     });
 });

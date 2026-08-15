@@ -3,11 +3,9 @@ import { toBoundProviderValue } from '../model/value-converter/store-value';
 import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import type { SaveTimeMutationLog } from './save-time-mutations';
-import {
-    readPropertyValue,
-    writePropertyValue,
-} from '../model/property-value-access';
 import { ensurePolicyPropertyPath } from './policy-property-path';
+import type { RestorationScope } from '../restoration-scope';
+import { writeFailureAtomicProperty } from '../failure-atomic-property-write';
 
 /** Write distinct persisted and live copies of one save-time policy value. */
 export function writeSaveTimeProperty(
@@ -15,6 +13,7 @@ export function writeSaveTimeProperty(
     propertyName: string,
     suppliedValue: unknown,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
     validatePersistedValue?: (value: unknown) => void,
 ): void {
     const { entry } = snapshot;
@@ -31,16 +30,24 @@ export function writeSaveTimeProperty(
         entry.entity,
         property,
         mutations,
+        scope,
     );
-    const previousLiveValue = readPropertyValue(entry.entity, property);
-    writePropertyValue(entry.entity, property, liveValue);
-    mutations.recordApplied(
-        entry.entity,
+    writeFailureAtomicProperty({
+        entity: entry.entity,
         property,
-        previousLiveValue,
-        readPropertyValue(entry.entity, property),
+        value: liveValue,
+        scope,
         context,
-    );
+        recordApplied: (previous, applied) => {
+            mutations.recordApplied(
+                entry.entity,
+                property,
+                previous,
+                applied,
+                context,
+            );
+        },
+    });
     snapshot.values[propertyName] = persistedValue;
     snapshot.boundValues[propertyName] = cloneSnapshotValue(
         toBoundProviderValue(providerValue, property.columnType, context),

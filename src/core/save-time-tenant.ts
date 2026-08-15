@@ -2,16 +2,19 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import { EntityState } from '../tracking/entity-state';
 import { SaveTimeMutationLog } from './save-time-mutations';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
-import { readPropertyValue, writePropertyValue } from '../model/property-value-access';
+import { readPropertyValue } from '../model/property-value-access';
 import { ensurePolicyPropertyPath } from './policy-property-path';
 import { applyTenantWriteScope } from './tenant-write-scope';
 import { assertTrackedTenantBoundary } from './tracked-tenant-boundary';
+import type { RestorationScope } from '../restoration-scope';
+import { writeFailureAtomicProperty } from '../failure-atomic-property-write';
 
 export function applyTenantWrite(
     snapshot: PersistedEntrySnapshot,
     tenantId: unknown,
     allowsCrossTenantAccess: boolean,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
 ): boolean {
     const { entry } = snapshot;
     const configuredProperty: unknown = entry.metadata.tenantKeyProperty;
@@ -22,7 +25,6 @@ export function applyTenantWrite(
         return false;
     }
     const property = entry.metadata.getProperty(tenantProperty);
-    let previousLiveValue = readPropertyValue(entry.entity, property);
     if (snapshot.state !== EntityState.Added) {
         assertTrackedTenantBoundary(
             entry,
@@ -43,25 +45,31 @@ export function applyTenantWrite(
         isAdded: snapshot.state === EntityState.Added,
         tenantId,
         allowsCrossTenantAccess,
-        recordMutation: applied => {
-            mutations.recordApplied(
-                entry.entity,
-                property,
-                previousLiveValue,
-                applied,
-                `${entry.metadata.entityName}.${tenantProperty}`,
-            );
-        },
+        recordMutation: () => undefined,
         mirrorMutation: value => {
             ensurePolicyPropertyPath(
                 entry.metadata,
                 entry.entity,
                 property,
                 mutations,
+                scope,
             );
-            previousLiveValue = readPropertyValue(entry.entity, property);
-            writePropertyValue(entry.entity, property, value);
-            return readPropertyValue(entry.entity, property);
+            return writeFailureAtomicProperty({
+                entity: entry.entity,
+                property,
+                value,
+                scope,
+                context: `${entry.metadata.entityName}.${tenantProperty}`,
+                recordApplied: (previous, applied) => {
+                    mutations.recordApplied(
+                        entry.entity,
+                        property,
+                        previous,
+                        applied,
+                        `${entry.metadata.entityName}.${tenantProperty}`,
+                    );
+                },
+            });
         },
     });
 }
@@ -71,38 +79,48 @@ export function applyTenantOnAdd<TEntity extends object>(
     entity: TEntity,
     currentTenantId: () => unknown,
     allowsCrossTenantAccess: boolean,
+    scope: RestorationScope,
 ): () => void {
     const tenantProperty = metadata.tenantKeyProperty;
     if (!tenantProperty || allowsCrossTenantAccess) {
         return () => undefined;
     }
     const property = metadata.getProperty(tenantProperty);
-    let previousTenantId = readPropertyValue(entity, property);
     const mutations = new SaveTimeMutationLog();
-    applyTenantWriteScope({
-        entityName: metadata.entityName,
-        tenantProperty,
-        property,
-        readValue: () => readPropertyValue(entity, property),
-        writeValue: value => {
-            ensurePolicyPropertyPath(metadata, entity, property, mutations);
-            previousTenantId = readPropertyValue(entity, property);
-            writePropertyValue(entity, property, value);
-            return readPropertyValue(entity, property);
-        },
-        isAdded: true,
-        tenantId: currentTenantId(),
-        allowsCrossTenantAccess,
-        recordMutation: applied => {
-            mutations.recordApplied(
-                entity,
-                property,
-                previousTenantId,
-                applied,
-                `${metadata.entityName}.${tenantProperty}`,
-            );
-        },
-    });
+    try {
+        applyTenantWriteScope({
+            entityName: metadata.entityName,
+            tenantProperty,
+            property,
+            readValue: () => readPropertyValue(entity, property),
+            writeValue: value => {
+                ensurePolicyPropertyPath(
+                    metadata, entity, property, mutations, scope,
+                );
+                return writeFailureAtomicProperty({
+                    entity,
+                    property,
+                    value,
+                    scope,
+                    context: `${metadata.entityName}.${tenantProperty}`,
+                    recordApplied: (previous, applied) => {
+                        mutations.recordApplied(
+                            entity, property, previous, applied,
+                            `${metadata.entityName}.${tenantProperty}`,
+                        );
+                    },
+                });
+            },
+            isAdded: true,
+            tenantId: currentTenantId(),
+            allowsCrossTenantAccess,
+            recordMutation: () => undefined,
+        });
+    } catch (error) {
+        scope.capturePrimary(error);
+        scope.attempt(mutations.restore.bind(mutations));
+        throw error;
+    }
     return () => {
         mutations.restore();
     };

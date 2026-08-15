@@ -4,6 +4,7 @@ import { EntityMetadata } from '../src/model/entity-metadata';
 import { ModelBuilder } from '../src/model/model-builder';
 import { EntityEntry } from '../src/tracking/entity-entry';
 import { capturePersistedEntrySnapshot } from '../src/tracking/persisted-entry-snapshot';
+import { RestorationScope } from '../src/restoration-scope';
 
 class TenantAuditRow {
     public id = '';
@@ -50,7 +51,7 @@ describe('final tenant write validation', () => {
             capturePersistedEntrySnapshot(
                 entry as unknown as EntityEntry<object>,
             ),
-        ])).toThrow(
+        ], new RestorationScope(() => undefined))).toThrow(
             'Entity \'TenantAuditRow\' tenant key \'tenantId\' must match the current tenant scope.',
         );
 

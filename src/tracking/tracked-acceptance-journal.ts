@@ -4,6 +4,7 @@ import type { NavigationSnapshotValues } from './navigation-snapshot';
 import type { TrackedIdentityMap } from './tracked-identity-map';
 import { clearTemporaryGeneratedIdentity } from './temporary-generated-identity';
 import { acceptGeneratedRelationshipTargets } from './generated-relationship-target-store';
+import { runRestorationActions } from '../restoration-actions';
 
 export interface TrackedAcceptance {
     commit(): void;
@@ -49,9 +50,11 @@ export class TrackedAcceptanceJournal implements TrackedAcceptance {
             entry: checkpoint.entry,
             key: checkpoint.identityKey,
         }));
-        try {
-            this.identities.assertCanRestoreKeys(identityCheckpoints);
-            for (const checkpoint of this.checkpoints) {
+        runRestorationActions([
+            () => {
+                this.identities.assertCanRestoreKeys(identityCheckpoints);
+            },
+            ...this.checkpoints.map(checkpoint => () => {
                 checkpoint.entry.restoreTrackedValues(
                     checkpoint.originalValues,
                     checkpoint.originalBoundValues,
@@ -59,11 +62,12 @@ export class TrackedAcceptanceJournal implements TrackedAcceptance {
                     checkpoint.state,
                 );
                 this.restoreEntry(checkpoint.entry);
-            }
-            this.identities.restoreKeys(identityCheckpoints);
-            this.assertInvariant();
-        } finally {
-            this.release();
-        }
+            }),
+            () => {
+                this.identities.restoreKeys(identityCheckpoints);
+            },
+            this.assertInvariant,
+            this.release,
+        ]);
     }
 }

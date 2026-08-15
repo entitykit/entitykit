@@ -8,33 +8,31 @@ import {
     snapshotPropertyValue,
     snapshotPropertyValuesEqual,
 } from '../tracking/snapshot-value';
+import type { RestorationScope } from '../restoration-scope';
 
 /** Construct complex ancestors for a framework-owned policy property. */
 export function ensurePolicyPropertyPath<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entity: object,
     property: PropertyMetadata,
-    mutations?: SaveTimeMutationLog,
+    mutations: SaveTimeMutationLog,
+    restoration: RestorationScope,
 ): void {
     ensureComplexPropertyPath(
         metadata,
         entity,
         property.propertyPath,
-        mutations
-            ? (target, propertyName, previous, created, complex) => {
-                mutations.recordCreatedAncestor(
-                    target,
-                    propertyName,
-                    previous,
-                    created,
-                    captureAncestorPristineCheck(
-                        metadata,
-                        entity,
-                        complex,
-                    ),
-                );
-            }
-            : undefined,
+        (target, propertyName, previous, created, complex) =>
+            mutations.recordCreatedAncestor(
+                target, propertyName, previous, created,
+                captureAncestorPristineCheck(
+                    metadata, entity, complex, created,
+                ),
+            ),
+        (error, rollback) => {
+            restoration.capturePrimary(error);
+            restoration.attempt(rollback as () => void);
+        },
     );
 }
 
@@ -42,13 +40,19 @@ function captureAncestorPristineCheck<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entity: object,
     complex: ComplexPropertyMetadata,
+    created: object,
 ): () => boolean {
     const properties = metadata.properties
         .filter(property => isDescendant(complex.propertyPath, property.propertyPath))
         .map(property => ({
             property,
             value: snapshotPropertyValue(
-                readPropertyValue(entity, property),
+                readPropertyPath(
+                    created,
+                    property.propertyPath.slice(
+                        complex.propertyPath.length,
+                    ),
+                ),
                 property.converter,
                 `${metadata.entityName}.${property.propertyName}`,
             ),
@@ -60,7 +64,10 @@ function captureAncestorPristineCheck<TEntity extends object>(
         ))
         .map(item => ({
             path: item.propertyPath,
-            value: readPropertyPath(entity, item.propertyPath),
+            value: readPropertyPath(
+                created,
+                item.propertyPath.slice(complex.propertyPath.length),
+            ),
         }));
     return () => properties.every(({ property, value }) =>
         snapshotPropertyValuesEqual(

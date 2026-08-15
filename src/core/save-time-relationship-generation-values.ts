@@ -2,6 +2,7 @@ import { readPropertyValue } from '../model/property-value-access';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import { captureNavigationSnapshotValues } from '../tracking/navigation-snapshot';
 import { snapshotPropertyValuesEqual } from '../tracking/snapshot-value';
+import { restoreObjectProperty } from '../property-value-restoration';
 
 export interface NavigationCheckpoint {
     readonly property: string;
@@ -55,7 +56,7 @@ export function restoreGenerationNavigation(
     if (isUnknownArray(previous.value) && isUnknownArray(previous.snapshot)) {
         previous.value.splice(0, previous.value.length, ...previous.snapshot);
     }
-    entity[previous.property] = previous.value;
+    restoreObjectProperty(entity, previous.property, previous.value);
 }
 
 export function cloneNavigationValue(value: unknown): unknown {

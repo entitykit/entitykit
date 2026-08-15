@@ -12,7 +12,7 @@ import { assertNoUnresolvedGeneratedIdentities } from './temporary-generated-ide
 import { captureManualAcceptanceSnapshot } from './persisted-entry-snapshot';
 import { cloneBoundValues } from './bound-value-snapshot';
 import { trackingIdentityKeyForBoundValues } from './tracking-identity-key';
-
+import type { RestorationScope } from '../restoration-scope';
 export class ChangeTrackerAcceptance {
     constructor(
         private readonly entries: () => ReadonlyArray<EntityEntry<object>>,
@@ -26,21 +26,24 @@ export class ChangeTrackerAcceptance {
         ) => () => void,
         private readonly assertInvariant: () => void,
     ) {}
-
-    public acceptAll(): void {
+    public acceptAll(restoration: RestorationScope): void {
         const entries = this.entries();
         assertNoUnresolvedGeneratedIdentities(entries);
         const acceptance = this.acceptPersisted(
             entries.map(captureManualAcceptanceSnapshot),
             false,
+            restoration,
         );
         acceptance.commit();
     }
-
     public acceptPersisted(
         snapshots: readonly PersistedEntrySnapshot[],
         allowExistingRekey = true,
+        restoration?: RestorationScope,
     ): TrackedAcceptance {
+        if (!restoration) {
+            throw new Error('Tracked acceptance requires a restoration scope.');
+        }
         const tracked = snapshots.filter(snapshot =>
             this.isTracked(snapshot.entry));
         const checkpoints = tracked.map(snapshot => {
@@ -105,7 +108,8 @@ export class ChangeTrackerAcceptance {
             }
             this.assertInvariant();
         } catch (error) {
-            uncommitted.rollback();
+            restoration.capturePrimary(error);
+            restoration.attempt(uncommitted.rollback.bind(uncommitted));
             throw error;
         }
         return new TrackedAcceptanceJournal(
@@ -119,7 +123,6 @@ export class ChangeTrackerAcceptance {
             this.assertInvariant,
         );
     }
-
     private acceptSnapshot(snapshot: PersistedEntrySnapshot): void {
         const entry = snapshot.entry;
         if (
@@ -132,7 +135,6 @@ export class ChangeTrackerAcceptance {
         if (snapshot.state === EntityState.Deleted) {
             return;
         }
-
         entry.acceptPersistedValues(
             snapshot.values,
             snapshot.boundValues,

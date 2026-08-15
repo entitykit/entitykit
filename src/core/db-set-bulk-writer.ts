@@ -18,17 +18,13 @@ import { upsertInsertProperties } from '../sql/upsert-property-selection';
 import { assertBulkUpsertInputs } from './bulk-upsert-input-validation';
 import { BulkUpsertMutations } from './bulk-upsert-mutations';
 import { captureBulkUpsertOptions } from './capture-bulk-upsert-options';
-
+import { RestorationScope } from '../restoration-scope';
 /**
  * The batched `upsert` write for a `DbSet`.
  *
  * Unlike `executeUpdate`/`executeDelete`, which start from a caller's query
- * model, upsert starts from a list of entities: it enforces tenant scope per
- * entity, sizes batches to the provider's bound-parameter limit, and runs them
- * in a single transaction. That is a self-contained concern with its own
- * invariants, so it lives here rather than inflating `DbSet`. Diagnostics are
- * delegated to the shared `DbSetDiagnostics` so its plan events match every
- * other operation.
+ * model, upsert starts from entity inputs and enforces tenant scope and one
+ * transaction across its parameter-sized batches.
  */
 export class DbSetBulkWriter<TEntity extends object> {
     private modificationSqlBuilder?: ModificationSqlBuilder;
@@ -41,7 +37,6 @@ export class DbSetBulkWriter<TEntity extends object> {
     private get metadata(): EntityMetadata<TEntity> {
         return this.context.modelMetadata.getEntity(this.entityType);
     }
-
     /**
    * Insert entities, overwriting rows that already exist.
    *
@@ -69,9 +64,13 @@ export class DbSetBulkWriter<TEntity extends object> {
             this.context.changeTracker,
             inputs,
         );
+        const restoration = new RestorationScope(error => {
+            this.context.markStateRestorationFailure(error);
+        });
         const mutations = new BulkUpsertMutations(
             this.metadata,
             this.context.changeTracker,
+            restoration,
             this.context.valueReader,
         );
         mutations.reserveInputs(
@@ -96,6 +95,7 @@ export class DbSetBulkWriter<TEntity extends object> {
                     entity,
                     tenantId,
                     allowsCrossTenantAccess,
+                    restoration,
                 ));
                 const row = captureBulkUpsertRow(this.metadata, entity);
                 assertBulkWriteTenantProviderValues(this.metadata,
@@ -136,10 +136,9 @@ export class DbSetBulkWriter<TEntity extends object> {
             );
             return affected;
         } catch (error) {
-            mutations.restoreAfterFailure(error, cause => {
-                this.context.markStateRestorationFailure(cause);
-            });
-            throw error;
+            restoration.capturePrimary(error);
+            mutations.restoreAfterFailure();
+            return restoration.rethrowPrimary();
         }
     }
     private modificationSql(): ModificationSqlBuilder {

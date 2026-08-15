@@ -3,6 +3,8 @@ import type { EntityEntry } from '../tracking/entity-entry';
 import { captureNavigationSnapshotValues } from '../tracking/navigation-snapshot';
 import type { SaveTimeMutationLog } from './save-time-mutations';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
+import type { RestorationScope } from '../restoration-scope';
+import { restoreObjectProperty } from '../property-value-restoration';
 
 export function rememberSaveTimeRelationshipWrites(
     target: Map<object, Set<string>>,
@@ -33,33 +35,38 @@ interface NavigationValue {
 export function reconcileSaveTimeRelationships(
     tracker: ChangeTracker,
     mutations: SaveTimeMutationLog,
+    restoration: RestorationScope,
     entries: ReadonlyArray<EntityEntry<object>>,
 ): ReadonlyMap<object, ReadonlySet<string>> {
     if (entries.length === 0) return new Map();
     const before = captureLiveNavigations(tracker.entries());
     const changed: Map<object, Set<string>> = new Map();
-    tracker.detectSaveRelationships(entries, undefined, false);
-    for (const previous of before) {
-        const applied = cloneNavigationValue(
-            previous.entity[previous.property],
-        );
-        if (navigationValuesEqual(previous.snapshot, applied)) continue;
-        const properties = changed.get(previous.entity) ?? new Set<string>();
-        properties.add(previous.property);
-        changed.set(previous.entity, properties);
-        mutations.recordRestoration(() => {
-            const current = previous.entity[previous.property];
-            if (!navigationValuesEqual(current, applied)) return;
-            if (Array.isArray(previous.value)) {
-                previous.value.splice(
-                    0,
-                    previous.value.length,
-                    ...previous.snapshot as unknown[],
+    tracker.detectSaveRelationships(
+        entries, undefined, false, restoration, () => {
+            for (const previous of before) {
+                const applied = cloneNavigationValue(
+                    previous.entity[previous.property],
                 );
+                if (navigationValuesEqual(previous.snapshot, applied)) continue;
+                const properties = changed.get(previous.entity) ?? new Set<string>();
+                properties.add(previous.property);
+                changed.set(previous.entity, properties);
+                mutations.recordRestoration(() => {
+                    const current = previous.entity[previous.property];
+                    if (!navigationValuesEqual(current, applied)) return;
+                    if (Array.isArray(previous.value)) {
+                        previous.value.splice(
+                            0, previous.value.length,
+                            ...previous.snapshot as unknown[],
+                        );
+                    }
+                    restoreObjectProperty(
+                        previous.entity, previous.property, previous.value,
+                    );
+                });
             }
-            previous.entity[previous.property] = previous.value;
-        });
-    }
+        },
+    );
     return changed;
 }
 

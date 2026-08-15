@@ -49,6 +49,10 @@ export function ensureComplexPropertyPath<TEntity extends object>(
         previous: unknown,
         created: object,
         complex: ComplexPropertyMetadata,
+    ) => (() => void) | undefined,
+    onCreateFailure?: (
+        error: unknown,
+        rollback: (() => void) | undefined,
     ) => void,
 ): void {
     for (const complex of metadata.complexProperties) {
@@ -59,18 +63,19 @@ export function ensureComplexPropertyPath<TEntity extends object>(
         const target = propertyValueTarget(entity, complex.propertyPath);
         const previous = target.target[target.propertyName];
         const created = createComplexValue(complex);
-        writePropertyPath(
-            entity,
-            complex.propertyPath,
-            created,
-        );
-        afterCreate?.(
+        const rollback = afterCreate?.(
             target.target,
             target.propertyName,
             previous,
             created,
             complex,
         );
+        try {
+            writePropertyPath(entity, complex.propertyPath, created);
+        } catch (error) {
+            onCreateFailure?.(error, rollback);
+            throw error;
+        }
     }
 }
 

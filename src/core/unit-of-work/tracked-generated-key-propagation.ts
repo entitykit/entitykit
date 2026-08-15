@@ -4,6 +4,7 @@ import type { GeneratedKeyPropagation } from '../save-plan-execution';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import { propagateGeneratedKeys } from './generated-key-propagator';
 import type { GeneratedValueRecorder } from './generated-value-recorder';
+import type { RestorationScope } from '../../restoration-scope';
 
 interface TrackedGeneratedKeyPropagation {
     readonly tracker: ChangeTracker;
@@ -12,6 +13,7 @@ interface TrackedGeneratedKeyPropagation {
     readonly persistedBoundValues: Record<string, unknown>;
     readonly mutations: SaveTimeMutationLog;
     readonly recorder: GeneratedValueRecorder;
+    readonly scope: RestorationScope;
     readonly propagations?: readonly GeneratedKeyPropagation[];
 }
 
@@ -29,6 +31,7 @@ export function applyTrackedGeneratedKeyPropagation(
         options.persistedValues,
         options.persistedBoundValues,
         options.mutations,
+        options.scope,
         options.propagations,
         (principal, propertyName) =>
             options.recorder.find(principal, propertyName),

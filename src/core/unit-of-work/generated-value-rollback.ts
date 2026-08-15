@@ -1,7 +1,7 @@
 import type { ChangeTracker } from '../../tracking/change-tracker';
 import type { GeneratedIdentityRollbackSource } from '../../tracking/generated-identity-rollback-source';
 import { captureGeneratedRelationshipRollbackTargets } from '../../tracking/generated-relationship-rollback-scan';
-import { runRestorationActions } from '../restoration-failures';
+import { runRestorationActions } from '../../restoration-actions';
 
 /** Invalidate observed identities before restoring their generated values. */
 export function restoreGeneratedValuesAfterFailure(

@@ -7,12 +7,8 @@ import type { UnitOfWorkSaverDeps } from './unit-of-work/unit-of-work-saver-deps
 import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import type { SaveStateAcceptance } from './unit-of-work/save-state-acceptance';
-import {
-    associateRestorationFailure,
-    associatedRestorationFailures,
-    restorationFailureFrom,
-    runRestorationActions,
-} from './restoration-failures';
+import { runRestorationActions } from '../restoration-actions';
+import type { RestorationScope } from '../restoration-scope';
 
 export type { UnitOfWorkSaverDeps } from './unit-of-work/unit-of-work-saver-deps';
 
@@ -20,7 +16,6 @@ export class UnitOfWorkSaver {
     private readonly executor: SavePlanExecutor;
     private readonly lifecycle: SaveLifecycle;
     private readonly trackedState: TrackedSaveState;
-    private readonly markStateRestorationFailure: (error: unknown) => void;
 
     constructor(deps: UnitOfWorkSaverDeps) {
         this.executor = new SavePlanExecutor(
@@ -40,13 +35,12 @@ export class UnitOfWorkSaver {
             deps.saveTimeWrites,
             deps.manyToMany,
         );
-        this.markStateRestorationFailure =
-            deps.markStateRestorationFailure;
     }
 
     public async run(
         previewPlan: readonly SavePlanEntry[],
         rebuildPlan: () => readonly SavePlanEntry[],
+        restoration: RestorationScope,
         options?: DatabaseOperationOptions,
     ): Promise<number> {
         const elapsed = startElapsedTimer();
@@ -55,16 +49,18 @@ export class UnitOfWorkSaver {
             plan = await this.lifecycle.notifySaving(previewPlan, rebuildPlan);
             this.trackedState.validateVersionValues(plan);
         } catch (error) {
-            this.restoreAfterFailure(error, [
+            restoration.capturePrimary(error);
+            restoration.attemptAll([
                 this.trackedState.restoreSaveTimeWrites.bind(this.trackedState),
             ]);
-            throw error;
+            restoration.rethrowPrimary();
         }
 
         if (plan.length === 0) {
-            this.restoreWithoutPrimaryFailure([
+            restoration.attemptAll([
                 this.trackedState.restoreSaveTimeWrites.bind(this.trackedState),
             ]);
+            restoration.throwIfFailed();
             return 0;
         }
 
@@ -77,6 +73,7 @@ export class UnitOfWorkSaver {
                     const tracked = this.trackedState.accept(
                         plan,
                         generatedValues.values,
+                        restoration,
                     );
                     acceptance = {
                         commit: () => {
@@ -92,27 +89,24 @@ export class UnitOfWorkSaver {
                         },
                     };
                 } catch (error) {
-                    const failure = restorationFailureFrom([
-                        generatedValues.rollback,
-                    ]);
-                    if (failure !== undefined) {
-                        associateRestorationFailure(error, failure);
-                    }
+                    restoration.capturePrimary(error);
+                    restoration.attempt(generatedValues.rollback);
                     throw error;
                 }
-            }, options);
+            }, restoration, options);
         } catch (error) {
-            this.restoreAfterFailure(error, [
+            const mappedError = mapDatabaseProviderError(error);
+            restoration.capturePrimary(mappedError);
+            restoration.attemptAll([
                 () => {
                     acceptance?.rollback();
                 },
                 this.executor.restoreGeneratedValues.bind(this.executor),
                 this.trackedState.restoreSaveTimeWrites.bind(this.trackedState),
             ]);
-            const mappedError = mapDatabaseProviderError(error);
             await this.lifecycle.notifyFailed(plan, mappedError);
             this.lifecycle.emitDiagnostic(plan, elapsed(), undefined, mappedError);
-            throw mappedError;
+            restoration.rethrowPrimary();
         }
 
         if (!acceptance) {
@@ -123,25 +117,4 @@ export class UnitOfWorkSaver {
         return affectedEntities;
     }
 
-    private restoreAfterFailure(
-        operationError: unknown,
-        actions: ReadonlyArray<() => void>,
-    ): void {
-        const failure = restorationFailureFrom(
-            actions,
-            associatedRestorationFailures(operationError),
-        );
-        if (failure !== undefined) {
-            this.markStateRestorationFailure(failure);
-        }
-    }
-
-    private restoreWithoutPrimaryFailure(
-        actions: ReadonlyArray<() => void>,
-    ): void {
-        const failure = restorationFailureFrom(actions);
-        if (failure === undefined) return;
-        this.markStateRestorationFailure(failure);
-        throw failure;
-    }
 }

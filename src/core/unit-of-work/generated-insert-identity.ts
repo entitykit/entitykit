@@ -6,6 +6,7 @@ import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedValueRecorder } from './generated-value-recorder';
 import { applyPreparedGeneratedValue } from './generated-value-writer';
 import { prepareGeneratedValue } from './prepared-generated-value';
+import type { RestorationScope } from '../../restoration-scope';
 
 /** Apply and record a provider insert ID when it is the entity's sole key. */
 export function applyGeneratedInsertIdentity(
@@ -15,6 +16,7 @@ export function applyGeneratedInsertIdentity(
     mutations: SaveTimeMutationLog,
     recorder: GeneratedValueRecorder,
     persistedBoundValues: Readonly<Record<string, unknown>>,
+    scope: RestorationScope,
     valueReader?: StoreValueReader,
 ): PropertyMetadata | undefined {
     if (entry.state !== EntityState.Added || !hasInsertId(insertId)) {
@@ -40,6 +42,8 @@ export function applyGeneratedInsertIdentity(
         entry.entity,
         prepared,
         mutations,
+        scope,
+        undefined,
     )]);
     return property;
 }

@@ -63,6 +63,15 @@ function assertTarballFiles(pack) {
   assert(Boolean(cli && (cli.mode & 0o111) !== 0), 'Packed CLI is not executable.');
 }
 
+assert(
+  packageManifest.publishConfig?.tag === 'alpha',
+  'Prerelease packages must publish under the alpha dist-tag.',
+);
+assert(
+  packageManifest.bin?.entitykit === 'dist/cli/index.js',
+  'The published CLI bin path must already be npm-normalized.',
+);
+
 function runPackagedCli(project) {
   const binary = path.join(
     project,

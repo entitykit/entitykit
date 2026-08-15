@@ -24,7 +24,9 @@ export abstract class DbContextRuntime {
     protected readonly state = new DbContextState();
     private disposePromise?: Promise<void>;
     public readonly changeTracker = new ChangeTracker(
-        this.assertStateUsable.bind(this));
+        this.assertStateUsable.bind(this),
+        this.state.markStateRestorationFailure.bind(this.state, 'rollback'),
+    );
     private readonly lazyNavigation = new LazyNavigationCoordinator(this, this.assertNotDisposed.bind(this));
     protected abstract get transactionDepth(): number;
     protected abstract registerTransactionState(afterCommit: () => void, afterRollback: () => void): void;
@@ -141,8 +143,6 @@ export abstract class DbContextRuntime {
         );
     }
     private ensureInitialized(): void {
-        if (!this.state.initialized) {
-            this.initialize();
-        }
+        if (!this.state.initialized) this.initialize();
     }
 }

@@ -2,11 +2,8 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import { BulkUpsertGeneratedValues } from './bulk-upsert-generated-values';
 import type { ChangeTracker } from '../tracking/change-tracker';
-import {
-    associatedRestorationFailures,
-    restorationFailureFrom,
-    runRestorationActions,
-} from './restoration-failures';
+import { runRestorationActions } from '../restoration-actions';
+import type { RestorationScope } from '../restoration-scope';
 
 /** One rollback journal for every framework-owned mutation in an upsert. */
 export class BulkUpsertMutations<TEntity extends object> {
@@ -17,10 +14,12 @@ export class BulkUpsertMutations<TEntity extends object> {
     constructor(
         metadata: EntityMetadata<TEntity>,
         private readonly changeTracker: ChangeTracker,
+        private readonly scope: RestorationScope,
         valueReader?: StoreValueReader,
     ) {
         this.generatedValues = new BulkUpsertGeneratedValues(
             metadata,
+            scope,
             valueReader,
         );
     }
@@ -54,14 +53,7 @@ export class BulkUpsertMutations<TEntity extends object> {
         ]);
     }
 
-    public restoreAfterFailure(
-        operationError: unknown,
-        markStateRestorationFailure: (cause: unknown) => void,
-    ): void {
-        const failure = restorationFailureFrom(
-            [this.restore.bind(this)],
-            associatedRestorationFailures(operationError),
-        );
-        if (failure !== undefined) markStateRestorationFailure(failure);
+    public restoreAfterFailure(): void {
+        this.scope.attempt(this.restore.bind(this));
     }
 }

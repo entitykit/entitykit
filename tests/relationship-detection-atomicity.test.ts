@@ -1,5 +1,10 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, DeleteBehavior, EntityState } from '../src';
+import {
+    ContextStateRestorationError,
+    DbContext,
+    DeleteBehavior,
+    EntityState,
+} from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
 import { requireDefined } from './support/require-defined';
 import { internalChangeTracker } from './support/public-api-internals';
@@ -210,6 +215,88 @@ describe('relationship detection atomicity', () => {
         expect(db.entry(child)?.state).toBe(EntityState.Added);
         expect(child.parent).toBeNull();
         expect(parent.cascadeChildren).toEqual([]);
+        await db.dispose();
+    });
+
+    it('keeps plan-generation finalization inside the detection journal', async () => {
+        const db = AtomicRelationshipContext.create();
+        const previous = Object.assign(new AtomicParent(), { id: 'p1' });
+        const next = Object.assign(new AtomicParent(), { id: 'p2' });
+        const child = Object.assign(new AtomicCascadeChild(), {
+            id: 1, parentId: 'p1', parent: previous,
+        });
+        previous.cascadeChildren = [child];
+        db.parents.attach(previous);
+        db.parents.attach(next);
+        db.cascadeChildren.attach(child);
+        child.parent = next;
+        const primary: unknown = Symbol('generation finalization failed');
+
+        let failure: unknown;
+        try {
+            internalChangeTracker(db.changeTracker).detectSaveRelationships(
+                undefined, undefined, true, undefined, () => {
+                    throw primary;
+                },
+            );
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure).toBe(primary);
+        expect(child.parentId).toBe('p1');
+        expect(child.parent).toBe(next);
+        expect(previous.cascadeChildren).toEqual([child]);
+        expect(next.cascadeChildren).toEqual([]);
+        expect(db.entry(child)?.state).toBe(EntityState.Unchanged);
+        await db.dispose();
+    });
+
+    it('preserves observer failure and poisons after observer rollback fails', async () => {
+        const db = AtomicRelationshipContext.create();
+        const parent = Object.assign(new AtomicParent(), { id: 'p1' });
+        const first: AtomicCascadeChild = Object.assign(
+            new AtomicCascadeChild(), {
+                parent, parentId: 'p1',
+            });
+        const second: AtomicCascadeChild = Object.assign(
+            new AtomicCascadeChild(), {
+                parent, parentId: 'p1',
+            });
+        parent.cascadeChildren = [first, second];
+        db.parents.attach(parent);
+        db.cascadeChildren.add(first);
+        db.cascadeChildren.add(second);
+        parent.cascadeChildren = [];
+        first.parent = null;
+        second.parent = null;
+        const primary: unknown = Symbol('detach observer failed');
+        const cleanup = new Error('detach observer rollback failed');
+        let notifications = 0;
+        internalChangeTracker(db.changeTracker).observeDetached(() => {
+            notifications += 1;
+            if (notifications === 2) throw primary;
+            return () => {
+                throw cleanup;
+            };
+        });
+
+        let failure: unknown;
+        try {
+            db.changeTracker.detectChanges();
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure).toBe(primary);
+        expect(db.entry(first)?.state).toBe(EntityState.Added);
+        expect(db.entry(second)?.state).toBe(EntityState.Added);
+        let unusable: unknown;
+        try {
+            await db.parents.count();
+        } catch (error) {
+            unusable = error;
+        }
+        expect(unusable).toBeInstanceOf(ContextStateRestorationError);
+        expect((unusable as Error).cause).toBe(cleanup);
         await db.dispose();
     });
 });

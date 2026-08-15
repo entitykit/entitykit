@@ -1,6 +1,11 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext, EntityState } from '../src';
 import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { ChangeTracker } from '../src/tracking/change-tracker';
+import { SaveTimeMutationLog } from '../src/core/save-time-mutations';
+import { RestorationScope } from '../src/restoration-scope';
+import { reconcileSaveTimeRelationships } from '../src/core/save-time-relationship-reconciliation';
+import { internalChangeTracker } from './support/public-api-internals';
 
 class AuditActor {
     public id = '';
@@ -93,7 +98,87 @@ function trackedGraph(db: AuditRelationshipContext): {
     return { actorA, actorB, document };
 }
 
+function reconcileForTest(
+    db: AuditRelationshipContext,
+    action: () => void,
+): {
+    readonly changed: ReadonlyMap<object, ReadonlySet<string>>;
+    readonly mutations: SaveTimeMutationLog;
+} {
+    const tracked = internalChangeTracker(db.changeTracker);
+    const detect: ChangeTracker['detectSaveRelationships'] = (
+        _entries,
+        _values,
+        refreshBaselines,
+        _restoration,
+        beforeCommit,
+    ) => {
+        expect(refreshBaselines).toBe(false);
+        action();
+        beforeCommit?.();
+    };
+    const tracker = {
+        entries: () => tracked.entries(),
+        detectSaveRelationships: detect,
+    } as unknown as ChangeTracker;
+    const mutations = new SaveTimeMutationLog();
+    const changed = reconcileSaveTimeRelationships(
+        tracker,
+        mutations,
+        new RestorationScope(() => undefined),
+        tracked.entries(),
+    );
+    return { changed, mutations };
+}
+
 describe('audit relationship reconciliation', () => {
+    it('does not journal unchanged navigations during reconciliation', async () => {
+        const db = await open('actor-b');
+        trackedGraph(db);
+
+        const result = reconcileForTest(db, () => undefined);
+
+        expect(result.changed.size).toBe(0);
+        await db.dispose();
+    });
+
+    it('restores scalar and collection navigation writes exactly', async () => {
+        const db = await open('actor-b');
+        const { actorA, actorB, document } = trackedGraph(db);
+        const actorADocuments = actorA.documents;
+        const actorBDocuments = actorB.documents;
+        const result = reconcileForTest(db, () => {
+            actorA.documents.splice(0, actorA.documents.length);
+            actorB.documents.push(document);
+            document.updatedBy = actorB;
+        });
+
+        expect(result.changed.get(actorA)).toEqual(new Set(['documents']));
+        expect(result.changed.get(actorB)).toEqual(new Set(['documents']));
+        expect(result.changed.get(document)).toEqual(new Set(['updatedBy']));
+        result.mutations.restore();
+        expect(actorA.documents).toBe(actorADocuments);
+        expect(actorA.documents).toEqual([document]);
+        expect(actorB.documents).toBe(actorBDocuments);
+        expect(actorB.documents).toEqual([]);
+        expect(document.updatedBy).toBe(actorA);
+        await db.dispose();
+    });
+
+    it('preserves an application navigation overwrite during rollback', async () => {
+        const db = await open('actor-b');
+        const { actorB, document } = trackedGraph(db);
+        const result = reconcileForTest(db, () => {
+            document.updatedBy = actorB;
+        });
+        document.updatedBy = null;
+
+        result.mutations.restore();
+
+        expect(document.updatedBy).toBeNull();
+        await db.dispose();
+    });
+
     it('fixes the tracked reference and inverse collections after an audit FK write', async () => {
         const db = await open('actor-b');
         const { actorA, actorB, document } = trackedGraph(db);

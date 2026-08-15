@@ -58,11 +58,14 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "entitykit": "./dist/cli/index.js"
+    "entitykit": "dist/cli/index.js"
   },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "tag": "alpha"
+  },
   "scripts": {
     "build": "node scripts/build-package.js",
     "check:package": "node scripts/check-package.js",

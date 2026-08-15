@@ -16,6 +16,7 @@ import type { ChangeTracker } from '../../tracking/change-tracker';
 import { generatedRelationshipTargetWasRestored } from '../../tracking/generated-relationship-target-provenance';
 import type { PreparedGeneratedValue } from './prepared-generated-value';
 import { applyPreparedGeneratedValue } from './generated-value-writer';
+import type { RestorationScope } from '../../restoration-scope';
 
 /** Copy hydrated principal keys into empty foreign keys before dependent SQL. */
 export function propagateGeneratedKeys(
@@ -24,6 +25,7 @@ export function propagateGeneratedKeys(
     persistedValues: Record<string, unknown>,
     persistedBoundValues: Record<string, unknown>,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
     propagations: readonly GeneratedKeyPropagation[] = [],
     findGeneratedValue: (
         principal: object,
@@ -123,6 +125,7 @@ export function propagateGeneratedKeys(
                     entry.entity,
                     prepared,
                     mutations,
+                    scope,
                     propagation.dependentMetadata,
                     wasRestored => {
                         restored[restorationIndex] = wasRestored;

@@ -5,6 +5,7 @@ import type { SaveTimeMutationLog } from '../save-time-mutations';
 import { applyPreparedGeneratedRow } from './generated-value-writer';
 import type { GeneratedValueRecorder } from './generated-value-recorder';
 import { prepareGeneratedRow } from './prepared-generated-value';
+import type { RestorationScope } from '../../restoration-scope';
 
 interface TrackedGeneratedRow<TEntity extends object> {
     readonly entity: TEntity;
@@ -14,6 +15,7 @@ interface TrackedGeneratedRow<TEntity extends object> {
     readonly sourceBoundValues: Readonly<Record<string, unknown>>;
     readonly recorder: GeneratedValueRecorder;
     readonly mutations: SaveTimeMutationLog;
+    readonly scope: RestorationScope;
     readonly valueReader?: StoreValueReader;
 }
 
@@ -39,6 +41,7 @@ export function applyTrackedGeneratedRow<TEntity extends object>(
             options.metadata,
             prepared,
             options.mutations,
+            options.scope,
         ),
     );
 }

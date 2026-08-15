@@ -3,11 +3,13 @@ import type { SaveTimeMutationLog } from './save-time-mutations';
 import type { PersistedEntrySnapshot } from '../tracking/persisted-entry-snapshot';
 import { writeSaveTimeProperty } from './save-time-property-write';
 import { assertSoftDeletePersistedValue } from '../model/soft-delete-metadata-validation';
+import type { RestorationScope } from '../restoration-scope';
 
 export function applySoftDeleteWrite(
     snapshot: PersistedEntrySnapshot,
     now: () => Date,
     mutations: SaveTimeMutationLog,
+    scope: RestorationScope,
 ): PersistedEntrySnapshot {
     const { entry } = snapshot;
     const softDelete = entry.metadata.softDelete;
@@ -22,6 +24,7 @@ export function applySoftDeleteWrite(
         softDelete.propertyName,
         value,
         mutations,
+        scope,
         persistedValue => {
             assertSoftDeletePersistedValue(
                 entry.metadata.entityName,

@@ -11,6 +11,7 @@ import { GeneratedValueHydrator } from './generated-value-hydrator';
 import { ModificationSqlBuilder } from '../../sql/modification-sql-builder';
 import type { GeneratedValueAcceptance } from './applied-generated-value';
 import { reconcileSavePlanChanges } from './save-plan-reconciliation';
+import type { RestorationScope } from '../../restoration-scope';
 export class SavePlanExecutor {
     private generatedValues?: GeneratedValueHydrator;
     constructor(
@@ -26,12 +27,14 @@ export class SavePlanExecutor {
     public async run(
         plan: readonly SavePlanEntry[],
         beforeCommit: () => void,
+        scope: RestorationScope,
         options?: DatabaseOperationOptions,
     ): Promise<number> {
         this.generatedValues = new GeneratedValueHydrator(
             this.database,
             this.getDialect(),
             this.changeTracker,
+            scope,
             this.getValueReader(),
         );
         let affectedEntities = 0;
@@ -119,8 +122,7 @@ export class SavePlanExecutor {
     }
 }
 function ensureAffectedRows(
-    entry: SavePlanEntry,
-    rowCount: number,
+    entry: SavePlanEntry, rowCount: number,
     changeTracker: ChangeTracker,
     navigationLoader: EntityNavigationLoader,
 ): void {
@@ -139,8 +141,7 @@ function ensureAffectedRows(
     }
 }
 function publicConcurrencyEntry(
-    changeTracker: ChangeTracker,
-    navigationLoader: EntityNavigationLoader,
+    changeTracker: ChangeTracker, navigationLoader: EntityNavigationLoader,
     entity: object,
 ): ReturnType<typeof publicEntityEntry> | undefined {
     const entry = changeTracker.entry(entity);
