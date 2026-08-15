@@ -9,11 +9,11 @@ export {
 export {
     getUniqueObjectList,
     groupIncludes,
-    mergeNavigationItems,
     pushUnique,
     pushUniqueObject,
     uniqueEntityInstances,
 } from './include-navigation-helpers';
+export { mergeNavigationItems } from './include-navigation-merge';
 export type {
     IncludeGroup,
     UniqueObjectList,

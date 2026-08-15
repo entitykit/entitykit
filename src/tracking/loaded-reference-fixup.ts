@@ -8,14 +8,24 @@ import {
 import { navigationSnapshot } from './navigation-snapshot';
 import { captureNavigation } from './navigation-snapshot';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
-import { writeVerifiedNavigation } from './verified-navigation-write';
+import {
+    directNavigationWriter,
+    type NavigationWriter,
+} from './navigation-writer';
 
-/** Atomically stitch one loaded reference through both tracked inverse sides. */
+/**
+ * Atomically stitch one loaded reference through both tracked inverse sides.
+ *
+ * Every write goes through the caller's journal, so a principal collection that
+ * refuses the new dependent unwinds the dependent reference and the previous
+ * inverse it already severed instead of leaving the two sides disagreeing.
+ */
 export function fixupLoadedReference(
     tracker: ChangeTracker,
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     principal: object | null,
+    writer: NavigationWriter = directNavigationWriter,
 ): void {
     const values = dependent.entity as Record<string, unknown>;
     const current = values[relationship.navigationProperty];
@@ -28,12 +38,12 @@ export function fixupLoadedReference(
     for (const previous of new Set([current, baseline.value])) {
         if (previous && typeof previous === 'object' && previous !== principal) {
             removeFromRelationshipInverse(
-                tracker, relationship, previous, dependent.entity,
+                tracker, relationship, previous, dependent.entity, writer,
             );
             captureInverseBaseline(tracker, relationship, previous);
         }
     }
-    writeVerifiedNavigation(
+    writer.write(
         dependent.entity,
         relationship.navigationProperty,
         principal,
@@ -46,6 +56,7 @@ export function fixupLoadedReference(
         principal,
         dependent,
         () => undefined,
+        writer,
     );
     captureInverseBaseline(tracker, relationship, principal);
 }

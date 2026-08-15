@@ -5,10 +5,10 @@ import type {
 } from './include-loader-context';
 import {
     getUniqueObjectList,
-    mergeNavigationItems,
     pushUniqueObject,
     type UniqueObjectList,
 } from './include-navigation-helpers';
+import { mergeNavigationItems } from './include-navigation-merge';
 import { uniqueIncludeRoots } from './include-load-root';
 import {
     manyToManyEntityStitchKey,
@@ -16,7 +16,6 @@ import {
 } from './include-stitch-keys';
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
 import { includeNavigationHasPendingIntent } from './include-pending-relationship';
-import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 
 /** Stitch a many-to-many result without overwriting pending graph intent. */
 export function assignManyToManyRelated(
@@ -45,7 +44,7 @@ export function assignManyToManyRelated(
         const group = relatedByParentKey.get(
             manyToManyEntityStitchKey(info, boundValues),
         )?.items ?? [];
-        writeVerifiedNavigation(
+        ctx.journal.write(
             entity,
             info.navigationProperty,
             group,
@@ -80,6 +79,7 @@ function stitchManyToManyInverses(
             inverse,
             parents.items,
             info.relatedMetadata.entityName,
+            ctx.journal,
         );
     }
 }

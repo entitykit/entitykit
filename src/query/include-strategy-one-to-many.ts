@@ -12,7 +12,6 @@ import { RelationshipCardinality } from '../model/relationship-metadata';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { boundQueryTuple, principalBoundTuple } from './include-bound-key';
 import { includeNavigationHasPendingIntent } from './include-pending-relationship';
-import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 
 /**
  * One-to-many eager load (principal -> collection of dependents).
@@ -75,7 +74,7 @@ export class IncludeStrategyOneToMany extends IncludeStrategyBase {
                 if (includeNavigationHasPendingIntent(
                     this.ctx, principal, inverseNavigation,
                 )) continue;
-                writeVerifiedNavigation(
+                this.ctx.journal.write(
                     principal,
                     inverseNavigation,
                     relationship.cardinality === RelationshipCardinality.OneToOne

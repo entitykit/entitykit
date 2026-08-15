@@ -6,6 +6,9 @@ import { QueryFilterApplier } from './query-filter-applier';
 import type { QueryFilterOperation } from './query-filter-operation';
 import { DbContextConcurrency } from './db-context-concurrency';
 import { captureNavigationLoadValues } from './navigation-load-guard';
+import {
+    runNavigationLoadOperation,
+} from '../tracking/navigation-load-operation';
 
 /** Query filters and explicit navigation loading for a context. */
 export abstract class DbContextQuery extends DbContextConcurrency {
@@ -28,19 +31,26 @@ export abstract class DbContextQuery extends DbContextConcurrency {
                 : undefined,
             operation.allowsCrossTenantAccess,
         );
-        const loader = new IncludeLoader(
-            this.modelMetadata,
-            this.databaseConnection,
+        await runNavigationLoadOperation(
             this.changeTracker,
-            (metadata, query) => operation.apply(metadata, query),
-            this.dialect,
-            undefined,
-            this.valueReader,
+            this.state.markStateRestorationFailure.bind(this.state, 'rollback'),
+            async journal => new IncludeLoader(
+                this.modelMetadata,
+                this.databaseConnection,
+                this.changeTracker,
+                (metadata, query) => operation.apply(metadata, query),
+                this.dialect,
+                undefined,
+                this.valueReader,
+                undefined,
+                true,
+                false,
+                journal,
+            ).load(entry.metadata, [entry.entity], [{
+                navigationProperty: navigationProperty as never,
+                navigationPath: [navigationProperty],
+            }], new Map([[entry.entity, values]])),
         );
-        await loader.load(entry.metadata, [entry.entity], [{
-            navigationProperty: navigationProperty as never,
-            navigationPath: [navigationProperty],
-        }], new Map([[entry.entity, values]]));
         return (entry.entity as Record<string, unknown>)[navigationProperty];
     }
 

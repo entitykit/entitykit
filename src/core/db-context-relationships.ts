@@ -11,6 +11,9 @@ export abstract class DbContextRelationships extends DbContextRawSql {
     private readonly navigationLinks = new NavigationLinkOps(
         () => this.modelMetadata,
         this.manyToMany,
+        error => {
+            this.state.markStateRestorationFailure('rollback', error);
+        },
     );
 
     protected constructor() {

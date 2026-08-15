@@ -4,7 +4,11 @@ import {
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
-import { writeVerifiedNavigation } from './verified-navigation-write';
+import { copyNavigationCollection } from './navigation-collection-copy';
+import {
+    directNavigationWriter,
+    type NavigationWriter,
+} from './navigation-writer';
 
 export function addToRelationshipInverse(
     tracker: ChangeTracker,
@@ -12,6 +16,7 @@ export function addToRelationshipInverse(
     principal: object,
     dependent: EntityEntry<object>,
     severPrevious: (entry: EntityEntry<object>) => void,
+    writer: NavigationWriter = directNavigationWriter,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
     const principalEntry = tracker.entry(principal);
@@ -28,16 +33,16 @@ export function addToRelationshipInverse(
                 severPrevious(previousEntry);
             }
         }
-        writeVerifiedNavigation(
+        writer.write(
             principal, inverse, dependent.entity, entityName,
         );
         return;
     }
-    const collection = Array.isArray(values[inverse]) ? values[inverse] : [];
+    const collection = copyNavigationCollection(values[inverse]);
     if (!collection.includes(dependent.entity)) {
         collection.push(dependent.entity);
     }
-    writeVerifiedNavigation(principal, inverse, collection, entityName);
+    writer.write(principal, inverse, collection, entityName);
 }
 
 export function removeFromRelationshipInverse(
@@ -45,6 +50,7 @@ export function removeFromRelationshipInverse(
     relationship: TrackedRelationshipMetadata,
     principal: unknown,
     dependent: object,
+    writer: NavigationWriter = directNavigationWriter,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
     const principalEntry = principal && typeof principal === 'object'
@@ -56,14 +62,14 @@ export function removeFromRelationshipInverse(
     const values = principalEntry.entity as Record<string, unknown>;
     const entityName = principalEntry.metadata.entityName;
     if (Array.isArray(values[inverse])) {
-        writeVerifiedNavigation(
+        writer.write(
             principalEntry.entity,
             inverse,
             values[inverse].filter(item => item !== dependent),
             entityName,
         );
     } else if (values[inverse] === dependent) {
-        writeVerifiedNavigation(
+        writer.write(
             principalEntry.entity, inverse, null, entityName,
         );
     }

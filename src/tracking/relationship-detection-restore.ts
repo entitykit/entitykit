@@ -7,7 +7,7 @@ import { registerTemporaryGeneratedIdentity } from './temporary-generated-identi
 import type { RelationshipDetectionCheckpoint } from './relationship-detection-journal';
 import { runRestorationActions } from '../restoration-actions';
 import { restorePropertyValue } from '../property-value-restoration';
-import { navigationValueChanged } from './navigation-snapshot';
+import { restoreNavigationValue } from './navigation-value-restoration';
 import { restorePropertyPath } from '../property-value-restoration';
 
 export function restoreRelationshipDetection(
@@ -40,16 +40,14 @@ export function restoreRelationshipDetection(
                 );
             });
         }
-        const entity = checkpoint.entry.entity as Record<string, unknown>;
         for (const [propertyName, value] of checkpoint.graph) {
             actions.push(() => {
-                const previous = cloneGraphValue(value);
-                entity[propertyName] = previous;
-                if (navigationValueChanged(previous, entity[propertyName])) {
-                    throw new Error(
-                        `Navigation '${checkpoint.entry.metadata.entityName}.${propertyName}' refused its restoration value.`,
-                    );
-                }
+                restoreNavigationValue(
+                    checkpoint.entry.entity,
+                    propertyName,
+                    value,
+                    checkpoint.entry.metadata.entityName,
+                );
             });
         }
         actions.push(() => {
@@ -84,12 +82,4 @@ export function restoreRelationshipDetection(
         );
     });
     runRestorationActions(actions);
-}
-
-function cloneGraphValue(value: unknown): unknown {
-    return isUnknownArray(value) ? [...value] : value;
-}
-
-function isUnknownArray(value: unknown): value is unknown[] {
-    return Array.isArray(value);
 }

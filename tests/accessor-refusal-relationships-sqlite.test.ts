@@ -73,6 +73,19 @@ async function loadedPrincipals(
         .include(row => row.dependents).toArray();
 }
 
+/** A setter that keeps untracked copies rather than the assigned instances. */
+function cloningStore(value: RefusalDependent[]): RefusalDependent[] {
+    return value.map(row => Object.assign(
+        new (row.constructor as new () => RefusalDependent)(), row,
+    ));
+}
+
+/** Identities the context still tracks, for detach assertions. */
+function trackedIds(db: RefusalGraphContext): string[] {
+    return db.changeTracker.entries()
+        .map(entry => (entry.entity as { id: string }).id).sort();
+}
+
 describe('accessor refusal across relationship fix-up', () => {
     beforeEach(() => {
         writeLog.length = 0;
@@ -136,12 +149,10 @@ describe('accessor refusal across relationship fix-up', () => {
         await db.dispose();
     });
 
-    it('refuses an include collection whose setter stores cloned elements', async () => {
+    it('unwinds an include collection whose setter stores cloned elements', async () => {
         const db = await openRefusalGraph();
         const second = requireDefined(await db.principals.find('p2'));
-        interceptCollection(second, value => value.map(
-            row => Object.assign(new (row.constructor as new () =>
-            RefusalDependent)(), row)));
+        interceptCollection(second, cloningStore);
 
         const failure = await rejection(async () => loadedPrincipals(db));
 
@@ -150,15 +161,14 @@ describe('accessor refusal across relationship fix-up', () => {
         );
         expect(requireDefined(db.entry(second))
             .isNavigationLoaded('dependents')).toBe(false);
-        expect(writeLog).toContain('dependents(p2)=d2,d3');
-        for (const stored of second.dependents) {
-            expect(db.entry(stored)).toBeUndefined();
-        }
+        expect(writeLog).toEqual(['dependents(p2)=d2,d3', 'dependents(p2)=']);
+        expect(second.dependents).toEqual([]);
+        expect(trackedIds(db)).toEqual(['p1', 'p2']);
         await expect(db.principals.count()).resolves.toBe(2);
         await db.dispose();
     });
 
-    it('refuses an include collection whose setter reorders the elements', async () => {
+    it('unwinds an include collection whose setter reorders the elements', async () => {
         const db = await openRefusalGraph();
         const second = requireDefined(await db.principals.find('p2'));
         interceptCollection(second, value => [...value].reverse());
@@ -170,7 +180,36 @@ describe('accessor refusal across relationship fix-up', () => {
         );
         expect(requireDefined(db.entry(second))
             .isNavigationLoaded('dependents')).toBe(false);
+        expect(second.dependents).toEqual([]);
+        expect(trackedIds(db)).toEqual(['p1', 'p2']);
         await expect(db.principals.count()).resolves.toBe(2);
+        await db.dispose();
+    });
+
+    it('poisons the context when the include restoration is refused too', async () => {
+        const db = await openRefusalGraph();
+        const second = requireDefined(await db.principals.find('p2'));
+        let remembered: RefusalDependent[] | undefined;
+        interceptCollection(second, value => {
+            remembered ??= value.length > 0 ? cloningStore(value) : undefined;
+            return remembered ?? value;
+        });
+
+        const failure = await rejection(async () => loadedPrincipals(db));
+
+        expect(refusalMessage(failure)).toBe(
+            'Navigation \'RefusalPrincipal.dependents\' refused its assigned value.',
+        );
+        expect(writeLog).toEqual(['dependents(p2)=d2,d3', 'dependents(p2)=']);
+        expect(second.dependents.map(row => row.id)).toEqual(['d2', 'd3']);
+        const unusable = await rejection(async () => db.principals.count());
+        expect(unusable).toMatchObject({
+            name: 'ContextStateRestorationError',
+            code: 'CONTEXT_STATE_RESTORATION_FAILED',
+        });
+        expect(refusalMessage((unusable as Error).cause)).toBe(
+            'Navigation \'RefusalPrincipal.dependents\' refused its restoration value.',
+        );
         await db.dispose();
     });
 

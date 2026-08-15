@@ -13,6 +13,10 @@ import { IncludeStrategyRunner } from './include-loader-strategies';
 import { groupIncludes } from './include-navigation-helpers';
 import { captureIncludeRoots } from './include-load-root';
 import type { SuppliedIncludeValues } from './include-load-root';
+import {
+    directNavigationWriter,
+    type NavigationWriter,
+} from '../tracking/navigation-writer';
 
 /**
  * Eager relationship/navigation loading for `include(...)`.
@@ -39,12 +43,14 @@ export class IncludeLoader {
         operationOptions?: DatabaseOperationOptions,
         fixupTrackedGraph = true,
         preservePendingRelationships = false,
+        journal: NavigationWriter = directNavigationWriter,
     ) {
         this.strategies = new IncludeStrategyRunner({
             model,
             database,
             operationOptions,
             changeTracker,
+            journal,
             fixupTrackedGraph,
             preservePendingRelationships,
             applyQueryFilters,

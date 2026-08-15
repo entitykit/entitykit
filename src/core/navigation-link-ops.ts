@@ -1,9 +1,9 @@
 import type { Model } from '../model/model';
-import type { EntityMetadata } from '../model/entity-metadata';
-import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
 import { selectPropertyName, type PropertySelector } from '../model/model-property-selector';
-import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
-import type { ManyToManyChange } from './many-to-many-change';
+import { copyNavigationCollection } from '../tracking/navigation-collection-copy';
+import { writeFailureAtomicNavigation } from '../failure-atomic-navigation-write';
+import { RestorationScope } from '../restoration-scope';
+import { buildNavigationLinkChange } from './navigation-link-change';
 import type { ManyToManyChangeSet } from './many-to-many-change-set';
 
 /**
@@ -13,16 +13,19 @@ import type { ManyToManyChangeSet } from './many-to-many-change-set';
  * unit-of-work hub because it needs only the model (for lookup) and the queued
  * change set (which it appends to); the model resolves lazily, because a context
  * builds its collaborators before it has one.
+ *
+ * The queued change and the navigation write succeed or fail together. A refused
+ * collection write cancels exactly the change this call queued and restores the
+ * navigation, so a caller who catches the throw keeps the graph and the save
+ * plan it had before -- and a restoration the accessor refuses poisons the
+ * context rather than persisting a mutation that never happened.
  */
 export class NavigationLinkOps {
     constructor(
         private readonly getModelMetadata: () => Model,
         private readonly manyToMany: ManyToManyChangeSet,
+        private readonly markRestorationFailure: (error: unknown) => void,
     ) {}
-
-    private get modelMetadata(): Model {
-        return this.getModelMetadata();
-    }
 
     /**
    * Queue a many-to-many link row to be inserted on the next `saveChanges()`.
@@ -32,8 +35,7 @@ export class NavigationLinkOps {
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
         target: TTarget,
     ): void {
-        const entityName = this.queueManyToManyChange('link', source, navigationSelector, target);
-        addNavigationItem(source, selectPropertyName(navigationSelector), target, entityName);
+        this.apply('link', source, navigationSelector, target, linkedCollection);
     }
 
     /**
@@ -44,59 +46,52 @@ export class NavigationLinkOps {
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
         target: TTarget,
     ): void {
-        const entityName = this.queueManyToManyChange('unlink', source, navigationSelector, target);
-        removeNavigationItem(source, selectPropertyName(navigationSelector), target, entityName);
+        this.apply('unlink', source, navigationSelector, target, unlinkedCollection);
     }
 
-    private queueManyToManyChange<TEntity extends object, TTarget extends object>(
+    private apply<TEntity extends object, TTarget extends object>(
         action: 'link' | 'unlink',
         source: TEntity,
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
         target: TTarget,
-    ): string {
+        nextCollection: (current: unknown, item: object) => unknown[],
+    ): void {
         const navigationProperty = selectPropertyName(navigationSelector);
-        const sourceMetadata = this.modelMetadata.tryGetEntity<TEntity>(source.constructor);
-        const targetMetadata = this.modelMetadata.tryGetEntity<TTarget>(target.constructor);
-
-        if (!sourceMetadata || !targetMetadata) {
-            throw new Error('Both sides of a many-to-many link must be registered entity instances.');
+        const { change, entityName } = buildNavigationLinkChange(
+            this.getModelMetadata(), action, source, navigationProperty, target,
+        );
+        const cancelQueuedChange = this.manyToMany.queue(change);
+        const scope = new RestorationScope(this.markRestorationFailure);
+        try {
+            writeFailureAtomicNavigation({
+                entity: source,
+                navigationProperty,
+                value: nextCollection(
+                    (source as Record<string, unknown>)[navigationProperty],
+                    target,
+                ),
+                entityName,
+                scope,
+            });
+        } catch (error) {
+            scope.capturePrimary(error);
+            scope.attempt(cancelQueuedChange);
+            scope.rethrowPrimary();
         }
-
-        const relationship = sourceMetadata.manyToManyRelationships.find(item => item.navigationProperty === navigationProperty);
-        if (!relationship) {
-            throw new Error(`Navigation '${navigationProperty}' on entity '${sourceMetadata.entityName}' is not configured as a many-to-many relationship.`);
-        }
-
-        if (relationship.targetEntity !== targetMetadata.ctor) {
-            throw new Error(`Navigation '${navigationProperty}' on entity '${sourceMetadata.entityName}' targets '${relationship.targetEntity.name}', not '${targetMetadata.entityName}'.`);
-        }
-
-        const change: ManyToManyChange = {
-            action,
-            source,
-            target,
-            sourceMetadata: sourceMetadata as unknown as EntityMetadata,
-            targetMetadata: targetMetadata as unknown as EntityMetadata,
-            relationship: relationship as unknown as ManyToManyMetadata,
-        };
-        this.manyToMany.queue(change);
-        return sourceMetadata.entityName;
     }
 }
 
-function addNavigationItem(source: object, navigationProperty: string, item: object, entityName: string): void {
-    const current = (source as Record<string, unknown>)[navigationProperty];
-    const collection = Array.isArray(current) ? current : [];
-    if (!collection.includes(item)) {
-        collection.push(item);
+/** Copy the collection and add the linked item, never mutating the live one. */
+function linkedCollection(current: unknown, item: object): unknown[] {
+    const next = copyNavigationCollection(current);
+    if (!next.includes(item)) {
+        next.push(item);
     }
-    writeVerifiedNavigation(source, navigationProperty, collection, entityName);
+    return next;
 }
 
-function removeNavigationItem(source: object, navigationProperty: string, item: object, entityName: string): void {
-    const current = (source as Record<string, unknown>)[navigationProperty];
-    const collection = Array.isArray(current)
-        ? current.filter(existing => existing !== item)
-        : [];
-    writeVerifiedNavigation(source, navigationProperty, collection, entityName);
+/** Copy the collection without the unlinked item. */
+function unlinkedCollection(current: unknown, item: object): unknown[] {
+    return copyNavigationCollection(current)
+        .filter(existing => existing !== item);
 }

@@ -27,9 +27,21 @@ export class ManyToManyChangeSet {
         return this.changes.length;
     }
 
-    public queue(change: ManyToManyChange): void {
+    /** Queue one change and return an idempotent undo for that exact change. */
+    public queue(change: ManyToManyChange): () => void {
         this.validator.validate(change);
         this.changes.push(change);
+        let pending = true;
+        return () => {
+            if (!pending) {
+                return;
+            }
+            pending = false;
+            const index = this.changes.lastIndexOf(change);
+            if (index >= 0) {
+                this.changes.splice(index, 1);
+            }
+        };
     }
 
     public clear(): void {

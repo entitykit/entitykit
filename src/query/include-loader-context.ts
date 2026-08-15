@@ -8,6 +8,7 @@ import type { SqlDialect } from '../sql/sql-dialect';
 import type { SelectSqlBuilder } from '../sql/select-sql-builder';
 import type { Materializer } from '../materialization/materializer';
 import type { IncludeDiagnosticEvent } from '../diagnostics/runtime/events';
+import type { NavigationWriter } from '../tracking/navigation-writer';
 import type { QueryModel } from './query-model';
 
 /**
@@ -61,6 +62,8 @@ export interface IncludeLoaderContext {
     readonly database: DatabaseConnection;
     readonly operationOptions?: DatabaseOperationOptions;
     readonly changeTracker: ChangeTracker;
+    /** Journals every graph write so a failed include can unwind the stitch. */
+    readonly journal: NavigationWriter;
     readonly fixupTrackedGraph: boolean;
     readonly preservePendingRelationships: boolean;
     readonly applyQueryFilters?: QueryFilterApplier;

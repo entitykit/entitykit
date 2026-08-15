@@ -3,7 +3,6 @@ import type { RelationshipMetadata } from '../model/relationship-metadata';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { fixupLoadedReference } from '../tracking/loaded-reference-fixup';
-import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 import type { TrackedRelationshipMetadata } from '../tracking/tracked-relationship-metadata';
 import type { IncludeLoaderContext } from './include-loader-context';
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
@@ -29,9 +28,10 @@ export function fixupIncludedReference<TEntity extends object>(
             entry as unknown as EntityEntry<object>,
             relationship as unknown as TrackedRelationshipMetadata,
             principal,
+            ctx.journal,
         );
     } else {
-        writeVerifiedNavigation(
+        ctx.journal.write(
             entity,
             relationship.navigationProperty,
             principal,
@@ -70,7 +70,7 @@ function fixupOneToOneInverse<TEntity extends object>(
                 `One-to-one relationship '${inverse}' matched more than one dependent entity.`,
             );
         }
-        writeVerifiedNavigation(
+        ctx.journal.write(
             principal,
             inverse,
             dependent,
