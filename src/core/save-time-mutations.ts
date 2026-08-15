@@ -22,21 +22,6 @@ export class SaveTimeMutationLog {
     public reset(): void {
         this.mutations = [];
     }
-    public record(values: Record<string, unknown>, property: string): void {
-        this.recordCaptured(values, property, values[property]);
-    }
-    /** Record a value already read by the executable entity capture. */
-    public recordCaptured(
-        values: Record<string, unknown>,
-        property: string,
-        previous: unknown,
-    ): void {
-        this.mutations.push({
-            restore: () => {
-                values[property] = previous;
-            },
-        });
-    }
     /** Remove only the exact framework-created ancestor while it stays pristine. */
     public recordCreatedAncestor(
         target: Record<string, unknown>,
