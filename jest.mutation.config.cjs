@@ -19,6 +19,8 @@ module.exports = {
     '<rootDir>/tests/many-to-many-queue-undo.test.ts',
     '<rootDir>/tests/many-to-many-link-atomicity.test.ts',
     '<rootDir>/tests/navigation-load-atomicity-sqlite.test.ts',
+    '<rootDir>/tests/navigation-load-provenance-sqlite.test.ts',
+    '<rootDir>/tests/navigation-load-suppression-sqlite.test.ts',
     '<rootDir>/tests/lazy-load-atomicity-sqlite.test.ts',
     '<rootDir>/tests/accessor-refusal-relationships-sqlite.test.ts',
     '<rootDir>/tests/accessor-refusal-links-sqlite.test.ts',
