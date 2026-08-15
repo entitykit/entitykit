@@ -28,7 +28,7 @@ class AccessorUser {
 
     public set name(value: string) {
         this.setterCalls++;
-        this.storedName = value.toUpperCase();
+        this.storedName = value;
     }
 }
 
@@ -145,7 +145,7 @@ describe('Materializer', () => {
             name: 'ada',
         }, new ChangeTracker());
 
-        expect(user.name).toBe('ADA');
+        expect(user.name).toBe('ada');
         expect(user.setterCalls).toBe(1);
         expect(Object.prototype.hasOwnProperty.call(user, 'name')).toBe(false);
     });

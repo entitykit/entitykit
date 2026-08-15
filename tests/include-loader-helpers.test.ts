@@ -74,7 +74,7 @@ describe('include loader helpers', () => {
         const second = { id: 1 };
         const values: Record<string, unknown> = { posts: [first] };
 
-        mergeNavigationItems(values, 'posts', [first, second, first]);
+        mergeNavigationItems(values, 'posts', [first, second, first], 'Blog');
         expect(values.posts).toEqual([first, second]);
         expect(uniqueEntityInstances([first, second, first])).toEqual([
             first,

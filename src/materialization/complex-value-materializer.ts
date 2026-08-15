@@ -2,8 +2,6 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import {
     propertyValueTarget,
     readPropertyPath,
-    writePropertyPath,
-    writePropertyValue,
 } from '../model/property-value-access';
 import type { ComplexPropertyMetadata } from '../model/complex-property-metadata';
 import type { RestorationScope } from '../restoration-scope';
@@ -11,6 +9,7 @@ import {
     writeFailureAtomicPath,
     writeFailureAtomicProperty,
 } from '../failure-atomic-property-write';
+import { writeVerifiedPath, writeVerifiedProperty } from '../verified-property-write';
 
 export function applyMaterializedValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
@@ -31,16 +30,17 @@ export function applyMaterializedValues<TEntity extends object>(
         const value = complex.isRequired || hasValue
             ? createComplexValue(complex)
             : null;
+        const context = `${metadata.entityName}.${complex.propertyName}`;
         if (restoration) {
             writeFailureAtomicPath({
                 entity,
                 path: complex.propertyPath,
                 value,
                 scope: restoration,
-                context: `${metadata.entityName}.${complex.propertyName}`,
+                context,
             });
         } else {
-            writePropertyPath(entity, complex.propertyPath, value);
+            writeVerifiedPath(entity, complex.propertyPath, value, context);
         }
     }
 
@@ -48,16 +48,19 @@ export function applyMaterializedValues<TEntity extends object>(
         if (hasNullComplexAncestor(metadata, entity, property.propertyPath)) {
             continue;
         }
+        const context = `${metadata.entityName}.${property.propertyName}`;
         if (restoration) {
             writeFailureAtomicProperty({
                 entity,
                 property,
                 value: values[property.propertyName],
                 scope: restoration,
-                context: `${metadata.entityName}.${property.propertyName}`,
+                context,
             });
         } else {
-            writePropertyValue(entity, property, values[property.propertyName]);
+            writeVerifiedProperty(
+                entity, property, values[property.propertyName], context,
+            );
         }
     }
 }
@@ -94,7 +97,8 @@ export function ensureComplexPropertyPath<TEntity extends object>(
             complex,
         );
         try {
-            writePropertyPath(entity, complex.propertyPath, created);
+            writeVerifiedPath(entity, complex.propertyPath, created,
+                `${metadata.entityName}.${complex.propertyName}`);
         } catch (error) {
             onCreateFailure?.(error, rollback);
             throw error;

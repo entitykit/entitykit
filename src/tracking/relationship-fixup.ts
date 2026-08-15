@@ -12,6 +12,7 @@ import { foreignKeyValuesForPrincipal } from './relationship-principal-foreign-k
 import { assertRelationshipTenantCompatible } from './relationship-tenant-validation';
 import { detachRelationshipEntry } from './change-tracker-relationship-detection-registry';
 import { assertTrackedTargetCanBeAssigned } from './relationship-target-resolver';
+import { writeVerifiedNavigation } from './verified-navigation-write';
 export function linkDependent(
     tracker: ChangeTracker,
     model: Model,
@@ -55,7 +56,7 @@ export function linkDependent(
         key,
         captured,
     );
-    values[relationship.navigationProperty] = principal;
+    writeVerifiedNavigation(dependent.entity, relationship.navigationProperty, principal, dependent.metadata.entityName);
     addToRelationshipInverse(
         tracker,
         relationship,
@@ -98,7 +99,7 @@ export function severDependent(
     }
     const values = dependent.entity as Record<string, unknown>;
     const previous = principal ?? values[relationship.navigationProperty];
-    values[relationship.navigationProperty] = null;
+    writeVerifiedNavigation(dependent.entity, relationship.navigationProperty, null, dependent.metadata.entityName);
     dependent.markNavigationNotLoaded(relationship.navigationProperty);
     if (previous) {
         removeFromRelationshipInverse(
@@ -120,8 +121,7 @@ export function cascadeDeleteDependent(
     } else {
         dependent.markDeleted();
     }
-    const values = dependent.entity as Record<string, unknown>;
-    values[relationship.navigationProperty] = null;
+    writeVerifiedNavigation(dependent.entity, relationship.navigationProperty, null, dependent.metadata.entityName);
     removeFromRelationshipInverse(
         tracker,
         relationship,
@@ -136,7 +136,7 @@ export function clearStaleReference(
 ): void {
     const values = dependent.entity as Record<string, unknown>;
     const previous = values[relationship.navigationProperty];
-    values[relationship.navigationProperty] = null;
+    writeVerifiedNavigation(dependent.entity, relationship.navigationProperty, null, dependent.metadata.entityName);
     dependent.markNavigationNotLoaded(relationship.navigationProperty);
     if (previous) {
         removeFromRelationshipInverse(

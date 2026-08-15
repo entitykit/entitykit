@@ -140,7 +140,7 @@ describe('generated-value refresh identity snapshots', () => {
         expect(db.entry(item)?.state).toBe(EntityState.Modified);
     });
 
-    it('uses the recorded generated insert key after a live mutation', async () => {
+    it('refuses a generated insert key that the entity accessor rewrites', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = RefreshContext.create(connection);
         const existing = Object.assign(new InsertedEntity(), {
@@ -159,25 +159,23 @@ describe('generated-value refresh identity snapshots', () => {
                 return written;
             },
         });
-        const createdAt = new Date('2026-08-03T12:00:00.000Z');
         db.inserted.add(item);
         connection.queueResult({ rowCount: 1, insertId: 42 });
-        connection.queueResult({ rows: [{ created_at: createdAt }], rowCount: 1 });
-
-        await db.saveChanges();
-
-        expect(connection.statements[1]).toEqual({
-            text: 'select `created_at` from `inserted_entities` where `id` = ?',
-            values: [42],
+        connection.queueResult({
+            rows: [{ created_at: new Date('2026-08-03T12:00:00.000Z') }],
+            rowCount: 1,
         });
-        expect(db.entry(item)?.originalValues).toMatchObject({
-            id: 42, createdAt,
-        });
-        expect(item.id).toBe(999);
-        expect(db.entry(item)?.state).toBe(EntityState.Modified);
+
+        await expect(db.saveChanges()).rejects.toThrow(
+            'Property \'id\' refused its assigned value.',
+        );
+
+        expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
+        expect(item.id).toBe(0);
+        expect(db.entry(item)?.state).toBe(EntityState.Added);
     });
 
-    it('reports a persisted generated-key collision instead of the live key', async () => {
+    it('reports a persisted generated-key collision during hydration', async () => {
         const connection = new RecordingDatabaseConnection();
         const db = RefreshContext.create(connection);
         const existing = Object.assign(new InsertedEntity(), {
@@ -186,16 +184,9 @@ describe('generated-value refresh identity snapshots', () => {
             createdAt: new Date('2026-08-03T09:00:00.000Z'),
         });
         db.inserted.attach(existing);
-        const target = Object.assign(new InsertedEntity(), {
+        const item = Object.assign(new InsertedEntity(), {
             id: 0,
             name: 'inserted',
-        });
-        const item = new Proxy(target, {
-            set(entity, property, value) {
-                const written = Reflect.set(entity, property, value);
-                if (property === 'id' && value === 42) entity.id = 999;
-                return written;
-            },
         });
         db.inserted.add(item);
         connection.queueResult({ rowCount: 1, insertId: 42 });

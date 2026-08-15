@@ -4,6 +4,7 @@ import {
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import { writeVerifiedNavigation } from './verified-navigation-write';
 
 export function addToRelationshipInverse(
     tracker: ChangeTracker,
@@ -18,6 +19,7 @@ export function addToRelationshipInverse(
         return;
     }
     const values = principal as Record<string, unknown>;
+    const entityName = principalEntry.metadata.entityName;
     if (relationship.cardinality === RelationshipCardinality.OneToOne) {
         const previous = values[inverse];
         if (previous && previous !== dependent.entity) {
@@ -26,14 +28,16 @@ export function addToRelationshipInverse(
                 severPrevious(previousEntry);
             }
         }
-        values[inverse] = dependent.entity;
+        writeVerifiedNavigation(
+            principal, inverse, dependent.entity, entityName,
+        );
         return;
     }
     const collection = Array.isArray(values[inverse]) ? values[inverse] : [];
     if (!collection.includes(dependent.entity)) {
         collection.push(dependent.entity);
     }
-    values[inverse] = collection;
+    writeVerifiedNavigation(principal, inverse, collection, entityName);
 }
 
 export function removeFromRelationshipInverse(
@@ -43,13 +47,24 @@ export function removeFromRelationshipInverse(
     dependent: object,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
-    if (!inverse || !principal || !tracker.entry(principal)) {
+    const principalEntry = principal && typeof principal === 'object'
+        ? tracker.entry(principal)
+        : undefined;
+    if (!inverse || !principalEntry) {
         return;
     }
-    const values = principal as Record<string, unknown>;
+    const values = principalEntry.entity as Record<string, unknown>;
+    const entityName = principalEntry.metadata.entityName;
     if (Array.isArray(values[inverse])) {
-        values[inverse] = values[inverse].filter(item => item !== dependent);
+        writeVerifiedNavigation(
+            principalEntry.entity,
+            inverse,
+            values[inverse].filter(item => item !== dependent),
+            entityName,
+        );
     } else if (values[inverse] === dependent) {
-        values[inverse] = null;
+        writeVerifiedNavigation(
+            principalEntry.entity, inverse, null, entityName,
+        );
     }
 }

@@ -9,6 +9,7 @@ import { uniqueIncludeRoots } from './include-load-root';
 import type { IncludeFilterModel } from './query-model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { boundQueryTuple } from './include-bound-key';
+import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 
 /**
  * Many-to-many eager load across a join table.
@@ -49,7 +50,7 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
 
         if (currentKeys.length === 0) {
             for (const { entity } of currentEntities) {
-                (entity as Record<string, unknown>)[info.navigationProperty] = [];
+                writeVerifiedNavigation(entity, info.navigationProperty, [], info.currentMetadata.entityName);
                 this.markLoaded(entity, info.navigationProperty);
             }
             this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'skipped', currentEntities.length, 0, 0, 0, elapsed());

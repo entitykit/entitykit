@@ -64,7 +64,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         if (foreignKeyTuples.length === 0) {
             for (const { entity, boundValues } of roots) {
                 if (fixupIncludedReference(
-                    this.ctx, entity, relationship, null,
+                    this.ctx, metadata, entity, relationship, null,
                 )) {
                     this.markLoaded(
                         entity, relationship.navigationProperty, boundValues,
@@ -105,7 +105,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                 : null;
             const principal = principalRoot?.entity ?? null;
             const applied = fixupIncludedReference(
-                this.ctx, entity, relationship, principal,
+                this.ctx, metadata, entity, relationship, principal,
             );
             if (applied && principalRoot) {
                 loadedPrincipals.push(principalRoot);

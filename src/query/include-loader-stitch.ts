@@ -11,6 +11,7 @@ import {
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
 import { includeNavigationHasPendingIntent } from './include-pending-relationship';
 import { assignManyToManyRelated } from './include-many-to-many-stitch';
+import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 export class IncludeStitcher {
     constructor(private readonly ctx: IncludeLoaderContext) {}
 
@@ -69,7 +70,7 @@ export class IncludeStitcher {
 
             const principal = principalsByKey.get(key);
             if (principal) {
-                (dependent as Record<string, unknown>)[relationship.navigationProperty] = principal;
+                writeVerifiedNavigation(dependent, relationship.navigationProperty, principal, dependentMetadata.entityName);
                 markIncludeNavigationLoaded(
                     this.ctx,
                     dependent,
@@ -103,10 +104,14 @@ export class IncludeStitcher {
                     `One-to-one relationship '${inverseNavigation}' on '${principalMetadata.entityName}' matched ${String(group.length)} dependent rows.`,
                 );
             }
-            (principal as Record<string, unknown>)[inverseNavigation] =
+            writeVerifiedNavigation(
+                principal,
+                inverseNavigation,
                 relationship.cardinality === RelationshipCardinality.OneToOne
                     ? group[0] ?? null
-                    : group;
+                    : group,
+                principalMetadata.entityName,
+            );
             markIncludeNavigationLoaded(this.ctx, principal, inverseNavigation);
         }
 

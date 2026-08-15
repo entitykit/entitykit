@@ -7,7 +7,7 @@ import { registerTemporaryGeneratedIdentity } from './temporary-generated-identi
 import type { RelationshipDetectionCheckpoint } from './relationship-detection-journal';
 import { runRestorationActions } from '../restoration-actions';
 import { restorePropertyValue } from '../property-value-restoration';
-import { snapshotValuesEqual } from './snapshot-value-equality';
+import { navigationValueChanged } from './navigation-snapshot';
 import { restorePropertyPath } from '../property-value-restoration';
 
 export function restoreRelationshipDetection(
@@ -45,7 +45,7 @@ export function restoreRelationshipDetection(
             actions.push(() => {
                 const previous = cloneGraphValue(value);
                 entity[propertyName] = previous;
-                if (!snapshotValuesEqual(entity[propertyName], previous)) {
+                if (navigationValueChanged(previous, entity[propertyName])) {
                     throw new Error(
                         `Navigation '${checkpoint.entry.metadata.entityName}.${propertyName}' refused its restoration value.`,
                     );

@@ -1,7 +1,9 @@
+import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import type { EntityEntry } from '../tracking/entity-entry';
 import { fixupLoadedReference } from '../tracking/loaded-reference-fixup';
+import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 import type { TrackedRelationshipMetadata } from '../tracking/tracked-relationship-metadata';
 import type { IncludeLoaderContext } from './include-loader-context';
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
@@ -9,6 +11,7 @@ import { includeNavigationHasPendingIntent } from './include-pending-relationshi
 
 export function fixupIncludedReference<TEntity extends object>(
     ctx: IncludeLoaderContext,
+    metadata: EntityMetadata<TEntity>,
     entity: TEntity,
     relationship: RelationshipMetadata<TEntity>,
     principal: object | null,
@@ -28,9 +31,12 @@ export function fixupIncludedReference<TEntity extends object>(
             principal,
         );
     } else {
-        (entity as Record<string, unknown>)[
-            relationship.navigationProperty
-        ] = principal;
+        writeVerifiedNavigation(
+            entity,
+            relationship.navigationProperty,
+            principal,
+            metadata.entityName,
+        );
     }
     if (principal) {
         fixupOneToOneInverse(
@@ -64,7 +70,12 @@ function fixupOneToOneInverse<TEntity extends object>(
                 `One-to-one relationship '${inverse}' matched more than one dependent entity.`,
             );
         }
-        values[inverse] = dependent;
+        writeVerifiedNavigation(
+            principal,
+            inverse,
+            dependent,
+            ctx.model.getEntity(relationship.principalEntity).entityName,
+        );
     }
     markIncludeNavigationLoaded(ctx, principal, inverse);
 }

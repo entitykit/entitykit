@@ -2,6 +2,7 @@ import type { Model } from '../model/model';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { ManyToManyMetadata } from '../model/many-to-many-metadata';
 import { selectPropertyName, type PropertySelector } from '../model/model-property-selector';
+import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 import type { ManyToManyChange } from './many-to-many-change';
 import type { ManyToManyChangeSet } from './many-to-many-change-set';
 
@@ -31,8 +32,8 @@ export class NavigationLinkOps {
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
         target: TTarget,
     ): void {
-        this.queueManyToManyChange('link', source, navigationSelector, target);
-        addNavigationItem(source as Record<string, unknown>, selectPropertyName(navigationSelector), target);
+        const entityName = this.queueManyToManyChange('link', source, navigationSelector, target);
+        addNavigationItem(source, selectPropertyName(navigationSelector), target, entityName);
     }
 
     /**
@@ -43,8 +44,8 @@ export class NavigationLinkOps {
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
         target: TTarget,
     ): void {
-        this.queueManyToManyChange('unlink', source, navigationSelector, target);
-        removeNavigationItem(source as Record<string, unknown>, selectPropertyName(navigationSelector), target);
+        const entityName = this.queueManyToManyChange('unlink', source, navigationSelector, target);
+        removeNavigationItem(source, selectPropertyName(navigationSelector), target, entityName);
     }
 
     private queueManyToManyChange<TEntity extends object, TTarget extends object>(
@@ -52,7 +53,7 @@ export class NavigationLinkOps {
         source: TEntity,
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
         target: TTarget,
-    ): void {
+    ): string {
         const navigationProperty = selectPropertyName(navigationSelector);
         const sourceMetadata = this.modelMetadata.tryGetEntity<TEntity>(source.constructor);
         const targetMetadata = this.modelMetadata.tryGetEntity<TTarget>(target.constructor);
@@ -79,23 +80,23 @@ export class NavigationLinkOps {
             relationship: relationship as unknown as ManyToManyMetadata,
         };
         this.manyToMany.queue(change);
+        return sourceMetadata.entityName;
     }
 }
 
-function addNavigationItem(values: Record<string, unknown>, navigationProperty: string, item: object): void {
-    const current = values[navigationProperty];
+function addNavigationItem(source: object, navigationProperty: string, item: object, entityName: string): void {
+    const current = (source as Record<string, unknown>)[navigationProperty];
     const collection = Array.isArray(current) ? current : [];
     if (!collection.includes(item)) {
         collection.push(item);
     }
-    values[navigationProperty] = collection;
+    writeVerifiedNavigation(source, navigationProperty, collection, entityName);
 }
 
-function removeNavigationItem(values: Record<string, unknown>, navigationProperty: string, item: object): void {
-    const current = values[navigationProperty];
-    if (!Array.isArray(current)) {
-        values[navigationProperty] = [];
-        return;
-    }
-    values[navigationProperty] = current.filter(existing => existing !== item);
+function removeNavigationItem(source: object, navigationProperty: string, item: object, entityName: string): void {
+    const current = (source as Record<string, unknown>)[navigationProperty];
+    const collection = Array.isArray(current)
+        ? current.filter(existing => existing !== item)
+        : [];
+    writeVerifiedNavigation(source, navigationProperty, collection, entityName);
 }

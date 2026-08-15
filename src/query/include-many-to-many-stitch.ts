@@ -16,6 +16,7 @@ import {
 } from './include-stitch-keys';
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
 import { includeNavigationHasPendingIntent } from './include-pending-relationship';
+import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 
 /** Stitch a many-to-many result without overwriting pending graph intent. */
 export function assignManyToManyRelated(
@@ -44,7 +45,12 @@ export function assignManyToManyRelated(
         const group = relatedByParentKey.get(
             manyToManyEntityStitchKey(info, boundValues),
         )?.items ?? [];
-        (entity as Record<string, unknown>)[info.navigationProperty] = group;
+        writeVerifiedNavigation(
+            entity,
+            info.navigationProperty,
+            group,
+            info.currentMetadata.entityName,
+        );
         markIncludeNavigationLoaded(ctx, entity, info.navigationProperty);
         for (const related of group) {
             appliedRelated.add(related);
@@ -70,7 +76,10 @@ function stitchManyToManyInverses(
     for (const [related, parents] of inverseParents) {
         if (includeNavigationHasPendingIntent(ctx, related, inverse)) continue;
         mergeNavigationItems(
-            related as Record<string, unknown>, inverse, parents.items,
+            related as Record<string, unknown>,
+            inverse,
+            parents.items,
+            info.relatedMetadata.entityName,
         );
     }
 }

@@ -1,3 +1,4 @@
+import { writeVerifiedNavigation } from '../tracking/verified-navigation-write';
 import type { IncludeExpression, IncludeFilterModel } from './query-model';
 
 export interface UniqueObjectList {
@@ -16,6 +17,7 @@ export function mergeNavigationItems(
     values: Record<string, unknown>,
     navigationProperty: string,
     items: readonly object[],
+    entityName: string,
 ): void {
     const current = values[navigationProperty];
     const collection = Array.isArray(current) ? current : [];
@@ -28,7 +30,7 @@ export function mergeNavigationItems(
         }
     }
 
-    values[navigationProperty] = collection;
+    writeVerifiedNavigation(values, navigationProperty, collection, entityName);
 }
 
 export function groupIncludes<TEntity extends object>(

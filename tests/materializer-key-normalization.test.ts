@@ -18,7 +18,7 @@ class NormalizingKeyUser {
 }
 
 describe('materializer key normalization', () => {
-    it('resolves captured row identity before a key setter normalizes it', () => {
+    it('refuses a materialized key that a setter silently normalizes', () => {
         const metadata = new ModelBuilderImplementation()
             .entity(NormalizingKeyUser, entity => {
                 entity.toTable('normalizing_key_users');
@@ -34,19 +34,14 @@ describe('materializer key normalization', () => {
         const materializer = new Materializer();
         NormalizingKeyUser.setterCalls = 0;
 
-        const first = materializer.materialize(metadata, {
+        expect(() => materializer.materialize(metadata, {
             id: 'USR_1',
             name: 'first',
-        }, tracker);
-        const second = materializer.materialize(metadata, {
-            id: 'USR_1',
-            name: 'database refresh',
-        }, tracker);
+        }, tracker)).toThrow(
+            'Property \'NormalizingKeyUser.id\' refused its assigned value.',
+        );
 
-        expect(first.id).toBe('usr_1');
-        expect(second).toBe(first);
-        expect(second.name).toBe('first');
         expect(NormalizingKeyUser.setterCalls).toBe(1);
-        expect(tracker.entry(first)?.originalValues.id).toBe('USR_1');
+        expect(tracker.entries()).toEqual([]);
     });
 });

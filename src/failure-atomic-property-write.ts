@@ -2,8 +2,6 @@ import type { PropertyMetadata } from './model/property-metadata';
 import {
     readPropertyPath,
     readPropertyValue,
-    writePropertyPath,
-    writePropertyValue,
 } from './model/property-value-access';
 import type { RestorationScope } from './restoration-scope';
 import { snapshotPropertyValue } from './tracking/snapshot-value';
@@ -11,6 +9,10 @@ import {
     restorePropertyPath,
     restorePropertyValue,
 } from './property-value-restoration';
+import {
+    writeVerifiedPath,
+    writeVerifiedProperty,
+} from './verified-property-write';
 
 interface FailureAtomicPropertyWrite {
     readonly entity: object;
@@ -34,12 +36,12 @@ export function writeFailureAtomicProperty(
         previous, options.property.converter, context,
     );
     try {
-        writePropertyValue(
+        const applied = writeVerifiedProperty(
             options.entity,
             options.property,
             options.value,
+            context,
         );
-        const applied = readPropertyValue(options.entity, options.property);
         options.recordApplied?.(previous, applied);
         return applied;
     } catch (error) {
@@ -68,8 +70,9 @@ export function writeFailureAtomicPath(
 ): unknown {
     const previous = readPropertyPath(options.entity, options.path);
     try {
-        writePropertyPath(options.entity, options.path, options.value);
-        return readPropertyPath(options.entity, options.path);
+        return writeVerifiedPath(
+            options.entity, options.path, options.value, options.context,
+        );
     } catch (error) {
         options.scope.capturePrimary(error);
         options.scope.attempt(() => {

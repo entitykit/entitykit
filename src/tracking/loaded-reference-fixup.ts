@@ -8,6 +8,7 @@ import {
 import { navigationSnapshot } from './navigation-snapshot';
 import { captureNavigation } from './navigation-snapshot';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import { writeVerifiedNavigation } from './verified-navigation-write';
 
 /** Atomically stitch one loaded reference through both tracked inverse sides. */
 export function fixupLoadedReference(
@@ -32,7 +33,12 @@ export function fixupLoadedReference(
             captureInverseBaseline(tracker, relationship, previous);
         }
     }
-    values[relationship.navigationProperty] = principal;
+    writeVerifiedNavigation(
+        dependent.entity,
+        relationship.navigationProperty,
+        principal,
+        dependent.metadata.entityName,
+    );
     if (!principal) return;
     addToRelationshipInverse(
         tracker,

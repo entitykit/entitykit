@@ -1,4 +1,5 @@
-import { readPropertyValue, writePropertyValue } from '../model/property-value-access';
+import { readPropertyValue } from '../model/property-value-access';
+import { writeVerifiedProperty } from '../verified-property-write';
 import type { EntityEntry } from './entity-entry';
 import {
     snapshotPropertyValuesEqual,
@@ -36,7 +37,9 @@ export function writeRelationshipForeignKey(
                 context,
             );
         if (!unchanged) {
-            writePropertyValue(dependent.entity, metadata, values[index]);
+            writeVerifiedProperty(
+                dependent.entity, metadata, values[index], context,
+            );
         }
         if (captured) {
             setRelationshipDetectionProperty(
@@ -65,7 +68,9 @@ export function clearOptionalRelationshipForeignKey(
             if (!snapshotPropertyValuesEqual(
                 current, null, metadata.converter, context,
             )) {
-                writePropertyValue(dependent.entity, metadata, null);
+                writeVerifiedProperty(
+                    dependent.entity, metadata, null, context,
+                );
             }
             if (captured) {
                 setRelationshipDetectionProperty(

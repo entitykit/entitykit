@@ -164,7 +164,7 @@ describe('upsert tenant stamp failure boundaries', () => {
         });
 
         await expect(db.normalizingRows.upsert([row])).rejects.toThrow(
-            /tenant key 'tenantId' must match/,
+            'Property \'NormalizingTenantRow.tenantId\' refused its assigned value.',
         );
 
         expect(row.tenantId).toBeUndefined();
