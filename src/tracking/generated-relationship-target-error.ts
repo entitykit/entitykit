@@ -8,7 +8,7 @@ export function staleGeneratedRelationshipTarget(
     return new Error(
         `Relationship '${dependent.metadata.entityName}.` +
         `${relationship.navigationProperty}' retains a rolled-back ` +
-        'store-generated FK for a principal that is no longer tracked. ' +
+        'store-generated FK for an identity that did not commit. ' +
         'Assign another principal navigation or foreign key before saving.',
     );
 }

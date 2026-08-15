@@ -36,10 +36,15 @@ export function acceptSaveState(
             options.manyToManyChanges,
         );
     } catch (error) {
-        tracker?.rollback();
-        options.rollbackVersions();
-        rollbackSaveTimeWrites();
-        rollbackManyToMany();
+        rollbackAll([
+            rollbackGeneratedRelationships,
+            () => {
+                tracker?.rollback();
+            },
+            options.rollbackVersions,
+            rollbackSaveTimeWrites,
+            rollbackManyToMany,
+        ]);
         throw error;
     }
     return {

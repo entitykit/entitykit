@@ -71,6 +71,7 @@ export class DbSetBulkWriter<TEntity extends object> {
         );
         const mutations = new BulkUpsertMutations(
             this.metadata,
+            this.context.changeTracker,
             this.context.valueReader,
         );
         mutations.reserveInputs(
@@ -102,7 +103,6 @@ export class DbSetBulkWriter<TEntity extends object> {
                     allowsCrossTenantAccess);
                 rows.push(row);
             }
-
             const sql = this.modificationSql();
             const parametersPerRow = Math.max(
                 upsertInsertProperties(this.metadata).length,

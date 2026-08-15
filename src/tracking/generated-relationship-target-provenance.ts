@@ -54,11 +54,10 @@ export function rolledBackGeneratedRelationshipTarget(
     const navigation = (dependent.entity as Record<string, unknown>)[
         relationship.navigationProperty
     ];
-    if (
-        navigation !== null && navigation !== undefined &&
-        (remembered.kind === 'invalid' ||
-            navigation !== remembered.principal.entity)
-    ) {
+    if (navigation !== null && navigation !== undefined &&
+        navigation !== (remembered.kind === 'active'
+            ? remembered.principal.entity
+            : remembered.sourceEntity)) {
         deleteGeneratedRelationshipTarget(dependent, relationship);
         return undefined;
     }
@@ -71,7 +70,6 @@ export function rolledBackGeneratedRelationshipTarget(
         return undefined;
     }
     if (remembered.kind === 'invalid') {
-        deleteGeneratedRelationshipTarget(dependent, relationship);
         throw staleGeneratedRelationshipTarget(dependent, relationship);
     }
     const { principal } = remembered;

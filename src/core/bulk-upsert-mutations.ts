@@ -1,6 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import { BulkUpsertGeneratedValues } from './bulk-upsert-generated-values';
+import type { ChangeTracker } from '../tracking/change-tracker';
 
 /** One rollback journal for every framework-owned mutation in an upsert. */
 export class BulkUpsertMutations<TEntity extends object> {
@@ -10,6 +11,7 @@ export class BulkUpsertMutations<TEntity extends object> {
 
     constructor(
         metadata: EntityMetadata<TEntity>,
+        private readonly changeTracker: ChangeTracker,
         valueReader?: StoreValueReader,
     ) {
         this.generatedValues = new BulkUpsertGeneratedValues(
@@ -38,7 +40,7 @@ export class BulkUpsertMutations<TEntity extends object> {
     public restore(): void {
         const failures: unknown[] = [];
         try {
-            this.generatedValues.restore();
+            this.generatedValues.restore(this.changeTracker);
         } catch (error) {
             failures.push(error);
         }

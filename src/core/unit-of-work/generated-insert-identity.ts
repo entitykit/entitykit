@@ -13,6 +13,7 @@ export function applyGeneratedInsertIdentity(
     insertId: unknown,
     mutations: SaveTimeMutationLog,
     recorder: GeneratedValueRecorder,
+    persistedBoundValues: Readonly<Record<string, unknown>>,
     valueReader?: StoreValueReader,
 ): PropertyMetadata | undefined {
     if (entry.state !== EntityState.Added || !hasInsertId(insertId)) {
@@ -32,7 +33,7 @@ export function applyGeneratedInsertIdentity(
         undefined,
         entry.entityName,
     );
-    recorder.record(entry.entity, [applied]);
+    recorder.record(entry.entity, [applied], persistedBoundValues);
     return property;
 }
 

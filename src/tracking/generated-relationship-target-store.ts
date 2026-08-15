@@ -10,6 +10,7 @@ export interface ActiveGeneratedRelationshipTarget {
 
 export interface InvalidGeneratedRelationshipTarget {
     readonly kind: 'invalid';
+    readonly sourceEntity: object;
     readonly currentExpectedProviderValues: readonly unknown[];
     readonly currentValueIsFrameworkOwned: boolean;
 }
@@ -54,6 +55,25 @@ export function storeGeneratedRelationshipTarget(
     linksByPrincipal.set(target.principal, links);
 }
 
+export function storeInvalidGeneratedRelationshipTarget(
+    dependent: EntityEntry<object>,
+    relationship: TrackedRelationshipMetadata,
+    currentExpectedProviderValues: readonly unknown[],
+    sourceEntity: object,
+): void {
+    deleteGeneratedRelationshipTarget(dependent, relationship);
+    const byRelationship = targets.get(dependent) ?? new Map<
+        TrackedRelationshipMetadata, GeneratedRelationshipTarget
+    >();
+    byRelationship.set(relationship, {
+        kind: 'invalid',
+        sourceEntity,
+        currentExpectedProviderValues,
+        currentValueIsFrameworkOwned: false,
+    });
+    targets.set(dependent, byRelationship);
+}
+
 export function deleteGeneratedRelationshipTarget(
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
@@ -80,6 +100,7 @@ export function detachGeneratedRelationshipTargets(
         if (current?.kind !== 'active' || current.principal !== entry) continue;
         targets.get(dependent)?.set(relationship, {
             kind: 'invalid',
+            sourceEntity: entry.entity,
             currentExpectedProviderValues:
                 current.currentExpectedProviderValues,
             currentValueIsFrameworkOwned:

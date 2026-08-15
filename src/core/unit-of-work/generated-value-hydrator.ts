@@ -15,6 +15,7 @@ import type { AppliedPropertyValue, GeneratedValueAcceptance } from './applied-g
 import { GeneratedValueRecorder } from './generated-value-recorder';
 import { applyGeneratedInsertIdentity } from './generated-insert-identity';
 import { assertFinalGeneratedIdentity } from './generated-final-identity';
+import { restoreGeneratedValuesAfterFailure } from './generated-value-rollback';
 export class GeneratedValueHydrator {
     private readonly mutations = new SaveTimeMutationLog();
     private readonly recorded: GeneratedValueRecorder;
@@ -27,23 +28,28 @@ export class GeneratedValueHydrator {
         this.recorded = new GeneratedValueRecorder(changeTracker);
     }
     public accept(): GeneratedValueAcceptance {
+        const sources = this.recorded.rollbackSources();
+        const rollback = this.mutations.takeRollback();
         return {
             values: this.recorded.take(),
-            rollback: this.mutations.takeRollback(),
+            rollback: () => {
+                restoreGeneratedValuesAfterFailure(this.changeTracker,
+                    sources, rollback);
+            },
         };
     }
-
     public restore(): void {
-        this.mutations.restore();
+        restoreGeneratedValuesAfterFailure(
+            this.changeTracker, this.recorded.rollbackSources(),
+            this.mutations.restore.bind(this.mutations),
+        );
     }
-
     public findPersistedValue(
         entity: object,
         propertyName: string,
     ): AppliedPropertyValue | undefined {
         return this.recorded.find(entity, propertyName);
     }
-
     public async hydrate(
         entry: SavePlanEntry,
         result: DatabaseQueryResult,
@@ -59,21 +65,17 @@ export class GeneratedValueHydrator {
         const properties = plan.propertyNames.map(propertyName =>
             plan.metadata.getProperty(propertyName as never));
         if (result.rows.length > 0) {
-            this.recorded.record(entry.entity, writeGeneratedRow(
+            this.recorded.record(
                 entry.entity,
-                plan.metadata,
-                properties,
-                result.rows[0],
-                this.mutations,
-                this.valueReader,
-            ));
-            assertFinalGeneratedIdentity(
-                this.changeTracker,
-                this.recorded,
-                entry,
-                plan.metadata,
-                persistedValues,
+                writeGeneratedRow(
+                    entry.entity, plan.metadata, properties, result.rows[0],
+                    this.mutations, this.valueReader,
+                ),
                 persistedBoundValues,
+            );
+            assertFinalGeneratedIdentity(
+                this.changeTracker, this.recorded, entry, plan.metadata,
+                persistedValues, persistedBoundValues,
             );
             return;
         }
@@ -84,6 +86,7 @@ export class GeneratedValueHydrator {
             result.insertId,
             this.mutations,
             this.recorded,
+            persistedBoundValues,
             this.valueReader,
         );
         const remaining = properties.filter(property =>
@@ -107,22 +110,18 @@ export class GeneratedValueHydrator {
                     `The '${this.dialect.name}' provider saved '${entry.entityName}' but could not refresh its database-generated values.`,
                 );
             }
-            this.recorded.record(entry.entity, writeGeneratedRow(
+            this.recorded.record(
                 entry.entity,
-                plan.metadata,
-                remaining,
-                refresh.rows[0],
-                this.mutations,
-                this.valueReader,
-            ));
+                writeGeneratedRow(
+                    entry.entity, plan.metadata, remaining, refresh.rows[0],
+                    this.mutations, this.valueReader,
+                ),
+                persistedBoundValues,
+            );
         }
         assertFinalGeneratedIdentity(
-            this.changeTracker,
-            this.recorded,
-            entry,
-            plan.metadata,
-            persistedValues,
-            persistedBoundValues,
+            this.changeTracker, this.recorded, entry, plan.metadata,
+            persistedValues, persistedBoundValues,
         );
     }
 
@@ -144,6 +143,7 @@ export class GeneratedValueHydrator {
                 (principal, propertyName) =>
                     this.recorded.find(principal, propertyName),
             ),
+            persistedBoundValues,
         );
     }
 }
