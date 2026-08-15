@@ -248,6 +248,28 @@ describe('many-to-many include loading', () => {
         expect(posts[1]?.tags.map(tag => tag.id)).toEqual(['tag_4']);
     });
 
+    it('assigns an empty collection to a parent with no join rows', async () => {
+        const connection = new RecordingDatabaseConnection();
+        connection.queueResult({
+            rows: [
+                { id: 'post_1', title: 'First' },
+                { id: 'post_2', title: 'Second' },
+            ],
+            rowCount: 2,
+        });
+        connection.queueResult({
+            rows: [{ __entitykit_parent_key: 'post_1', id: 'tag_1', workspace_id: 'wrk_1', name: 'Alpha', deleted_at: null }],
+            rowCount: 1,
+        });
+        const db = IncludeManyToManyContext.createWith(connection);
+
+        const posts = await db.posts.include(post => post.tags).toArray();
+
+        expect(posts[0]?.tags.map(tag => tag.id)).toEqual(['tag_1']);
+        expect(posts[1]?.tags).toEqual([]);
+        expect(db.entry(posts[1])?.isNavigationLoaded('tags')).toBe(true);
+    });
+
     it('deduplicates windowed many-to-many include rows during parent and inverse fix-up', async () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult({

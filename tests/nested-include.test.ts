@@ -1,6 +1,12 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
 import { DbContext } from '../src';
+import type { EntityMetadata } from '../src/model/entity-metadata';
+import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import type { RelationshipMetadata } from '../src/model/relationship-metadata';
+import type { IncludeLoaderContext } from '../src/query/include-loader-context';
+import { IncludeStitcher } from '../src/query/include-loader-stitch';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
+import { requireDefined } from './support/require-defined';
 
 class User {
     public id!: string;
@@ -76,5 +82,41 @@ describe('nested includes', () => {
             { text: 'select "id", "email" from "users" where "id" in ($1)', values: ['usr_1'] },
         ]);
         expect(users[0]?.posts[0]?.author).toBe(users[0]);
+    });
+
+    it('refuses to stitch a relationship that names no inverse navigation', () => {
+        const model = new ModelBuilderImplementation()
+            .entity(User, entity => {
+                entity.toTable('users');
+                entity.hasKey(user => user.id);
+                entity.property(user => user.id).hasColumnType('text')
+                    .isRequired();
+            })
+            .entity(Post, entity => {
+                entity.toTable('posts');
+                entity.hasKey(post => post.id);
+                entity.property(post => post.id).hasColumnType('text')
+                    .isRequired();
+                entity.property(post => post.authorId)
+                    .hasColumnName('author_id')
+                    .hasColumnType('text').isRequired();
+                entity.hasOne(User, post => post.author).withMany()
+                    .hasForeignKey(post => post.authorId);
+            })
+            .build();
+        const dependentMetadata =
+            model.getEntity(Post) as unknown as EntityMetadata;
+        const stitcher = new IncludeStitcher({} as IncludeLoaderContext);
+
+        expect(() => stitcher.assignDependentsToPrincipals(
+            model.getEntity(User),
+            [],
+            dependentMetadata,
+            requireDefined(dependentMetadata.relationships[0]) as
+                RelationshipMetadata<object, User>,
+            [],
+        )).toThrow(
+            'Relationship \'author\' does not configure an inverse navigation.',
+        );
     });
 });

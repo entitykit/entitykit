@@ -246,6 +246,92 @@ describe('reference load inverse fix-up', () => {
         await db.dispose();
     });
 
+    it('reloads a reference without churning the inverse collection', async () => {
+        const db = await openContext();
+        await db.database.connection.query({
+            text: 'insert into load_children (id, parent_id) values (?, ?), (?, ?)',
+            values: ['c2', 'p1', 'c3', 'p1'],
+        });
+        const { parent1, child } = await trackedManyToOne(db);
+
+        const loaded = await requireDefined(db.entry(child))
+            .reference(row => row.parent).load();
+
+        expect(loaded).toBe(parent1);
+        expect(parent1.children.map(row => row.id)).toEqual(['c', 'c2', 'c3']);
+        await db.dispose();
+    });
+
+    it('skips the inverse baseline of a principal that left the context', async () => {
+        const db = await openContext();
+        const { parent1, parent2, child } = await trackedManyToOne(db);
+        db.changeTracker.detach(parent1);
+        child.parentId = 'p2';
+
+        const loaded = await requireDefined(db.entry(child))
+            .reference(row => row.parent).load();
+
+        expect(loaded).toBe(parent2);
+        expect(parent1.children).toEqual([child]);
+        await db.dispose();
+    });
+
+    it('captures the new inverse baseline for later change detection', async () => {
+        const db = await openContext();
+        await db.database.connection.query({
+            text: 'insert into load_children (id, parent_id) values (?, ?)',
+            values: ['c2', 'p2'],
+        });
+        const parent2 = requireDefined(await db.parents.find('p2'));
+        const child = requireDefined(await db.children.find('c2'));
+        await requireDefined(db.entry(child))
+            .reference(row => row.parent).load();
+
+        parent2.children = [];
+        db.changeTracker.detectChanges();
+
+        expect(child.parent).toBeNull();
+        expect(child.parentId).toBeNull();
+        await db.dispose();
+    });
+
+    it('reloads and then clears a one-to-one reference', async () => {
+        const db = await openContext();
+        const profile = requireDefined(await db.profiles.find('profile'));
+        const entry = requireDefined(db.entry(profile));
+        const account = requireDefined(
+            await entry.reference(row => row.account).load(),
+        );
+
+        expect(await entry.reference(row => row.account).load()).toBe(account);
+        expect(account.profile).toBe(profile);
+        profile.accountId = 'missing';
+        expect(await entry.reference(row => row.account).load()).toBeNull();
+        expect(profile.account).toBeNull();
+        expect(account.profile).toBeNull();
+        await db.dispose();
+    });
+
+    it('refuses a second dependent for a tracked one-to-one principal', async () => {
+        const db = await openContext();
+        await db.database.connection.query({
+            text: 'insert into load_profiles (id, account_id) values (?, ?)',
+            values: ['profile2', 'a2'],
+        });
+        const profile = requireDefined(await db.profiles.find('profile'));
+        const other = requireDefined(await db.profiles.find('profile2'));
+        const account = requireDefined(await requireDefined(db.entry(profile))
+            .reference(row => row.account).load());
+        other.accountId = 'a1';
+
+        await expect(requireDefined(db.entry(other))
+            .reference(row => row.account).load()).rejects.toThrow(
+            'One-to-one relationship \'profile\' matched more than one dependent entity.',
+        );
+        expect(account.profile).toBe(profile);
+        await db.dispose();
+    });
+
     it('keeps relationship history when loaded-state inspection invalidates a reference', async () => {
         const db = await openContext();
         const { parent1, parent2, child } = await trackedManyToOne(db);
