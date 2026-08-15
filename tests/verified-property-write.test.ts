@@ -146,6 +146,25 @@ describe('writeVerifiedPath', () => {
         )).toThrow('Property \'NestedRow.scope\' refused its assigned value.');
     });
 
+    it('accepts a complex root replaced by a different object', () => {
+        const row = new NestedRow();
+        const replacement = { city: 'Berlin' };
+        defineAccessor(row, 'scope', () => replacement);
+
+        expect(writeVerifiedPath(
+            row, ['scope'], { city: 'Paris' }, 'NestedRow.scope',
+        )).toBe(replacement);
+    });
+
+    it('rejects a complex root that stores a primitive for an object', () => {
+        const row = new NestedRow();
+        defineAccessor(row, 'scope', () => 'Paris');
+
+        expect(() => writeVerifiedPath(
+            row, ['scope'], { city: 'Paris' }, 'NestedRow.scope',
+        )).toThrow('Property \'NestedRow.scope\' refused its assigned value.');
+    });
+
     it('compares a requested primitive exactly', () => {
         const row = new NestedRow();
         row.scope = {};
@@ -164,6 +183,17 @@ describe('writeVerifiedPath', () => {
 
         expect(() => writeVerifiedPath(
             row, ['scope', 'city'], null, 'NestedRow.scope.city',
+        )).toThrow(
+            'Property \'NestedRow.scope.city\' refused its assigned value.',
+        );
+    });
+
+    it('rejects an ancestor that reads back as a primitive', () => {
+        const row = new NestedRow();
+        defineAccessor(row, 'scope', () => 'oops');
+
+        expect(() => writeVerifiedPath(
+            row, ['scope', 'city'], undefined, 'NestedRow.scope.city',
         )).toThrow(
             'Property \'NestedRow.scope.city\' refused its assigned value.',
         );
