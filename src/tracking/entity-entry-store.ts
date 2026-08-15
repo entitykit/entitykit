@@ -5,8 +5,15 @@ export interface LoadedEntityDatabaseValues {
     readonly boundValues: Record<string, unknown>;
 }
 
+export interface EntityEntryRestorationCheckpoint {
+    rollback(): void;
+}
+
 /** Context-owned database operations available to a tracked entry. */
 export interface EntityEntryStore {
+    assertUsable(operation: string): void;
+    markRestorationFailure(cause: unknown): void;
+    captureRestoration(): EntityEntryRestorationCheckpoint;
     loadDatabaseValues<TEntity extends object>(
         entry: EntityEntry<TEntity>,
     ): Promise<LoadedEntityDatabaseValues | null>;

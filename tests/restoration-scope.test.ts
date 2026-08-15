@@ -61,6 +61,44 @@ describe('restoration scope', () => {
         expect((marked[0] as AggregateError).errors).toEqual([first, second]);
     });
 
+    it('retains empty aggregate cleanup failures', () => {
+        const empty = new AggregateError([], 'empty cleanup failed');
+        expect(() => {
+            runRestorationActions([
+                () => {
+                    throw empty;
+                },
+            ]);
+        }).toThrow(empty);
+
+        const marked = jest.fn();
+        const scope = new RestorationScope(marked);
+        scope.recordFailure(empty);
+        expect(() => {
+            scope.throwIfFailed();
+        }).toThrow(empty);
+        expect(marked).toHaveBeenCalledWith(empty);
+    });
+
+    it('terminates cyclic aggregate flattening without losing the failure', () => {
+        const cyclic = new AggregateError([], 'cyclic cleanup failed');
+        (cyclic.errors as unknown[]).push(cyclic);
+
+        expect(() => {
+            runRestorationActions([
+                () => {
+                    throw cyclic;
+                },
+            ]);
+        }).toThrow(cyclic);
+
+        const scope = new RestorationScope(() => undefined);
+        scope.recordFailure(cyclic);
+        expect(() => {
+            scope.throwIfFailed();
+        }).toThrow(cyclic);
+    });
+
     it('poisons once and rethrows an exact undefined primary value', () => {
         const marked: Error[] = [];
         const markFailure = jest.fn((failure: Error) => {

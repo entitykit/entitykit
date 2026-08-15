@@ -6,11 +6,17 @@ import {
     writePropertyValue,
 } from '../model/property-value-access';
 import type { ComplexPropertyMetadata } from '../model/complex-property-metadata';
+import type { RestorationScope } from '../restoration-scope';
+import {
+    writeFailureAtomicPath,
+    writeFailureAtomicProperty,
+} from '../failure-atomic-property-write';
 
 export function applyMaterializedValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     entity: TEntity,
     values: Readonly<Record<string, unknown>>,
+    restoration?: RestorationScope,
 ): void {
     for (const complex of metadata.complexProperties) {
         const parent = complex.propertyPath.slice(0, -1);
@@ -22,20 +28,37 @@ export function applyMaterializedValues<TEntity extends object>(
             property.propertyName.startsWith(prefix) &&
             values[property.propertyName] !== null &&
             values[property.propertyName] !== undefined);
-        writePropertyPath(
-            entity,
-            complex.propertyPath,
-            complex.isRequired || hasValue
-                ? createComplexValue(complex)
-                : null,
-        );
+        const value = complex.isRequired || hasValue
+            ? createComplexValue(complex)
+            : null;
+        if (restoration) {
+            writeFailureAtomicPath({
+                entity,
+                path: complex.propertyPath,
+                value,
+                scope: restoration,
+                context: `${metadata.entityName}.${complex.propertyName}`,
+            });
+        } else {
+            writePropertyPath(entity, complex.propertyPath, value);
+        }
     }
 
     for (const property of metadata.properties) {
         if (hasNullComplexAncestor(metadata, entity, property.propertyPath)) {
             continue;
         }
-        writePropertyValue(entity, property, values[property.propertyName]);
+        if (restoration) {
+            writeFailureAtomicProperty({
+                entity,
+                property,
+                value: values[property.propertyName],
+                scope: restoration,
+                context: `${metadata.entityName}.${property.propertyName}`,
+            });
+        } else {
+            writePropertyValue(entity, property, values[property.propertyName]);
+        }
     }
 }
 
@@ -79,7 +102,7 @@ export function ensureComplexPropertyPath<TEntity extends object>(
     }
 }
 
-function createComplexValue(metadata: ComplexPropertyMetadata): object {
+export function createComplexValue(metadata: ComplexPropertyMetadata): object {
     if (!metadata.ctor) {
         return {};
     }

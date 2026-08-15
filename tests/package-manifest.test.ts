@@ -2,6 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 interface PackageManifest {
+    readonly description?: string;
+    readonly author?: string;
+    readonly license?: string;
+    readonly repository?: Readonly<Record<string, string>>;
+    readonly homepage?: string;
+    readonly bugs?: Readonly<Record<string, string>>;
+    readonly keywords?: readonly string[];
     readonly private?: boolean;
     readonly type?: string;
     readonly main?: string;
@@ -28,9 +35,22 @@ describe('package manifest', () => {
         expect(manifest.type).toBe('commonjs');
         expect(manifest.main).toBe('./dist/index.js');
         expect(manifest.types).toBe('./dist/index.d.ts');
-        expect(manifest.files).toEqual(['dist']);
+        expect(manifest.description).toContain('ORM for TypeScript');
+        expect(manifest.author).toBe('zsumz <shawn@zsumz.com>');
+        expect(manifest.license).toBe('MIT');
+        expect(manifest.repository?.url).toContain('entitykit.git');
+        expect(manifest.homepage).toContain('entitykit-poc/entitykit');
+        expect(manifest.bugs?.url).toContain('/issues');
+        expect(manifest.keywords).toEqual(expect.arrayContaining([
+            'orm', 'typescript', 'sqlite', 'postgres', 'mysql',
+        ]));
+        expect(manifest.files).toEqual(['dist', 'README.md', 'LICENSE']);
         expect(manifest.bin).toEqual({ entitykit: 'dist/cli/index.js' });
-        expect(manifest.publishConfig).toEqual({ tag: 'alpha' });
+        expect(manifest.publishConfig).toEqual({
+            access: 'public',
+            registry: 'https://registry.npmjs.org/',
+            tag: 'alpha',
+        });
         expect(Object.keys(manifest.exports ?? {}).sort()).toEqual([
             '.',
             './adapter',
@@ -47,7 +67,10 @@ describe('package manifest', () => {
         expect(manifest.scripts).toMatchObject({
             build: 'node scripts/build-package.js',
             'check:package': 'node scripts/check-package.js',
+            'check:publish-alpha': 'node scripts/check-alpha-publish.js',
             prepack: 'npm run build',
+            prepublishOnly: 'node scripts/guard-alpha-publish.js',
+            'release:alpha': 'npm publish --tag alpha',
         });
         expect(manifest.peerDependenciesMeta).toEqual({
             mysql2: { optional: true },

@@ -215,6 +215,23 @@ describe('operation-scoped primitive restoration failures', () => {
         );
     });
 
+    it('poisons when restoration throws an empty aggregate', async () => {
+        const { db } = open();
+        const primary = 'audit write failed';
+        const restoration = new AggregateError([], 'empty audit restoration');
+        const row = Object.assign(new PrimitiveFailureRow(), { sku: 'empty' });
+        db.rows.add(row);
+        row.failAudit = true;
+        row.auditFailure = primary;
+        row.auditRestorationFailure = restoration;
+
+        expect(await rejection(() => db.getSavePlan())).toBe(primary);
+        expect(row.createdAt).toEqual(
+            new Date('2026-08-14T12:00:00.000Z'),
+        );
+        await expectEveryOperationPoisoned(db, restoration);
+    });
+
     it('poisons when successful plan construction cannot clean up', async () => {
         const { db } = open();
         const restoration = new Error('final planning cleanup failed');

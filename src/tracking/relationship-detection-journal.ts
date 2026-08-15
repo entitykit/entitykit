@@ -23,6 +23,7 @@ import {
 import {
     captureEntryLoadedNavigations,
 } from './entity-entry-navigation-checkpoint';
+import { readPropertyPath } from '../model/property-value-access';
 import { restoreRelationshipDetection } from './relationship-detection-restore';
 import { runRestorationActions } from '../restoration-actions';
 import type { RestorationScope } from '../restoration-scope';
@@ -38,6 +39,10 @@ export interface RelationshipDetectionCheckpoint {
     readonly suppressed: ReadonlySet<string>;
     readonly temporaryIdentity?: TemporaryGeneratedIdentity;
     readonly properties: ReadonlyMap<string, unknown>;
+    readonly complex: ReadonlyArray<{
+        readonly path: readonly string[];
+        readonly value: unknown;
+    }>;
     readonly graph: ReadonlyMap<string, unknown>;
 }
 export function captureRelationshipDetectionJournal(
@@ -111,6 +116,10 @@ function captureEntry(
             propertyName,
             cloneSnapshotValue(captured.get(entry)?.[propertyName]),
         ])),
+        complex: entry.metadata.complexProperties.map(property => ({
+            path: property.propertyPath,
+            value: readPropertyPath(entry.entity, property.propertyPath),
+        })),
         graph: new Map([...navigationNames].map(propertyName => [
             propertyName,
             cloneGraphValue(entity[propertyName]),

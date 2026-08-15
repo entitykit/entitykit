@@ -10,10 +10,23 @@ import { assertTrackedBoundTenantBoundary } from './tracked-tenant-boundary';
 import { boundQueryValue } from '../query/expression/bound-query-value';
 import { materializedPersistenceFacts } from '../materialization/materialized-bound-values';
 import type { LoadedEntityDatabaseValues } from '../tracking/entity-entry-store';
+import {
+    captureConcurrencyRestoration,
+} from '../tracking/concurrency-restoration-journal';
 
 /** Context bridge used by explicit tracked-entry concurrency recovery. */
 export abstract class DbContextConcurrency extends DbContextRuntime {
     private readonly entryStore: EntityEntryStore = {
+        assertUsable: operation => {
+            this.assertContextUsable(operation);
+        },
+        markRestorationFailure: cause => {
+            this.state.markStateRestorationFailure('rollback', cause);
+        },
+        captureRestoration: () => captureConcurrencyRestoration(
+            this.changeTracker,
+            this.modelMetadata,
+        ),
         loadDatabaseValues: async entry => this.loadDatabaseValues(entry),
         detach: entry => {
             this.changeTracker.detach(entry.entity);

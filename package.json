@@ -1,6 +1,26 @@
 {
   "name": "entitykit",
   "version": "0.1.0-alpha.1",
+  "description": "An Entity Framework-inspired ORM for TypeScript with SQLite, Postgres, and MySQL providers.",
+  "keywords": [
+    "orm",
+    "typescript",
+    "sqlite",
+    "postgres",
+    "mysql",
+    "entity-framework",
+    "dbcontext"
+  ],
+  "author": "zsumz <shawn@zsumz.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://git.shawn.mn/entitykit-poc/entitykit.git"
+  },
+  "homepage": "https://git.shawn.mn/entitykit-poc/entitykit",
+  "bugs": {
+    "url": "https://git.shawn.mn/entitykit-poc/entitykit/issues"
+  },
   "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -61,14 +81,19 @@
     "entitykit": "dist/cli/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
     "tag": "alpha"
   },
   "scripts": {
     "build": "node scripts/build-package.js",
     "check:package": "node scripts/check-package.js",
+    "check:publish-alpha": "node scripts/check-alpha-publish.js",
     "lint": "eslint . --ignore-pattern temp/ --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/",
@@ -76,7 +101,9 @@
     "test:mutation": "stryker run",
     "test:mutation:dry": "stryker run --dryRunOnly",
     "prepack": "npm run build",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run check:package",
+    "prepublishOnly": "node scripts/guard-alpha-publish.js",
+    "release:alpha": "npm publish --tag alpha",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run check:package && npm run check:publish-alpha",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
     "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration"
   },

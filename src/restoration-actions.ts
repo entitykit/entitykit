@@ -27,11 +27,27 @@ export function runRestorationActions(
 }
 
 function appendFailure(target: unknown[], failure: unknown): void {
-    if (failure instanceof AggregateError) {
-        for (const nested of failure.errors) appendFailure(target, nested);
+    appendFailureGuarded(target, failure, new Set<AggregateError>());
+}
+
+function appendFailureGuarded(
+    target: unknown[],
+    failure: unknown,
+    visited: Set<AggregateError>,
+): void {
+    if (!(failure instanceof AggregateError) || failure.errors.length === 0) {
+        target.push(failure);
         return;
     }
-    target.push(failure);
+    if (visited.has(failure)) {
+        target.push(failure);
+        return;
+    }
+    visited.add(failure);
+    for (const nested of failure.errors) {
+        appendFailureGuarded(target, nested, visited);
+    }
+    visited.delete(failure);
 }
 
 function asError(value: unknown): Error {

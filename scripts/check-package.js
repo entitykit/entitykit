@@ -44,6 +44,8 @@ function assertTarballFiles(pack) {
     'dist/providers/mysql/index.js',
     'dist/providers/postgres/index.js',
     'dist/providers/sqlite/index.js',
+    'LICENSE',
+    'README.md',
     'package.json',
   ]) {
     assert(files.has(required), `Packed artifact is missing '${required}'.`);
@@ -66,6 +68,12 @@ function assertTarballFiles(pack) {
 assert(
   packageManifest.publishConfig?.tag === 'alpha',
   'Prerelease packages must publish under the alpha dist-tag.',
+);
+assert(
+  packageManifest.license === 'MIT'
+    && typeof packageManifest.description === 'string'
+    && typeof packageManifest.repository?.url === 'string',
+  'Published metadata must identify the package, license, and repository.',
 );
 assert(
   packageManifest.bin?.entitykit === 'dist/cli/index.js',

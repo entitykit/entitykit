@@ -317,6 +317,7 @@ describe('optimistic concurrency recovery', () => {
         await winner.dispose();
         await loser.dispose();
     });
+
 });
 
 async function captureConflict(

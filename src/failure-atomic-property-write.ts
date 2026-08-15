@@ -1,11 +1,16 @@
 import type { PropertyMetadata } from './model/property-metadata';
 import {
+    readPropertyPath,
     readPropertyValue,
+    writePropertyPath,
     writePropertyValue,
 } from './model/property-value-access';
 import type { RestorationScope } from './restoration-scope';
 import { snapshotPropertyValue } from './tracking/snapshot-value';
-import { restorePropertyValue } from './property-value-restoration';
+import {
+    restorePropertyPath,
+    restorePropertyValue,
+} from './property-value-restoration';
 
 interface FailureAtomicPropertyWrite {
     readonly entity: object;
@@ -43,6 +48,33 @@ export function writeFailureAtomicProperty(
             restorePropertyValue(
                 options.entity, options.property, previous,
                 previousSnapshot, context,
+            );
+        });
+        throw error;
+    }
+}
+
+interface FailureAtomicPathWrite {
+    readonly entity: object;
+    readonly path: readonly string[];
+    readonly value: unknown;
+    readonly scope: RestorationScope;
+    readonly context: string;
+}
+
+/** Write one object path with immediate verified restoration on failure. */
+export function writeFailureAtomicPath(
+    options: FailureAtomicPathWrite,
+): unknown {
+    const previous = readPropertyPath(options.entity, options.path);
+    try {
+        writePropertyPath(options.entity, options.path, options.value);
+        return readPropertyPath(options.entity, options.path);
+    } catch (error) {
+        options.scope.capturePrimary(error);
+        options.scope.attempt(() => {
+            restorePropertyPath(
+                options.entity, options.path, previous, options.context,
             );
         });
         throw error;

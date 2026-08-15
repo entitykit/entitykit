@@ -18,11 +18,7 @@ export class RestorationScope {
     }
 
     public recordFailure(error: unknown): void {
-        if (error instanceof AggregateError) {
-            for (const nested of error.errors) this.recordFailure(nested);
-        } else {
-            this.failures.push(error);
-        }
+        this.appendFailure(error, new Set<AggregateError>());
     }
 
     public attempt(action: () => void): void {
@@ -58,5 +54,24 @@ export class RestorationScope {
             this.markRestorationFailure(failure);
         }
         return failure;
+    }
+
+    private appendFailure(
+        error: unknown,
+        visited: Set<AggregateError>,
+    ): void {
+        if (!(error instanceof AggregateError) || error.errors.length === 0) {
+            this.failures.push(error);
+            return;
+        }
+        if (visited.has(error)) {
+            this.failures.push(error);
+            return;
+        }
+        visited.add(error);
+        for (const nested of error.errors) {
+            this.appendFailure(nested, visited);
+        }
+        visited.delete(error);
     }
 }

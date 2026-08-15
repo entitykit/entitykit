@@ -254,6 +254,10 @@ describe('runtime coverage contract', () => {
         expect(strykerConfig).toContain('src/migrations/migration-column-builder.ts');
         expect(strykerConfig).toContain('src/restoration-scope.ts');
         expect(strykerConfig).toContain('src/failure-atomic-property-write.ts');
+        expect(strykerConfig).toContain('src/tracking/entity-entry-concurrency.ts');
+        expect(strykerConfig).toContain('src/tracking/entity-entry-concurrency-operation.ts');
+        expect(strykerConfig).toContain('src/tracking/entity-entry-version-sync.ts');
+        expect(strykerConfig).toContain('src/materialization/complex-value-materializer.ts');
         expect(strykerConfig).toContain('src/core/created-ancestor-restoration.ts');
         expect(strykerConfig).toContain('src/core/save-plan-inspection.ts');
         expect(strykerConfig).toContain('src/core/unit-of-work/tracked-version-acceptance.ts');

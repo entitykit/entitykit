@@ -1,6 +1,8 @@
 import type { PropertyMetadata } from './model/property-metadata';
 import {
+    readPropertyPath,
     readPropertyValue,
+    writePropertyPath,
     writePropertyValue,
 } from './model/property-value-access';
 import { snapshotPropertyValuesEqual } from './tracking/snapshot-value';
@@ -35,5 +37,18 @@ export function restoreObjectProperty(
         throw new Error(
             `Property '${property}' refused its restoration value.`,
         );
+    }
+}
+
+/** Restore one nested object slot and reject a silent accessor refusal. */
+export function restorePropertyPath(
+    entity: object,
+    path: readonly string[],
+    value: unknown,
+    context: string,
+): void {
+    writePropertyPath(entity, path, value);
+    if (!Object.is(readPropertyPath(entity, path), value)) {
+        throw new Error(`Property '${context}' refused its restoration value.`);
     }
 }

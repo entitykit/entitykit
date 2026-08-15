@@ -8,6 +8,7 @@ import type { RelationshipDetectionCheckpoint } from './relationship-detection-j
 import { runRestorationActions } from '../restoration-actions';
 import { restorePropertyValue } from '../property-value-restoration';
 import { snapshotValuesEqual } from './snapshot-value-equality';
+import { restorePropertyPath } from '../property-value-restoration';
 
 export function restoreRelationshipDetection(
     tracker: ChangeTracker,
@@ -24,6 +25,18 @@ export function restoreRelationshipDetection(
                 restorePropertyValue(
                     checkpoint.entry.entity, property, previous, previous,
                     `${checkpoint.entry.metadata.entityName}.${propertyName}`,
+                );
+            });
+        }
+        for (const complex of [...checkpoint.complex].sort(
+            (left, right) => right.path.length - left.path.length,
+        )) {
+            actions.push(() => {
+                restorePropertyPath(
+                    checkpoint.entry.entity,
+                    complex.path,
+                    complex.value,
+                    `${checkpoint.entry.metadata.entityName}.${complex.path.join('.')}`,
                 );
             });
         }
