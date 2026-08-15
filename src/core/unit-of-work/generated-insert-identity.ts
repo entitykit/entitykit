@@ -43,7 +43,6 @@ export function applyGeneratedInsertIdentity(
         prepared,
         mutations,
         scope,
-        undefined,
     )]);
     return property;
 }

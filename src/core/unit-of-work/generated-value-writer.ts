@@ -36,9 +36,8 @@ export function writeGeneratedValue<TEntity extends object>(
     storeValue: unknown,
     mutations: SaveTimeMutationLog,
     scope: RestorationScope,
-    valueReader?: StoreValueReader,
-    metadata?: EntityMetadata<TEntity>,
-    entityName = metadata?.entityName,
+    valueReader: StoreValueReader | undefined,
+    metadata: EntityMetadata<TEntity>,
 ): AppliedPropertyValue {
     return applyPreparedGeneratedValue(
         entity,
@@ -46,7 +45,7 @@ export function writeGeneratedValue<TEntity extends object>(
             property,
             storeValue,
             valueReader,
-            entityName,
+            metadata.entityName,
         ),
         mutations,
         scope,
@@ -62,11 +61,7 @@ export function applyPreparedGeneratedValue<TEntity extends object>(
     metadata?: EntityMetadata<TEntity>,
     onRestored?: (restored: boolean) => void,
 ): AppliedPropertyValue {
-    const { property, liveValue } = prepared;
-    const entityName = metadata?.entityName;
-    const context = entityName
-        ? `${entityName}.${property.propertyName}`
-        : property.propertyName;
+    const { property, liveValue, context } = prepared;
     if (metadata && liveValue !== null && liveValue !== undefined) {
         ensurePolicyPropertyPath(
             metadata,

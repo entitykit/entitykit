@@ -33,7 +33,7 @@ module.exports = {
     'src/core/save-time-tenant.ts:100-112',
     'src/core/bulk-write-tenant.ts:53-64',
     'src/core/bulk-write-tenant.ts:80-83',
-    'src/core/unit-of-work/generated-value-writer.ts:87-103',
+    'src/core/unit-of-work/generated-value-writer.ts:82-98',
     'src/core/unit-of-work/tracked-version-acceptance.ts:37-75',
     'src/tracking/change-tracker-detection.ts:85-92',
     'src/tracking/relationship-detection-restore.ts:18-30',

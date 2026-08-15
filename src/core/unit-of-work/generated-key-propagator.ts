@@ -112,6 +112,7 @@ export function propagateGeneratedKeys(
                 persistedValue,
                 boundValue,
                 liveValue,
+                context,
             });
             registerPrepared(prepared);
             const previousLiveValue = readPropertyValue(entry.entity, foreignKey);

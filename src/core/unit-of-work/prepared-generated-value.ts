@@ -14,6 +14,7 @@ export interface PreparedGeneratedValue<TEntity extends object = object>
     extends AppliedPropertyValue {
     readonly property: PropertyMetadata<TEntity>;
     readonly liveValue: unknown;
+    readonly context: string;
 }
 
 export function prepareGeneratedRow<TEntity extends object>(
@@ -33,17 +34,15 @@ export function prepareGeneratedRow<TEntity extends object>(
 export function prepareGeneratedValue<TEntity extends object>(
     property: PropertyMetadata<TEntity>,
     storeValue: unknown,
-    valueReader?: StoreValueReader,
-    entityName?: string,
+    valueReader: StoreValueReader | undefined,
+    entityName: string,
 ): PreparedGeneratedValue<TEntity> {
     const providerValue = readStoreProviderValue(
         storeValue,
         property,
         valueReader,
     );
-    const context = entityName
-        ? `${entityName}.${property.propertyName}`
-        : property.propertyName;
+    const context = `${entityName}.${property.propertyName}`;
     const { persistedValue, liveValue } = snapshotProviderValueCopies(
         providerValue,
         property.converter,
@@ -54,6 +53,7 @@ export function prepareGeneratedValue<TEntity extends object>(
         propertyName: property.propertyName,
         persistedValue,
         liveValue,
+        context,
         boundValue: cloneSnapshotValue(toBoundProviderValue(
             providerValue,
             property.columnType,

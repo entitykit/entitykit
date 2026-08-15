@@ -167,7 +167,7 @@ describe('generated-value refresh identity snapshots', () => {
         });
 
         await expect(db.saveChanges()).rejects.toThrow(
-            'Property \'id\' refused its assigned value.',
+            'Property \'InsertedEntity.id\' refused its assigned value.',
         );
 
         expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
