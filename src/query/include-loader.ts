@@ -15,6 +15,7 @@ import { captureIncludeRoots } from './include-load-root';
 import type { SuppliedIncludeValues } from './include-load-root';
 import { directNavigationWriter } from '../tracking/navigation-writer';
 import type { NavigationLoadScope } from '../tracking/navigation-load-scope';
+import { inertNavigationLoadTrackerJournal } from '../tracking/navigation-load-tracker-journal';
 
 /**
  * Eager relationship/navigation loading for `include(...)`.
@@ -43,19 +44,19 @@ export class IncludeLoader {
         preservePendingRelationships = false,
         scope?: NavigationLoadScope,
     ) {
-        // The load's tracking provenance rides with its journal: one recorder per
-        // operation, shared by every strategy and every `loadRoots` recursion.
-        const recordTrackedByLoad = scope
-            ? (entity: object): void => {
-                scope.recordTrackedByLoad(entity);
-            }
-            : undefined;
+        // The load's tracking provenance rides with its journal: one record of
+        // ownership and participation per operation, shared by every strategy
+        // and every `loadRoots` recursion. Without a scope there is no load to
+        // unwind, so the inert journal keeps every call site unconditional.
+        const trackerJournal = scope?.trackerJournal
+            ?? inertNavigationLoadTrackerJournal;
         this.strategies = new IncludeStrategyRunner({
             model,
             database,
             operationOptions,
             changeTracker,
             journal: scope?.journal ?? directNavigationWriter,
+            trackerJournal,
             fixupTrackedGraph,
             preservePendingRelationships,
             applyQueryFilters,
@@ -63,7 +64,9 @@ export class IncludeLoader {
             diagnostics,
             valueReader,
             selectSql: new SelectSqlBuilder(dialect),
-            materializer: new Materializer(valueReader, recordTrackedByLoad),
+            materializer: new Materializer(valueReader, (entity: object): void => {
+                trackerJournal.own(entity);
+            }),
         });
     }
 

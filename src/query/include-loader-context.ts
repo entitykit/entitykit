@@ -9,6 +9,7 @@ import type { SelectSqlBuilder } from '../sql/select-sql-builder';
 import type { Materializer } from '../materialization/materializer';
 import type { IncludeDiagnosticEvent } from '../diagnostics/runtime/events';
 import type { NavigationWriter } from '../tracking/navigation-writer';
+import type { NavigationLoadTrackerJournal } from '../tracking/navigation-load-tracker-journal';
 import type { QueryModel } from './query-model';
 
 /**
@@ -64,6 +65,8 @@ export interface IncludeLoaderContext {
     readonly changeTracker: ChangeTracker;
     /** Journals every graph write so a failed include can unwind the stitch. */
     readonly journal: NavigationWriter;
+    /** Records the tracker facts a failed include has to hand back. */
+    readonly trackerJournal: NavigationLoadTrackerJournal;
     readonly fixupTrackedGraph: boolean;
     readonly preservePendingRelationships: boolean;
     readonly applyQueryFilters?: QueryFilterApplier;

@@ -29,6 +29,7 @@ export function fixupIncludedReference<TEntity extends object>(
             relationship as unknown as TrackedRelationshipMetadata,
             principal,
             ctx.journal,
+            ctx.trackerJournal,
         );
     } else {
         ctx.journal.write(

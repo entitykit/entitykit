@@ -9,6 +9,10 @@ import { navigationSnapshot } from './navigation-snapshot';
 import { captureNavigation } from './navigation-snapshot';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import {
+    inertNavigationLoadTrackerJournal,
+    type NavigationLoadTrackerJournal,
+} from './navigation-load-tracker-journal';
+import {
     directNavigationWriter,
     type NavigationWriter,
 } from './navigation-writer';
@@ -18,7 +22,10 @@ import {
  *
  * Every write goes through the caller's journal, so a principal collection that
  * refuses the new dependent unwinds the dependent reference and the previous
- * inverse it already severed instead of leaving the two sides disagreeing.
+ * inverse it already severed instead of leaving the two sides disagreeing. The
+ * inverse baselines this re-captures are tracker facts rather than graph
+ * writes, so each principal it reaches -- the new one and any previous one it
+ * severs -- is recorded with the tracker journal before its baseline moves.
  */
 export function fixupLoadedReference(
     tracker: ChangeTracker,
@@ -26,6 +33,8 @@ export function fixupLoadedReference(
     relationship: TrackedRelationshipMetadata,
     principal: object | null,
     writer: NavigationWriter = directNavigationWriter,
+    trackerJournal: NavigationLoadTrackerJournal
+        = inertNavigationLoadTrackerJournal,
 ): void {
     const values = dependent.entity as Record<string, unknown>;
     const current = values[relationship.navigationProperty];
@@ -40,7 +49,9 @@ export function fixupLoadedReference(
             removeFromRelationshipInverse(
                 tracker, relationship, previous, dependent.entity, writer,
             );
-            captureInverseBaseline(tracker, relationship, previous);
+            captureInverseBaseline(
+                tracker, relationship, previous, trackerJournal,
+            );
         }
     }
     writer.write(
@@ -58,17 +69,20 @@ export function fixupLoadedReference(
         () => undefined,
         writer,
     );
-    captureInverseBaseline(tracker, relationship, principal);
+    captureInverseBaseline(tracker, relationship, principal, trackerJournal);
 }
 
 function captureInverseBaseline(
     tracker: ChangeTracker,
     relationship: TrackedRelationshipMetadata,
     principal: object,
+    trackerJournal: NavigationLoadTrackerJournal,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
     const entry = tracker.entry(principal);
-    if (inverse && entry) captureNavigation(entry, inverse);
+    if (!inverse || !entry) return;
+    trackerJournal.touch(entry);
+    captureNavigation(entry, inverse);
 }
 
 function assertOneToOneSlotAvailable(
