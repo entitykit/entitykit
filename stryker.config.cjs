@@ -44,7 +44,7 @@ module.exports = {
     'src/tracking/navigation-collection-copy.ts',
     'src/tracking/navigation-load-checkpoint.ts:26-56',
     'src/tracking/navigation-load-operation.ts:24-35',
-    'src/tracking/navigation-load-tracker-journal.ts:38-83',
+    'src/tracking/navigation-load-tracker-journal.ts:38-82',
     'src/query/include-navigation-loaded-state.ts',
     'src/query/include-loader.ts:47-70',
     'src/failure-atomic-navigation-write.ts',
