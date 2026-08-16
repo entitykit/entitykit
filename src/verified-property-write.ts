@@ -5,9 +5,18 @@ import {
     writePropertyPath,
     writePropertyValue,
 } from './model/property-value-access';
+import { toProviderValue } from './model/value-converter/store-value';
 import { cloneSnapshotValue } from './tracking/snapshot-value-clone';
 import { snapshotValuesEqual } from './tracking/snapshot-value-equality';
-import { snapshotPropertyValuesEqual } from './tracking/snapshot-value';
+import {
+    isImmutablePrimitiveValue,
+} from './tracking/restorable-value-snapshot';
+
+/** Pre-image fact one verified write compares the stored value against. */
+type WriteExpectation =
+    | { readonly kind: 'structural'; readonly snapshot: unknown }
+    | { readonly kind: 'primitive'; readonly value: unknown }
+    | { readonly kind: 'provider'; readonly providerValue: unknown };
 
 /** Write one mapped property and reject an accessor that refuses the value. */
 export function writeVerifiedProperty(
@@ -16,7 +25,7 @@ export function writeVerifiedProperty(
     value: unknown,
     context: string,
 ): unknown {
-    const expected = cloneSnapshotValue(value);
+    const expected = captureWriteExpectation(value, property, context);
     writePropertyValue(entity, property, value);
     assertPathAncestorsAccepted(entity, property.propertyPath, context);
     const actual = readPropertyValue(entity, property);
@@ -42,19 +51,55 @@ export function writeVerifiedPath(
     return actual;
 }
 
+/** Capture the pre-image fact before an accessor can mutate the value. */
+function captureWriteExpectation(
+    value: unknown,
+    property: PropertyMetadata,
+    context: string,
+): WriteExpectation {
+    if (!property.converter) {
+        return { kind: 'structural', snapshot: cloneSnapshotValue(value) };
+    }
+    if (isImmutablePrimitiveValue(value)) {
+        return { kind: 'primitive', value };
+    }
+    return {
+        kind: 'provider',
+        providerValue: capturedProviderValue(value, property, context),
+    };
+}
+
+/** Accept a stored value only through its own property's comparison strategy. */
 function assignedValueAccepted(
     actual: unknown,
-    expected: unknown,
+    expected: WriteExpectation,
     property: PropertyMetadata,
     context: string,
 ): boolean {
-    return snapshotValuesEqual(actual, expected) ||
-        snapshotPropertyValuesEqual(
-            actual,
-            expected,
-            property.converter,
-            context,
+    if (expected.kind === 'structural') {
+        return snapshotValuesEqual(actual, expected.snapshot);
+    }
+    if (expected.kind === 'primitive') {
+        return Object.is(actual, expected.value) || snapshotValuesEqual(
+            capturedProviderValue(expected.value, property, context),
+            capturedProviderValue(actual, property, context),
         );
+    }
+    return snapshotValuesEqual(
+        expected.providerValue,
+        capturedProviderValue(actual, property, context),
+    );
+}
+
+/** Convert one model value into an independent provider fact. */
+function capturedProviderValue(
+    value: unknown,
+    property: PropertyMetadata,
+    context: string,
+): unknown {
+    return cloneSnapshotValue(
+        toProviderValue(value, property.converter, context),
+    );
 }
 
 function assertPathAncestorsAccepted(

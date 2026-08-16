@@ -13,8 +13,10 @@ import {
     captureMissingBoundEntityValues,
     cloneBoundValues,
 } from './bound-value-snapshot';
-import { snapshotValuesEqual } from './snapshot-value-equality';
-import { snapshotPropertyValueCopies } from './snapshot-value';
+import {
+    snapshotPropertyValueCopies,
+    snapshotPropertyValuesEqual,
+} from './snapshot-value';
 import { toBoundProviderValue } from '../model/value-converter/store-value';
 import { cloneSnapshotValue } from './snapshot-value-clone';
 
@@ -101,10 +103,15 @@ export function refreshPersistedEntryRelationships(
     for (const propertyName of foreignKeys) {
         const property = entry.metadata.getProperty(propertyName);
         const liveValue = readPropertyValue(entry.entity, property);
-        if (snapshotValuesEqual(liveValue, snapshot.values[propertyName])) {
+        const context = `${entry.metadata.entityName}.${propertyName}`;
+        if (snapshotPropertyValuesEqual(
+            liveValue,
+            snapshot.values[propertyName],
+            property.converter,
+            context,
+        )) {
             continue;
         }
-        const context = `${entry.metadata.entityName}.${propertyName}`;
         const copies = snapshotPropertyValueCopies(
             liveValue,
             property.converter,

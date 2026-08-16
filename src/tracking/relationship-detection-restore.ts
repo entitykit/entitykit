@@ -1,7 +1,7 @@
 import type { ChangeTracker } from './change-tracker';
 import { restoreRelationshipDetectionEntries } from './change-tracker-relationship-detection-registry';
 import { restoreEntryLoadedNavigations } from './entity-entry-navigation-checkpoint';
-import { cloneSnapshotValue } from './entity-entry';
+import { snapshotRestorableValue } from './restorable-value-snapshot';
 import { restoreNavigationChangeDetectionState } from './navigation-change-detection-state';
 import { registerTemporaryGeneratedIdentity } from './temporary-generated-identity';
 import type { RelationshipDetectionCheckpoint } from './relationship-detection-journal';
@@ -18,13 +18,15 @@ export function restoreRelationshipDetection(
     for (const checkpoint of checkpoints) {
         for (const [propertyName, value] of checkpoint.properties) {
             actions.push(() => {
-                const property = checkpoint.entry.metadata.getProperty(
-                    propertyName,
+                const metadata = checkpoint.entry.metadata;
+                const property = metadata.getProperty(propertyName);
+                const context = `${metadata.entityName}.${propertyName}`;
+                const previous = snapshotRestorableValue(
+                    value, property.converter, context,
                 );
-                const previous = cloneSnapshotValue(value);
                 restorePropertyValue(
                     checkpoint.entry.entity, property, previous, previous,
-                    `${checkpoint.entry.metadata.entityName}.${propertyName}`,
+                    context,
                 );
             });
         }

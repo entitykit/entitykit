@@ -9,7 +9,8 @@ import { captureNavigationSnapshotValues } from './navigation-snapshot';
 import type { RelationshipDetectionCheckpoint } from './relationship-detection-journal';
 import { restoreRelationshipDetection } from './relationship-detection-restore';
 import { cloneBoundValues } from './bound-value-snapshot';
-import { cloneSnapshotValue, snapshotPropertyValue } from './snapshot-value';
+import { snapshotPropertyValue } from './snapshot-value';
+import { snapshotRestorableValues } from './restorable-value-snapshot';
 import { temporaryGeneratedIdentity } from './temporary-generated-identity';
 
 /** Capture every tracker and graph fact a concurrency operation may mutate. */
@@ -41,7 +42,9 @@ function captureEntry(
         entry,
         identityKey,
         state: entry.state,
-        originalValues: cloneRecord(entry.originalValues),
+        originalValues: snapshotRestorableValues(
+            entry.metadata, entry.originalValues,
+        ),
         originalBoundValues: cloneBoundValues(entry.originalBoundValues),
         navigations: captureNavigationSnapshotValues(entry),
         loaded: captureEntryLoadedNavigations(entry),
@@ -80,14 +83,6 @@ function navigationProperties(
         }
     }
     return names;
-}
-
-function cloneRecord(
-    values: Readonly<Record<string, unknown>>,
-): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(values).map(([key, value]) => [
-        key, cloneSnapshotValue(value),
-    ]));
 }
 
 function cloneGraphValue(value: unknown): unknown {

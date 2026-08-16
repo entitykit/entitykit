@@ -1,7 +1,10 @@
 import type { Model } from '../model/model';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
-import { cloneSnapshotValue } from './entity-entry';
+import {
+    snapshotRestorablePropertyValue,
+    snapshotRestorableValues,
+} from './restorable-value-snapshot';
 import {
     captureNavigationChangeDetectionState,
 } from './navigation-change-detection-state';
@@ -102,10 +105,8 @@ function captureEntry(
         entry,
         identityKey,
         state: entry.state,
-        originalValues: Object.fromEntries(
-            Object.entries(entry.originalValues).map(([key, value]) => [
-                key, cloneSnapshotValue(value),
-            ]),
+        originalValues: snapshotRestorableValues(
+            entry.metadata, entry.originalValues,
         ),
         originalBoundValues: cloneBoundValues(entry.originalBoundValues),
         navigations: captureNavigationSnapshotValues(entry),
@@ -114,7 +115,11 @@ function captureEntry(
         temporaryIdentity: temporaryGeneratedIdentity(entry),
         properties: new Map([...propertyNames].map(propertyName => [
             propertyName,
-            cloneSnapshotValue(captured.get(entry)?.[propertyName]),
+            snapshotRestorablePropertyValue(
+                entry.metadata,
+                propertyName,
+                captured.get(entry)?.[propertyName],
+            ),
         ])),
         complex: entry.metadata.complexProperties.map(property => ({
             path: property.propertyPath,
