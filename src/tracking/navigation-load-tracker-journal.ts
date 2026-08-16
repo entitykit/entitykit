@@ -34,7 +34,7 @@ export interface NavigationLoadTrackerJournal {
     restorationActions(): Array<() => void>;
 }
 
-/** Pre-touch every entry present now; later arrivals touch on first use. */
+/** Capture entries lazily, immediately before this load mutates their facts. */
 export function createNavigationLoadTrackerJournal(
     tracker: ChangeTracker,
 ): NavigationLoadTrackerJournal {
@@ -42,8 +42,8 @@ export function createNavigationLoadTrackerJournal(
     const owned: Set<object> = new Set();
     const journal: NavigationLoadTrackerJournal = {
         touch: (entry: EntityEntry<object>): void => {
-            // Only the first touch is the pre-load truth; later ones would
-            // capture changes this same load already made.
+            // Only the first touch is the truth this load has to hand back;
+            // later ones would capture changes this same load already made.
             if (touched.has(entry)) return;
             touched.set(entry, captureEntryCheckpoint(entry));
         },
@@ -61,7 +61,6 @@ export function createNavigationLoadTrackerJournal(
             },
         ],
     };
-    for (const entry of tracker.entries()) journal.touch(entry);
     return journal;
 }
 
