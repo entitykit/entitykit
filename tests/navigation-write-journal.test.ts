@@ -57,6 +57,30 @@ describe('navigation write journal', () => {
         }).not.toThrow();
     });
 
+    it('unwinds several writes to one navigation back to the original', () => {
+        const first = graphNode('first');
+        const second = graphNode('second');
+        const node = graphNode('node', [first]);
+        interceptItems(node, value => value);
+        const journal = new NavigationWriteJournal();
+
+        journal.write(node, 'items', [first, second], 'Node');
+        journal.write(node, 'items', [second], 'Node');
+        writeLog.length = 0;
+        const scope = new RestorationScope(() => undefined);
+        journal.rollback(scope);
+
+        // Each write hands back what the write before it published, so the
+        // chain lands on the value the load found rather than on an
+        // intermediate one -- and no step mistakes its own predecessor's
+        // value for someone else having moved the navigation on.
+        expect(writeLog).toEqual(['node=first,second', 'node=first']);
+        expect(node.items).toEqual([first]);
+        expect(() => {
+            scope.throwIfFailed();
+        }).not.toThrow();
+    });
+
     it('attempts every restoration phase when one of them throws', () => {
         const hostile = new Error('restoration setter exploded');
         const first = graphNode('first');
