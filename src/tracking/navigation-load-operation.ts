@@ -11,8 +11,8 @@ import { NavigationWriteJournal } from './navigation-write-journal';
  * loading all publish graph writes, loaded flags, navigation baselines, and
  * newly tracked related entities. When any of that fails part-way, the caller
  * must not be left with half a relationship: the journal restores every graph
- * write in reverse, the tracker journal restores the facts of every entry the
- * load participated in and detaches only the entities the load itself tracked,
+ * write in reverse, the tracker journal restores the facts of every navigation
+ * the load participated in and detaches only the entities the load tracked,
  * the original failure is preserved, and a restoration that cannot complete
  * poisons the context. The load's own result is produced inside the boundary,
  * so reading it is covered by the rollback too.

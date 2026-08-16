@@ -6,7 +6,7 @@ import type { NavigationWriteJournal } from './navigation-write-journal';
  *
  * `journal` unwinds the graph writes. `trackerJournal` unwinds the tracker
  * facts: the entities this load was the first to track, which rollback
- * detaches, and the entries whose loaded flags, navigation baselines, and
+ * detaches, and the individual navigations whose loaded flags, baselines, and
  * change-detection suppression the load changed, which rollback restores in
  * place. Both are recorded at the moment they happen, never inferred by
  * comparing tracker membership before and after, so an `add()`, an `attach()`,

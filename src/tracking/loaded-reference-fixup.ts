@@ -25,7 +25,8 @@ import {
  * inverse it already severed instead of leaving the two sides disagreeing. The
  * inverse baselines this re-captures are tracker facts rather than graph
  * writes, so each principal it reaches -- the new one and any previous one it
- * severs -- is recorded with the tracker journal before its baseline moves.
+ * severs -- is recorded with the tracker journal, under the inverse navigation
+ * it is about to move, before that baseline moves.
  */
 export function fixupLoadedReference(
     tracker: ChangeTracker,
@@ -81,7 +82,9 @@ function captureInverseBaseline(
     const inverse = relationship.inverseNavigationProperty;
     const entry = tracker.entry(principal);
     if (!inverse || !entry) return;
-    trackerJournal.touch(entry);
+    // The only fact this moves on the principal is the inverse navigation's
+    // baseline, so that navigation alone is what the load has to hand back.
+    trackerJournal.touch(entry, inverse);
     captureNavigation(entry, inverse);
 }
 
