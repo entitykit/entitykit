@@ -31,6 +31,7 @@ module.exports = {
     '<rootDir>/tests/navigation-load-participation-sqlite.test.ts',
     '<rootDir>/tests/navigation-load-participation-include-sqlite.test.ts',
     '<rootDir>/tests/navigation-load-unrelated-acceptance-sqlite.test.ts',
+    '<rootDir>/tests/navigation-load-property-participation-sqlite.test.ts',
     '<rootDir>/tests/lazy-load-atomicity-sqlite.test.ts',
     '<rootDir>/tests/accessor-refusal-relationships-sqlite.test.ts',
     '<rootDir>/tests/accessor-refusal-links-sqlite.test.ts',
