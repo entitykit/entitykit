@@ -64,8 +64,8 @@ export class IncludeLoader {
             diagnostics,
             valueReader,
             selectSql: new SelectSqlBuilder(dialect),
-            materializer: new Materializer(valueReader, (entity: object): void => {
-                trackerJournal.own(entity);
+            materializer: new Materializer(valueReader, (entry): void => {
+                trackerJournal.own(entry);
             }),
         });
     }

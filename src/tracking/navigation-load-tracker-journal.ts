@@ -1,4 +1,3 @@
-import { runRestorationActions } from '../restoration-actions';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import {
@@ -6,14 +5,19 @@ import {
     restoreNavigationCheckpoint,
     type LoadedNavigationCheckpoint,
 } from './navigation-load-checkpoint';
+import {
+    captureOwnedRegistration,
+    detachOwnedRegistrations,
+    type OwnedRegistration,
+} from './navigation-load-ownership';
 
 /**
  * The two tracker facts one navigation load has to be able to take back.
  *
- * *Ownership* is "this load was the first to track this entity": `own` records
- * it at the moment registration succeeds, and rollback detaches exactly those
- * entities, so tracking that arrived from anywhere else while the load was in
- * flight -- an `add()`, an `attach()`, a queued `link()` -- survives a failed
+ * *Ownership* is "this load established this entry": `own` records the entry
+ * at the moment registration succeeds, and rollback detaches exactly those
+ * registrations, so tracking that arrived from anywhere else while the load was
+ * in flight -- an `add()`, an `attach()`, a queued `link()` -- survives a failed
  * load. *Participation* is "this load is about to change tracker-owned facts
  * for this navigation": `touch` captures one property's loaded flag, navigation
  * baseline, and change-detection suppression once, before the first such
@@ -30,12 +34,25 @@ import {
  * leaves an entry describing a graph that was rolled back underneath it.
  * Neither fact is ever inferred from tracker membership before and after --
  * temporal ordering is not ownership, and it is not participation either.
+ *
+ * Ownership is recorded, and unwound, per *entry* rather than per entity. A
+ * caller who detaches the load's entry and establishes their own -- `detach()`
+ * then `attach()`, on the same instance -- leaves a different entry object
+ * standing under the same entity, and that entry is theirs: rollback skips it
+ * silently, because a distinct entry is proof rather than ambiguity.
+ *
+ * The entry rollback still owns is detached only while the detach is a no-op
+ * for everyone else. An entry whose state moved off what the load established,
+ * or one still named by queued work the tracker anchors on it, carries user
+ * intent that detaching would silently destroy -- a queued join row cancelled
+ * with its target, a `remove()` erased -- so the detach fails closed and
+ * poisons the context instead of resolving the conflict in rollback's favour.
  */
 export interface NavigationLoadTrackerJournal {
     /** Capture one navigation's tracker facts before this load changes them. */
     touch(entry: EntityEntry<object>, navigationProperty: string): void;
-    /** Record an entity this load was the first to track. */
-    own(entity: object): void;
+    /** Record an entry whose registration this load was the one to make. */
+    own(entry: EntityEntry<object>): void;
     restorationActions(): Array<() => void>;
 }
 
@@ -48,7 +65,7 @@ export function createNavigationLoadTrackerJournal(
     tracker: ChangeTracker,
 ): NavigationLoadTrackerJournal {
     const touched: TouchedNavigations = new Map();
-    const owned: Set<object> = new Set();
+    const owned: Map<object, OwnedRegistration> = new Map();
     const journal: NavigationLoadTrackerJournal = {
         touch: (entry: EntityEntry<object>, navigationProperty: string): void => {
             const properties = touched.get(entry)
@@ -62,8 +79,10 @@ export function createNavigationLoadTrackerJournal(
                 captureNavigationCheckpoint(entry, navigationProperty),
             );
         },
-        own: (entity: object): void => {
-            owned.add(entity);
+        own: (entry: EntityEntry<object>): void => {
+            // Keyed by entity: one entity can only carry one entry at a time,
+            // and a re-registration is the newer of the load's own two.
+            owned.set(entry.entity, captureOwnedRegistration(entry));
         },
         // Restore participation first: an owned entry may also have been
         // touched, and detaching it afterwards is what wins for that entity.
@@ -72,7 +91,7 @@ export function createNavigationLoadTrackerJournal(
                 restoreNavigationCheckpoint(checkpoint);
             }),
             (): void => {
-                detachOwnedEntities(tracker, owned);
+                detachOwnedRegistrations(tracker, [...owned.values()]);
             },
         ],
     };
@@ -86,16 +105,6 @@ function touchedCheckpoints(
     return [...touched.values()].flatMap(
         properties => [...properties.values()],
     );
-}
-
-/** Detach exactly the entities this load recorded as freshly tracked. */
-function detachOwnedEntities(
-    tracker: ChangeTracker,
-    owned: ReadonlySet<object>,
-): void {
-    runRestorationActions([...owned].map(entity => () => {
-        tracker.detach(entity);
-    }));
 }
 
 /** The journal for navigation writers running outside a load operation. */

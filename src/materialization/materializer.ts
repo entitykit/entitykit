@@ -1,6 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { StoreValueReader } from '../storage/store-value-reader';
 import type { ChangeTracker } from '../tracking/change-tracker';
+import type { EntityEntry } from '../tracking/entity-entry';
 import { EntityState } from '../tracking/entity-state';
 import { applyMaterializedValues } from './complex-value-materializer';
 import type { MaterializedRow } from './materialized-row';
@@ -17,10 +18,12 @@ import {
 export class Materializer {
     private readonly materializedEntities: WeakSet<object> = new WeakSet();
 
-    /** `onFreshEntityTracked` fires only for entities this instance first tracked. */
+    /** `onFreshEntityTracked` fires only for entries this instance registered. */
     constructor(
         private readonly valueReader?: StoreValueReader,
-        private readonly onFreshEntityTracked?: (entity: object) => void,
+        private readonly onFreshEntityTracked?: (
+            entry: EntityEntry<object>,
+        ) => void,
     ) {}
 
     /** Materialize one entity without identity resolution or tracker retention. */
@@ -92,7 +95,9 @@ export class Materializer {
         );
         // The only moment anyone knows this tracking is ours: the identity lookup
         // above missed, the entity is brand new, and registration just succeeded.
-        this.onFreshEntityTracked?.(entry.entity);
+        // The entry itself is the receipt -- a later entry under the same entity
+        // belongs to whoever established it.
+        this.onFreshEntityTracked?.(entry as unknown as EntityEntry<object>);
         return { entity: entry.entity, values, boundValues };
     }
 

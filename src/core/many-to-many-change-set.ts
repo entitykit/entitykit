@@ -93,6 +93,18 @@ export class ManyToManyChangeSet {
         };
     }
 
+    /**
+     * Whether queued join work still names this entity as source or target.
+     *
+     * The mirror of {@link cancelFor}: what that method would silently drop if
+     * the entity left the context now.
+     */
+    public hasPendingFor(entity: object): boolean {
+        return this.changes.some(
+            change => change.source === entity || change.target === entity,
+        );
+    }
+
     public buildSavePlan(
         sql: ModificationSqlBuilder,
         snapshotsByEntity: ReadonlyMap<object, PersistedEntrySnapshot>,

@@ -21,6 +21,12 @@ export abstract class DbContextRelationships extends DbContextRawSql {
         this.changeTracker.observeDetached(entity => {
             return this.manyToMany.cancelFor(entity);
         });
+        // The queue is the durable half of a `link()`/`unlink()`, and it is
+        // anchored on tracking: a detach cancels it. Publishing that fact lets
+        // a rollback refuse a detach the caller never asked for.
+        this.changeTracker.observeQueuedWork(entity => {
+            return this.manyToMany.hasPendingFor(entity);
+        });
         this.changeTracker.observeAcceptedAll(() => {
             this.manyToMany.clear();
         });

@@ -34,13 +34,17 @@ export class ChangeTracker {
     public observeTracked(observer: (entity: object) => (() => void) | undefined): void {
         this.observers.observeTracked(observer);
     }
-    public observeDetached(
-        observer: (entity: object) => (() => void) | undefined,
-    ): void {
+    public observeDetached(observer: (entity: object) => (() => void) | undefined): void {
         this.observers.observeDetached(observer);
     }
     public observeAcceptedAll(observer: () => void): void {
         this.observers.observeAcceptedAll(observer);
+    }
+    public observeQueuedWork(probe: (entity: object) => boolean): void {
+        this.observers.observeQueuedWork(probe);
+    }
+    public hasQueuedWork(entity: object): boolean {
+        return this.observers.hasQueuedWork(entity);
     }
     public track<TEntity extends object>(
         entity: TEntity,
@@ -49,15 +53,13 @@ export class ChangeTracker {
         originalValues?: Record<string, unknown>,
         originalBoundValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
-        return this.registry.track(entity, metadata, state,
-            originalValues, originalBoundValues);
+        return this.registry.track(entity, metadata, state, originalValues, originalBoundValues);
     }
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.registry.entry(entity);
     }
     public tryGetByIdentity<TEntity extends object>(
-        metadata: EntityMetadata<TEntity>,
-        keyValue: unknown,
+        metadata: EntityMetadata<TEntity>, keyValue: unknown,
     ): EntityEntry<TEntity> | undefined {
         return this.tryGetByIdentityValues(metadata, [keyValue]);
     }
@@ -66,8 +68,7 @@ export class ChangeTracker {
         keyValues: readonly unknown[],
         tenantValue?: unknown,
     ): EntityEntry<TEntity> | undefined {
-        return trackedByIdentity(this.registry, metadata,
-            keyValues, tenantValue);
+        return trackedByIdentity(this.registry, metadata, keyValues, tenantValue);
     }
     public tryGetByBoundIdentityValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
