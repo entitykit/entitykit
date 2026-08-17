@@ -7,103 +7,20 @@
  * the durable work a public operation established against them: whose entry is
  * standing under the entity now, and what a detach would take away with it.
  */
-import { ContextStateRestorationError, EntityState } from '../src';
-import { refusalMessage, rejection } from './support/accessor-refusal-support';
+import { EntityState } from '../src';
+import { rejection } from './support/accessor-refusal-support';
 import { refusal } from './support/link-refusal-support';
 import {
-    insertRaceJoinRow,
-    openRaceGraph,
+    expectDetachPoison,
+    failPausedLoad,
+    pauseWithOwnedTag,
+    storedTagNames,
+} from './support/navigation-load-ownership-support';
+import {
     storedRaceJoinRows,
 } from './support/navigation-supersession-support';
-import type {
-    RaceContext,
-    RaceNote,
-    RacePost,
-    RaceTag,
-} from './support/navigation-supersession-support';
+import type { RaceTag } from './support/navigation-supersession-support';
 import { requireDefined } from './support/require-defined';
-
-interface PausedOwnedTag {
-    readonly db: RaceContext;
-    readonly note: RaceNote;
-    readonly post: RacePost;
-    /** A tag THIS load was the first to track. */
-    readonly tag: RaceTag;
-    readonly loading: Promise<unknown>;
-}
-
-/**
- * Stitch `note.tag` with a tag the load materialized, then hold the query below.
- *
- * The tag is deliberately not pre-fetched: the load is the first to track it, so
- * the tracker journal records that entry as owned and a failed load detaches it.
- * The held statement is the tag's own many-to-many level, so `tag.posts` is a
- * navigation this load has *not* written -- the write journal's supersession
- * guard has nothing to say about it.
- */
-async function pauseWithOwnedTag(seedJoin = false): Promise<PausedOwnedTag> {
-    const db = await openRaceGraph();
-    if (seedJoin) await insertRaceJoinRow(db, 'post_1', 'tag_1');
-    const note = requireDefined(await db.notes.find('note_1'));
-    const post = requireDefined(await db.posts.find('post_1'));
-    const reached = db.connection.pauseOn('race_post_tags');
-    const loading = db.notes
-        .include(row => row.tag)
-        .thenInclude(row => row.posts)
-        .toArray();
-    await reached;
-    const tag = requireDefined(note.tag, 'stitched tag');
-    return { db, note, post, tag, loading };
-}
-
-/** Release the held statement, and prove the load's own error stays primary. */
-async function failPausedLoad(run: PausedOwnedTag): Promise<void> {
-    const boom = new Error('nested join query refused');
-    run.db.connection.failPaused(boom);
-    expect(await rejection(async () => run.loading)).toBe(boom);
-}
-
-/** The refusal ownership rollback reports once the entry moved on. */
-function ownershipRefusal(entityName: string): string {
-    return `Entity '${entityName}' changed while its load was in progress; ` +
-        'rollback cannot safely detach it.';
-}
-
-/** Assert the context reports the standard poisoned-state failure. */
-function expectPoison(failure: unknown): ContextStateRestorationError {
-    expect(failure).toBeInstanceOf(ContextStateRestorationError);
-    expect(failure).toMatchObject({
-        name: 'ContextStateRestorationError',
-        code: 'CONTEXT_STATE_RESTORATION_FAILED',
-    });
-    return failure as ContextStateRestorationError;
-}
-
-/** Every individual cleanup failure the poison carries, in rollback order. */
-function restorationCauses(poison: ContextStateRestorationError): string[] {
-    const cause: unknown = poison.cause;
-    return cause instanceof AggregateError
-        ? (cause.errors as unknown[]).map(error => refusalMessage(error))
-        : [refusalMessage(cause)];
-}
-
-/** The poison a refused ownership detach left behind, and nothing else. */
-function expectDetachPoison(run: PausedOwnedTag): ContextStateRestorationError {
-    const poison = expectPoison(refusal(() => {
-        run.db.getSavePlan();
-    }));
-    expect(restorationCauses(poison)).toEqual([ownershipRefusal('RaceTag')]);
-    return poison;
-}
-
-/** Read the tag table straight off the connection a poisoned context refuses. */
-async function storedTagNames(db: RaceContext): Promise<string[]> {
-    const result = await db.connection.query<{ name: string }>({
-        text: 'select name from race_tags order by id',
-        values: [],
-    });
-    return result.rows.map(row => row.name);
-}
 
 describe('a failed load unwinding tracking it no longer owns', () => {
     it('keeps an attach() that re-established tracking mid-load', async () => {
@@ -148,7 +65,7 @@ describe('a failed load unwinding tracking it no longer owns', () => {
         // the ambiguity is reported rather than resolved.
         expect(db.changeTracker.entry(tag)).toBeDefined();
         expect(post.tags.map(row => row.id)).toEqual(['tag_1']);
-        expectDetachPoison(run);
+        expectDetachPoison(db);
         expect(await storedRaceJoinRows(db)).toEqual([]);
         await db.dispose();
     });
@@ -170,7 +87,7 @@ describe('a failed load unwinding tracking it no longer owns', () => {
         // join table forever while the graph says it is gone; the row is still
         // there either way, but now the context says so.
         expect(await storedRaceJoinRows(db)).toEqual(['post_1->tag_1']);
-        expectDetachPoison(run);
+        expectDetachPoison(db);
         await db.dispose();
     });
 
@@ -189,7 +106,7 @@ describe('a failed load unwinding tracking it no longer owns', () => {
         // the load's to take back.
         expect(requireDefined(db.changeTracker.entry(tag)).state)
             .toBe(EntityState.Deleted);
-        expectDetachPoison(run);
+        expectDetachPoison(db);
         await expect(storedTagNames(db))
             .resolves.toEqual(['TypeScript', 'Postgres']);
         await db.dispose();
@@ -211,7 +128,7 @@ describe('a failed load unwinding tracking it no longer owns', () => {
         expect(requireDefined(db.changeTracker.entry(tag)).state)
             .toBe(EntityState.Modified);
         expect(tag.name).toBe('renamed-mid-load');
-        expectDetachPoison(run);
+        expectDetachPoison(db);
         await expect(storedTagNames(db))
             .resolves.toEqual(['TypeScript', 'Postgres']);
         await db.dispose();
@@ -224,7 +141,7 @@ describe('a failed load unwinding tracking it no longer owns', () => {
 
         await failPausedLoad(run);
 
-        const poison = expectDetachPoison(run);
+        const poison = expectDetachPoison(db);
         expect(refusal(() => {
             db.getSavePlanDebugView();
         })).toBe(poison);
