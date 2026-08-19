@@ -1,0 +1,71 @@
+{
+  "name": "@entitykit/core",
+  "version": "0.1.0-alpha.1",
+  "description": "The EntityKit core runtime: the model, change tracking, queries, materialization, and migrations.",
+  "keywords": [
+    "orm",
+    "typescript",
+    "entity-framework",
+    "dbcontext",
+    "change-tracking"
+  ],
+  "author": "zsumz <shawn@zsumz.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://git.shawn.mn/entitykit-poc/entitykit.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://git.shawn.mn/entitykit-poc/entitykit",
+  "bugs": {
+    "url": "https://git.shawn.mn/entitykit-poc/entitykit/issues"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./adapter": {
+      "types": "./dist/adapter/index.d.ts",
+      "require": "./dist/adapter/index.js",
+      "default": "./dist/adapter/index.js"
+    },
+    "./experimental": {
+      "types": "./dist/experimental/index.d.ts",
+      "require": "./dist/experimental/index.js",
+      "default": "./dist/experimental/index.js"
+    },
+    "./migrations": {
+      "types": "./dist/migrations/api.d.ts",
+      "require": "./dist/migrations/api.js",
+      "default": "./dist/migrations/api.js"
+    },
+    "./tooling": {
+      "types": "./dist/tooling/index.d.ts",
+      "require": "./dist/tooling/index.js",
+      "default": "./dist/tooling/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "alpha"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "sideEffects": false
+}

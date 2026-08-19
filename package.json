@@ -1,6 +1,7 @@
 {
   "name": "entitykit",
   "version": "0.1.0-alpha.1",
+  "private": true,
   "description": "An Entity Framework-inspired ORM for TypeScript with SQLite, Postgres, and MySQL providers.",
   "keywords": [
     "orm",
@@ -22,74 +23,9 @@
     "url": "https://git.shawn.mn/entitykit-poc/entitykit/issues"
   },
   "type": "commonjs",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
-    },
-    "./adapter": {
-      "types": "./dist/adapter/index.d.ts",
-      "require": "./dist/adapter/index.js",
-      "default": "./dist/adapter/index.js"
-    },
-    "./cli": {
-      "types": "./dist/cli/api.d.ts",
-      "require": "./dist/cli/api.js",
-      "default": "./dist/cli/api.js"
-    },
-    "./experimental": {
-      "types": "./dist/experimental/index.d.ts",
-      "require": "./dist/experimental/index.js",
-      "default": "./dist/experimental/index.js"
-    },
-    "./migrations": {
-      "types": "./dist/migrations/api.d.ts",
-      "require": "./dist/migrations/api.js",
-      "default": "./dist/migrations/api.js"
-    },
-    "./mysql": {
-      "types": "./dist/providers/mysql/index.d.ts",
-      "require": "./dist/providers/mysql/index.js",
-      "default": "./dist/providers/mysql/index.js"
-    },
-    "./postgres": {
-      "types": "./dist/providers/postgres/index.d.ts",
-      "require": "./dist/providers/postgres/index.js",
-      "default": "./dist/providers/postgres/index.js"
-    },
-    "./sqlite": {
-      "types": "./dist/providers/sqlite/index.d.ts",
-      "require": "./dist/providers/sqlite/index.js",
-      "default": "./dist/providers/sqlite/index.js"
-    },
-    "./testing": {
-      "types": "./dist/testing/index.d.ts",
-      "require": "./dist/testing/index.js",
-      "default": "./dist/testing/index.js"
-    },
-    "./tooling": {
-      "types": "./dist/tooling/index.d.ts",
-      "require": "./dist/tooling/index.js",
-      "default": "./dist/tooling/index.js"
-    },
-    "./package.json": "./package.json"
-  },
-  "bin": {
-    "entitykit": "dist/cli/index.js"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
+  "workspaces": [
+    "packages/*"
   ],
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/",
-    "tag": "alpha"
-  },
   "scripts": {
     "build": "node scripts/build-package.js",
     "check:package": "node scripts/check-package.js",
@@ -106,21 +42,6 @@
     "verify": "npm run lint && npm run typecheck && npm test && npm run check:package && npm run check:publish-alpha",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
     "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration"
-  },
-  "dependencies": {
-    "typescript": "^5.8.3"
-  },
-  "peerDependencies": {
-    "mysql2": "^3.23.2",
-    "pg": "^8.21.0"
-  },
-  "peerDependenciesMeta": {
-    "mysql2": {
-      "optional": true
-    },
-    "pg": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

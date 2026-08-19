@@ -1,0 +1,50 @@
+{
+  "name": "@entitykit/sqlite",
+  "version": "0.1.0-alpha.1",
+  "description": "The SQLite provider for EntityKit, backed by the Node.js built-in node:sqlite driver.",
+  "keywords": [
+    "orm",
+    "typescript",
+    "entitykit",
+    "sqlite",
+    "provider"
+  ],
+  "author": "zsumz <shawn@zsumz.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://git.shawn.mn/entitykit-poc/entitykit.git",
+    "directory": "packages/sqlite"
+  },
+  "homepage": "https://git.shawn.mn/entitykit-poc/entitykit",
+  "bugs": {
+    "url": "https://git.shawn.mn/entitykit-poc/entitykit/issues"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "alpha"
+  },
+  "peerDependencies": {
+    "@entitykit/core": "0.1.0-alpha.1"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "sideEffects": false
+}
