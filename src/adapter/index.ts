@@ -18,7 +18,10 @@ export type {
     DatabaseSchemaIntrospector,
 } from '../storage/database-provider-services';
 export type { StoreValueReader } from '../storage/store-value-reader';
-export { createEntityKitDataSource as createDataSource } from '../storage/entity-kit-data-source';
+export {
+    createEntityKitDataSource,
+    createEntityKitDataSource as createDataSource,
+} from '../storage/entity-kit-data-source';
 export type {
     EntityKitDataSource,
     EntityKitContextFactory,
@@ -96,3 +99,28 @@ export type {
     DatabaseSequence,
     DatabaseTable,
 } from '../introspection/database-schema';
+
+// Cancellation, transaction, and streaming primitives. An adapter cannot honour
+// the `DatabaseConnection` contract without them, so they belong on the adapter
+// surface rather than in core's internals: every built-in provider reaches for
+// exactly these when it implements `query`, `stream`, and `transaction`.
+export {
+    awaitWithOperationCancellation,
+    isOperationAborted,
+    throwIfOperationAborted,
+} from '../storage/operation-cancellation';
+export { withOperationSignal } from '../storage/with-operation-signal';
+export {
+    isQueryAborted,
+    queryStreamBatchSize,
+    throwIfQueryAborted,
+} from '../storage/query-stream-options';
+export { EnclosingTransactionState } from '../storage/enclosing-transaction-state';
+export { TransactionUsability } from '../storage/transaction-usability';
+export { validateTransactionOptions } from '../storage/transaction-options';
+export { validateProviderServices } from '../storage/database-provider-validation';
+export { invokeDetachedObserver } from '../diagnostics/detached-observer';
+export { excludedColumnMatchClause } from '../sql/upsert-clause-match';
+// The Postgres dialect is provider-neutral SQL rendering that lives in core;
+// adapters targeting Postgres-compatible engines compose it directly.
+export { postgresDialect } from '../sql/postgres-dialect';

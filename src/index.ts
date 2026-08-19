@@ -85,3 +85,25 @@ export { DatabaseProviderError, DatabaseTransactionCleanupError, findTransaction
 export type { DatabaseProviderErrorDetails, DatabaseProviderOperation } from './storage/database-errors';
 export type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionIsolationLevel, TransactionOptions } from './storage/database-connection';
 export type { DatabaseTlsOptions, DatabaseTlsVersion, DriverOptions, MySqlConnectionConfig, MySqlPoolOptions, PostgresConnectionConfig, PostgresPoolOptions, SqliteConnectionConfig } from './storage/built-in-provider-config';
+
+// Model and callback primitives that provider packages and configuration files
+// compose against. They are small, stable, and already named in the shapes above
+// (a `PropertySelector` is only useful if its name can be read back), so they
+// belong on the main entry rather than behind an internal relative path.
+export { selectPropertyName } from './model/model-property-selector';
+export type { EntityMetadata } from './model/entity-metadata';
+export { createDateBucketGroupKey } from './query/aggregate';
+export { assertSynchronousCallbackResult } from './synchronous-callback';
+export { readSynchronousDate } from './synchronous-value';
+
+// The `entitykit.config.ts` definition API. A config file is user runtime code,
+// so the module it imports must not drag the command-line tool in with it;
+// `entitykit/cli` re-exports these for compatibility.
+export { defineEntityKitConfig } from './entity-kit-config';
+export type {
+    BuiltInConnectionConfig,
+    DbContextConstructor,
+    EntityKitCliContext,
+    EntityKitConfig,
+    EntityKitConnectionOptions,
+} from './entity-kit-config';

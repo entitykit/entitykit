@@ -5,7 +5,6 @@ import {
     DbContext,
     Migration,
     MigrationBuilder,
-    RecordingDatabaseConnection,
     type DatabaseConnection,
     type DatabaseProviderConnectionConfig,
     type DatabaseProviderServices,
@@ -16,6 +15,9 @@ import {
     type SqlDialect,
     type SqlStatement,
 } from './future-core-package';
+// The test doubles ship as their own package, so a consumer names them
+// separately from core. Core itself never imports them.
+import { RecordingDatabaseConnection } from './future-testing-package';
 
 class FutureCoreUser {
     public id!: string;

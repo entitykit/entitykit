@@ -31,7 +31,7 @@ export function readSource(file: string): string {
     return fs.readFileSync(path.join(repositoryRoot, file), 'utf8');
 }
 
-function sourceFile(file: string): ts.SourceFile {
+export function sourceFile(file: string): ts.SourceFile {
     return ts.createSourceFile(
         file,
         readSource(file),
@@ -41,7 +41,7 @@ function sourceFile(file: string): ts.SourceFile {
     );
 }
 
-function resolveRelativeModule(importer: string, specifier: string): string | undefined {
+export function resolveRelativeModule(importer: string, specifier: string): string | undefined {
     if (!specifier.startsWith('.')) {
         return undefined;
     }

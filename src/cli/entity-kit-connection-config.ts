@@ -1,32 +1,16 @@
+import type { BuiltInConnectionConfig, EntityKitConnectionOptions } from '../entity-kit-config';
 import type { DatabaseProviderConnectionConfig } from '../storage/database-provider-services';
-import type {
-    MySqlConnectionConfig,
-    PostgresConnectionConfig,
-    SqliteConnectionConfig,
-} from '../storage/built-in-provider-config';
 
-/** Configuration for built in connection. */ export type BuiltInConnectionConfig =
-    | MySqlConnectionConfig
-    | PostgresConnectionConfig
-    | SqliteConnectionConfig;
+/**
+ * `connection` and `connectionString` are written in a project's config file, so
+ * their shapes ship with the definition API in core. Resolving them — reading
+ * callbacks, falling back to `DATABASE_URL`, validating — is CLI behaviour and
+ * stays here.
+ */
+export type { BuiltInConnectionConfig, EntityKitConnectionOptions } from '../entity-kit-config';
 
 /** Public type representing entity kit cli connection. */ export type EntityKitCliConnection =
     DatabaseProviderConnectionConfig<BuiltInConnectionConfig>;
-
-/** Options that configure entity kit connection. */ export interface EntityKitConnectionOptions<
-    TConfig extends object = BuiltInConnectionConfig,
-> {
-    /** The connection. */ readonly connection?:
-        | DatabaseProviderConnectionConfig<TConfig>
-        | (() =>
-            | DatabaseProviderConnectionConfig<TConfig>
-            | undefined
-            | Promise<DatabaseProviderConnectionConfig<TConfig> | undefined>);
-    /** Legacy string-only alias; prefer `connection`. */
-    readonly connectionString?:
-        | string
-        | (() => string | undefined | Promise<string | undefined>);
-}
 
 /** Resolve entity kit connection. */ export async function resolveEntityKitConnection<TConfig extends object>(
     config: EntityKitConnectionOptions<TConfig>,

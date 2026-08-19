@@ -37,3 +37,10 @@ export type {
     GeneratedCodeFile,
 } from '../introspection/db-pull-code-generator';
 export type { IdentityGenerationMode, StoreGenerationStrategy } from '../model/store-generation';
+
+// Generation is only half the job: anything that writes generated code needs the
+// same all-or-nothing file writer and path guard the CLI uses, and anything that
+// reads a TypeScript config or migration needs the same module loader.
+export { safeGeneratedPath, writeFilesAtomically } from './atomic-file-writer';
+export type { AtomicFileWrite } from './atomic-file-writer';
+export { loadTypeScriptModule } from './typescript-module-loader';

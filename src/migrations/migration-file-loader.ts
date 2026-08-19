@@ -16,7 +16,9 @@ const loadModule = createRequire(__filename);
             ? loadTypeScriptModule(filePath, {
                 entitykit: () => loadModule('../index') as unknown,
                 'entitykit/migrations': () => loadModule('./api') as unknown,
-                'entitykit/cli': () => loadModule('../cli/entity-kit-config') as unknown,
+                // The config definition API lives in core; core never reaches
+                // into the CLI, which is its own package after the split.
+                'entitykit/cli': () => loadModule('../entity-kit-config') as unknown,
             })
             : loadModule(filePath) as unknown;
 

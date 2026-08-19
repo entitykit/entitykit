@@ -34,6 +34,7 @@ describe('provider seam architecture: imports', () => {
         const postgresFixture = readSource('tests/fixtures/adapter-boundary/postgres-consumer.ts');
         const futureCorePackage = readSource('tests/fixtures/adapter-split-dry-run/future-core-package.ts');
         const futureCoreConsumer = readSource('tests/fixtures/adapter-split-dry-run/future-core-consumer.ts');
+        const futureTestingPackage = readSource('tests/fixtures/adapter-split-dry-run/future-testing-package.ts');
         const futurePostgresPackage = readSource('tests/fixtures/adapter-split-dry-run/future-postgres-adapter-package.ts');
         const futurePostgresConsumer = readSource('tests/fixtures/adapter-split-dry-run/future-postgres-consumer.ts');
 
@@ -47,6 +48,12 @@ describe('provider seam architecture: imports', () => {
         expect(futureCoreConsumer).not.toMatch(/Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres|providers\/postgres/);
         expect(futurePostgresPackage).toMatch(/providers\/postgres/);
         expect(futurePostgresConsumer).toContain('useProvider');
+        // The recording test doubles are their own package, so the core stand-in
+        // must not re-export them and the consumer must name them separately.
+        expect(futureCorePackage).not.toMatch(/src\/testing|RecordingDatabaseConnection/);
+        expect(futureTestingPackage).toMatch(/src\/testing/);
+        expect(futureTestingPackage).toContain('RecordingDatabaseConnection');
+        expect(futureCoreConsumer).toMatch(/from '\.\/future-testing-package'/);
     });
 
     it('keeps generic provider services free of concrete Postgres services', () => {
@@ -110,9 +117,11 @@ describe('provider seam architecture: imports', () => {
     it('keeps concrete Postgres service ownership in the adapter, barrels, and the lazy core bridge', () => {
         const concreteOwnerFiles = filesContaining(/PostgresDatabaseConnection|PostgresSchemaIntrospector|postgresProviderServices/);
 
+        // `src/experimental/index.ts` is deliberately absent: the experimental
+        // entry belongs to core and must not name a provider's concrete
+        // services, or core would depend on the Postgres package after the split.
         expect(concreteOwnerFiles).toEqual([
             'src/core/built-in-postgres.ts',
-            'src/experimental/index.ts',
             'src/providers/postgres/index.ts',
             'src/providers/postgres/pg-database-connection.ts',
             'src/providers/postgres/postgres-data-source.ts',

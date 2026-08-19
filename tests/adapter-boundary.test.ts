@@ -17,6 +17,7 @@ import {
     createFuturePostgresOptions,
     createFuturePostgresProvider,
 } from './fixtures/adapter-split-dry-run/future-postgres-consumer';
+import { RecordingDatabaseConnection as FutureTestingRecordingConnection } from './fixtures/adapter-split-dry-run/future-testing-package';
 
 const repoRoot = path.resolve(__dirname, '..');
 
@@ -65,6 +66,18 @@ describe('provider adapter package boundary rehearsal', () => {
         expect(packageSource).not.toMatch(forbiddenConcreteAdapter);
         expect(packageSource).not.toMatch(/from\s+["']\.\.\/\.\.\/\.\.\/src["']/);
         expect(consumerSource).not.toMatch(forbiddenConcreteAdapter);
+    });
+
+    it('typechecks a future testing-package dry run as a package of its own', () => {
+        const testingPackageSource = read('tests/fixtures/adapter-split-dry-run/future-testing-package.ts');
+        const packageSource = read('tests/fixtures/adapter-split-dry-run/future-core-package.ts');
+
+        // The recording doubles are their own package: core must not re-export
+        // them, and a consumer reaches for them through the testing stand-in.
+        expect(new FutureTestingRecordingConnection().operations).toEqual([]);
+        expect(testingPackageSource).toContain('RecordingDatabaseConnection');
+        expect(packageSource).not.toContain('RecordingDatabaseConnection');
+        expect(packageSource).not.toMatch(/src\/testing/);
     });
 
     it('typechecks a future Postgres adapter dry run through core contracts', () => {

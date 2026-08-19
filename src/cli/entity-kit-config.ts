@@ -1,31 +1,25 @@
 import path from 'path';
-import type { MigrationContext } from '../migrations/context-migrations';
+import type {
+    DbContextConstructor,
+    EntityKitCliContext,
+    EntityKitConnectionOptions,
+} from '../entity-kit-config';
 import type { DatabaseProviderServices } from '../storage/database-provider-services';
 import { validateProviderServices } from '../storage/database-provider-validation';
-import type { EntityKitConnectionOptions } from './entity-kit-connection-config';
 import { isEntityKitConfig, validatedNow, validateConfigValues } from './entity-kit-config-validation';
 import { findEntityKitConfig, loadEntityKitConfigExport } from './entity-kit-config-loader';
-/** Minimal context lifecycle used by CLI database and migration commands. */
-export interface EntityKitCliContext extends MigrationContext {
-    /** Release resources owned by this object. */ dispose(): Promise<void>;
-}
 
-/** Public contract for db context constructor. */ export interface DbContextConstructor<
-    TContext extends EntityKitCliContext = EntityKitCliContext,
-> {
-    /** Create and initialize an instance. */ create(): TContext;
-}
+/**
+ * The definition API now lives in core so a project's `entitykit.config.ts` does
+ * not depend on the CLI package. `entitykit/cli` keeps exposing it unchanged.
+ */
+export { defineEntityKitConfig } from '../entity-kit-config';
+export type {
+    DbContextConstructor,
+    EntityKitCliContext,
+    EntityKitConfig,
+} from '../entity-kit-config';
 
-/** Configuration for entity kit. */ export interface EntityKitConfig<
-    TContext extends EntityKitCliContext = EntityKitCliContext,
-    TConfig extends object = object,
-> extends EntityKitConnectionOptions<TConfig> {
-    /** The context. */ readonly context: DbContextConstructor<TContext>;
-    /** The migrations dir. */ readonly migrationsDir?: string;
-    /** The snapshot. */ readonly snapshot?: string;
-    /** Provider used for migrations, connections, and schema introspection. */ readonly provider: DatabaseProviderServices<TConfig>;
-    /** The now. */ readonly now?: () => Date;
-}
 /** Configuration for resolved entity kit. */ export interface ResolvedEntityKitConfig<
     TContext extends EntityKitCliContext = EntityKitCliContext,
     TConfig extends object = Record<string, unknown>,
@@ -41,19 +35,6 @@ export interface EntityKitCliContext extends MigrationContext {
 /** Options that configure entity kit config load. */ export interface EntityKitConfigLoadOptions {
     /** The cwd. */ readonly cwd?: string;
     /** The config path. */ readonly configPath?: string;
-}
-
-/** Perform the define entity kit config operation. */ export function defineEntityKitConfig<
-    TContext extends EntityKitCliContext,
-    TConfig extends object,
->(
-    config: EntityKitConfig<TContext, TConfig>,
-): EntityKitConfig<TContext, TConfig>;
-/** Perform the define entity kit config operation. */ export function defineEntityKitConfig<
-    TContext extends EntityKitCliContext,
-    TConfig extends object,
->(config: EntityKitConfig<TContext, TConfig>): EntityKitConfig<TContext, TConfig> {
-    return config;
 }
 
 /** Perform the load entity kit config operation. */ export async function loadEntityKitConfig(options: EntityKitConfigLoadOptions = {}): Promise<ResolvedEntityKitConfig> {

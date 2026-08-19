@@ -114,22 +114,64 @@ describe('public export surface', () => {
     });
 
     it('keeps core-adjacent subpaths free of concrete Postgres adapter exports', () => {
-        for (const exported of [migrations, testing]) {
+        // experimental is a core entry: re-exporting a provider from it would
+        // make core depend on the Postgres package after the split.
+        for (const exported of [migrations, testing, experimental]) {
             expect('PostgresDatabaseConnection' in exported).toBe(false);
             expect('PostgresSchemaIntrospector' in exported).toBe(false);
             expect('postgresProviderServices' in exported).toBe(false);
+            expect('postgres' in exported).toBe(false);
         }
+        expect(postgresSubpath.postgresProviderServices).toBeDefined();
+        expect(postgresSubpath.PostgresSchemaIntrospector).toBeDefined();
     });
 
-    it('keeps CLI and configuration APIs on the entitykit/cli subpath', () => {
+    it('exposes the adapter primitives a provider needs to honour DatabaseConnection', () => {
+        for (const adapterExport of [
+            'awaitWithOperationCancellation',
+            'createEntityKitDataSource',
+            'EnclosingTransactionState',
+            'excludedColumnMatchClause',
+            'invokeDetachedObserver',
+            'isOperationAborted',
+            'isQueryAborted',
+            'postgresDialect',
+            'queryStreamBatchSize',
+            'throwIfOperationAborted',
+            'throwIfQueryAborted',
+            'TransactionUsability',
+            'validateProviderServices',
+            'validateTransactionOptions',
+            'withOperationSignal',
+        ]) {
+            expect(adapterExport in adapter).toBe(true);
+        }
+        // The pre-split alias stays until consumers move to the plain name.
+        expect(adapter.createDataSource).toBe(adapter.createEntityKitDataSource);
+    });
+
+    it('exposes the generated-code plumbing on the tooling subpath', () => {
+        expect(tooling.safeGeneratedPath).toBeDefined();
+        expect(tooling.writeFilesAtomically).toBeDefined();
+        expect(tooling.loadTypeScriptModule).toBeDefined();
+    });
+
+    it('keeps CLI machinery on the entitykit/cli subpath', () => {
         for (const cliExport of [
             'runEntityKitCli',
-            'defineEntityKitConfig',
             'loadEntityKitConfig',
         ]) {
             expect(cliExport in cli).toBe(true);
             expect(cliExport in entitykit).toBe(false);
         }
+    });
+
+    it('serves the config definition API from core and the CLI alike', () => {
+        // A project's entitykit.config.ts imports defineEntityKitConfig, so it
+        // must resolve without the command-line package installed. entitykit/cli
+        // re-exports the same function for existing config files.
+        expect(entitykit.defineEntityKitConfig).toBeDefined();
+        expect(cli.defineEntityKitConfig).toBe(entitykit.defineEntityKitConfig);
     });
 
     it('keeps migration tooling on the entitykit/migrations subpath', () => {
@@ -200,13 +242,17 @@ describe('public export surface', () => {
             'addMigration',
             'collectDestructiveWarnings',
             'contextMigrations',
+            'createMigrationUpdatePlan',
             'diffModelSnapshots',
             'discoverMigrations',
+            'entityKitMigrationVersion',
             'formatMigrationTimestamp',
             'hasPendingModelChanges',
             'listMigrations',
             'loadMigrationFile',
             'migrationChecksum',
+            'migrationHistoryTableName',
+            'migrationLockKey',
             'postgresMigrationDialect',
             'readModelSnapshot',
             'removeLatestMigration',
@@ -214,6 +260,7 @@ describe('public export surface', () => {
             'renderSnapshotSource',
             'scaffoldMigration',
             'selectMigrationRange',
+            'toPascalIdentifier',
             'writeMigrationScaffold',
         ]);
         expect(migrations.postgresMigrationDialect).toBe(postgresSubpath.postgresMigrationDialect);

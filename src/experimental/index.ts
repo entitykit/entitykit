@@ -10,9 +10,9 @@ export { postgresDialect } from '../sql/postgres-dialect';
 export type { SqlDialect, AlterColumnChange } from '../sql/sql-dialect';
 export { postgresMigrationDialect } from '../migrations/migration-sql-dialect';
 export type { MigrationSqlDialect } from '../migrations/migration-sql-dialect';
-export { postgresProviderServices } from '../providers/postgres/postgres-provider-services';
-export { postgres } from '../providers/postgres/postgres-query-helpers';
-export type { PostgresDateBucketOptions, PostgresDeleteStatementOptions, PostgresQueryHelpers, PostgresUpdateStatementOptions, PostgresUpsertOptions } from '../providers/postgres/postgres-query-helpers';
+// The concrete Postgres adapter — its provider services, query helpers, and
+// schema introspector — lives on the `entitykit/postgres` entry, which becomes
+// its own package. Core must not re-export from a provider.
 export type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '../storage/database-provider-services';
 export { IncludeLoader } from '../query/include-loader';
 export { Materializer } from '../materialization/materializer';
@@ -47,8 +47,6 @@ export { createJoinedProjectionProxy, createJoinedQueryProxy, validateJoinAlias 
 export type { JoinedProjectionProxy, JoinedQueryProxy, JoinTarget, NullableProjectionEntity } from '../query/joined-query';
 export { generateDbPullCode } from '../introspection/db-pull-code-generator';
 export type { DbPullCodegenOptions, GeneratedCodeFile } from '../introspection/db-pull-code-generator';
-export { PostgresSchemaIntrospector } from '../providers/postgres/postgres-schema-introspector';
-export type { PostgresSchemaIntrospectionOptions } from '../providers/postgres/postgres-schema-introspector';
 export type { DatabaseColumn, DatabaseForeignKey, DatabaseIndex, DatabasePrimaryKey, DatabaseSchema, DatabaseSchemaIntrospectionOptions, DatabaseSchemaSnapshot, DatabaseTable } from '../introspection/database-schema';
 export { formatBenchmarkResults, runBenchmarkCase, runBenchmarkSuite } from '../benchmarks/benchmark-runner';
 export type { BenchmarkCase, BenchmarkResult } from '../benchmarks/benchmark-runner';

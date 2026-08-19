@@ -108,3 +108,17 @@ export type {
     EntityKitErrorJson,
     EntityKitErrorOptions,
 } from '../errors/entity-kit-error';
+
+// History-table vocabulary. A provider dialect has to name the same table, take
+// the same advisory lock, and stamp the same version as the runner, so these
+// constants are part of the migration contract rather than runner internals.
+export {
+    entityKitMigrationVersion,
+    migrationHistoryTableName,
+    migrationLockKey,
+} from './migration-metadata';
+// Update planning and identifier casing, shared with the CLI's plan rendering
+// and migration scaffolding.
+export { createMigrationUpdatePlan } from './runner/migration-update-plan';
+export type { MigrationUpdatePlan } from './runner/migration-update-plan';
+export { toPascalIdentifier } from './migration-scaffold-timestamp';
