@@ -23,7 +23,10 @@ function isTypeOnlyImport(statement: ts.ImportDeclaration): boolean {
     if (!clause) {
         return false;
     }
-    if (clause.phaseModifier === ts.SyntaxKind.TypeKeyword) {
+    // `phaseModifier` is a TypeScript 5.9 field, but package.json permits 5.8,
+    // where it is undefined and every `import type` reads as a runtime import.
+    // This helper is stable across both and is not deprecated.
+    if (ts.isTypeOnlyImportDeclaration(clause)) {
         return true;
     }
     return clause.name === undefined

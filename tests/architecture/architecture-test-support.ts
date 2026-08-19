@@ -61,10 +61,13 @@ function resolveRelativeModule(importer: string, specifier: string): string | un
 
 function isTypeOnlyImport(statement: ts.ImportDeclaration): boolean {
     const clause = statement.importClause;
+    // `phaseModifier` is a TypeScript 5.9 field, but package.json permits 5.8,
+    // where it is undefined and every `import type` reads as a runtime import.
+    // This helper is stable across both and is not deprecated.
     if (clause === undefined || clause.name !== undefined) {
-        return clause?.phaseModifier === ts.SyntaxKind.TypeKeyword;
+        return clause !== undefined && ts.isTypeOnlyImportDeclaration(clause);
     }
-    if (clause.phaseModifier === ts.SyntaxKind.TypeKeyword) {
+    if (ts.isTypeOnlyImportDeclaration(clause)) {
         return true;
     }
     const bindings = clause.namedBindings;

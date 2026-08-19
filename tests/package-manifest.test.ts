@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { entityKitMigrationVersion } from '../src/migrations/migration-metadata';
 
 interface PackageManifest {
+    readonly version?: string;
     readonly description?: string;
     readonly author?: string;
     readonly license?: string;
@@ -26,10 +28,7 @@ interface PackageManifest {
 
 describe('package manifest', () => {
     it('publishes only executable CommonJS artifacts and supported subpaths', () => {
-        const manifest = JSON.parse(fs.readFileSync(
-            path.join(process.cwd(), 'package.json'),
-            'utf8',
-        )) as PackageManifest;
+        const manifest = readManifest();
 
         expect(manifest.private).not.toBe(true);
         expect(manifest.type).toBe('commonjs');
@@ -77,4 +76,20 @@ describe('package manifest', () => {
             pg: { optional: true },
         });
     });
+
+    it('stamps applied migrations with the published package version', () => {
+        const manifest = readManifest();
+
+        // Every applied migration row records entityKitMigrationVersion, so a
+        // release that bumps only package.json would stamp history with a
+        // version that was never published.
+        expect(entityKitMigrationVersion).toBe(manifest.version);
+    });
 });
+
+function readManifest(): PackageManifest {
+    return JSON.parse(fs.readFileSync(
+        path.join(process.cwd(), 'package.json'),
+        'utf8',
+    )) as PackageManifest;
+}
