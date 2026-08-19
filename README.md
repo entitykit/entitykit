@@ -105,12 +105,32 @@ await db.saveChanges();
 
 ## Migrations
 
+`init` writes provider configuration and an empty `AppDbContext`. Add your
+entities and model mappings to `src/db/app-db-context.ts` before the first
+migration; without them the model is empty and nothing is detected to migrate.
+
 ```bash
 npx entitykit init
+# add entities and model mappings to src/db/app-db-context.ts
 npx entitykit migration add InitialCreate
 npx entitykit db migrate --dry-run
 npx entitykit db migrate
 ```
+
+## Known alpha limitations
+
+These are current gaps rather than settled design. Each one surfaces as an
+explicit error, a warning, or a generated comment instead of silent behavior.
+
+| Area | Limitation |
+| --- | --- |
+| Provider parity | Sequences, covering indexes, `create index concurrently`, extensions, and `migration script --idempotent` are Postgres-only. Partial indexes are unavailable on MySQL. SQLite takes no migration advisory lock and supports only `serializable` and `readUncommitted` isolation. |
+| SQLite migrations | SQLite cannot alter a column in place, add or drop table constraints, or rename an index. Those changes go through a table rebuild that recreates modeled columns, constraints, and indexes only; preserve custom triggers by hand. |
+| MySQL migrations | MySQL DDL commits implicitly, so a migration that fails partway does not roll back. |
+| Renames | The model differ does not detect renames. Without `--rename-table` or `--rename-column` a rename is generated as a drop plus an add. |
+| Generated SQL | Migrations are scaffolded from a model diff and expect human review. Destructive operations are reported as warnings and require `--allow-data-loss`; `db migrate --dry-run` prints the exact plan first. |
+| `db pull` | Schema EntityKit cannot model — expression and partial indexes, index prefix lengths, descending key order, foreign keys outside the pulled snapshot — is skipped, marked `// TODO` in the generated file, and listed under `Review required:`. |
+| `entitykit/experimental` | Compiler and builder internals with no compatibility guarantees during the alpha. |
 
 ## Deliberate boundaries
 

@@ -44,7 +44,8 @@ export function runInitCommand(
         ...relativeFiles.map(file => `  ${file}`),
         '',
         installGuidance(root, provider),
-        'Next: entitykit migration add InitialCreate',
+        `Next: add your entities and model mappings to ${path.relative(root, contextPath)}`,
+        'Then: entitykit migration add InitialCreate',
         'Then: entitykit db migrate',
     ].join('\n'), {
         provider,
@@ -93,5 +94,5 @@ function installGuidance(root: string, provider: BuiltInProvider): string {
             ? 'yarn add'
             : 'npm install';
     const driver = provider === 'postgres' ? ' pg' : provider === 'mysql' ? ' mysql2' : '';
-    return `Install if needed: ${manager} entitykit${driver}`;
+    return `Install if needed: ${manager} entitykit@alpha${driver}`;
 }
