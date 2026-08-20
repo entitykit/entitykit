@@ -1,0 +1,148 @@
+name: Release alpha
+
+# Manual dispatch only. There is no push, tag, schedule or pull_request
+# trigger: nothing publishes EntityKit except a human typing the confirmation
+# phrase into this workflow's dispatch form.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type publish-alpha to publish every workspace under the alpha dist-tag.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-alpha
+  cancel-in-progress: false
+
+jobs:
+  confirm:
+    name: Confirm the alpha publication
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the publish-alpha confirmation phrase
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "publish-alpha" ]; then
+            echo "Refusing to publish: confirm must be exactly 'publish-alpha'." >&2
+            exit 1
+          fi
+
+  evidence:
+    name: Release evidence
+    needs: confirm
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: entitykit
+          POSTGRES_PASSWORD: entitykit
+          POSTGRES_DB: entitykit_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U entitykit -d entitykit_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: entitykit
+          MYSQL_DATABASE: entitykit_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pentitykit"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://entitykit:entitykit@127.0.0.1:5432/entitykit_test
+      MYSQL_URL: mysql://root:entitykit@127.0.0.1:3306/entitykit_test
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - run: npm run test:coverage
+      - run: npm run test:integration
+      - run: npm run test:integration:mysql
+
+  publish:
+    name: Publish the alpha dist-tag
+    needs: evidence
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Provenance attestations are signed with the workflow's OIDC identity.
+      id-token: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.13.0
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+
+      # Dependency order: core first, then the packages that peer on it, then
+      # the CLI that depends on core outright. Each publish is preceded by the
+      # same guard npm runs as prepublishOnly, so the alpha dist-tag is proven
+      # before the tarball is built rather than only during the publish.
+      - name: Guard @entitykit/core
+        working-directory: packages/core
+        env:
+          npm_config_tag: alpha
+        run: node ../../scripts/guard-alpha-publish.js
+      - run: npm publish --workspace packages/core --provenance --tag alpha
+
+      - name: Guard @entitykit/sqlite
+        working-directory: packages/sqlite
+        env:
+          npm_config_tag: alpha
+        run: node ../../scripts/guard-alpha-publish.js
+      - run: npm publish --workspace packages/sqlite --provenance --tag alpha
+
+      - name: Guard @entitykit/postgres
+        working-directory: packages/postgres
+        env:
+          npm_config_tag: alpha
+        run: node ../../scripts/guard-alpha-publish.js
+      - run: npm publish --workspace packages/postgres --provenance --tag alpha
+
+      - name: Guard @entitykit/mysql
+        working-directory: packages/mysql
+        env:
+          npm_config_tag: alpha
+        run: node ../../scripts/guard-alpha-publish.js
+      - run: npm publish --workspace packages/mysql --provenance --tag alpha
+
+      - name: Guard @entitykit/testing
+        working-directory: packages/testing
+        env:
+          npm_config_tag: alpha
+        run: node ../../scripts/guard-alpha-publish.js
+      - run: npm publish --workspace packages/testing --provenance --tag alpha
+
+      - name: Guard @entitykit/cli
+        working-directory: packages/cli
+        env:
+          npm_config_tag: alpha
+        run: node ../../scripts/guard-alpha-publish.js
+      - run: npm publish --workspace packages/cli --provenance --tag alpha

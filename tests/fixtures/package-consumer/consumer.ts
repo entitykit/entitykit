@@ -1,18 +1,24 @@
+// Type-level acceptance for a CommonJS consumer resolving the published
+// tarballs under `module: Node16`. Every scoped entry point the release
+// promises is imported here, so a missing `exports` condition or a `.d.ts`
+// that never shipped fails the package check instead of a user's install.
 import {
+    DatabaseProviderError,
     DbContext,
+    EntityState,
     type DbContextOptionsBuilder,
     type ModelBuilder,
     type UnsafeRawSqlQueryable,
-} from 'entitykit';
-import type { DatabaseConnection } from 'entitykit/adapter';
-import { defineEntityKitConfig } from 'entitykit/cli';
-import { Materializer } from 'entitykit/experimental';
-import { Migration } from 'entitykit/migrations';
-import { mySqlProviderServices } from 'entitykit/mysql';
-import { postgresProviderServices } from 'entitykit/postgres';
-import { sqliteProviderServices } from 'entitykit/sqlite';
-import { RecordingDatabaseConnection } from 'entitykit/testing';
-import { generateDbPullCode } from 'entitykit/tooling';
+} from '@entitykit/core';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
+import { Materializer } from '@entitykit/core/experimental';
+import { Migration } from '@entitykit/core/migrations';
+import { generateDbPullCode } from '@entitykit/core/tooling';
+import { defineEntityKitConfig } from '@entitykit/cli';
+import { mySqlProviderServices } from '@entitykit/mysql';
+import { postgresProviderServices } from '@entitykit/postgres';
+import { sqliteProviderServices } from '@entitykit/sqlite';
+import { RecordingDatabaseConnection } from '@entitykit/testing';
 
 class Widget {
     public id!: string;
@@ -45,10 +51,13 @@ const config = defineEntityKitConfig({
     provider: sqliteProviderServices,
     connection: ':memory:',
 });
+const state: EntityState = EntityState.Added;
 
 void query;
 void connection;
 void config;
+void state;
+void DatabaseProviderError;
 void Materializer;
 void Migration;
 void mySqlProviderServices;

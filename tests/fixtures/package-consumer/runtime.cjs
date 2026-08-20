@@ -1,7 +1,13 @@
-const { DbContext } = require('entitykit');
-const { mySqlProviderServices } = require('entitykit/mysql');
-const { postgresProviderServices } = require('entitykit/postgres');
-const { sqliteProviderServices } = require('entitykit/sqlite');
+// CommonJS acceptance: `require` the published tarballs and drive a real
+// SQLite database end to end. `useSqlite` deliberately takes core's lazy
+// `createRequire` path into `@entitykit/sqlite`, so this also proves core can
+// find its sibling provider from an installed tree.
+const { DbContext, EntityState } = require('@entitykit/core');
+const { mySqlProviderServices } = require('@entitykit/mysql');
+const { postgresProviderServices } = require('@entitykit/postgres');
+const { sqliteProviderServices } = require('@entitykit/sqlite');
+const { RecordingDatabaseConnection } = require('@entitykit/testing');
+const { getEntityKitCliMetadata } = require('@entitykit/cli');
 
 class Widget {}
 
@@ -33,13 +39,23 @@ async function main() {
   ) {
     throw new Error('Packaged provider subpaths did not load.');
   }
+  if (!(new RecordingDatabaseConnection())) {
+    throw new Error('Packaged testing doubles did not load.');
+  }
+  if (getEntityKitCliMetadata().schemaVersion !== 1) {
+    throw new Error('Packaged CLI library entry point did not load.');
+  }
 
   const db = ConsumerContext.create();
   await db.database.connection.query({
     text: 'create table widgets (id text primary key, label text not null)',
     values: [],
   });
-  db.widgets.add(Object.assign(new Widget(), { id: 'one', label: 'First' }));
+  const widget = Object.assign(new Widget(), { id: 'one', label: 'First' });
+  db.widgets.add(widget);
+  if (db.changeTracker.entry(widget).state !== EntityState.Added) {
+    throw new Error('Packaged change tracking did not report the added entity.');
+  }
   if (await db.saveChanges() !== 1) {
     throw new Error('Packaged SQLite save failed.');
   }

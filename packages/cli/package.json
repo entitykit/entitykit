@@ -13,12 +13,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://git.shawn.mn/entitykit-poc/entitykit.git",
+    "url": "git+https://github.com/entitykit/entitykit.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://git.shawn.mn/entitykit-poc/entitykit",
+  "homepage": "https://github.com/entitykit/entitykit",
   "bugs": {
-    "url": "https://git.shawn.mn/entitykit-poc/entitykit/issues"
+    "url": "https://github.com/entitykit/entitykit/issues"
   },
   "type": "commonjs",
   "main": "./dist/api.js",
@@ -31,7 +31,7 @@
     }
   },
   "bin": {
-    "entitykit": "./dist/index.js"
+    "entitykit": "dist/index.js"
   },
   "files": [
     "dist",
@@ -42,6 +42,9 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/",
     "tag": "alpha"
+  },
+  "scripts": {
+    "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
   },
   "dependencies": {
     "@entitykit/core": "0.1.0-alpha.1"

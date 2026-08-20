@@ -16,11 +16,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://git.shawn.mn/entitykit-poc/entitykit.git"
+    "url": "git+https://github.com/entitykit/entitykit.git"
   },
-  "homepage": "https://git.shawn.mn/entitykit-poc/entitykit",
+  "homepage": "https://github.com/entitykit/entitykit",
   "bugs": {
-    "url": "https://git.shawn.mn/entitykit-poc/entitykit/issues"
+    "url": "https://github.com/entitykit/entitykit/issues"
   },
   "type": "commonjs",
   "workspaces": [
@@ -38,13 +38,13 @@
     "test:mutation:dry": "stryker run --dryRunOnly",
     "prepack": "npm run build",
     "prepublishOnly": "node scripts/guard-alpha-publish.js",
-    "release:alpha": "npm publish --tag alpha",
-    "//verify": "TODO(P4): restore `&& npm run check:package && npm run check:publish-alpha` once those scripts pack and dry-run each workspace package instead of the (now private) repository root.",
-    "verify": "npm run lint && npm run typecheck && npm test",
+    "release:alpha": "npm publish --workspaces --tag alpha",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run check:package && npm run check:publish-alpha",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
     "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.1",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/jest-runner": "^9.6.1",
     "@types/jest": "^30.0.0",

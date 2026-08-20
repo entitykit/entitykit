@@ -1,41 +1,100 @@
+// Publish-path acceptance. Every workspace must dry-run cleanly under the
+// alpha dist-tag and be refused without it, and the repository root must stay
+// unpublishable. Nothing here ever publishes: --dry-run on every invocation.
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
+const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'];
 const npmCli = process.env.npm_execpath;
-if (!npmCli) throw new Error('check:publish-alpha must run through npm.');
-const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'entitykit-publish-cache-'));
+if (!npmCli) {
+  throw new Error('check:publish-alpha must run through npm.');
+}
+
+function readManifest(...segments) {
+  return JSON.parse(fs.readFileSync(path.join(root, ...segments), 'utf8'));
+}
 
 function dryRun(args) {
   const env = { ...process.env };
+  // A tag inherited from the outer npm invocation would mask the plain path.
   delete env.npm_config_tag;
-  env.npm_config_cache = cache;
-  return spawnSync(
+  const result = spawnSync(
     process.execPath,
     [npmCli, 'publish', '--dry-run', '--loglevel=notice', ...args],
     { cwd: root, encoding: 'utf8', env },
   );
+  return {
+    status: result.status,
+    output: `${result.stdout ?? ''}\n${result.stderr ?? ''}`,
+  };
 }
 
-try {
-  const plain = dryRun([]);
-  const plainOutput = `${plain.stdout ?? ''}\n${plain.stderr ?? ''}`;
-  if (plain.status === 0 || !plainOutput.includes('Refusing prerelease publication')) {
-    throw new Error('A plain npm publish dry run was not rejected by the alpha guard.');
+function assert(condition, message, run) {
+  if (!condition) {
+    throw new Error(`${message}\n${run.output}`);
   }
-
-  const alpha = dryRun(['--tag', 'alpha']);
-  const alphaOutput = `${alpha.stdout ?? ''}\n${alpha.stderr ?? ''}`;
-  if (alpha.status !== 0) {
-    throw new Error(`Alpha publish dry run failed.\n${alphaOutput}`);
-  }
-  if (!/with tag alpha\b/.test(alphaOutput) || /with tag latest\b/.test(alphaOutput)) {
-    throw new Error(`Alpha publish dry run did not prove the alpha tag.\n${alphaOutput}`);
-  }
-
-  process.stdout.write('ALPHA_PUBLISH_DRY_RUN_OK tag=alpha plain=blocked\n');
-} finally {
-  fs.rmSync(cache, { recursive: true, force: true });
 }
+
+for (const name of packages) {
+  const workspace = `packages/${name}`;
+  const manifest = readManifest(workspace, 'package.json');
+
+  const plain = dryRun(['--workspace', workspace]);
+  assert(
+    plain.status !== 0 && plain.output.includes('Refusing prerelease publication'),
+    `A plain npm publish dry run of ${manifest.name} was not rejected by the guard.`,
+    plain,
+  );
+  assert(
+    plain.output.includes(manifest.name),
+    `The guard did not name ${manifest.name} as the package it refused.`,
+    plain,
+  );
+
+  const alpha = dryRun(['--workspace', workspace, '--tag', 'alpha']);
+  assert(alpha.status === 0, `Alpha publish dry run of ${manifest.name} failed.`, alpha);
+  assert(
+    /with tag alpha and public access/u.test(alpha.output)
+      && !/with tag latest\b/u.test(alpha.output),
+    `Alpha publish dry run of ${manifest.name} did not prove the alpha tag.`,
+    alpha,
+  );
+  assert(
+    alpha.output.includes(`${manifest.name}@${manifest.version}`),
+    `Alpha publish dry run did not report ${manifest.name}@${manifest.version}.`,
+    alpha,
+  );
+  process.stdout.write(
+    `ALPHA_PUBLISH_PACKAGE_OK ${manifest.name}@${manifest.version} `
+    + 'tag=alpha plain=blocked\n',
+  );
+}
+
+// The root is private, so npm's workspace publish path must skip it outright.
+// --ignore-scripts keeps this run from re-packing through the root prepack.
+const rootManifest = readManifest('package.json');
+const rootRun = dryRun([
+  '--workspace', 'packages/testing', '--include-workspace-root',
+  '--ignore-scripts', '--tag', 'alpha',
+]);
+if (rootManifest.private !== true) {
+  throw new Error('The repository root must stay private.');
+}
+assert(
+  new RegExp(`Skipping workspace[^\\n]*${rootManifest.name}[^\\n]*private`, 'u')
+    .test(rootRun.output),
+  'npm did not refuse to publish the private repository root.',
+  rootRun,
+);
+assert(
+  !new RegExp(`\\+ ${rootManifest.name}@`, 'u').test(rootRun.output),
+  'npm reported the private repository root as published.',
+  rootRun,
+);
+
+process.stdout.write(
+  `ALPHA_PUBLISH_DRY_RUN_OK packages=${String(packages.length)} `
+  + 'tag=alpha plain=blocked root=private\n',
+);

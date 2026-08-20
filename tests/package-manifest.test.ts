@@ -62,9 +62,26 @@ describe('package manifest', () => {
             typecheck: 'tsc -p tsconfig.json --noEmit',
             prepack: 'npm run build',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
-            'release:alpha': 'npm publish --tag alpha',
-            verify: 'npm run lint && npm run typecheck && npm test',
+            'release:alpha': 'npm publish --workspaces --tag alpha',
+            verify: 'npm run lint && npm run typecheck && npm test'
+                + ' && npm run check:package && npm run check:publish-alpha',
         });
+        // The P4 placeholder is gone: verify runs the packaging gates for real.
+        expect(manifest.scripts?.['//verify']).toBeUndefined();
+    });
+
+    it('points every manifest at the same public repository', () => {
+        for (const segments of [['package.json'], ...packageNames.map(
+            name => ['packages', name, 'package.json'],
+        )]) {
+            const manifest = readManifest(...segments);
+
+            expect(manifest.repository?.url)
+                .toBe('git+https://github.com/entitykit/entitykit.git');
+            expect(manifest.homepage).toBe('https://github.com/entitykit/entitykit');
+            expect(manifest.bugs?.url)
+                .toBe('https://github.com/entitykit/entitykit/issues');
+        }
     });
 
     it.each(packageNames)(
@@ -81,7 +98,7 @@ describe('package manifest', () => {
             expect(manifest.license).toBe('MIT');
             expect(manifest.repository?.url).toContain('entitykit.git');
             expect(manifest.repository?.directory).toBe(`packages/${name}`);
-            expect(manifest.homepage).toContain('entitykit-poc/entitykit');
+            expect(manifest.homepage).toContain('github.com/entitykit/entitykit');
             expect(manifest.bugs?.url).toContain('/issues');
             expect(manifest.keywords).toEqual(expect.arrayContaining(['orm', 'typescript']));
             expect(manifest.files).toEqual(['dist', 'README.md', 'LICENSE']);
@@ -92,6 +109,10 @@ describe('package manifest', () => {
                 registry: 'https://registry.npmjs.org/',
                 tag: 'alpha',
             });
+            // npm sets the cwd to the package during publish, so the guard runs
+            // from packages/<name> and reaches the shared script by relative path.
+            expect(manifest.scripts)
+                .toEqual({ prepublishOnly: 'node ../../scripts/guard-alpha-publish.js' });
         },
     );
 
@@ -106,7 +127,9 @@ describe('package manifest', () => {
     it('installs the CLI executable under the product name', () => {
         const manifest = readManifest('packages', 'cli', 'package.json');
 
-        expect(manifest.bin).toEqual({ entitykit: './dist/index.js' });
+        // npm normalizes bin paths on publish; pinning the normalized spelling
+        // keeps the shipped manifest byte-identical to the authored one.
+        expect(manifest.bin).toEqual({ entitykit: 'dist/index.js' });
         expect(manifest.dependencies?.['@entitykit/core']).toBe(manifest.version);
     });
 

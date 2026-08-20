@@ -68,6 +68,10 @@ module.exports = {
     'packages/core/src/core/save-time-relationship-reconciliation.ts:44-70',
     'packages/core/src/core/save-time-relationship-generation-values.ts:52-59',
   ],
+  // The sandbox only ever runs the mutation suite, which resolves
+  // `@entitykit/*` to package SOURCES. Copying the compiled output and the
+  // coverage reports hauls thousands of files per run for nothing.
+  ignorePatterns: ['packages/*/dist', 'coverage'],
   testRunner: 'jest',
   jest: {
     projectType: 'custom',
