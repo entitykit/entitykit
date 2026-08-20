@@ -1,4 +1,4 @@
-import { contextMigrations, MigrationSqlGenerator } from '../../../src/migrations/api';
+import { contextMigrations, MigrationSqlGenerator } from '../../../packages/core/src/migrations/api';
 import { CreateProviderContractUsers, ExerciseProviderMigrationOperations } from './migrations';
 import type { ProviderContractTestContext } from './test-context';
 

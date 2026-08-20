@@ -2,9 +2,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     SaveChangesInterceptor,
-} from '../src';
-import { DbContext } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class UnplannedParent {
     public id = 0;

@@ -1,12 +1,12 @@
-import type { PropertyBuilder, ValueConverter } from '../src';
-import { EntityState, ValueGenerated, valueConverter } from '../src';
-import { buildInsertSavePlanEntry } from '../src/core/save-plan/insert-plan';
-import { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
-import { upsertGeneratedProperties } from '../src/sql/upsert-property-selection';
-import { EntityEntry } from '../src/tracking/entity-entry';
-import { capturePersistedEntrySnapshot } from '../src/tracking/persisted-entry-snapshot';
+import type { PropertyBuilder, ValueConverter } from '../packages/core/src';
+import { EntityState, ValueGenerated, valueConverter } from '../packages/core/src';
+import { buildInsertSavePlanEntry } from '../packages/core/src/core/save-plan/insert-plan';
+import { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
+import { upsertGeneratedProperties } from '../packages/core/src/sql/upsert-property-selection';
+import { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { capturePersistedEntrySnapshot } from '../packages/core/src/tracking/persisted-entry-snapshot';
 
 class GeneratedTenantRow {
     public id = '';

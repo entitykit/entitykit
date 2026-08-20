@@ -1,4 +1,4 @@
-import { UniqueConstraintError } from '../../../src';
+import { UniqueConstraintError } from '../../../packages/core/src';
 import { ProviderContractValue } from './model';
 import type { ProviderContractTestContext } from './test-context';
 

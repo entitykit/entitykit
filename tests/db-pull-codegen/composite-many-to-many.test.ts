@@ -1,4 +1,4 @@
-import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseColumn, type DatabaseIndex, type DatabaseSchemaSnapshot, type DatabaseTable } from '../../src/tooling';
+import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseColumn, type DatabaseIndex, type DatabaseSchemaSnapshot, type DatabaseTable } from '../../packages/core/src/tooling';
 import {
     compileGeneratedFiles,
     createGeneratedModelSnapshot,

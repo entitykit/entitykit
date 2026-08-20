@@ -1,5 +1,5 @@
 import path from 'path';
-import type { MigrationUpdateResult } from '../../migrations/migration-runner';
+import type { MigrationUpdateResult } from '@entitykit/core/migrations';
 
 /** Render the result of applying migrations to a database. */
 export function renderDatabaseUpdateResult(result: MigrationUpdateResult): string {

@@ -1,6 +1,6 @@
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../src';
+    ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     DbUpdateConcurrencyError,
@@ -12,13 +12,13 @@ import {
     QueryCompilationError,
     UniqueConstraintError,
     isEntityKitError,
-} from '../src';
+} from '../packages/core/src';
 import {
     MigrationChecksumError,
     MigrationDataLossError,
     MigrationExecutionError,
-} from '../src/migrations/api';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src/migrations/api';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class ErrorUser {
     public id!: string;

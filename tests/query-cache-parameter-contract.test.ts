@@ -1,8 +1,8 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
-import { DbContext } from '../src';
+} from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class CacheRecord {

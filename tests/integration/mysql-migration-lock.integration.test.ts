@@ -1,15 +1,15 @@
 import { requireDefined } from '../support/require-defined';
-import type { DatabaseQueryResult } from '../../src';
+import type { DatabaseQueryResult } from '../../packages/core/src';
 import type {
-    MigrationBuilder } from '../../src/migrations/api';
+    MigrationBuilder } from '../../packages/core/src/migrations/api';
 import {
     Migration,
     MigrationRunner,
-} from '../../src/migrations/api';
+} from '../../packages/core/src/migrations/api';
 import {
     MySqlDatabaseConnection,
     mySqlProviderServices,
-} from '../../src/providers/mysql';
+} from '../../packages/mysql/src';
 
 const url = process.env.MYSQL_URL ?? process.env.MYSQL_DATABASE_URL;
 const shouldRun = process.env.RUN_MYSQL_TESTS === 'true' && Boolean(url);

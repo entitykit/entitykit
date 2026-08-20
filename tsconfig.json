@@ -14,11 +14,23 @@
     "declaration": true,
     "sourceMap": true,
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "paths": {
+      "@entitykit/core": ["./packages/core/src/index.ts"],
+      "@entitykit/core/adapter": ["./packages/core/src/adapter/index.ts"],
+      "@entitykit/core/experimental": ["./packages/core/src/experimental/index.ts"],
+      "@entitykit/core/migrations": ["./packages/core/src/migrations/api.ts"],
+      "@entitykit/core/tooling": ["./packages/core/src/tooling/index.ts"],
+      "@entitykit/cli": ["./packages/cli/src/api.ts"],
+      "@entitykit/mysql": ["./packages/mysql/src/index.ts"],
+      "@entitykit/postgres": ["./packages/postgres/src/index.ts"],
+      "@entitykit/sqlite": ["./packages/sqlite/src/index.ts"],
+      "@entitykit/testing": ["./packages/testing/src/index.ts"]
+    }
   },
   "include": [
     "dogfood/**/*.ts",
-    "src/**/*.ts",
+    "packages/*/src/**/*.ts",
     "tests/**/*.ts"
   ],
   "exclude": [

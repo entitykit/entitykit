@@ -4,9 +4,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     SqlStatement,
-} from '../src';
-import { ContextConcurrentOperationError, DbContext, EntityState } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
+} from '../packages/core/src';
+import { ContextConcurrentOperationError, DbContext, EntityState } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class GeneratedItem {

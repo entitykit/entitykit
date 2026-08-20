@@ -1,7 +1,7 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';import { MigrationSqlGenerator, diffModelSnapshots } from '../src/migrations/api';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { SchemaSqlBuilder } from '../src/schema/schema-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';import { MigrationSqlGenerator, diffModelSnapshots } from '../packages/core/src/migrations/api';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { SchemaSqlBuilder } from '../packages/core/src/schema/schema-sql-builder';
 
 class Invoice {
     public id!: string;

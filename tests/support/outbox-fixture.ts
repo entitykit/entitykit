@@ -3,12 +3,12 @@ import type {
     JsonValue,
     ModelBuilder,
     OutboxMessage,
-} from '../../src';
+} from '../../packages/core/src';
 import {
     DbContext,
-} from '../../src';
-import type { SqlDialect } from '../../src/sql/sql-dialect';
-import type { RecordingDatabaseConnection } from '../../src/testing';
+} from '../../packages/core/src';
+import type { SqlDialect } from '../../packages/core/src/sql/sql-dialect';
+import type { RecordingDatabaseConnection } from '../../packages/testing/src';
 
 export interface DomainEvent {
     type: string;

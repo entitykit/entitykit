@@ -1,13 +1,13 @@
-import * as entitykit from '../src';
-import * as cli from '../src/cli/api';
-import * as experimental from '../src/experimental';
-import * as migrations from '../src/migrations/api';
-import * as postgresSubpath from '../src/providers/postgres';
-import * as sqliteSubpath from '../src/providers/sqlite';
-import * as mysqlSubpath from '../src/providers/mysql';
-import * as testing from '../src/testing';
-import * as adapter from '../src/adapter';
-import * as tooling from '../src/tooling';
+import * as entitykit from '../packages/core/src';
+import * as cli from '../packages/cli/src/api';
+import * as experimental from '../packages/core/src/experimental';
+import * as migrations from '../packages/core/src/migrations/api';
+import * as postgresSubpath from '../packages/postgres/src';
+import * as sqliteSubpath from '../packages/sqlite/src';
+import * as mysqlSubpath from '../packages/mysql/src';
+import * as testing from '../packages/testing/src';
+import * as adapter from '../packages/core/src/adapter';
+import * as tooling from '../packages/core/src/tooling';
 
 describe('public export surface', () => {
     it('keeps all concrete Postgres vocabulary off the root surface', () => {

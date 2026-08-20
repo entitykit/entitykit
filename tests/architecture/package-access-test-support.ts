@@ -8,64 +8,62 @@ import {
 /**
  * Machinery for the package-access rule.
  *
- * Every module is assigned the package it belongs to after the monorepo
- * cutover, and every module reference that crosses one of those boundaries is
- * resolved down to the names it actually binds. Reachability is decided by
- * name, not by file: a cross-package import survives the split when some public
- * entry of core re-exports every name the import binds, because that is exactly
- * the specifier the rewrite will point it at.
+ * Every module belongs to exactly one workspace package, and a package may only
+ * be reached from outside through a public entry named by its package
+ * specifier. Two properties keep that true: no relative reference may leave its
+ * own package, and every `@entitykit/*` reference must bind names the entry it
+ * names actually re-exports. Reachability is decided by name, not by file,
+ * because the specifier is all a published consumer ever gets.
  */
 
-/** Core's public entries, keyed by the subpath a consumer writes. */
+/** Core's public entries, keyed by the specifier a consumer writes. */
 export const corePublicEntries: Readonly<Record<string, string>> = {
-    '.': 'src/index.ts',
-    './migrations': 'src/migrations/api.ts',
-    './adapter': 'src/adapter/index.ts',
-    './tooling': 'src/tooling/index.ts',
-    './experimental': 'src/experimental/index.ts',
+    '@entitykit/core': 'packages/core/src/index.ts',
+    '@entitykit/core/migrations': 'packages/core/src/migrations/api.ts',
+    '@entitykit/core/adapter': 'packages/core/src/adapter/index.ts',
+    '@entitykit/core/tooling': 'packages/core/src/tooling/index.ts',
+    '@entitykit/core/experimental': 'packages/core/src/experimental/index.ts',
 };
 
-/** A package the cutover carves out of the current single package. */
-export type FuturePackage =
+/** A package the cutover carved out of the original single package. */
+export type WorkspacePackage =
     | 'core' | 'cli' | 'mysql' | 'postgres' | 'sqlite' | 'testing';
 
-const packageRoots: ReadonlyArray<readonly [string, FuturePackage]> = [
-    ['src/providers/mysql/', 'mysql'],
-    ['src/providers/postgres/', 'postgres'],
-    ['src/providers/sqlite/', 'sqlite'],
-    ['src/cli/', 'cli'],
-    ['src/testing/', 'testing'],
+const packageRoots: ReadonlyArray<readonly [string, WorkspacePackage]> = [
+    ['packages/mysql/', 'mysql'],
+    ['packages/postgres/', 'postgres'],
+    ['packages/sqlite/', 'sqlite'],
+    ['packages/cli/', 'cli'],
+    ['packages/testing/', 'testing'],
+    ['packages/core/', 'core'],
 ];
 
 /** Packages that consume core rather than being it. */
-export const corePackageConsumers: readonly FuturePackage[] =
-    packageRoots.map(([, name]) => name);
+export const corePackageConsumers: readonly WorkspacePackage[] =
+    packageRoots.filter(([, name]) => name !== 'core').map(([, name]) => name);
 
-/** Assign a repository-relative source file to its future package. */
-export function futurePackageOf(file: string): FuturePackage {
-    return packageRoots.find(([root]) => file.startsWith(root))?.[1] ?? 'core';
+/** Assign a repository-relative source file to its workspace package. */
+export function workspacePackageOf(file: string): WorkspacePackage | undefined {
+    return packageRoots.find(([root]) => file.startsWith(root))?.[1];
 }
 
 /** Every source file that belongs to a package other than core. */
 export function consumerSourceFiles(): string[] {
-    return [
-        ...sourceFiles('src/providers'),
-        ...sourceFiles('src/cli'),
-        ...sourceFiles('src/testing'),
-    ];
+    return corePackageConsumers.flatMap(name => sourceFiles(`packages/${name}/src`));
 }
 
 /** Every core source file. */
 export function coreSourceFiles(): string[] {
-    return sourceFiles('src').filter(file => futurePackageOf(file) === 'core');
+    return sourceFiles('packages/core/src');
 }
 
-/** One module reference that leaves its own package. */
+/** One module reference that leaves the file's own package. */
 export interface CrossPackageReference {
     readonly from: string;
-    readonly fromPackage: FuturePackage;
-    readonly to: string;
-    readonly toPackage: FuturePackage;
+    readonly fromPackage: WorkspacePackage;
+    readonly specifier: string;
+    /** The package the specifier names, when it names a workspace package. */
+    readonly toPackage: WorkspacePackage | undefined;
     readonly line: number;
     /** Names the reference binds, with `import type` markers stripped. */
     readonly names: readonly string[];
@@ -76,6 +74,8 @@ export interface CrossPackageReference {
      * be proven to serve it.
      */
     readonly opaque: boolean;
+    /** True when the reference is relative and escapes its own package. */
+    readonly relativeEscape: boolean;
 }
 
 interface ModuleReference {
@@ -185,26 +185,47 @@ function moduleReferences(file: string): ModuleReference[] {
     return references;
 }
 
-/** Every reference in `file` that resolves into a different future package. */
+/** The workspace package a `@entitykit/...` specifier names, if any. */
+export function packageOfSpecifier(specifier: string): WorkspacePackage | undefined {
+    const match = /^@entitykit\/([a-z]+)(?:\/|$)/u.exec(specifier);
+    const name = match?.[1];
+    return packageRoots.some(([, value]) => value === name)
+        ? name as WorkspacePackage
+        : undefined;
+}
+
+/** Every reference in `file` that leaves the package `file` belongs to. */
 export function crossPackageReferences(file: string): CrossPackageReference[] {
-    const fromPackage = futurePackageOf(file);
-    return moduleReferences(file).flatMap(reference => {
-        const target = resolveRelativeModule(file, reference.specifier);
-        if (target === undefined) {
-            return [];
+    const fromPackage = workspacePackageOf(file);
+    if (fromPackage === undefined) {
+        return [];
+    }
+    const packageRoot = `packages/${fromPackage}/`;
+
+    return moduleReferences(file).flatMap((reference): CrossPackageReference[] => {
+        const base = {
+            from: file,
+            fromPackage,
+            specifier: reference.specifier,
+            line: reference.line,
+            names: reference.names,
+            opaque: reference.opaque,
+        };
+        if (reference.specifier.startsWith('.')) {
+            const target = resolveRelativeModule(file, reference.specifier);
+            const escapes = !target?.startsWith(packageRoot);
+            return escapes
+                ? [{
+                    ...base,
+                    toPackage: target === undefined ? undefined : workspacePackageOf(target),
+                    relativeEscape: true,
+                }]
+                : [];
         }
-        const toPackage = futurePackageOf(target);
-        return toPackage === fromPackage
+        const toPackage = packageOfSpecifier(reference.specifier);
+        return toPackage === undefined || toPackage === fromPackage
             ? []
-            : [{
-                from: file,
-                fromPackage,
-                to: target,
-                toPackage,
-                line: reference.line,
-                names: reference.names,
-                opaque: reference.opaque,
-            }];
+            : [{ ...base, toPackage, relativeEscape: false }];
     });
 }
 
@@ -262,18 +283,18 @@ function exportedNames(entryFile: string): ReadonlySet<string> {
     return names;
 }
 
-/** Export-name closure of every public core entry, keyed by subpath. */
+/** Export-name closure of every public core entry, keyed by specifier. */
 export function corePublicEntryNames(): ReadonlyMap<string, ReadonlySet<string>> {
     return new Map(Object.entries(corePublicEntries)
-        .map(([subpath, file]) => [subpath, exportedNames(file)]));
+        .map(([specifier, file]) => [specifier, exportedNames(file)]));
 }
 
-/** Subpaths whose closure contains every requested name. */
+/** Specifiers whose closure contains every requested name. */
 export function servingEntries(
     names: readonly string[],
     entries: ReadonlyMap<string, ReadonlySet<string>>,
 ): string[] {
     return [...entries]
         .filter(([, exported]) => names.every(name => exported.has(name)))
-        .map(([subpath]) => subpath);
+        .map(([specifier]) => specifier);
 }

@@ -5,7 +5,7 @@ import {
     MigrationSqlGenerator,
     migrationChecksum,
     postgresMigrationDialect,
-} from '../../src/migrations/api';
+} from '../../packages/core/src/migrations/api';
 import {
     arrayContaining,
     containing,

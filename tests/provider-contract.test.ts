@@ -1,6 +1,6 @@
-import { DatabaseProviderError } from '../src';
-import { DbContextOptionsBuilder } from '../src/core/context-options/db-context-options-builder';
-import { MigrationSqlGenerator } from '../src/migrations/api';
+import { DatabaseProviderError } from '../packages/core/src';
+import { DbContextOptionsBuilder } from '../packages/core/src/core/context-options/db-context-options-builder';
+import { MigrationSqlGenerator } from '../packages/core/src/migrations/api';
 import { createFakeProvider } from './support/fake-provider';
 import {
     CreateProviderContractUsers,

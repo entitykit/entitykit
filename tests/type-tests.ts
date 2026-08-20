@@ -1,4 +1,4 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import {
     type JoinTarget,
     type DatabaseOperationOptions,
@@ -6,11 +6,11 @@ import {
     type PropertyBuilder,
     type QueryStreamOptions,
     type Queryable,
-} from '../src';
-import { createProjectionProxy, createQueryProxy } from '../src/experimental';
+} from '../packages/core/src';
+import { createProjectionProxy, createQueryProxy } from '../packages/core/src/experimental';
 // @ts-expect-error repository examples are not exported from the root package
-import { AppDbContext as RootExampleContext } from '../src';
-import { AppDbContext as ExampleContext } from '../src/examples';
+import { AppDbContext as RootExampleContext } from '../packages/core/src';
+import { AppDbContext as ExampleContext } from '../packages/core/src/examples';
 
 class User {
     public id!: string;

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { loadTypeScriptModule } from '../tooling/typescript-module-loader';
+import { loadTypeScriptModule } from '@entitykit/core/tooling';
 import { createEntityKitModuleAliases } from './entity-kit-module-aliases';
 
 const loadModule = createRequire(__filename);

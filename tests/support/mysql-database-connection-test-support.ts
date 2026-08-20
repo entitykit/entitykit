@@ -16,7 +16,7 @@ jest.mock('mysql2/promise', () => ({
 import {
     createMySqlDataSource,
     MySqlDatabaseConnection,
-} from '../../src/providers/mysql';
+} from '../../packages/mysql/src';
 
 export interface MockMySqlPool {
     readonly config: unknown;

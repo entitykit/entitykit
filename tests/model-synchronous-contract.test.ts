@@ -2,8 +2,8 @@ import {
     BaseEntityConfiguration,
     type EntityBuilder,
     ModelValidationError,
-} from '../src';
-import { ModelBuilder } from '../src/model/model-builder';
+} from '../packages/core/src';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
 
 class ContractUser {
     public id!: string;

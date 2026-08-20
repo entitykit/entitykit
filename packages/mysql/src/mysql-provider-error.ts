@@ -1,8 +1,8 @@
-import type { SqlStatement } from '../../sql/sql-statement';
+import type { SqlStatement } from '@entitykit/core/adapter';
 import {
     DatabaseProviderError,
     type DatabaseProviderOperation,
-} from '../../storage/database-provider-error';
+} from '@entitykit/core/adapter';
 
 export function createMysqlProviderError(
     operation: DatabaseProviderOperation,

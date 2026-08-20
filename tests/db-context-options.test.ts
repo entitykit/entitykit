@@ -1,9 +1,9 @@
-import { DbContext, type OutboxOptions } from '../src';
-import type { DatabaseProviderServices } from '../src/adapter';
-import { DbContextOptionsBuilder } from '../src/core/context-options/db-context-options-builder';
-import type { ConnectionOwnership } from '../src/core/context-options/db-context-option-types';
-import { postgresDialect } from '../src/providers/postgres';
-import { MigrationBuilder, postgresMigrationDialect } from '../src/migrations/api';
+import { DbContext, type OutboxOptions } from '../packages/core/src';
+import type { DatabaseProviderServices } from '../packages/core/src/adapter';
+import { DbContextOptionsBuilder } from '../packages/core/src/core/context-options/db-context-options-builder';
+import type { ConnectionOwnership } from '../packages/core/src/core/context-options/db-context-option-types';
+import { postgresDialect } from '../packages/postgres/src';
+import { MigrationBuilder, postgresMigrationDialect } from '../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class DisposableConnection extends RecordingDatabaseConnection {

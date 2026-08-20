@@ -20,7 +20,7 @@ export type {
     EntityKitCliResult,
     EntityKitCliWarning,
 } from './cli-result';
-export type { EntityKitErrorCode } from '../errors/entity-kit-error';
+export type { EntityKitErrorCode } from '@entitykit/core/migrations';
 export {
     defineEntityKitConfig,
     loadEntityKitConfig,
@@ -33,13 +33,13 @@ export type {
     SqliteConnectionConfig,
     DatabaseTlsOptions,
     DriverOptions,
-} from '../storage/built-in-provider-config';
+} from '@entitykit/core';
 export type {
     DatabaseProviderConnectionConfig,
     DatabaseProviderServices,
     DatabaseRuntimeProviderServices,
     DatabaseSchemaIntrospector,
-} from '../storage/database-provider-services';
+} from '@entitykit/core/adapter';
 export type {
     DatabaseConnection,
     DatabaseOperationOptions,
@@ -47,22 +47,22 @@ export type {
     QueryStreamOptions,
     TransactionIsolationLevel,
     TransactionOptions,
-} from '../storage/database-connection';
-export type { DatabaseConnectionSource } from '../storage/database-data-source';
-export type { StoreValueReader } from '../storage/store-value-reader';
-export type { SqlStatement } from '../sql/sql-statement';
+} from '@entitykit/core/adapter';
+export type { DatabaseConnectionSource } from '@entitykit/core/adapter';
+export type { StoreValueReader } from '@entitykit/core/adapter';
+export type { SqlStatement } from '@entitykit/core/adapter';
 export type {
     AlterColumnChange,
     SchemaSqlDialect,
     SqlDialect,
     SqlSequenceDefinition,
-} from '../sql/sql-dialect';
+} from '@entitykit/core/adapter';
 export type {
     IdentityColumnOptions,
     IdentityGenerationMode,
     RowIdColumnOptions,
     StoreGenerationStrategy,
-} from '../model/store-generation';
+} from '@entitykit/core/adapter';
 export type {
     MigrationBuilder,
     MigrationBuilderConstructor,
@@ -70,7 +70,7 @@ export type {
     MigrationColumnBuilder,
     MigrationTableBuilder,
     MigrationTableCallback,
-} from '../migrations/migration-builder-contract';
+} from '@entitykit/core/adapter';
 export type {
     MigrationAlterColumnDefinition,
     MigrationBuilderOptions,
@@ -88,9 +88,9 @@ export type {
     MigrationTableForeignKey,
     MigrationTableRebuildDefinition,
     MigrationTableShape,
-} from '../migrations/migration-builder-types';
-export type { MigrationIdentity, MigrationSqlDialect } from '../migrations/migration-sql-dialect';
-export type { MigrationContext } from '../migrations/context-migrations';
+} from '@entitykit/core/adapter';
+export type { MigrationIdentity, MigrationSqlDialect } from '@entitykit/core/adapter';
+export type { MigrationContext } from '@entitykit/core/migrations';
 export type {
     DatabaseCheckConstraint,
     DatabaseColumn,
@@ -103,8 +103,8 @@ export type {
     DatabaseSchemaSnapshot,
     DatabaseSequence,
     DatabaseTable,
-} from '../introspection/database-schema';
-export type { DatabaseTlsVersion } from '../storage/built-in-provider-config';
+} from '@entitykit/core/adapter';
+export type { DatabaseTlsVersion } from '@entitykit/core';
 export { resolveEntityKitConnection } from './entity-kit-connection-config';
 export type {
     BuiltInConnectionConfig,

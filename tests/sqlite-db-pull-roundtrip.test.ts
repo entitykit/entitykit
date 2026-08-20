@@ -1,7 +1,7 @@
 import { requireDefined } from './support/require-defined';
-import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../src/tooling';
-import * as sqliteProvider from '../src/providers/sqlite';
-import { SqliteDatabaseConnection, SqliteSchemaIntrospector } from '../src/providers/sqlite';
+import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../packages/core/src/tooling';
+import * as sqliteProvider from '../packages/sqlite/src';
+import { SqliteDatabaseConnection, SqliteSchemaIntrospector } from '../packages/sqlite/src';
 import { loadGeneratedDbContext } from './support/load-generated-db-context';
 
 /**

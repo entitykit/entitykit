@@ -2,10 +2,10 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     PropertyBuilder,
-} from '../../src';
-import { DbContext } from '../../src';
-import { mySqlProviderServices } from '../../src/providers/mysql';
-import { postgresProviderServices } from '../../src/providers/postgres';
+} from '../../packages/core/src';
+import { DbContext } from '../../packages/core/src';
+import { mySqlProviderServices } from '../../packages/mysql/src';
+import { postgresProviderServices } from '../../packages/postgres/src';
 import { requireDefined } from '../support/require-defined';
 
 class RollbackParent {

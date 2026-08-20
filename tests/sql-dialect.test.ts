@@ -1,14 +1,14 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { DbContextOptionsBuilder } from '../src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { DbContextOptionsBuilder } from '../packages/core/src';
 import {
     DbContext,
     type ModelBuilder as ModelBuilderType,
-} from '../src';
-import type { SqlDialect } from '../src/adapter';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { createQueryModel, createQueryProxy } from '../src/experimental';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
-import { SelectSqlBuilder } from '../src/sql/select-sql-builder';
+} from '../packages/core/src';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { createQueryModel, createQueryProxy } from '../packages/core/src/experimental';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
+import { SelectSqlBuilder } from '../packages/core/src/sql/select-sql-builder';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class DialectUser {

@@ -1,15 +1,15 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import {
     enumString,
     valueConverter,
     type ValueConverter,
-} from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { createQueryModel, createQueryProxy, Materializer } from '../src/experimental';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
-import { SelectSqlBuilder } from '../src/sql/select-sql-builder';
-import { toStoreValue } from '../src/model/value-converter';
-import { ChangeTracker } from '../src/tracking/change-tracker';
+} from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { createQueryModel, createQueryProxy, Materializer } from '../packages/core/src/experimental';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
+import { SelectSqlBuilder } from '../packages/core/src/sql/select-sql-builder';
+import { toStoreValue } from '../packages/core/src/model/value-converter';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
 
 type LoginProvider = 'Google' | 'GitHub';
 

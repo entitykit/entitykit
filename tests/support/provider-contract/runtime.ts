@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder } from '../../../src';
-import type { DatabaseProviderServices, SqlStatement } from '../../../src/adapter';
-import type { MigrationUpdateResult } from '../../../src/migrations/api';
+import type { DbContextOptionsBuilder } from '../../../packages/core/src';
+import type { DatabaseProviderServices, SqlStatement } from '../../../packages/core/src/adapter';
+import type { MigrationUpdateResult } from '../../../packages/core/src/migrations/api';
 import type { CreateProviderContractUsers } from './migrations';
 import type { ProviderContractDbContext, ProviderContractUser } from './model';
 

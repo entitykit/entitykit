@@ -1,4 +1,4 @@
-import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../src/tooling';
+import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 
 describe('db pull generated naming', () => {
     it('qualifies generated names when tables from multiple schemas would collide', () => {

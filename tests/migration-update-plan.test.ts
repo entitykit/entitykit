@@ -1,5 +1,5 @@
-import { Migration, type MigrationBuilder } from '../src/migrations/api';
-import { createMigrationUpdatePlan } from '../src/migrations/runner/migration-update-plan';
+import { Migration, type MigrationBuilder } from '../packages/core/src/migrations/api';
+import { createMigrationUpdatePlan } from '../packages/core/src/migrations/runner/migration-update-plan';
 
 class EmptyMigration extends Migration {
     constructor(

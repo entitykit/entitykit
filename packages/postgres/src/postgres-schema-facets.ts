@@ -1,7 +1,7 @@
 import type {
     DatabaseIndex,
     DatabaseSequence,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 import type { IndexRow } from './postgres-introspect-index-query';
 import type { SequenceRow } from './postgres-introspect-schema-queries';
 import {

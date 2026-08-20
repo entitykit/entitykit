@@ -1,4 +1,4 @@
-import { createQueryProxy } from '../src/experimental';
+import { createQueryProxy } from '../packages/core/src/experimental';
 
 class User {
     public id!: string;

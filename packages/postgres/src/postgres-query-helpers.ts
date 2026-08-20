@@ -1,15 +1,15 @@
-import type { EntityMetadata } from '../../model/entity-metadata';
-import type { PropertySelector } from '../../model/model-property-selector';
-import { selectPropertyName } from '../../model/model-property-selector';
-import { createDateBucketGroupKey, type DateBucketGroupKey, type DateBucketPrecision } from '../../query/aggregate';
-import type { PredicateExpression } from '../../query/predicate-types';
-import { PredicateExpression as PredicateExpressionValue } from '../../query/expression/predicate-expression';
-import type { PredicateNode } from '../../query/expression/predicate-node';
-import type { QueryField, QueryProxy } from '../../query/query-field-types';
-import { createQueryProxy } from '../../query/query-proxy';
-import { ModificationSqlBuilder, type PostgresUpsertSqlOptions } from '../../sql/modification-sql-builder';
-import type { SqlStatement } from '../../sql/sql-statement';
-import type { EntityConstructor, EntityUpdateValues } from '../../types';
+import type { EntityMetadata } from '@entitykit/core';
+import type { PropertySelector } from '@entitykit/core';
+import { selectPropertyName } from '@entitykit/core';
+import { createDateBucketGroupKey, type DateBucketGroupKey, type DateBucketPrecision } from '@entitykit/core';
+import type { PredicateExpression } from '@entitykit/core';
+import { PredicateExpression as PredicateExpressionValue } from '@entitykit/core/experimental';
+import type { PredicateNode } from '@entitykit/core/experimental';
+import type { QueryField, QueryProxy } from '@entitykit/core';
+import { createQueryProxy } from '@entitykit/core/experimental';
+import { ModificationSqlBuilder, type PostgresUpsertSqlOptions } from '@entitykit/core/experimental';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { EntityConstructor, EntityUpdateValues } from '@entitykit/core';
 
 /** Options that configure postgres date bucket. */ export interface PostgresDateBucketOptions {
     /** The time zone. */ readonly timeZone: string;

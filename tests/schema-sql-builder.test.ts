@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { SqlDialect } from '../src/adapter';
-import { SchemaSqlBuilder } from '../src/schema/schema-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { SchemaSqlBuilder } from '../packages/core/src/schema/schema-sql-builder';
 
 class User {
     public id!: string;

@@ -1,15 +1,15 @@
 import type {
     MigrationBuilder,
     MigrationBuilderFactory,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import {
     Migration,
     MigrationBuilder as MigrationBuilderImplementation,
     migrationChecksum,
     MigrationSqlGenerator,
     MigrationRunner,
-} from '../src/migrations/api';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src/migrations/api';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class AsyncUpMigration extends Migration {
     public readonly id = '20260804170000_AsyncUp';

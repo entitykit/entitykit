@@ -3,13 +3,13 @@ import type {
     DbContextOptionsBuilder,
     EntityDatabaseValues,
     ModelBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
     DbUpdateConcurrencyError,
     EntityState,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { requireDefined } from './support/require-defined';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 

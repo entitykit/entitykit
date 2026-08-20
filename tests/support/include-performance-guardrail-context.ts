@@ -1,13 +1,13 @@
 import { requireDefined } from './require-defined';
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../../src';
+    ModelBuilder } from '../../packages/core/src';
 import {
     DbContext,
     type IncludeDiagnosticEvent,
     type RuntimeDiagnosticEvent,
-} from '../../src';
-import type { SqlDialect } from '../../src/adapter';
+} from '../../packages/core/src';
+import type { SqlDialect } from '../../packages/core/src/adapter';
 import type { RecordingDatabaseConnection } from './recording-database-connection';
 
 class User {

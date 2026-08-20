@@ -1,7 +1,7 @@
 import { requireDefined } from './support/require-defined';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * What a failed `saveChanges()` leaves behind.

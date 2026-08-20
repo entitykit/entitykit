@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, valueConverter } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { requireDefined } from './support/require-defined';
 
 let conversions = 0;

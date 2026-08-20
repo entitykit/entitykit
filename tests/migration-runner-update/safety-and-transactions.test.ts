@@ -1,7 +1,7 @@
-import { MigrationDataLossError } from '../../src/migrations/api';
-import { type ModelSnapshot } from '../../src/tooling';
-import type { MigrationBuilder } from '../../src/migrations/api';
-import { Migration, MigrationRunner, postgresMigrationDialect } from '../../src/migrations/api';
+import { MigrationDataLossError } from '../../packages/core/src/migrations/api';
+import { type ModelSnapshot } from '../../packages/core/src/tooling';
+import type { MigrationBuilder } from '../../packages/core/src/migrations/api';
+import { Migration, MigrationRunner, postgresMigrationDialect } from '../../packages/core/src/migrations/api';
 import { ConcurrentIndex, migrationDiagnostics, migrationEvents, RecordingDatabaseConnection } from './support';
 
 describe('migration update safety and transaction boundaries', () => {

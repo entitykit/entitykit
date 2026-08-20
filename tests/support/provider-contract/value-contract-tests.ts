@@ -1,5 +1,5 @@
 import { requireDefined } from '../require-defined';
-import { EntityState } from '../../../src';
+import { EntityState } from '../../../packages/core/src';
 import { ProviderContractValue } from './model';
 import { seedAggregateValues } from './seed-data';
 import type { ProviderContractTestContext } from './test-context';

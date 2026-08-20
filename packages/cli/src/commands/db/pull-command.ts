@@ -1,11 +1,11 @@
 import path from 'node:path';
-import { generateDbPullCodeWithDiagnostics } from '../../../introspection/db-pull-code-generator';
+import { generateDbPullCodeWithDiagnostics } from '@entitykit/core/tooling';
 import {
     awaitWithOperationCancellation,
     throwIfOperationAborted,
-} from '../../../storage/operation-cancellation';
-import { withOperationSignal } from '../../../storage/with-operation-signal';
-import { safeGeneratedPath, writeFilesAtomically } from '../../../tooling/atomic-file-writer';
+} from '@entitykit/core/adapter';
+import { withOperationSignal } from '@entitykit/core/adapter';
+import { safeGeneratedPath, writeFilesAtomically } from '@entitykit/core/tooling';
 import { parseCommandArguments } from '../../cli-command-parser';
 import type { ParsedGlobalOptions } from '../../cli-option-reader';
 import { CliUsageError } from '../../cli-usage-error';

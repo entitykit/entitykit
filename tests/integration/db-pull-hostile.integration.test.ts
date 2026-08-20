@@ -2,10 +2,10 @@ import { requireDefined } from '../support/require-defined';
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { generateDbPullCodeWithDiagnostics } from '../../src/introspection/db-pull-code-generator';
-import type { DatabaseTable } from '../../src/introspection/database-schema';
-import { postgresProviderServices } from '../../src/providers/postgres';
-import type { PostgresDatabaseConnection } from '../../src/providers/postgres/pg-database-connection';
+import { generateDbPullCodeWithDiagnostics } from '../../packages/core/src/introspection/db-pull-code-generator';
+import type { DatabaseTable } from '../../packages/core/src/introspection/database-schema';
+import { postgresProviderServices } from '../../packages/postgres/src';
+import type { PostgresDatabaseConnection } from '../../packages/postgres/src/pg-database-connection';
 import { createManagedTempDirectory } from '../support/managed-temp-directory';
 
 const shouldRun = process.env.RUN_POSTGRES_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
@@ -60,7 +60,7 @@ maybe('db pull against a hostile schema', () => {
     let tables: readonly DatabaseTable[] = [];
 
     beforeAll(async () => {
-        const { PostgresDatabaseConnection } = await import('../../src/providers/postgres/pg-database-connection');
+        const { PostgresDatabaseConnection } = await import('../../packages/postgres/src/pg-database-connection');
         connection = new PostgresDatabaseConnection(requireDefined(process.env.DATABASE_URL));
         for (const statement of HOSTILE) {
             await connection.query({ text: statement, values: [] });
@@ -98,7 +98,7 @@ maybe('db pull against a hostile schema', () => {
                     moduleResolution: 'bundler', skipLibCheck: true,
                     baseUrl: process.cwd(),
                     typeRoots: [join(process.cwd(), 'node_modules', '@types')],
-                    paths: { entitykit: ['src/index.ts'], 'entitykit/*': ['src/*'] },
+                    paths: { entitykit: ['packages/core/src/index.ts'], 'entitykit/*': ['packages/core/src/*'] },
                     types: ['node'],
                 },
                 include: [join(dir, '*.ts')],

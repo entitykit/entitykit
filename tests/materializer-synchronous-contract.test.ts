@@ -1,8 +1,8 @@
-import type { EntityMaterializer } from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { Materializer } from '../src/experimental';
-import { ChangeTracker } from '../src/tracking/change-tracker';
+import type { EntityMaterializer } from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { Materializer } from '../packages/core/src/experimental';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
 
 type FactoryMode = 'sync' | 'resolve' | 'reject' | 'thenable';
 

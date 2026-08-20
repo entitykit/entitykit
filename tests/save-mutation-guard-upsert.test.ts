@@ -1,4 +1,4 @@
-import { SaveMutationGuard } from '../src/tracking/save-mutation-guard';
+import { SaveMutationGuard } from '../packages/core/src/tracking/save-mutation-guard';
 
 describe('upsert input mutation reservations', () => {
     it('reserves a group atomically when one input is already held', () => {

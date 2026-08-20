@@ -11,9 +11,32 @@ interface SourceDirectoryEntry {
     isFile(): boolean;
 }
 
+const packageNames = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'] as const;
+
+/**
+ * Public entry each package specifier resolves to, relative to the repository.
+ *
+ * Cross-package imports are package specifiers now, so a graph that only
+ * followed relative paths would stop at every package boundary and call the
+ * result acyclic. Resolving each specifier to the entry file it names keeps one
+ * graph over the whole workspace, exactly as strong as it was before the split.
+ */
+const packageEntries: Readonly<Partial<Record<string, string>>> = {
+    '@entitykit/core': 'packages/core/src/index.ts',
+    '@entitykit/core/adapter': 'packages/core/src/adapter/index.ts',
+    '@entitykit/core/experimental': 'packages/core/src/experimental/index.ts',
+    '@entitykit/core/migrations': 'packages/core/src/migrations/api.ts',
+    '@entitykit/core/tooling': 'packages/core/src/tooling/index.ts',
+    '@entitykit/cli': 'packages/cli/src/api.ts',
+    '@entitykit/mysql': 'packages/mysql/src/index.ts',
+    '@entitykit/postgres': 'packages/postgres/src/index.ts',
+    '@entitykit/sqlite': 'packages/sqlite/src/index.ts',
+    '@entitykit/testing': 'packages/testing/src/index.ts',
+};
+
 export function createRuntimeDependencyGraph(root: string): RuntimeDependencyGraph {
-    const sourceRoot = path.join(root, 'src');
-    const files = collectTypeScriptFiles(sourceRoot);
+    const files = packageNames.flatMap(name =>
+        collectTypeScriptFiles(path.join(root, 'packages', name, 'src')));
     const knownFiles = new Set(files);
     const graph: Map<string, readonly string[]> = new Map();
 
@@ -23,7 +46,7 @@ export function createRuntimeDependencyGraph(root: string): RuntimeDependencyGra
         const dependencies = parsed.statements
             .map(runtimeModuleSpecifier)
             .filter((specifier): specifier is string => specifier !== undefined)
-            .map(specifier => resolveSourceModule(file, specifier, knownFiles))
+            .map(specifier => resolveModule(root, file, specifier, knownFiles))
             .filter((target): target is string => target !== undefined)
             .map(target => relativeModule(root, target));
         graph.set(relativeModule(root, file), [...new Set(dependencies)].sort());
@@ -45,13 +68,15 @@ function collectTypeScriptFiles(directory: string): string[] {
         .sort();
 }
 
-function resolveSourceModule(
+function resolveModule(
+    root: string,
     source: string,
     specifier: string,
     files: ReadonlySet<string>,
 ): string | undefined {
     if (!specifier.startsWith('.')) {
-        return undefined;
+        const entry = packageEntries[specifier];
+        return entry === undefined ? undefined : path.join(root, entry);
     }
 
     const base = path.resolve(path.dirname(source), specifier.replace(/\.js$/, ''));

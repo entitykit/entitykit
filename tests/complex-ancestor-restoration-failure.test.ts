@@ -1,8 +1,8 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { ContextStateRestorationError, DbContext } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { createdAncestorRestoration } from '../src/core/created-ancestor-restoration';
-import { ensureComplexPropertyPath } from '../src/materialization/complex-value-materializer';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { ContextStateRestorationError, DbContext } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { createdAncestorRestoration } from '../packages/core/src/core/created-ancestor-restoration';
+import { ensureComplexPropertyPath } from '../packages/core/src/materialization/complex-value-materializer';
 import { contextModel } from './support/public-api-internals';
 
 class FragileTenantStamp {

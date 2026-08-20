@@ -1,5 +1,5 @@
-import type { DatabaseConnectionSource } from '../../storage/database-data-source';
-import type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
+import type { DatabaseConnectionSource } from '@entitykit/core/adapter';
+import type { PostgresConnectionConfig } from '@entitykit/core';
 import { createPostgresPool, type Pool } from './postgres-driver';
 import { PostgresPooledConnection } from './postgres-pooled-connection';
 import { createPostgresProviderError } from './postgres-provider-error';

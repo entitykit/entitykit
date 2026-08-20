@@ -1,13 +1,13 @@
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../../src';
+    ModelBuilder } from '../../packages/core/src';
 import {
     DbContext,
     DeleteBehavior,
     enumString,
     numericAsString,
-} from '../../src';
-import type { DatabaseProviderServices } from '../../src/adapter';
+} from '../../packages/core/src';
+import type { DatabaseProviderServices } from '../../packages/core/src/adapter';
 import { Comment, Issue, Label, Member, Organization, Project, type IssueStatus } from './entities';
 
 export interface TrackerOptions {

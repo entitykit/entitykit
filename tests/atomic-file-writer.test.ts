@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { writeFilesAtomically } from '../src/tooling/atomic-file-writer';
+import { writeFilesAtomically } from '../packages/core/src/tooling/atomic-file-writer';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 describe('atomic file writer', () => {

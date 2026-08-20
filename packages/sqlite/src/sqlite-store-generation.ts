@@ -1,4 +1,4 @@
-import type { StoreGenerationStrategy } from '../../model/store-generation';
+import type { StoreGenerationStrategy } from '@entitykit/core/adapter';
 
 export function sqliteStoreGenerationClause(
     strategy: StoreGenerationStrategy,

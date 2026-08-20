@@ -1,5 +1,5 @@
-import type { DatabaseIndex } from '../../introspection/database-schema';
-import type { DatabaseConnection } from '../../storage/database-connection';
+import type { DatabaseIndex } from '@entitykit/core/adapter';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
 import { parseSqliteIndexSql } from './sqlite-ddl-parser';
 
 interface IndexListRow extends Record<string, unknown> {

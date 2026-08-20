@@ -1,4 +1,4 @@
-import { invokeDetachedObserver } from '../../diagnostics/detached-observer';
+import { invokeDetachedObserver } from '@entitykit/core/adapter';
 
 interface PostgresPoolErrorEmitter {
     on(event: 'error', listener: (error: Error) => void): unknown;

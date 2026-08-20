@@ -1,5 +1,5 @@
-import { MigrationDataLossError } from '../../errors/migration-errors';
-import { DatabaseProviderError } from '../../storage/database-provider-error';
+import { MigrationDataLossError } from '@entitykit/core/migrations';
+import { DatabaseProviderError } from '@entitykit/core/adapter';
 
 /** Render structured EntityKit failures without exposing parameter values. */
 export function formatCliError(error: unknown): string {

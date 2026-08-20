@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { ContextStateRestorationError, DbContext } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { ContextStateRestorationError, DbContext } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class FragileGeneratedRow {

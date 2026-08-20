@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext } from '../../src';
-import type { SqlDialect } from '../../src/adapter';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext } from '../../packages/core/src';
+import type { SqlDialect } from '../../packages/core/src/adapter';
 import type { RecordingDatabaseConnection } from './recording-database-connection';
 
 export class Tag {

@@ -1,13 +1,13 @@
 import { requireDefined } from '../support/require-defined';
-import type { SqlDialect } from '../../src/adapter';
+import type { SqlDialect } from '../../packages/core/src/adapter';
 import {
     createProjectionBuilder,
     createProjectionExpression,
     createProjectionProxy,
     createQueryModel,
     createQueryProxy,
-} from '../../src/experimental';
-import { SelectSqlBuilder } from '../../src/sql/select-sql-builder';
+} from '../../packages/core/src/experimental';
+import { SelectSqlBuilder } from '../../packages/core/src/sql/select-sql-builder';
 import { User, createUserMetadata } from './support';
 
 describe('SelectSqlBuilder query cache', () => {

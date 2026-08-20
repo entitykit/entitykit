@@ -1,5 +1,5 @@
-import { DatabaseProviderError } from '../src';
-import { sqliteError } from '../src/providers/sqlite/sqlite-error';
+import { DatabaseProviderError } from '../packages/core/src';
+import { sqliteError } from '../packages/sqlite/src/sqlite-error';
 
 describe('SQLite provider errors', () => {
     it('does not wrap an already normalized provider error twice', () => {

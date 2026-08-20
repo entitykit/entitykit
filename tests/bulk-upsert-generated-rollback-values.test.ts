@@ -4,9 +4,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     SqlStatement,
-} from '../src';
-import { DbContext, OperationCanceledError, valueConverter } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
+} from '../packages/core/src';
+import { DbContext, OperationCanceledError, valueConverter } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class GeneratedToken {

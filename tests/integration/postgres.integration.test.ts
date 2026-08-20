@@ -1,5 +1,5 @@
-import { EntityState } from '../../src';
-import { AppDbContext, Post, User } from '../../src/examples';
+import { EntityState } from '../../packages/core/src';
+import { AppDbContext, Post, User } from '../../packages/core/src/examples';
 
 const shouldRunPostgresTests = process.env.RUN_POSTGRES_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
 const describePostgres = shouldRunPostgresTests ? describe : describe.skip;

@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, valueConverter } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 class BigTarget {
     public id = 0n;

@@ -1,7 +1,7 @@
 import { requireDefined } from '../support/require-defined';
 import { join } from 'node:path';
-import { postgresProviderServices } from '../../src/providers/postgres';
-import { sqliteProviderServices } from '../../src/providers/sqlite';
+import { postgresProviderServices } from '../../packages/postgres/src';
+import { sqliteProviderServices } from '../../packages/sqlite/src';
 import * as app from '../../dogfood/scenarios';
 import { createManagedSuiteTempDirectory } from '../support/managed-temp-directory';
 

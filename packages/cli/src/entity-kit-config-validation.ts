@@ -1,7 +1,7 @@
-import type { DbContext } from '../core/db-context';
-import type { DatabaseProviderServices } from '../storage/database-provider-services';
+import type { DbContext } from '@entitykit/core';
+import type { DatabaseProviderServices } from '@entitykit/core/adapter';
 import type { EntityKitConfig } from './entity-kit-config';
-import { readSynchronousDate } from '../synchronous-value';
+import { readSynchronousDate } from '@entitykit/core';
 
 type LoadedEntityKitConfig =
     Omit<EntityKitConfig<DbContext, Record<string, unknown>>, 'provider'> & {

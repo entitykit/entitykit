@@ -1,5 +1,5 @@
-import { Queryable } from '../src/experimental';
-import { buildSelectSqlCacheKey } from '../src/sql/select-sql-builder';
+import { Queryable } from '../packages/core/src/experimental';
+import { buildSelectSqlCacheKey } from '../packages/core/src/sql/select-sql-builder';
 import {
     createUserMetadata,
     RecordingExecutor,

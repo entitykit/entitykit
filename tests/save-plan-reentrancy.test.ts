@@ -1,9 +1,9 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     ContextConcurrentOperationError,
     DbContext,
     EntityState,
-} from '../src';
+} from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class Row {

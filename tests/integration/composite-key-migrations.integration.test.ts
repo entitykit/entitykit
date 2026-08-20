@@ -1,8 +1,8 @@
 import { requireDefined } from '../support/require-defined';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext } from '../../src';
-import { contextMigrations, diffModelSnapshots } from '../../src/migrations/api';
-import { postgresProviderServices } from '../../src/providers/postgres';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext } from '../../packages/core/src';
+import { contextMigrations, diffModelSnapshots } from '../../packages/core/src/migrations/api';
+import { postgresProviderServices } from '../../packages/postgres/src';
 
 const shouldRunPostgresTests = process.env.RUN_POSTGRES_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
 const describePostgres = shouldRunPostgresTests ? describe : describe.skip;

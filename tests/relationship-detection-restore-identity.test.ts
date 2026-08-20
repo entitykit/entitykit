@@ -1,10 +1,10 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     ContextStateRestorationError,
     DbContext,
     DeleteBehavior,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class RestoreParent {
     public id = '';

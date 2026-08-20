@@ -1,4 +1,4 @@
-import { mapAsyncIterable } from '../src/storage/map-async-iterable';
+import { mapAsyncIterable } from '../packages/core/src/storage/map-async-iterable';
 
 describe('mapAsyncIterable', () => {
     it('maps lazily and cleans up after early iterator disposal', async () => {

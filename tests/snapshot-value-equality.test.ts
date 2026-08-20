@@ -1,6 +1,6 @@
 import fc from 'fast-check';
-import { snapshotValuesEqual } from '../src/tracking/snapshot-value-equality';
-import { cloneSnapshotValue } from '../src/tracking/snapshot-value-clone';
+import { snapshotValuesEqual } from '../packages/core/src/tracking/snapshot-value-equality';
+import { cloneSnapshotValue } from '../packages/core/src/tracking/snapshot-value-clone';
 
 describe('snapshot value equality', () => {
     it('uses Object.is semantics for primitives', () => {

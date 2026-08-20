@@ -1,11 +1,11 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
-import type { SqlDialect } from '../src/adapter';
-import { DbContext, EntityState } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
+} from '../packages/core/src';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { DbContext, EntityState } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     internalChangeTracker,

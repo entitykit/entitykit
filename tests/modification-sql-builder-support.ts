@@ -1,9 +1,9 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import {
     DeleteBehavior,
-} from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import type { ManyToManyMetadata } from '../src/model/many-to-many-metadata';
+} from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import type { ManyToManyMetadata } from '../packages/core/src/model/many-to-many-metadata';
 
 export class Role {
     public id!: string;

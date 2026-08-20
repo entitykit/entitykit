@@ -1,16 +1,16 @@
-import type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
+import type { MySqlConnectionConfig } from '@entitykit/core';
 import type {
     DatabaseConnection,
     DatabaseOperationOptions,
     DatabaseQueryResult,
     QueryStreamOptions,
     TransactionOptions,
-} from '../../storage/database-connection';
-import type { SqlStatement } from '../../sql/sql-statement';
+} from '@entitykit/core/adapter';
+import type { SqlStatement } from '@entitykit/core/adapter';
 import type { MySqlPooledConnection } from './mysql-pooled-connection';
 import { MySqlConnectionSource } from './mysql-connection-source';
 
-export type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
+export type { MySqlConnectionConfig } from '@entitykit/core';
 
 /** Standalone MySQL connection that owns its pool. */
 export class MySqlDatabaseConnection implements DatabaseConnection {

@@ -16,7 +16,7 @@ jest.mock('mysql2/promise', () => ({
     }),
 }));
 
-import { MySqlDatabaseConnection } from '../src/providers/mysql';
+import { MySqlDatabaseConnection } from '../packages/mysql/src';
 
 function pool(): { readonly query: jest.Mock; readonly getConnection: jest.Mock; readonly end: jest.Mock; } {
     const current = mockPools.at(-1);

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { discoverMigrations, loadMigrationFile } from '../src/migrations/api';
+import { discoverMigrations, loadMigrationFile } from '../packages/core/src/migrations/api';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 function tempDir(): string {
@@ -44,7 +44,7 @@ describe('migration discovery', () => {
     it('rejects duplicate migration ids', async () => {
         const dir = tempDir();
         const source = `
-      const { Migration } = require(${JSON.stringify(path.resolve('src/migrations/api'))});
+      const { Migration } = require(${JSON.stringify(path.resolve('packages/core/src/migrations/api'))});
       module.exports = class Duplicate extends Migration {
         id = "20260601120000_Duplicate";
         name = "Duplicate";

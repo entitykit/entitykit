@@ -1,11 +1,11 @@
-import type { DatabaseConnection } from '../../storage/database-connection';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
 import type {
     DatabaseColumn,
     DatabasePrimaryKey,
     DatabaseSchemaIntrospectionOptions,
     DatabaseSchemaSnapshot,
     DatabaseTable,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 import { introspectSqliteColumns } from './sqlite-introspection-columns';
 import { introspectSqliteForeignKeys } from './sqlite-introspection-foreign-keys';
 import { introspectSqliteIndexes } from './sqlite-introspection-indexes';

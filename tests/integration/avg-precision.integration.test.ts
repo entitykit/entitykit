@@ -1,10 +1,10 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../../src';
+} from '../../packages/core/src';
 import {
     DbContext,
-} from '../../src';
+} from '../../packages/core/src';
 
 /**
  * `avg(...)` returns the same full-precision result on every provider.

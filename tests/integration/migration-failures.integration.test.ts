@@ -1,9 +1,9 @@
 import { requireDefined } from '../support/require-defined';
-import type { DatabaseConnection } from '../../src';
-import type { MigrationBuilder } from '../../src/migrations/api';
-import { Migration, MigrationRunner } from '../../src/migrations/api';
-import { postgresProviderServices } from '../../src/providers/postgres';
-import type { PostgresDatabaseConnection } from '../../src/providers/postgres/pg-database-connection';
+import type { DatabaseConnection } from '../../packages/core/src';
+import type { MigrationBuilder } from '../../packages/core/src/migrations/api';
+import { Migration, MigrationRunner } from '../../packages/core/src/migrations/api';
+import { postgresProviderServices } from '../../packages/postgres/src';
+import type { PostgresDatabaseConnection } from '../../packages/postgres/src/pg-database-connection';
 
 const shouldRun = process.env.RUN_POSTGRES_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
 const maybe = shouldRun ? describe : describe.skip;
@@ -61,7 +61,7 @@ maybe('migration failure paths', () => {
     let connection: PostgresDatabaseConnection;
 
     const fresh = async (): Promise<PostgresDatabaseConnection> => {
-        const { PostgresDatabaseConnection } = await import('../../src/providers/postgres/pg-database-connection');
+        const { PostgresDatabaseConnection } = await import('../../packages/postgres/src/pg-database-connection');
         const created = new PostgresDatabaseConnection(requireDefined(process.env.DATABASE_URL));
         for (const table of ['mig_first', 'mig_second', 'mig_third', 'mig_fourth', '__entitykit_migrations']) {
             await created.query({ text: `drop table if exists ${table}`, values: [] });
@@ -139,7 +139,7 @@ maybe('migration failure paths', () => {
     });
 
     it('applies each migration exactly once when two runners race', async () => {
-        const { PostgresDatabaseConnection } = await import('../../src/providers/postgres/pg-database-connection');
+        const { PostgresDatabaseConnection } = await import('../../packages/postgres/src/pg-database-connection');
         const second = new PostgresDatabaseConnection(requireDefined(process.env.DATABASE_URL));
 
         const results = await Promise.allSettled([

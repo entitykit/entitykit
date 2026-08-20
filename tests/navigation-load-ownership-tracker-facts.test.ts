@@ -13,20 +13,20 @@
 import {
     captureNavigation,
     acceptNavigationSnapshotValues,
-} from '../src/tracking/navigation-snapshot';
+} from '../packages/core/src/tracking/navigation-snapshot';
 import {
     restoreEntryLoadedNavigations,
-} from '../src/tracking/entity-entry-navigation-checkpoint';
+} from '../packages/core/src/tracking/entity-entry-navigation-checkpoint';
 import {
     allowNavigationChangeDetection,
     suppressNavigationChangeDetection,
-} from '../src/tracking/navigation-change-detection-state';
+} from '../packages/core/src/tracking/navigation-change-detection-state';
 import {
     ownedNavigationFactsMatch,
-} from '../src/tracking/navigation-load-ownership-facts';
+} from '../packages/core/src/tracking/navigation-load-ownership-facts';
 import {
     ownedEntryMatchesCheckpoint,
-} from '../src/tracking/navigation-load-ownership-comparison';
+} from '../packages/core/src/tracking/navigation-load-ownership-comparison';
 import { registerOwnedTag } from './support/navigation-load-ownership-fact-support';
 
 describe('the tracker facts an ownership fingerprint compares', () => {

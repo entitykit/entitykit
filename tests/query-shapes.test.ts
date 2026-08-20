@@ -3,10 +3,10 @@ import type {
     DatabaseQueryResult,
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
-import { DbContext, DeleteBehavior } from '../src';
-import { postgresProviderServices } from '../src/providers/postgres';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContext, DeleteBehavior } from '../packages/core/src';
+import { postgresProviderServices } from '../packages/postgres/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * Interactions, not operations. The type-surface suite covers every operation against every

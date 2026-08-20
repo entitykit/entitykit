@@ -1,12 +1,12 @@
-import type { Migration } from '../migrations/migration';
-import { migrationChecksum, type MigrationHistoryRow } from '../migrations/migration-history';
-import type { MigrationBuilderFactory } from '../migrations/migration-builder-contract';
-import { MigrationSqlGenerator } from '../migrations/migration-sql-generator';
-import type { MigrationSqlDialect } from '../migrations/migration-sql-dialect';
+import type { Migration } from '@entitykit/core/migrations';
+import { migrationChecksum, type MigrationHistoryRow } from '@entitykit/core/migrations';
+import type { MigrationBuilderFactory } from '@entitykit/core/adapter';
+import { MigrationSqlGenerator } from '@entitykit/core/migrations';
+import type { MigrationSqlDialect } from '@entitykit/core/adapter';
 import {
     createMigrationUpdatePlan,
     type MigrationUpdatePlan,
-} from '../migrations/runner/migration-update-plan';
+} from '@entitykit/core/migrations';
 
 /** A validated live-database migration plan plus its exact reviewable SQL. */
 export interface CliMigrationPlan extends MigrationUpdatePlan {

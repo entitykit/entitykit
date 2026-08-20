@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { requireDefined } from './support/require-defined';import { mySqlDialect } from '../src/providers/mysql';
-import { SchemaSqlBuilder } from '../src/schema/schema-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { requireDefined } from './support/require-defined';import { mySqlDialect } from '../packages/mysql/src';
+import { SchemaSqlBuilder } from '../packages/core/src/schema/schema-sql-builder';
 
 /**
  * Two MySQL-only schema hazards a text-keyed relationship hits, which Postgres

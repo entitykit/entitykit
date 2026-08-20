@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../../src';
-import { DbContext, type RuntimeDiagnosticEvent } from '../../../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../../packages/core/src';
+import { DbContext, type RuntimeDiagnosticEvent } from '../../../packages/core/src';
 import type { ProviderContractRuntime } from './runtime';
 
 export class ProviderContractUser {

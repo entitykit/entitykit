@@ -2,12 +2,12 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     ValueConverter,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
     EntityState,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { requireDefined } from './support/require-defined';
 
 class Coordinates {

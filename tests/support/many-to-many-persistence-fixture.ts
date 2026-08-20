@@ -1,9 +1,9 @@
 import type {
-    DbContextOptionsBuilder } from '../../src';
+    DbContextOptionsBuilder } from '../../packages/core/src';
 import {
     DbContext,
     type ModelBuilder,
-} from '../../src';
+} from '../../packages/core/src';
 import type { RecordingDatabaseConnection } from './recording-database-connection';
 
 export class Tag {

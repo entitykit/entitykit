@@ -1,12 +1,12 @@
 import type {
-    MigrationBuilder } from '../src/migrations/api';
+    MigrationBuilder } from '../packages/core/src/migrations/api';
 import {
     Migration,
     MigrationRunner,
     MigrationSqlGenerator,
-} from '../src/migrations/api';
-import { mySqlProviderServices } from '../src/providers/mysql';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src/migrations/api';
+import { mySqlProviderServices } from '../packages/mysql/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 import {
     containing,
     stringContaining,

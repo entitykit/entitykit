@@ -1,4 +1,4 @@
-import { listMigrations } from '../../../migrations/migration-commands';
+import { listMigrations } from '@entitykit/core/migrations';
 import { parseCommandArguments } from '../../cli-command-parser';
 import type { ParsedGlobalOptions } from '../../cli-option-reader';
 import { CliUsageError } from '../../cli-usage-error';

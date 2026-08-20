@@ -1,8 +1,8 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';import type { EntityMetadata } from '../src/model/entity-metadata';
-import { postgresDialect } from '../src/providers/postgres';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
-import { sqliteDialect } from '../src/providers/sqlite/sqlite-dialect';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { postgresDialect } from '../packages/postgres/src';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
+import { sqliteDialect } from '../packages/sqlite/src/sqlite-dialect';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
 
 class GeneratedOnly {
     public id = 0;

@@ -9,8 +9,13 @@ import {
 
 describe('dependency boundaries', () => {
     it('keeps the model layer independent of outer layers', () => {
-        const offenders = sourceFiles('src/model').flatMap(file =>
-            ['src/core', 'src/query', 'src/sql', 'src/schema'].flatMap(directory =>
+        const offenders = sourceFiles('packages/core/src/model').flatMap(file =>
+            [
+                'packages/core/src/core',
+                'packages/core/src/query',
+                'packages/core/src/sql',
+                'packages/core/src/schema',
+            ].flatMap(directory =>
                 importsFrom(file, directory).map(target => `${file} -> ${target}`),
             ),
         );
@@ -19,22 +24,26 @@ describe('dependency boundaries', () => {
     });
 
     it('keeps migrations independent of DbContext and the core layer', () => {
-        const offenders = sourceFiles('src/migrations').flatMap(file =>
-            importsFrom(file, 'src/core').map(target => `${file} -> ${target}`),
+        const offenders = sourceFiles('packages/core/src/migrations').flatMap(file =>
+            importsFrom(file, 'packages/core/src/core').map(target => `${file} -> ${target}`),
         );
 
         expect(offenders).toEqual([]);
     });
 
     it('keeps providers behind storage, SQL, model, and migration contracts', () => {
-        const applicationFacingHelpers = new Set([
-            'src/providers/postgres/index.ts',
-            'src/providers/postgres/postgres-query-helpers.ts',
-        ]);
-        const offenders = sourceFiles('src/providers')
-            .filter(file => !applicationFacingHelpers.has(file))
+        // No whitelist: the application-facing Postgres helpers used to reach
+        // straight into `src/query` and `src/sql`, and now name what they need
+        // on a public core entry like every other cross-package import. The
+        // rule reads the same for every provider file.
+        const offenders = ['postgres', 'sqlite', 'mysql']
+            .flatMap(provider => sourceFiles(`packages/${provider}/src`))
             .flatMap(file =>
-                ['src/core', 'src/query', 'src/tracking'].flatMap(directory =>
+                [
+                    'packages/core/src/core',
+                    'packages/core/src/query',
+                    'packages/core/src/tracking',
+                ].flatMap(directory =>
                     importsFrom(file, directory).map(target => `${file} -> ${target}`),
                 ),
             );
@@ -43,10 +52,10 @@ describe('dependency boundaries', () => {
     });
 
     it('keeps the shared type kernel independent', () => {
-        const typeKernel = 'src/types.ts';
+        const typeKernel = 'packages/core/src/types.ts';
 
         expect(fs.existsSync(path.join(repositoryRoot, typeKernel))).toBe(true);
-        expect(fs.existsSync(path.join(repositoryRoot, 'src/core/types.ts'))).toBe(false);
+        expect(fs.existsSync(path.join(repositoryRoot, 'packages/core/src/core/types.ts'))).toBe(false);
         expect(readSource(typeKernel)).not.toMatch(/^import /mu);
     });
 });

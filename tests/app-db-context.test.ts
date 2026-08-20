@@ -1,4 +1,4 @@
-import { AppDbContext, Post, User } from '../src/examples';
+import { AppDbContext, Post, User } from '../packages/core/src/examples';
 import { setMetadata } from './support/public-api-internals';
 
 describe('example AppDbContext', () => {

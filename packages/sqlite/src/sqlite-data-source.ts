@@ -2,8 +2,8 @@ import {
     createEntityKitDataSource,
     type EntityKitDataSource,
     type EntityKitDataSourceOptions,
-} from '../../storage/entity-kit-data-source';
-import type { SqliteConnectionConfig } from '../../storage/built-in-provider-config';
+} from '@entitykit/core/adapter';
+import type { SqliteConnectionConfig } from '@entitykit/core';
 import { sqliteProviderServices } from './sqlite-provider-services';
 
 /** Create sqlite data source. */ export function createSqliteDataSource(

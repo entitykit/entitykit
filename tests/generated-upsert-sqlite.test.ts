@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, UniqueConstraintError } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, UniqueConstraintError } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class GeneratedUpsertRow {
     public id = 0;

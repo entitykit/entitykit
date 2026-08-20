@@ -1,8 +1,8 @@
 import type {
     DatabaseConnection,
     DatabaseProviderServices,
-} from '../src/adapter';
-import { createDatabaseConnection } from '../src/cli/commands/provider-connection';
+} from '../packages/core/src/adapter';
+import { createDatabaseConnection } from '../packages/cli/src/commands/provider-connection';
 import { createFakeProvider } from './support/fake-provider';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 

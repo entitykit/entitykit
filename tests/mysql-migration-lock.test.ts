@@ -1,6 +1,6 @@
-import { MigrationRunner } from '../src/migrations/api';
-import { migrationLockKey } from '../src/migrations/migration-metadata';
-import { mySqlMigrationDialect } from '../src/providers/mysql/mysql-migration-dialect';
+import { MigrationRunner } from '../packages/core/src/migrations/api';
+import { migrationLockKey } from '../packages/core/src/migrations/migration-metadata';
+import { mySqlMigrationDialect } from '../packages/mysql/src/mysql-migration-dialect';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     containing,

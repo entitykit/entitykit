@@ -1,6 +1,6 @@
 import { requireDefined } from './support/require-defined';
 import type {
-    ModelBuilder } from '../src';
+    ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     DeleteBehavior,
@@ -9,9 +9,9 @@ import {
     type DatabaseQueryResult,
     type RuntimeDiagnosticEvent,
     type SqlStatement,
-} from '../src';
-import { DbContextOptionsBuilder } from '../src/core/context-options/db-context-options-builder';
-import { SqliteDatabaseConnection, sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContextOptionsBuilder } from '../packages/core/src/core/context-options/db-context-options-builder';
+import { SqliteDatabaseConnection, sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * Awaitable lazy loading. EF loads during property access because a C# getter

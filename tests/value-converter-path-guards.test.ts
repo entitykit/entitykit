@@ -1,12 +1,12 @@
-import type { ValueConverter } from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { createQueryModel, createQueryProxy } from '../src/experimental';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
-import { SelectSqlBuilder } from '../src/sql/select-sql-builder';
-import { SaveTimeMutationLog } from '../src/core/save-time-mutations';
-import { writeGeneratedValue } from '../src/core/unit-of-work/generated-value-writer';
-import { RestorationScope } from '../src/restoration-scope';
+import type { ValueConverter } from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { createQueryModel, createQueryProxy } from '../packages/core/src/experimental';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
+import { SelectSqlBuilder } from '../packages/core/src/sql/select-sql-builder';
+import { SaveTimeMutationLog } from '../packages/core/src/core/save-time-mutations';
+import { writeGeneratedValue } from '../packages/core/src/core/unit-of-work/generated-value-writer';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
 
 interface ConverterControl {
     toAsync: boolean;

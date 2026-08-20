@@ -1,9 +1,9 @@
 import { requireDefined } from '../support/require-defined';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext, UniqueConstraintError } from '../../src';
-import type { MigrationBuilder } from '../../src/migrations/api';
-import { Migration, MigrationRunner } from '../../src/migrations/api';
-import { mySqlProviderServices } from '../../src/providers/mysql';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext, UniqueConstraintError } from '../../packages/core/src';
+import type { MigrationBuilder } from '../../packages/core/src/migrations/api';
+import { Migration, MigrationRunner } from '../../packages/core/src/migrations/api';
+import { mySqlProviderServices } from '../../packages/mysql/src';
 
 const url = process.env.MYSQL_URL ?? process.env.MYSQL_DATABASE_URL;
 const shouldRun = process.env.RUN_MYSQL_TESTS === 'true' && Boolean(url);

@@ -1,8 +1,8 @@
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import { createDb as createAggregateDb } from './aggregate-query-model/support';
 import { createDb } from './joined-projection/support';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
-import { sqliteDialect } from '../src/providers/sqlite/sqlite-dialect';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
+import { sqliteDialect } from '../packages/sqlite/src/sqlite-dialect';
 
 describe('compositional query paging SQL', () => {
     it('wraps paged projected count and exists as a parameterized sequence', async () => {

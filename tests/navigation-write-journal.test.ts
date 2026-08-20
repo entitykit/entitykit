@@ -1,5 +1,5 @@
-import { RestorationScope } from '../src/restoration-scope';
-import { NavigationWriteJournal } from '../src/tracking/navigation-write-journal';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
+import { NavigationWriteJournal } from '../packages/core/src/tracking/navigation-write-journal';
 
 interface GraphNode {
     readonly id: string;

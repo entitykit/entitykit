@@ -1,21 +1,21 @@
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../../../src';
-import { DbContext, type RuntimeDiagnosticEvent } from '../../../src';
+    ModelBuilder } from '../../../packages/core/src';
+import { DbContext, type RuntimeDiagnosticEvent } from '../../../packages/core/src';
 import type {
     DatabaseConnection,
     DatabaseProviderConnectionConfig,
     DatabaseProviderServices,
     DatabaseSchemaIntrospector,
     SqlDialect,
-} from '../../../src/adapter';
-import { type DatabaseSchemaSnapshot } from '../../../src/tooling';
+} from '../../../packages/core/src/adapter';
+import { type DatabaseSchemaSnapshot } from '../../../packages/core/src/tooling';
 import {
     Migration,
     MigrationBuilder,
     type MigrationSqlDialect,
-} from '../../../src/migrations/api';
-import { RecordingDatabaseConnection } from '../../../src/testing';
+} from '../../../packages/core/src/migrations/api';
+import { RecordingDatabaseConnection } from '../../../packages/testing/src';
 
 class AdapterBoundaryUser {
     public id!: string;

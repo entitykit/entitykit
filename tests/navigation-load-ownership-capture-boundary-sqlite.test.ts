@@ -9,7 +9,7 @@
  * work if change detection would call it one, so the store-owned columns it
  * skips are skipped here too.
  */
-import { EntityState } from '../src';
+import { EntityState } from '../packages/core/src';
 import { rejection } from './support/accessor-refusal-support';
 import { refusal } from './support/link-refusal-support';
 import {

@@ -1,6 +1,6 @@
-import { postgres } from '../../src/providers/postgres';
-import { Queryable } from '../../src/experimental';
-import { buildSelectSqlCacheKey } from '../../src/sql/select-sql-builder';
+import { postgres } from '../../packages/postgres/src';
+import { Queryable } from '../../packages/core/src/experimental';
+import { buildSelectSqlCacheKey } from '../../packages/core/src/sql/select-sql-builder';
 import { createOrderMetadata, RecordingExecutor } from './support';
 
 describe('aggregate query cache keys', () => {

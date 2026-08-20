@@ -4,7 +4,7 @@ import type {
     DatabaseForeignKey,
     DatabaseIndex,
     DatabasePrimaryKey,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 
 export interface MutablePostgresDatabaseTable {
     schemaName: string;

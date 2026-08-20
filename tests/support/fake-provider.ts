@@ -5,13 +5,13 @@ import type {
     DatabaseSchemaIntrospector,
     SqlDialect,
     SqlStatement,
-} from '../../src/adapter';
-import { type DatabaseSchemaSnapshot } from '../../src/tooling';
+} from '../../packages/core/src/adapter';
+import { type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 import {
     MigrationBuilder,
     type Migration,
     type MigrationSqlDialect,
-} from '../../src/migrations/api';
+} from '../../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from './recording-database-connection';
 
 export const fakeSqlDialect: SqlDialect = {

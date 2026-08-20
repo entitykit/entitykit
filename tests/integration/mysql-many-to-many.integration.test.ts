@@ -1,7 +1,7 @@
 import { requireDefined } from '../support/require-defined';
-import type { DbContextOptionsBuilder } from '../../src';
-import { DbContext, type ModelBuilder } from '../../src';
-import { mySqlProviderServices } from '../../src/providers/mysql';
+import type { DbContextOptionsBuilder } from '../../packages/core/src';
+import { DbContext, type ModelBuilder } from '../../packages/core/src';
+import { mySqlProviderServices } from '../../packages/mysql/src';
 
 const url = process.env.MYSQL_URL ?? process.env.MYSQL_DATABASE_URL;
 const shouldRun = process.env.RUN_MYSQL_TESTS === 'true' && Boolean(url);

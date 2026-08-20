@@ -2,11 +2,11 @@ import type {
     DbContextOptionsBuilder,
     EntityBuilder,
     ModelBuilder,
-} from '../src';
-import { DbContext, valueConverter } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { PropertyPathSelector } from '../src/model/model-property-selector';
+} from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { PropertyPathSelector } from '../packages/core/src/model/model-property-selector';
 
 const deletedAt = new Date('2026-08-10T12:34:56.000Z');
 const dateText = valueConverter<Date, string>({

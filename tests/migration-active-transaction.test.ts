@@ -1,11 +1,11 @@
 import type {
-    MigrationBuilder } from '../src/migrations/api';
+    MigrationBuilder } from '../packages/core/src/migrations/api';
 import {
     Migration,
     MigrationError,
     MigrationRunner,
-} from '../src/migrations/api';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src/migrations/api';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class TransactionBoundaryMigration extends Migration {
     public readonly id = '20260729000003_TransactionBoundary';

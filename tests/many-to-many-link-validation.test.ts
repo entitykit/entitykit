@@ -1,4 +1,4 @@
-import { DbValidationError } from '../src';
+import { DbValidationError } from '../packages/core/src';
 import {
     createPost,
     createTag,

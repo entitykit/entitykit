@@ -1,12 +1,12 @@
-import type { ValueConverter } from '../src';
+import type { ValueConverter } from '../packages/core/src';
 import {
     fromProviderValue,
     toProviderValue,
-} from '../src/model/value-converter';
+} from '../packages/core/src/model/value-converter';
 import {
     snapshotPropertyValue,
     snapshotPropertyValuesEqual,
-} from '../src/tracking/snapshot-value';
+} from '../packages/core/src/tracking/snapshot-value';
 
 describe('value converter synchronous contract', () => {
     it('allows ordinary converted values in both directions', () => {

@@ -1,9 +1,9 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../../src/model/model-builder';import type { EntityMetadata } from '../../src/model/entity-metadata';
-import type { Model } from '../../src/model/model';
+import { ModelBuilder as ModelBuilderImplementation } from '../../packages/core/src/model/model-builder';import type { EntityMetadata } from '../../packages/core/src/model/entity-metadata';
+import type { Model } from '../../packages/core/src/model/model';
 import {
     type QueryExecutor,
     type RelationExistenceMetadata,
-} from '../../src/experimental';
+} from '../../packages/core/src/experimental';
 
 export class User {
     public id!: string;

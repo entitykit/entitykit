@@ -1,5 +1,5 @@
-import type { PropertyBuilder } from '../src';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import type { PropertyBuilder } from '../packages/core/src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 
 class GeneratedRelationshipOwner {
     public id = '';

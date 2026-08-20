@@ -2,9 +2,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     ValueConverter,
-} from '../src';
-import { DbContext, EntityState, valueConverter } from '../src';
-import { encodeIdentityTuple } from '../src/model/identity-value';
+} from '../packages/core/src';
+import { DbContext, EntityState, valueConverter } from '../packages/core/src';
+import { encodeIdentityTuple } from '../packages/core/src/model/identity-value';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 describe('identity tuple codec', () => {

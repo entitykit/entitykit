@@ -5,9 +5,9 @@ import {
     type MigrationDiagnosticEvent,
     type SaveChangesDiagnosticEvent,
     TransactionOutcomeUnknownError,
-} from '../../src';
-import { DbContextOptionsBuilder } from '../../src/core/context-options/db-context-options-builder';
-import { contextMigrations } from '../../src/migrations/api';
+} from '../../packages/core/src';
+import { DbContextOptionsBuilder } from '../../packages/core/src/core/context-options/db-context-options-builder';
+import { contextMigrations } from '../../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 import {
     anyNumber,

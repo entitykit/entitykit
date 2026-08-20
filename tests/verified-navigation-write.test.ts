@@ -1,6 +1,6 @@
 import {
     writeVerifiedNavigation,
-} from '../src/tracking/verified-navigation-write';
+} from '../packages/core/src/tracking/verified-navigation-write';
 
 class Principal {
     public id = '';

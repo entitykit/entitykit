@@ -1,4 +1,4 @@
-import { toPascalIdentifier } from '../../migrations/migration-scaffold-timestamp';
+import { toPascalIdentifier } from '@entitykit/core/migrations';
 
 /** Render a self-contained migration class template for stdout. */
 export function renderMigrationStub(name: string): string {

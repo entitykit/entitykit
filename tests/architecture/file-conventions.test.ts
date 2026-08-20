@@ -1,13 +1,14 @@
 import path from 'node:path';
 import {
     oversizedFiles,
+    packageSourceFiles,
     sourceFiles,
 } from './architecture-test-support';
 
 describe('file conventions', () => {
     it('uses lowercase kebab-case names for TypeScript modules', () => {
         const invalid = [
-            ...sourceFiles('src'),
+            ...packageSourceFiles(),
             ...sourceFiles('tests'),
             ...sourceFiles('smoke'),
             ...sourceFiles('dogfood'),
@@ -25,14 +26,14 @@ describe('file conventions', () => {
             'helpers.ts',
             'utils.ts',
         ]);
-        const generic = sourceFiles('src')
+        const generic = packageSourceFiles()
             .filter(file => genericNames.has(path.basename(file)));
 
         expect(generic).toEqual([]);
     });
 
     it('keeps every source module within the project-wide size budget', () => {
-        expect(oversizedFiles(sourceFiles('src'), 150)).toEqual([]);
+        expect(oversizedFiles(packageSourceFiles(), 150)).toEqual([]);
     });
 
     it('keeps test and smoke modules within the project-wide size budget', () => {

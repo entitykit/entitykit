@@ -1,5 +1,5 @@
 import { requireDefined } from './support/require-defined';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import {
     defineProviderContractTests,
     expectDatabaseProviderError,

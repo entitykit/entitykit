@@ -1,12 +1,12 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, valueConverter } from '../src';
-import { Materializer } from '../src/experimental';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
+import { Materializer } from '../packages/core/src/experimental';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import {
     sqliteProviderServices,
     sqliteValueReader,
-} from '../src/providers/sqlite';
-import { ChangeTracker } from '../src/tracking/change-tracker';
+} from '../packages/sqlite/src';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
 
 class BooleanIdentityRow {
     public id = false;

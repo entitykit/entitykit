@@ -1,8 +1,8 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
-import { sqliteDialect, sqliteProviderServices } from '../src/providers/sqlite';
-import { SqlParameterBag } from '../src/sql/sql-statement';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
+import { sqliteDialect, sqliteProviderServices } from '../packages/sqlite/src';
+import { SqlParameterBag } from '../packages/core/src/sql/sql-statement';
 
 /**
  * A multi-row insert is one statement, so its parameters are `rows × columns`.

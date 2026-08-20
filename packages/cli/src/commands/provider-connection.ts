@@ -1,5 +1,5 @@
-import type { MigrationHistoryRow } from '../../migrations/migration-history';
-import { MigrationRunner } from '../../migrations/migration-runner';
+import type { MigrationHistoryRow } from '@entitykit/core/migrations';
+import { MigrationRunner } from '@entitykit/core/migrations';
 import {
     type ResolvedEntityKitConfig,
 } from '../entity-kit-config';
@@ -7,8 +7,8 @@ import { resolveEntityKitConnection } from '../entity-kit-connection-config';
 import type {
     DatabaseProviderConnectionConfig,
     DatabaseProviderServices,
-} from '../../storage/database-provider-services';
-import { assertSynchronousCallbackResult } from '../../synchronous-callback';
+} from '@entitykit/core/adapter';
+import { assertSynchronousCallbackResult } from '@entitykit/core';
 
 type ConnectionConfig = Pick<
     ResolvedEntityKitConfig,

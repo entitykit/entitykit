@@ -1,5 +1,5 @@
-import { OperationCanceledError } from '../src';
-import { SqliteDatabaseConnection } from '../src/providers/sqlite/sqlite-database-connection';
+import { OperationCanceledError } from '../packages/core/src';
+import { SqliteDatabaseConnection } from '../packages/sqlite/src/sqlite-database-connection';
 
 describe('SQLite buffered query cancellation', () => {
     it('rejects an already-canceled statement before execution', async () => {

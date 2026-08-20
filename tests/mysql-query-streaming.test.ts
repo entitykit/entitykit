@@ -1,12 +1,12 @@
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
-import { OperationCanceledError } from '../src';
-import { MySqlPooledConnection } from '../src/providers/mysql/mysql-pooled-connection';
+import { OperationCanceledError } from '../packages/core/src';
+import { MySqlPooledConnection } from '../packages/mysql/src/mysql-pooled-connection';
 import type {
     MySqlConnection,
     MySqlPool,
     MySqlStreamQuery,
-} from '../src/providers/mysql/mysql-driver';
+} from '../packages/mysql/src/mysql-driver';
 
 async function collect<T>(rows: AsyncIterable<T>): Promise<T[]> {
     const values: T[] = [];

@@ -1,4 +1,4 @@
-import type { ModelDiffRenameHints } from '../migrations/model-differ';
+import type { ModelDiffRenameHints } from '@entitykit/core/migrations';
 import { CliUsageError } from './cli-usage-error';
 
 export function parseRenameHintValues(

@@ -1,11 +1,11 @@
-import type { Migration } from '../../migrations/migration';
-import type { StoreGenerationStrategy } from '../../model/store-generation';
-import { entityKitMigrationVersion, migrationHistoryTableName } from '../../migrations/migration-metadata';
-import type { MigrationSqlDialect } from '../../migrations/migration-sql-dialect';
-import type { SqlDialect } from '../../sql/sql-dialect';
-import type { SqlStatement } from '../../sql/sql-statement';
+import type { Migration } from '@entitykit/core/migrations';
+import type { StoreGenerationStrategy } from '@entitykit/core/adapter';
+import { entityKitMigrationVersion, migrationHistoryTableName } from '@entitykit/core/migrations';
+import type { MigrationSqlDialect } from '@entitykit/core/adapter';
+import type { SqlDialect } from '@entitykit/core/adapter';
+import type { SqlStatement } from '@entitykit/core/adapter';
 import { sqliteStoreGenerationClause } from './sqlite-store-generation';
-import { excludedColumnMatchClause } from '../../sql/upsert-clause-match';
+import { excludedColumnMatchClause } from '@entitykit/core/adapter';
 
 function quoteIdentifier(identifier: string): string {
     if (!identifier || identifier.trim().length === 0) {

@@ -1,4 +1,4 @@
-import type { OutboxMessage } from '../src';
+import type { OutboxMessage } from '../packages/core/src';
 
 interface DomainPayload {
     readonly userId: string;

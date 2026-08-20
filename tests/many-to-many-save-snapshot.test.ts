@@ -2,9 +2,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     ValueConverter,
-} from '../src';
-import { DbContext, valueConverter } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 abstract class UnstableKeyEntity {

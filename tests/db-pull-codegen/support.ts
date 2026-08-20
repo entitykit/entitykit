@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
-import * as entitykit from '../../src';
-import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../src/tooling';
-import { contextMigrations, type ModelSnapshot } from '../../src/migrations/api';
+import * as entitykit from '../../packages/core/src';
+import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
+import { contextMigrations, type ModelSnapshot } from '../../packages/core/src/migrations/api';
 import { createManagedTempDirectory } from '../support/managed-temp-directory';
 
 export function compileGeneratedFiles(snapshot: DatabaseSchemaSnapshot): readonly string[] {
@@ -24,7 +24,7 @@ export function compileGeneratedFiles(snapshot: DatabaseSchemaSnapshot): readonl
         noEmit: true,
         noImplicitOverride: true,
         paths: {
-            entitykit: [path.resolve(__dirname, '../../src/index.ts')],
+            entitykit: [path.resolve(__dirname, '../../packages/core/src/index.ts')],
         },
         skipLibCheck: true,
         strict: true,

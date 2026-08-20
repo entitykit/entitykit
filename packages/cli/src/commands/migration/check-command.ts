@@ -1,5 +1,5 @@
-import { hasPendingModelChanges } from '../../../migrations/migration-commands';
-import { contextMigrations } from '../../../migrations/context-migrations';
+import { hasPendingModelChanges } from '@entitykit/core/migrations';
+import { contextMigrations } from '@entitykit/core/migrations';
 import { parseCommandArguments } from '../../cli-command-parser';
 import type { ParsedGlobalOptions } from '../../cli-option-reader';
 import { loadCliConfig } from '../../cli-runtime';

@@ -1,8 +1,8 @@
-import { ModelBuilder } from '../src/model/model-builder';
-import { ManyToManyChangeSet } from '../src/core/many-to-many-change-set';
-import { buildNavigationLinkChange } from '../src/core/navigation-link-change';
-import type { EntityEntry } from '../src/tracking/entity-entry';
-import type { ManyToManyChange } from '../src/core/many-to-many-change';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
+import { ManyToManyChangeSet } from '../packages/core/src/core/many-to-many-change-set';
+import { buildNavigationLinkChange } from '../packages/core/src/core/navigation-link-change';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import type { ManyToManyChange } from '../packages/core/src/core/many-to-many-change';
 
 class QueueTag {
     public id = '';

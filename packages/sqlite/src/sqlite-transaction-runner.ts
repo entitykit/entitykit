@@ -3,16 +3,16 @@ import {
     DatabaseProviderError,
     DatabaseTransactionCleanupError,
     type DatabaseProviderOperation,
-} from '../../storage/database-errors';
-import { EnclosingTransactionState } from '../../storage/enclosing-transaction-state';
+} from '@entitykit/core/adapter';
+import { EnclosingTransactionState } from '@entitykit/core/adapter';
 import { sqliteError } from './sqlite-error';
-import type { TransactionOptions } from '../../storage/database-connection';
-import { validateTransactionOptions } from '../../storage/transaction-options';
+import type { TransactionOptions } from '@entitykit/core/adapter';
+import { validateTransactionOptions } from '@entitykit/core/adapter';
 import {
     applySqliteTransactionOptions,
     validateSqliteTransactionOptions,
 } from './sqlite-transaction-options';
-import { throwIfOperationAborted } from '../../storage/operation-cancellation';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 
 export class SqliteTransactionRunner {
     private transactionDepth = 0;

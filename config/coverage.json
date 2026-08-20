@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "sourceRoot": "src",
+  "sourceRoot": "packages",
   "excludedPathPrefixes": [
-    "src/examples/"
+    "packages/core/src/examples/"
   ],
   "thresholds": {
     "statements": 92,

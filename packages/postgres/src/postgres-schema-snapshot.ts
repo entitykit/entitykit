@@ -1,4 +1,4 @@
-import type { DatabaseSchemaSnapshot } from '../../introspection/database-schema';
+import type { DatabaseSchemaSnapshot } from '@entitykit/core/adapter';
 import type {
     ColumnRow,
     ForeignKeyRow,

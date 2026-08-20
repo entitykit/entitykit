@@ -1,6 +1,6 @@
-import { type RelationNavigationProxy } from '../src';
-import { Queryable } from '../src/experimental';
-import { buildSelectSqlCacheKey } from '../src/sql/select-sql-builder';
+import { type RelationNavigationProxy } from '../packages/core/src';
+import { Queryable } from '../packages/core/src/experimental';
+import { buildSelectSqlCacheKey } from '../packages/core/src/sql/select-sql-builder';
 import type {
     User,
 } from './support/queryable-test-fixture';

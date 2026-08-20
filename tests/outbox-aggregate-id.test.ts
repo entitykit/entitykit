@@ -2,8 +2,8 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     OutboxMessage,
-} from '../src';
-import { DbContext, valueConverter } from '../src';
+} from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 interface EventSource {

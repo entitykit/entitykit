@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, DeleteBehavior } from '../src';
-import { contextMigrations, diffModelSnapshots } from '../src/migrations/api';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, DeleteBehavior } from '../packages/core/src';
+import { contextMigrations, diffModelSnapshots } from '../packages/core/src/migrations/api';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * Default index and foreign-key names describe the database, so they are built

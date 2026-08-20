@@ -1,6 +1,6 @@
 import { requireDefined } from './support/require-defined';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {

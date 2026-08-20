@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { RecordingDatabaseConnection } from '../src/testing';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class OrderUser {
     public id!: string;

@@ -1,11 +1,11 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
-import { DbContext, valueConverter } from '../src';
+} from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
-import { temporaryGeneratedProperty } from '../src/tracking/temporary-generated-identity';
-import type { EntityEntry } from '../src/tracking/entity-entry';
+import { temporaryGeneratedProperty } from '../packages/core/src/tracking/temporary-generated-identity';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
 import { internalEntityEntry } from './support/public-api-internals';
 
 class NumberItem {

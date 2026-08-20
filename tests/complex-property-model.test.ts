@@ -1,5 +1,5 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';import { createModelSnapshot } from '../src/model/model-snapshot';
-import type { EntityBuilder } from '../src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';import { createModelSnapshot } from '../packages/core/src/model/model-snapshot';
+import type { EntityBuilder } from '../packages/core/src';
 
 class EmptyValue {
     public text?: string;

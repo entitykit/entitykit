@@ -1,9 +1,9 @@
-import { OperationCanceledError } from '../src';
+import { OperationCanceledError } from '../packages/core/src';
 import type {
     MySqlConnection,
     MySqlPool,
-} from '../src/providers/mysql/mysql-driver';
-import { MySqlPooledConnection } from '../src/providers/mysql/mysql-pooled-connection';
+} from '../packages/mysql/src/mysql-driver';
+import { MySqlPooledConnection } from '../packages/mysql/src/mysql-pooled-connection';
 
 function fixture(query: jest.Mock): {
     readonly connection: MySqlPooledConnection;

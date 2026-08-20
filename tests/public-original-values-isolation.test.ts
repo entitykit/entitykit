@@ -1,8 +1,8 @@
-import { EntityState, valueConverter } from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder } from '../src/model/model-builder';
-import { EntityEntry } from '../src/tracking/entity-entry';
-import { publicEntityEntry } from '../src/tracking/public-entity-entry';
+import { EntityState, valueConverter } from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
+import { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { publicEntityEntry } from '../packages/core/src/tracking/public-entity-entry';
 
 class ConvertedBytes {
     constructor(public readonly value: Uint8Array) {}

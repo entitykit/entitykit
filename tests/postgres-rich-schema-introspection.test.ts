@@ -1,5 +1,5 @@
-import { generateDbPullCodeWithDiagnostics } from '../src/tooling';
-import { buildPostgresSchemaSnapshot } from '../src/providers/postgres/postgres-schema-snapshot';
+import { generateDbPullCodeWithDiagnostics } from '../packages/core/src/tooling';
+import { buildPostgresSchemaSnapshot } from '../packages/postgres/src/postgres-schema-snapshot';
 import { compileGeneratedFiles } from './db-pull-codegen/support';
 
 describe('Postgres rich schema introspection', () => {

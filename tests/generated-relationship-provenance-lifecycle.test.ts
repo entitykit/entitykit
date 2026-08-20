@@ -1,8 +1,8 @@
-import { EntityState } from '../src';
-import type { EntityEntry } from '../src/tracking/entity-entry';
-import { rolledBackGeneratedRelationshipTarget } from '../src/tracking/generated-relationship-target-provenance';
-import { generatedRelationshipTarget } from '../src/tracking/generated-relationship-target-store';
-import type { TrackedRelationshipMetadata } from '../src/tracking/tracked-relationship-metadata';
+import { EntityState } from '../packages/core/src';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { rolledBackGeneratedRelationshipTarget } from '../packages/core/src/tracking/generated-relationship-target-provenance';
+import { generatedRelationshipTarget } from '../packages/core/src/tracking/generated-relationship-target-store';
+import type { TrackedRelationshipMetadata } from '../packages/core/src/tracking/tracked-relationship-metadata';
 import {
     GeneratedRelationshipTransactionContext,
     TransactionNumberDependent,

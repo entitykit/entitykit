@@ -1,6 +1,6 @@
-import { writeFailureAtomicProperty } from '../src/failure-atomic-property-write';
-import { ModelBuilder } from '../src/model/model-builder';
-import { RestorationScope } from '../src/restoration-scope';
+import { writeFailureAtomicProperty } from '../packages/core/src/failure-atomic-property-write';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
 
 class AtomicWriteRow {
     public value = 'before';

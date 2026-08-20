@@ -1,7 +1,7 @@
-import { MigrationRunner } from '../src/migrations/migration-runner';
-import { postgresMigrationDialect } from '../src/migrations/migration-sql-dialect';
-import { mySqlMigrationDialect } from '../src/providers/mysql/mysql-migration-dialect';
-import { sqliteMigrationDialect } from '../src/providers/sqlite/sqlite-dialect';
+import { MigrationRunner } from '../packages/core/src/migrations/migration-runner';
+import { postgresMigrationDialect } from '../packages/core/src/migrations/migration-sql-dialect';
+import { mySqlMigrationDialect } from '../packages/mysql/src/mysql-migration-dialect';
+import { sqliteMigrationDialect } from '../packages/sqlite/src/sqlite-dialect';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 describe('read-only migration history', () => {

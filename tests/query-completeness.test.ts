@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityNotFoundError, MultipleEntitiesFoundError } from '../src';
-import { RecordingDatabaseConnection } from '../src/testing';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityNotFoundError, MultipleEntitiesFoundError } from '../packages/core/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class QueryUser {
     public id!: string;

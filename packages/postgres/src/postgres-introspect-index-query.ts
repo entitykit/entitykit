@@ -1,4 +1,4 @@
-import type { DatabaseConnection } from '../../storage/database-connection';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
 
 export interface IndexRow extends Record<string, unknown> {
     table_schema: string;

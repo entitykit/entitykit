@@ -1,4 +1,4 @@
-import { ContextStateRestorationError } from '../src';
+import { ContextStateRestorationError } from '../packages/core/src';
 import { requireDefined } from './support/require-defined';
 import type {
     RefusalDependent,

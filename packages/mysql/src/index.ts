@@ -1,5 +1,5 @@
-import { buildRawSql } from '../../sql/raw-sql';
-import type { SqlStatement as RawSqlStatement } from '../../sql/sql-statement';
+import { buildRawSql } from '@entitykit/core/adapter';
+import type { SqlStatement as RawSqlStatement } from '@entitykit/core/adapter';
 import { mySqlDialect as rawSqlDialect } from './mysql-dialect';
 
 /** Build a standalone MySQL statement with `?` placeholders. */
@@ -18,14 +18,14 @@ export type {
     DatabaseTlsVersion,
     MySqlConnectionConfig,
     MySqlPoolOptions,
-} from '../../storage/built-in-provider-config';
-export type { DatabaseOperationOptions, TransactionOptions } from '../../storage/database-connection';
-export type { DatabaseConnectionSource, DatabaseDataSource } from '../../storage/database-data-source';
+} from '@entitykit/core';
+export type { DatabaseOperationOptions, TransactionOptions } from '@entitykit/core/adapter';
+export type { DatabaseConnectionSource, DatabaseDataSource } from '@entitykit/core/adapter';
 export type {
     DatabaseProviderConnectionConfig,
     DatabaseRuntimeProviderServices,
     DatabaseSchemaIntrospector,
-} from '../../storage/database-provider-services';
+} from '@entitykit/core/adapter';
 export { MySqlDatabaseConnection } from './mysql-database-connection';
 export { mySqlDialect } from './mysql-dialect';
 export { mySqlMigrationDialect } from './mysql-migration-dialect';
@@ -36,18 +36,18 @@ export type {
     EntityKitContextFactory,
     EntityKitDataSource,
     EntityKitDataSourceOptions,
-} from '../../storage/entity-kit-data-source-types';
-export type { RetryAttempt, RetryExecutionOptions, RetryPolicyOptions } from '../../storage/data-source-retry';
+} from '@entitykit/core/adapter';
+export type { RetryAttempt, RetryExecutionOptions, RetryPolicyOptions } from '@entitykit/core/adapter';
 export type {
     DatabaseConnection,
     DatabaseQueryResult,
     QueryStreamOptions,
     TransactionIsolationLevel,
-} from '../../storage/database-connection';
-export type { DatabaseProviderServices } from '../../storage/database-provider-services';
-export type { SqlStatement } from '../../sql/sql-statement';
-export type { AlterColumnChange, SchemaSqlDialect, SqlDialect, SqlSequenceDefinition } from '../../sql/sql-dialect';
-export type { IdentityColumnOptions, IdentityGenerationMode, RowIdColumnOptions, StoreGenerationStrategy } from '../../model/store-generation';
+} from '@entitykit/core/adapter';
+export type { DatabaseProviderServices } from '@entitykit/core/adapter';
+export type { SqlStatement } from '@entitykit/core/adapter';
+export type { AlterColumnChange, SchemaSqlDialect, SqlDialect, SqlSequenceDefinition } from '@entitykit/core/adapter';
+export type { IdentityColumnOptions, IdentityGenerationMode, RowIdColumnOptions, StoreGenerationStrategy } from '@entitykit/core/adapter';
 export type {
     MigrationBuilder,
     MigrationBuilderConstructor,
@@ -55,7 +55,7 @@ export type {
     MigrationColumnBuilder,
     MigrationTableBuilder,
     MigrationTableCallback,
-} from '../../migrations/migration-builder-contract';
+} from '@entitykit/core/adapter';
 export type {
     MigrationAlterColumnDefinition,
     MigrationBuilderOptions,
@@ -73,8 +73,8 @@ export type {
     MigrationTableForeignKey,
     MigrationTableRebuildDefinition,
     MigrationTableShape,
-} from '../../migrations/migration-builder-types';
-export type { MigrationIdentity, MigrationSqlDialect } from '../../migrations/migration-sql-dialect';
+} from '@entitykit/core/adapter';
+export type { MigrationIdentity, MigrationSqlDialect } from '@entitykit/core/adapter';
 export type {
     DatabaseCheckConstraint,
     DatabaseColumn,
@@ -87,5 +87,5 @@ export type {
     DatabaseSchemaSnapshot,
     DatabaseSequence,
     DatabaseTable,
-} from '../../introspection/database-schema';
-export type { StoreValueReader } from '../../storage/store-value-reader';
+} from '@entitykit/core/adapter';
+export type { StoreValueReader } from '@entitykit/core/adapter';

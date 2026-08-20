@@ -1,10 +1,10 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
 import {
     postgres,
     type PostgresUpsertOptions,
     type SqlStatement,
-} from '../src/providers/postgres';
+} from '../packages/postgres/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class ManagedPostgresRow {

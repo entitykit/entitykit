@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, DeleteBehavior, EntityState } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, DeleteBehavior, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class UntrackedSlotParent {
     public id = '';

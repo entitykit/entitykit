@@ -4,9 +4,9 @@ import {
     type DbContextOptionsBuilder,
     type ModelBuilder,
     type SqliteConnectionConfig,
-} from '../src';
-import type { EntityKitDataSource } from '../src/adapter';
-import { createSqliteDataSource } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import type { EntityKitDataSource } from '../packages/core/src/adapter';
+import { createSqliteDataSource } from '../packages/sqlite/src';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 class DataSourceRow {

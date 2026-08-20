@@ -1,4 +1,4 @@
-import { type DatabaseSchemaSnapshot } from '../../src/tooling';
+import { type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 import { compileGeneratedFiles } from './support';
 
 describe('db pull generated project compilation', () => {

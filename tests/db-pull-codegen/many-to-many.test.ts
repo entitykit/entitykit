@@ -1,4 +1,4 @@
-import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../src/tooling';
+import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 
 describe('db pull many-to-many relationship generation', () => {
     it('infers simple many-to-many join tables instead of generating join entities', () => {

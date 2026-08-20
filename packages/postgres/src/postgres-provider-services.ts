@@ -1,14 +1,14 @@
 import { PostgresSchemaIntrospector } from './postgres-schema-introspector';
-import { MigrationBuilder } from '../../migrations/migration-builder';
-import { postgresMigrationDialect } from '../../migrations/migration-sql-dialect';
-import { postgresDialect } from '../../sql/postgres-dialect';
-import type { DatabaseConnection } from '../../storage/database-connection';
-import type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '../../storage/database-provider-services';
+import { MigrationBuilder } from '@entitykit/core/migrations';
+import { postgresMigrationDialect } from '@entitykit/core/migrations';
+import { postgresDialect } from '@entitykit/core/adapter';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
+import type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '@entitykit/core/adapter';
 import { PostgresDatabaseConnection } from './pg-database-connection';
 import { PostgresConnectionSource } from './postgres-connection-source';
-import { DatabaseProviderError, DatabaseTransactionCleanupError } from '../../storage/database-errors';
-import type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
-import { isTransactionOutcomeUnknown } from '../../storage/transaction-outcome';
+import { DatabaseProviderError, DatabaseTransactionCleanupError } from '@entitykit/core/adapter';
+import type { PostgresConnectionConfig } from '@entitykit/core';
+import { isTransactionOutcomeUnknown } from '@entitykit/core/adapter';
 
 export type { PostgresConnectionConfig } from './postgres-driver';
 

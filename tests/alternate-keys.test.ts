@@ -1,12 +1,12 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { DbContextOptionsBuilder , ModelBuilder } from '../src';
-import { DbContext, lazy } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { DbContextOptionsBuilder , ModelBuilder } from '../packages/core/src';
+import { DbContext, lazy } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import {
     diffModelSnapshots,
     contextMigrations,
     MigrationSqlGenerator,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import { requireDefined } from './support/require-defined';
 
 class Account {

@@ -1,15 +1,15 @@
 import { requireDefined } from '../support/require-defined';
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../../src';
+    ModelBuilder } from '../../packages/core/src';
 import {
     DbContext,
     type RuntimeDiagnosticEvent,
     type RuntimeDiagnosticsHandler,
-} from '../../src';
-import type { SqlDialect } from '../../src/adapter';
-import type { MigrationBuilder } from '../../src/migrations/api';
-import { Migration } from '../../src/migrations/api';
+} from '../../packages/core/src';
+import type { SqlDialect } from '../../packages/core/src/adapter';
+import type { MigrationBuilder } from '../../packages/core/src/migrations/api';
+import { Migration } from '../../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 
 export class User {

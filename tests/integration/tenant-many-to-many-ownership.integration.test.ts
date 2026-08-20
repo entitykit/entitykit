@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext, DbUpdateConcurrencyError } from '../../src';
-import { mySqlProviderServices } from '../../src/providers/mysql';
-import { postgresProviderServices } from '../../src/providers/postgres';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext, DbUpdateConcurrencyError } from '../../packages/core/src';
+import { mySqlProviderServices } from '../../packages/mysql/src';
+import { postgresProviderServices } from '../../packages/postgres/src';
 import { requireDefined } from '../support/require-defined';
 
 class TenantPost {

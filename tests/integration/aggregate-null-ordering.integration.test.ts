@@ -1,10 +1,10 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../../src';
+} from '../../packages/core/src';
 import {
     DbContext,
-} from '../../src';
+} from '../../packages/core/src';
 
 /**
  * Grouped-aggregate `orderBy` places a null group key SQL-standard on every

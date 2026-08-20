@@ -1,10 +1,10 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';import type { ModelSnapshot } from '../src/tooling';
-import { createModelSnapshot } from '../src/model/model-snapshot';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';import type { ModelSnapshot } from '../packages/core/src/tooling';
+import { createModelSnapshot } from '../packages/core/src/model/model-snapshot';
 import {
     diffModelSnapshots,
     MigrationSqlGenerator,
     renderSnapshotSource,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 
 class Setting {
     public id!: string;

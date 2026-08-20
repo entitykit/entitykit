@@ -1,8 +1,8 @@
-import type { SqlDialect } from '../../src/adapter';
-import { Queryable } from '../../src/experimental';
-import { SelectSqlBuilder } from '../../src/sql/select-sql-builder';
-import { mySqlDialect } from '../../src/providers/mysql/mysql-dialect';
-import { sqliteDialect } from '../../src/providers/sqlite/sqlite-dialect';
+import type { SqlDialect } from '../../packages/core/src/adapter';
+import { Queryable } from '../../packages/core/src/experimental';
+import { SelectSqlBuilder } from '../../packages/core/src/sql/select-sql-builder';
+import { mySqlDialect } from '../../packages/mysql/src/mysql-dialect';
+import { sqliteDialect } from '../../packages/sqlite/src/sqlite-dialect';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 import { createDb, createOrderMetadata, RecordingExecutor } from './support';
 

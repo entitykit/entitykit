@@ -4,8 +4,8 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     SqlStatement,
-} from '../src';
-import { ContextConcurrentOperationError, DbContext, EntityState } from '../src';
+} from '../packages/core/src';
+import { ContextConcurrentOperationError, DbContext, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {

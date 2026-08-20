@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import { contextMigrations, MigrationBuilder, diffModelSnapshots } from '../src/migrations/api';
-import { sqliteDialect, sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { contextMigrations, MigrationBuilder, diffModelSnapshots } from '../packages/core/src/migrations/api';
+import { sqliteDialect, sqliteProviderServices } from '../packages/sqlite/src';
 class OrderLine {
     public orderId!: string;
     public lineNumber!: number;

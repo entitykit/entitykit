@@ -1,15 +1,15 @@
-import { MigrationBuilder } from '../../migrations/migration-builder';
-import type { DatabaseConnection } from '../../storage/database-connection';
-import type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '../../storage/database-provider-services';
+import { MigrationBuilder } from '@entitykit/core/migrations';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
+import type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '@entitykit/core/adapter';
 import { MySqlDatabaseConnection } from './mysql-database-connection';
 import { mySqlDialect } from './mysql-dialect';
 import { mySqlMigrationDialect } from './mysql-migration-dialect';
 import { MySqlSchemaIntrospector } from './mysql-schema-introspector';
 import { mySqlValueReader } from './mysql-value-reader';
 import { MySqlConnectionSource } from './mysql-connection-source';
-import { DatabaseProviderError, DatabaseTransactionCleanupError } from '../../storage/database-errors';
-import type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
-import { isTransactionOutcomeUnknown } from '../../storage/transaction-outcome';
+import { DatabaseProviderError, DatabaseTransactionCleanupError } from '@entitykit/core/adapter';
+import type { MySqlConnectionConfig } from '@entitykit/core';
+import { isTransactionOutcomeUnknown } from '@entitykit/core/adapter';
 
 export type { MySqlConnectionConfig } from './mysql-driver';
 

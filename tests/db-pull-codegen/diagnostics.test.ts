@@ -1,4 +1,4 @@
-import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../src/tooling';
+import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 import { compileGeneratedFiles } from './support';
 
 describe('db pull diagnostics and conservative mappings', () => {

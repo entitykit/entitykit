@@ -1,9 +1,9 @@
 import path from 'node:path';
-import { PendingModelChangesError } from '../../../errors/migration-errors';
-import { contextMigrations } from '../../../migrations/context-migrations';
-import { hasPendingModelChanges, listMigrations } from '../../../migrations/migration-commands';
-import { MigrationRunner } from '../../../migrations/migration-runner';
-import { writeFilesAtomically } from '../../../tooling/atomic-file-writer';
+import { PendingModelChangesError } from '@entitykit/core/migrations';
+import { contextMigrations } from '@entitykit/core/migrations';
+import { hasPendingModelChanges, listMigrations } from '@entitykit/core/migrations';
+import { MigrationRunner } from '@entitykit/core/migrations';
+import { writeFilesAtomically } from '@entitykit/core/tooling';
 import { parseCommandArguments } from '../../cli-command-parser';
 import type { ParsedGlobalOptions } from '../../cli-option-reader';
 import { CliUsageError } from '../../cli-usage-error';

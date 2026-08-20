@@ -1,6 +1,6 @@
-import type { OutboxMessage } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
-import { RecordingDatabaseConnection } from '../src/testing';
+import type { OutboxMessage } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 import {
     createOutboxUser,
     type DomainEvent,

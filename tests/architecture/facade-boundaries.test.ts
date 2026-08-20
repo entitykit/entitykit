@@ -1,5 +1,7 @@
 import {
+    packageSourceFiles,
     pureFacadeViolations,
+    sourceFiles,
     unexpectedConsumers,
 } from './architecture-test-support';
 
@@ -11,51 +13,51 @@ interface FacadeRule {
 
 const facadeRules: readonly FacadeRule[] = [
     {
-        facade: 'src/query/expression.ts',
-        allowedConsumers: ['src/index.ts'],
+        facade: 'packages/core/src/query/expression.ts',
+        allowedConsumers: ['packages/core/src/index.ts'],
     },
-    { facade: 'src/cli/cli-output.ts' },
+    { facade: 'packages/cli/src/cli-output.ts' },
     {
-        facade: 'src/core/db-context-options.ts',
-        allowedConsumers: ['src/index.ts'],
-    },
-    {
-        facade: 'src/query/joined-query.ts',
-        allowedConsumers: ['src/index.ts', 'src/experimental/index.ts'],
+        facade: 'packages/core/src/core/db-context-options.ts',
+        allowedConsumers: ['packages/core/src/index.ts'],
     },
     {
-        facade: 'src/diagnostics/runtime-diagnostics.ts',
-        allowedConsumers: ['src/index.ts'],
+        facade: 'packages/core/src/query/joined-query.ts',
+        allowedConsumers: ['packages/core/src/index.ts', 'packages/core/src/experimental/index.ts'],
     },
     {
-        facade: 'src/model/value-converter.ts',
-        allowedConsumers: ['src/index.ts'],
-    },
-    { facade: 'src/query/joined-query-helpers.ts' },
-    {
-        facade: 'src/model/model-snapshot.ts',
-        allowedConsumers: ['src/index.ts'],
+        facade: 'packages/core/src/diagnostics/runtime-diagnostics.ts',
+        allowedConsumers: ['packages/core/src/index.ts'],
     },
     {
-        facade: 'src/migrations/migration-discovery.ts',
+        facade: 'packages/core/src/model/value-converter.ts',
+        allowedConsumers: ['packages/core/src/index.ts'],
+    },
+    { facade: 'packages/core/src/query/joined-query-helpers.ts' },
+    {
+        facade: 'packages/core/src/model/model-snapshot.ts',
+        allowedConsumers: ['packages/core/src/index.ts'],
+    },
+    {
+        facade: 'packages/core/src/migrations/migration-discovery.ts',
         allowedConsumers: [
-            'src/index.ts',
-            'src/migrations/api.ts',
-            'src/migrations/index.ts',
+            'packages/core/src/index.ts',
+            'packages/core/src/migrations/api.ts',
+            'packages/core/src/migrations/index.ts',
         ],
     },
     {
-        facade: 'src/query/include-loader-helpers.ts',
-        scope: 'src/query',
+        facade: 'packages/core/src/query/include-loader-helpers.ts',
+        scope: 'packages/core/src/query',
     },
     {
-        facade: 'src/query/aggregate-field-types.ts',
-        scope: 'src/query',
-        allowedConsumers: ['src/query/aggregate.ts'],
+        facade: 'packages/core/src/query/aggregate-field-types.ts',
+        scope: 'packages/core/src/query',
+        allowedConsumers: ['packages/core/src/query/aggregate.ts'],
     },
     {
-        facade: 'src/query/aggregate-expressions.ts',
-        scope: 'src/query',
+        facade: 'packages/core/src/query/aggregate-expressions.ts',
+        scope: 'packages/core/src/query',
     },
 ];
 
@@ -66,8 +68,12 @@ describe('compatibility facade boundaries', () => {
 
     it.each(facadeRules)(
         '$facade is not an internal dependency',
-        ({ facade, scope = 'src', allowedConsumers = [] }) => {
-            expect(unexpectedConsumers(facade, scope, allowedConsumers)).toEqual([]);
+        ({ facade, scope, allowedConsumers = [] }) => {
+            // Unscoped rules now sweep every package, not just core: a facade
+            // stops being a compatibility shim the moment any package depends
+            // on it internally.
+            const files = scope === undefined ? packageSourceFiles() : sourceFiles(scope);
+            expect(unexpectedConsumers(facade, files, allowedConsumers)).toEqual([]);
         },
     );
 });

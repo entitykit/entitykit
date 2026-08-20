@@ -1,11 +1,11 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import {
     ForeignKeyConstraintError,
-} from '../src';
-import { SchemaSqlBuilder } from '../src/schema/schema-sql-builder';
+} from '../packages/core/src';
+import { SchemaSqlBuilder } from '../packages/core/src/schema/schema-sql-builder';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import { internalEntityEntry } from './support/public-api-internals';
-import { createPostgresProviderError } from '../src/providers/postgres/postgres-provider-error';
+import { createPostgresProviderError } from '../packages/postgres/src/postgres-provider-error';
 import {
     configureRelationshipModel,
     createRelationshipDb as createDb,

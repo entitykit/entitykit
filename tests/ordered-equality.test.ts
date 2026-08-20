@@ -1,4 +1,4 @@
-import { orderedEqual } from '../src/collections/ordered-equality';
+import { orderedEqual } from '../packages/core/src/collections/ordered-equality';
 
 describe('ordered equality', () => {
     it('requires equal values in the same order', () => {

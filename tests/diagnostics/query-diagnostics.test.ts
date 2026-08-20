@@ -1,4 +1,4 @@
-import { type QueryPlanDiagnosticEvent } from '../../src';
+import { type QueryPlanDiagnosticEvent } from '../../packages/core/src';
 import {
     DiagnosticsContext,
     resetDiagnosticsContext,

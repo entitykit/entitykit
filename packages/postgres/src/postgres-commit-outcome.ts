@@ -1,5 +1,5 @@
-import type { DatabaseProviderError } from '../../storage/database-errors';
-import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
+import type { DatabaseProviderError } from '@entitykit/core/adapter';
+import { TransactionOutcomeUnknownError } from '@entitykit/core/adapter';
 import { createPostgresProviderError } from './postgres-provider-error';
 
 /** Classify a Postgres commit rejection by proof of transaction abortion. */

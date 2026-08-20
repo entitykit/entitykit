@@ -2,13 +2,13 @@ import type {
     DbContextOptionsBuilder,
     JsonValue,
     ModelBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
     EntityState,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 interface DomainEvent {
     readonly type: string;

@@ -1,10 +1,10 @@
-import { EntityState } from '../src';
-import type { EntityEntry as TrackedEntry } from '../src/tracking/entity-entry';
-import type { EntityEntry } from '../src/tracking/entity-entry-types';
+import { EntityState } from '../packages/core/src';
+import type { EntityEntry as TrackedEntry } from '../packages/core/src/tracking/entity-entry';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry-types';
 import {
     navigationChangeDetectionAllowed,
-} from '../src/tracking/navigation-change-detection-state';
-import { navigationSnapshot } from '../src/tracking/navigation-snapshot';
+} from '../packages/core/src/tracking/navigation-change-detection-state';
+import { navigationSnapshot } from '../packages/core/src/tracking/navigation-snapshot';
 import { requireDefined } from './support/require-defined';
 import { rejection } from './support/accessor-refusal-support';
 import { internalEntityEntry } from './support/public-api-internals';

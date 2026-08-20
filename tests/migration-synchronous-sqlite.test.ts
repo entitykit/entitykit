@@ -1,9 +1,9 @@
-import type { MigrationBuilder } from '../src/migrations/api';
-import { Migration, MigrationRunner } from '../src/migrations/api';
+import type { MigrationBuilder } from '../packages/core/src/migrations/api';
+import { Migration, MigrationRunner } from '../packages/core/src/migrations/api';
 import {
     SqliteDatabaseConnection,
     sqliteProviderServices,
-} from '../src/providers/sqlite';
+} from '../packages/sqlite/src';
 
 class AsyncSqliteUp extends Migration {
     public readonly id = '20260804171000_AsyncSqliteUp';

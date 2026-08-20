@@ -1,6 +1,7 @@
 node_modules/
 dist/
 packages/*/dist/
+*.tsbuildinfo
 coverage/
 docs/api/reference/
 docs/site/

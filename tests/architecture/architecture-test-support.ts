@@ -27,6 +27,21 @@ export function sourceFiles(relativeDirectory: string): string[] {
         .sort();
 }
 
+/** The workspace packages the cutover produced, in dependency order. */
+export const workspacePackages = [
+    'core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing',
+] as const;
+
+/** Repository-relative source root of one workspace package. */
+export function packageSourceRoot(name: string): string {
+    return `packages/${name}/src`;
+}
+
+/** Every authored source file, across all six workspace packages. */
+export function packageSourceFiles(): string[] {
+    return workspacePackages.flatMap(name => sourceFiles(packageSourceRoot(name)));
+}
+
 export function readSource(file: string): string {
     return fs.readFileSync(path.join(repositoryRoot, file), 'utf8');
 }
@@ -236,11 +251,11 @@ export function hasNamedReExport(
 
 export function unexpectedConsumers(
     facade: string,
-    scope: string,
+    scope: readonly string[],
     allowedConsumers: readonly string[],
 ): string[] {
     const allowed = new Set(allowedConsumers);
-    return sourceFiles(scope)
+    return scope
         .filter(file => file !== facade && !allowed.has(file))
         .filter(file => staticImportsOf(file).includes(facade))
         .map(file => `${file} -> ${facade}`);

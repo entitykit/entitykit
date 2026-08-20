@@ -1,5 +1,5 @@
-import { parseCommandArguments } from '../src/cli/cli-command-parser';
-import { parseGlobalOptions } from '../src/cli/cli-option-reader';
+import { parseCommandArguments } from '../packages/cli/src/cli-command-parser';
+import { parseGlobalOptions } from '../packages/cli/src/cli-option-reader';
 
 describe('CLI argument parsing', () => {
     it('derives flags, values, repeats, and positionals from command metadata', () => {

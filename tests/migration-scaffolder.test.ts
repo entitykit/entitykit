@@ -3,17 +3,17 @@ import path from 'path';
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
-} from '../src';
+} from '../packages/core/src';
 import {
     contextMigrations,
     renderSnapshotSource,
     scaffoldMigration,
     writeMigrationScaffold,
     readModelSnapshot,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 

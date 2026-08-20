@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';import { createModelSnapshot } from '../src/model/model-snapshot';
-import { diffModelSnapshots } from '../src/migrations/api';
-import { SchemaSqlBuilder } from '../src/schema/schema-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';import { createModelSnapshot } from '../packages/core/src/model/model-snapshot';
+import { diffModelSnapshots } from '../packages/core/src/migrations/api';
+import { SchemaSqlBuilder } from '../packages/core/src/schema/schema-sql-builder';
 
 /**
  * `createSchemaScript` creates a foreign key with a default name, and the

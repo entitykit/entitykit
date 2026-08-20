@@ -1,6 +1,6 @@
-import { reverseModelDiffOperation } from '../src/migrations/model-diff-operation-inverse';
-import type { MigrationTableShape } from '../src/migrations/migration-builder';
-import type { ModelDiffOperation } from '../src/migrations/model-diff-operations';
+import { reverseModelDiffOperation } from '../packages/core/src/migrations/model-diff-operation-inverse';
+import type { MigrationTableShape } from '../packages/core/src/migrations/migration-builder';
+import type { ModelDiffOperation } from '../packages/core/src/migrations/model-diff-operations';
 
 const column = { name: 'id', type: 'text', nullable: false } as const;
 const alterColumn = {

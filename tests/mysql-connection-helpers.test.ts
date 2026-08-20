@@ -1,5 +1,5 @@
-import { toMysqlBindValue } from '../src/providers/mysql/mysql-bind-value';
-import { createMysqlProviderError } from '../src/providers/mysql/mysql-provider-error';
+import { toMysqlBindValue } from '../packages/mysql/src/mysql-bind-value';
+import { createMysqlProviderError } from '../packages/mysql/src/mysql-provider-error';
 
 describe('MySQL connection helpers', () => {
     it('serializes structured bind values without changing driver-native values', () => {

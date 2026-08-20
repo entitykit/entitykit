@@ -1,4 +1,4 @@
-import { Queryable } from '../src/experimental';
+import { Queryable } from '../packages/core/src/experimental';
 import {
     createUserMetadata,
     RecordingExecutor,

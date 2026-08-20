@@ -3,9 +3,9 @@ import path from 'path';
 import {
     loadEntityKitConfig,
     resolveEntityKitConnection,
-} from '../src/cli/api';
-import type { PostgresConnectionConfig } from '../src';
-import { postgresProviderServices } from '../src/providers/postgres';
+} from '../packages/cli/src/api';
+import type { PostgresConnectionConfig } from '../packages/core/src';
+import { postgresProviderServices } from '../packages/postgres/src';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 function createTempProject(): string {

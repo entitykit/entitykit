@@ -1,5 +1,5 @@
-import type { TransactionOptions } from '../../storage/database-connection';
-import type { DatabaseProviderOperation } from '../../storage/database-provider-error';
+import type { TransactionOptions } from '@entitykit/core/adapter';
+import type { DatabaseProviderOperation } from '@entitykit/core/adapter';
 
 type ExecuteControl = (
     sql: string,

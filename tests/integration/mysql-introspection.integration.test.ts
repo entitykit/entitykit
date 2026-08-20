@@ -1,8 +1,8 @@
 import { requireDefined } from '../support/require-defined';
-import * as entitykit from '../../src';
-import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot, type GeneratedCodeFile } from '../../src/tooling';
-import { MySqlDatabaseConnection, MySqlSchemaIntrospector, mySqlProviderServices } from '../../src/providers/mysql';
-import * as mysqlProvider from '../../src/providers/mysql';
+import * as entitykit from '../../packages/core/src';
+import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot, type GeneratedCodeFile } from '../../packages/core/src/tooling';
+import { MySqlDatabaseConnection, MySqlSchemaIntrospector, mySqlProviderServices } from '../../packages/mysql/src';
+import * as mysqlProvider from '../../packages/mysql/src';
 import { loadGeneratedDbContext } from '../support/load-generated-db-context';
 
 const url = process.env.MYSQL_URL ?? process.env.MYSQL_DATABASE_URL;

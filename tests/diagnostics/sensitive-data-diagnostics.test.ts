@@ -1,7 +1,7 @@
 import {
     type RuntimeDiagnosticEvent,
-} from '../../src';
-import { DbContextOptionsBuilder } from '../../src/core/context-options/db-context-options-builder';
+} from '../../packages/core/src';
+import { DbContextOptionsBuilder } from '../../packages/core/src/core/context-options/db-context-options-builder';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 import {
     DiagnosticsContext,

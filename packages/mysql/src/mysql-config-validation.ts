@@ -1,4 +1,4 @@
-import type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
+import type { MySqlConnectionConfig } from '@entitykit/core';
 
 export function validateMysqlConfig(config: MySqlConnectionConfig): void {
     if (config.connectionString !== undefined) {

@@ -1,15 +1,15 @@
-import type { SqlStatement } from '../../sql/sql-statement';
-import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionOptions } from '../../storage/database-connection';
-import { EnclosingTransactionState } from '../../storage/enclosing-transaction-state';
-import { validateTransactionOptions } from '../../storage/transaction-options';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionOptions } from '@entitykit/core/adapter';
+import { EnclosingTransactionState } from '@entitykit/core/adapter';
+import { validateTransactionOptions } from '@entitykit/core/adapter';
 import type { MySqlConnection, MySqlPool } from './mysql-driver';
 import { createMysqlProviderError } from './mysql-provider-error';
 import { runMysqlTransaction } from './mysql-transaction';
 import { streamMysqlConnectionRows } from './mysql-stream-lease';
 import { executeMysqlBufferedQuery } from './mysql-buffered-query';
-import { throwIfOperationAborted } from '../../storage/operation-cancellation';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 import { runMysqlPooledSavepoint } from './mysql-pooled-savepoint';
-import { TransactionUsability } from '../../storage/transaction-usability';
+import { TransactionUsability } from '@entitykit/core/adapter';
 
 export class MySqlPooledConnection implements DatabaseConnection {
     private activeConnection?: MySqlConnection;

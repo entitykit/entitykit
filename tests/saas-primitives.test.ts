@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder } from '../src';
-import { DbContext, EntityState, type ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder } from '../packages/core/src';
+import { DbContext, EntityState, type ModelBuilder } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class SaaSUser {

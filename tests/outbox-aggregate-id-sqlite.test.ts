@@ -2,8 +2,8 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     OutboxMessage,
-} from '../src';
-import { DbContext } from '../src';
+} from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
 
 class BigIntAggregate {
     public id!: bigint;

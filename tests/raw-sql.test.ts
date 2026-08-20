@@ -1,13 +1,13 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
-import type { SqlDialect } from '../src/adapter';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import type { SqlDialect } from '../packages/core/src/adapter';
 import {
     postgres,
     rawSql as postgresRawSql,
-} from '../src/providers/postgres';
-import { rawSql as sqliteRawSql } from '../src/providers/sqlite';
-import { rawSql as mysqlRawSql } from '../src/providers/mysql';
-import { User } from '../src/examples';
+} from '../packages/postgres/src';
+import { rawSql as sqliteRawSql } from '../packages/sqlite/src';
+import { rawSql as mysqlRawSql } from '../packages/mysql/src';
+import { User } from '../packages/core/src/examples';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class RawSqlContext extends DbContext {

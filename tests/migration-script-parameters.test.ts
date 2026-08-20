@@ -1,9 +1,9 @@
-import type { SqlStatement } from '../src';
-import type { SqlDialect } from '../src/adapter';
-import { renderScript } from '../src/migrations/api';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
-import { sqliteDialect } from '../src/providers/sqlite/sqlite-dialect';
-import { postgresDialect } from '../src/sql/postgres-dialect';
+import type { SqlStatement } from '../packages/core/src';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { renderScript } from '../packages/core/src/migrations/api';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
+import { sqliteDialect } from '../packages/sqlite/src/sqlite-dialect';
+import { postgresDialect } from '../packages/core/src/sql/postgres-dialect';
 
 function render(
     text: string,

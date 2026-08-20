@@ -1,5 +1,5 @@
-import type { MigrationBuilder } from '../../../src/migrations/api';
-import { Migration } from '../../../src/migrations/api';
+import type { MigrationBuilder } from '../../../packages/core/src/migrations/api';
+import { Migration } from '../../../packages/core/src/migrations/api';
 
 export class CreateProviderContractUsers extends Migration {
     public readonly id = '20260601150000_CreateProviderContractUsers';

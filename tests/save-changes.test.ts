@@ -1,4 +1,4 @@
-import { EntityState } from '../src';
+import { EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     createSaveChangesDb as createDb,

@@ -1,5 +1,5 @@
-import type { EnclosingTransactionState } from '../../storage/enclosing-transaction-state';
-import type { TransactionOptions } from '../../storage/database-connection';
+import type { EnclosingTransactionState } from '@entitykit/core/adapter';
+import type { TransactionOptions } from '@entitykit/core/adapter';
 import type { MySqlConnection } from './mysql-driver';
 import { runMysqlSavepoint } from './mysql-transaction';
 

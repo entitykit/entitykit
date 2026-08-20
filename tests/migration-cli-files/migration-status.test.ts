@@ -1,4 +1,4 @@
-import { runEntityKitCli } from '../../src/cli/api';
+import { runEntityKitCli } from '../../packages/cli/src/api';
 import {
     createProjectWithCustomProvider,
 } from './migration-cli-files-test-support';

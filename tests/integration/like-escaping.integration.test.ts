@@ -1,10 +1,10 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../../src';
+} from '../../packages/core/src';
 import {
     DbContext,
-} from '../../src';
+} from '../../packages/core/src';
 
 /**
  * `contains` / `startsWith` / `endsWith` treat a literal `%` or `_` in the

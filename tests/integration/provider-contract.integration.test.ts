@@ -1,5 +1,5 @@
 import { requireDefined } from '../support/require-defined';
-import { postgresProviderServices } from '../../src/providers/postgres';
+import { postgresProviderServices } from '../../packages/postgres/src';
 import {
     defineProviderContractTests,
     expectDatabaseProviderError,

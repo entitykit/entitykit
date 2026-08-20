@@ -1,6 +1,6 @@
 import { contextOptions } from './support/public-api-internals';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DatabaseProviderError, DbContext } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DatabaseProviderError, DbContext } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {

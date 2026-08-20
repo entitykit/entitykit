@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runEntityKitCli } from '../src/cli/api';
-import { SqliteDatabaseConnection } from '../src/providers/sqlite';
-import { migrationHistoryTableName } from '../src/migrations/migration-metadata';
+import { runEntityKitCli } from '../packages/cli/src/api';
+import { SqliteDatabaseConnection } from '../packages/sqlite/src';
+import { migrationHistoryTableName } from '../packages/core/src/migrations/migration-metadata';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 import { requireDefined } from './support/require-defined';
 

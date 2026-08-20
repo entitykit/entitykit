@@ -2,9 +2,9 @@ import type {
     DatabaseConnection,
     DatabaseConnectionSource,
     DatabaseProviderServices,
-} from '../src/adapter';
-import { createDataSource } from '../src/adapter';
-import { DbContextOptionsBuilder } from '../src/core/context-options/db-context-options-builder';
+} from '../packages/core/src/adapter';
+import { createDataSource } from '../packages/core/src/adapter';
+import { DbContextOptionsBuilder } from '../packages/core/src/core/context-options/db-context-options-builder';
 import { createFakeProvider } from './support/fake-provider';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 

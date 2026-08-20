@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-import { runEntityKitCli } from '../src/cli/api';
-import { loadEntityKitConfig } from '../src/cli/entity-kit-config';
+import { runEntityKitCli } from '../packages/cli/src/api';
+import { loadEntityKitConfig } from '../packages/cli/src/entity-kit-config';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 describe('entitykit init', () => {

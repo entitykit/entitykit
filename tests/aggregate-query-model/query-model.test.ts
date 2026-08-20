@@ -1,5 +1,5 @@
-import { postgres } from '../../src/providers/postgres';
-import { Queryable } from '../../src/experimental';
+import { postgres } from '../../packages/postgres/src';
+import { Queryable } from '../../packages/core/src/experimental';
 import { createOrderMetadata, Order, RecordingExecutor } from './support';
 
 describe('aggregate query model construction', () => {

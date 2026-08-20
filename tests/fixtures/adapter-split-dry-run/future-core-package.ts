@@ -12,9 +12,9 @@
  */
 
 // --- core main entry: '.' ---
-export { DbContext } from '../../../src/core/db-context';
-export type { SavePlanEntry } from '../../../src/core/db-context';
-export { DbContextOptionsBuilder } from '../../../src/core/db-context-options';
+export { DbContext } from '../../../packages/core/src/core/db-context';
+export type { SavePlanEntry } from '../../../packages/core/src/core/db-context';
+export { DbContextOptionsBuilder } from '../../../packages/core/src/core/db-context-options';
 export type {
     AuditOptions,
     DatabaseProvider,
@@ -23,40 +23,40 @@ export type {
     OutboxOptions,
     ProviderOptions,
     TenantScopeOptions,
-} from '../../../src/core/db-context-options';
-export { DbSet } from '../../../src/core/db-set';
-export { DbUpdateConcurrencyError } from '../../../src/core/db-update-concurrency-error';
-export { ModelBuilder } from '../../../src/model/model-builder';
-export type { RuntimeDiagnosticEvent } from '../../../src/diagnostics/runtime-diagnostics';
+} from '../../../packages/core/src/core/db-context-options';
+export { DbSet } from '../../../packages/core/src/core/db-set';
+export { DbUpdateConcurrencyError } from '../../../packages/core/src/core/db-update-concurrency-error';
+export { ModelBuilder } from '../../../packages/core/src/model/model-builder';
+export type { RuntimeDiagnosticEvent } from '../../../packages/core/src/diagnostics/runtime-diagnostics';
 
 // --- core migrations entry: './migrations' ---
-export { Migration } from '../../../src/migrations/migration';
-export { MigrationBuilder, MigrationColumnBuilder, MigrationTableBuilder } from '../../../src/migrations/migration-builder';
+export { Migration } from '../../../packages/core/src/migrations/migration';
+export { MigrationBuilder, MigrationColumnBuilder, MigrationTableBuilder } from '../../../packages/core/src/migrations/migration-builder';
 export type {
     MigrationAlterColumnDefinition,
     MigrationColumnDefinition,
     MigrationForeignKeyDefinition,
     MigrationIndexDefinition,
     MigrationSqlOptions,
-} from '../../../src/migrations/migration-builder';
+} from '../../../packages/core/src/migrations/migration-builder';
 export type {
     MigrationBuilderFactory,
     MigrationTableCallback,
-} from '../../../src/migrations/migration-builder-contract';
-export { MigrationRunner } from '../../../src/migrations/migration-runner';
-export type { MigrationRunnerDiagnosticsOptions, MigrationUpdateOptions, MigrationUpdateResult } from '../../../src/migrations/migration-runner';
-export type { MigrationSqlDialect } from '../../../src/migrations/migration-sql-dialect';
+} from '../../../packages/core/src/migrations/migration-builder-contract';
+export { MigrationRunner } from '../../../packages/core/src/migrations/migration-runner';
+export type { MigrationRunnerDiagnosticsOptions, MigrationUpdateOptions, MigrationUpdateResult } from '../../../packages/core/src/migrations/migration-runner';
+export type { MigrationSqlDialect } from '../../../packages/core/src/migrations/migration-sql-dialect';
 
 // --- core adapter entry: './adapter' ---
 // The contracts a provider package implements. Everything a built-in provider
 // reaches for — the cancellation, transaction, and streaming primitives, the
 // data-source factory, the provider-services validator — is reachable here too.
-export type { DatabaseConnection, DatabaseQueryResult } from '../../../src/storage/database-connection';
+export type { DatabaseConnection, DatabaseQueryResult } from '../../../packages/core/src/storage/database-connection';
 export type {
     DatabaseProviderConnectionConfig,
     DatabaseProviderServices,
     DatabaseSchemaIntrospector,
-} from '../../../src/storage/database-provider-services';
-export type { DatabaseSchemaSnapshot } from '../../../src/introspection/database-schema';
-export type { SqlDialect } from '../../../src/sql/sql-dialect';
-export type { SqlStatement } from '../../../src/sql/sql-statement';
+} from '../../../packages/core/src/storage/database-provider-services';
+export type { DatabaseSchemaSnapshot } from '../../../packages/core/src/introspection/database-schema';
+export type { SqlDialect } from '../../../packages/core/src/sql/sql-dialect';
+export type { SqlStatement } from '../../../packages/core/src/sql/sql-statement';

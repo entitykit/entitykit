@@ -1,12 +1,12 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { toBindValue } from '../src/providers/sqlite/sqlite-binding';
-import { buildGeneratedValueRefresh } from '../src/core/unit-of-work/generated-value-refresh';
-import { sqliteDialect } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { toBindValue } from '../packages/sqlite/src/sqlite-binding';
+import { buildGeneratedValueRefresh } from '../packages/core/src/core/unit-of-work/generated-value-refresh';
+import { sqliteDialect } from '../packages/sqlite/src';
 import { contextModel } from './support/public-api-internals';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 
 class NumericRow {
     public id = '';

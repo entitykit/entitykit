@@ -1,7 +1,7 @@
-import { SavePlanBuilder } from '../src/core/save-plan-builder';
-import { RestorationScope } from '../src/restoration-scope';
-import type { SaveTimeWrites } from '../src/core/save-time-writes';
-import type { SavePlanBuilderDeps } from '../src/core/save-plan-builder';
+import { SavePlanBuilder } from '../packages/core/src/core/save-plan-builder';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
+import type { SaveTimeWrites } from '../packages/core/src/core/save-time-writes';
+import type { SavePlanBuilderDeps } from '../packages/core/src/core/save-plan-builder';
 
 function builderWithFailure(failure: unknown): {
     readonly builder: SavePlanBuilder;

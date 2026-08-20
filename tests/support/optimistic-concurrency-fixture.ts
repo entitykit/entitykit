@@ -1,10 +1,10 @@
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../../src';
+    ModelBuilder } from '../../packages/core/src';
 import {
     DbContext,
     type RuntimeDiagnosticEvent,
-} from '../../src';
+} from '../../packages/core/src';
 import { RecordingDatabaseConnection } from './recording-database-connection';
 
 export class User {

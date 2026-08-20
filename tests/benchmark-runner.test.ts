@@ -1,4 +1,4 @@
-import { formatBenchmarkResults, runBenchmarkCase, runBenchmarkSuite } from '../src/benchmarks/benchmark-runner';
+import { formatBenchmarkResults, runBenchmarkCase, runBenchmarkSuite } from '../packages/core/src/benchmarks/benchmark-runner';
 
 describe('benchmark runner', () => {
     it('runs benchmark cases and formats results', async () => {

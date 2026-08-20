@@ -1,5 +1,5 @@
-import { TransactionCoordinator } from '../src/core/transaction-coordinator';
-import { RecordingDatabaseConnection } from '../src/testing';
+import { TransactionCoordinator } from '../packages/core/src/core/transaction-coordinator';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 describe('TransactionCoordinator', () => {
     it('runs every after-commit callback when an earlier callback fails', async () => {

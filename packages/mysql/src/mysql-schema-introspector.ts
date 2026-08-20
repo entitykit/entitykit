@@ -1,8 +1,8 @@
 import type {
     DatabaseSchemaIntrospectionOptions,
     DatabaseSchemaSnapshot,
-} from '../../introspection/database-schema';
-import type { DatabaseConnection } from '../../storage/database-connection';
+} from '@entitykit/core/adapter';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
 import {
     queryBaseTables,
     queryCheckConstraints,
@@ -21,7 +21,7 @@ export type {
     DatabaseSchema,
     DatabaseSchemaSnapshot,
     DatabaseTable,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 
 /**
  * Introspect a MySQL database into the provider-neutral schema snapshot.

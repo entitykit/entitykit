@@ -1,9 +1,9 @@
-import { EntityNotFoundError, MultipleEntitiesFoundError } from '../src';
+import { EntityNotFoundError, MultipleEntitiesFoundError } from '../packages/core/src';
 import {
     firstResultOrNull,
     requireQueryResult,
     singleResultOrNull,
-} from '../src/query/query-cardinality';
+} from '../packages/core/src/query/query-cardinality';
 
 describe('query cardinality', () => {
     it('reads empty and populated result sets', () => {

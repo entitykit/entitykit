@@ -1,4 +1,4 @@
-import { DbUpdateConcurrencyError, EntityState } from '../src';
+import { DbUpdateConcurrencyError, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     createConcurrencyContext,

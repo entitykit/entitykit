@@ -1,13 +1,13 @@
 import type { PoolClient } from './postgres-driver';
 import {
     DatabaseTransactionCleanupError,
-} from '../../storage/database-errors';
+} from '@entitykit/core/adapter';
 import type {
     TransactionIsolationLevel,
     TransactionOptions,
-} from '../../storage/database-connection';
+} from '@entitykit/core/adapter';
 import { createPostgresProviderError } from './postgres-provider-error';
-import { throwIfOperationAborted } from '../../storage/operation-cancellation';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 import { postgresCommitFailure } from './postgres-commit-outcome';
 
 export async function runPostgresTransaction<TResult>(

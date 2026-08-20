@@ -1,8 +1,8 @@
-import { valueConverter } from '../src';
-import { createQueryFilterOperation } from '../src/core/query-filter-operation';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder } from '../src/model/model-builder';
-import { createQueryModel } from '../src/query/query-model';
+import { valueConverter } from '../packages/core/src';
+import { createQueryFilterOperation } from '../packages/core/src/core/query-filter-operation';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
+import { createQueryModel } from '../packages/core/src/query/query-model';
 
 interface JsonTenant {
     region: string;

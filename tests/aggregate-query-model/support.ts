@@ -1,9 +1,9 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../../src/model/model-builder';
-import type { DbContextOptionsBuilder , ModelBuilder } from '../../src';
-import type { EntityMetadata } from '../../src/model/entity-metadata';
-import { DbContext } from '../../src';
-import type { SqlDialect } from '../../src/adapter';
-import type { QueryExecutor, QueryModel } from '../../src/experimental';
+import { ModelBuilder as ModelBuilderImplementation } from '../../packages/core/src/model/model-builder';
+import type { DbContextOptionsBuilder , ModelBuilder } from '../../packages/core/src';
+import type { EntityMetadata } from '../../packages/core/src/model/entity-metadata';
+import { DbContext } from '../../packages/core/src';
+import type { SqlDialect } from '../../packages/core/src/adapter';
+import type { QueryExecutor, QueryModel } from '../../packages/core/src/experimental';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 
 export class Order {

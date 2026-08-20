@@ -1,5 +1,5 @@
-import { DatabaseProviderError } from '../../storage/database-errors';
-import { TransactionOutcomeUnknownError } from '../../storage/transaction-outcome-unknown-error';
+import { DatabaseProviderError } from '@entitykit/core/adapter';
+import { TransactionOutcomeUnknownError } from '@entitykit/core/adapter';
 import { createMysqlProviderError } from './mysql-provider-error';
 
 /** Classify a MySQL commit rejection by proof of transaction abortion. */

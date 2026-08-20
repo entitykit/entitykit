@@ -1,5 +1,5 @@
-import { Queryable } from '../../src/experimental';
-import { SelectSqlBuilder } from '../../src/sql/select-sql-builder';
+import { Queryable } from '../../packages/core/src/experimental';
+import { SelectSqlBuilder } from '../../packages/core/src/sql/select-sql-builder';
 import { Post, RelationExecutor, Role, User, createBlogModel } from './support';
 
 describe('SelectSqlBuilder relation existence', () => {

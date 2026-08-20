@@ -1,13 +1,13 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { EntityMetadata } from '../src/model/entity-metadata';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
 import {
     TenantOwnershipError,
     UniqueConstraintError,
-} from '../src';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
-import { postgresDialect } from '../src/sql/sql-dialect';
-import { mySqlDialect } from '../src/providers/mysql';
-import { sqliteDialect } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
+import { postgresDialect } from '../packages/core/src/sql/sql-dialect';
+import { mySqlDialect } from '../packages/mysql/src';
+import { sqliteDialect } from '../packages/sqlite/src';
 import {
     bulkUpsertFixture,
     Item,

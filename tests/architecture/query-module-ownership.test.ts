@@ -10,43 +10,43 @@ import {
 describe('query module ownership', () => {
     testIdentifierBoundaries([
         {
-            file: 'src/query/queryable.ts',
+            file: 'packages/core/src/query/queryable.ts',
             forbidden: ['whereIf', 'leftJoin'],
         },
         {
-            file: 'src/query/include-strategy-many-to-many.ts',
+            file: 'packages/core/src/query/include-strategy-many-to-many.ts',
             forbidden: ['SqlParameterBag', 'PredicateSqlCompiler'],
         },
         {
-            file: 'src/query/include-strategy-one-to-many.ts',
+            file: 'packages/core/src/query/include-strategy-one-to-many.ts',
             forbidden: ['SqlParameterBag', 'PredicateSqlCompiler'],
         },
         {
-            file: 'src/query/include-key-helpers.ts',
+            file: 'packages/core/src/query/include-key-helpers.ts',
             forbidden: ['IncludeExpression'],
         },
         {
-            file: 'src/query/include-navigation-helpers.ts',
+            file: 'packages/core/src/query/include-navigation-helpers.ts',
             forbidden: ['StoreValueReader', 'readStoreValue'],
         },
         {
-            file: 'src/query/aggregate-selection-expressions.ts',
+            file: 'packages/core/src/query/aggregate-selection-expressions.ts',
             forbidden: ['dateBucketPrecisions', 'aggregateFieldSymbol'],
         },
         {
-            file: 'src/query/aggregate-field-guards.ts',
+            file: 'packages/core/src/query/aggregate-field-guards.ts',
             forbidden: ['GroupedAggregateSelection'],
         },
         {
-            file: 'src/query/queryable-projected.ts',
+            file: 'packages/core/src/query/queryable-projected.ts',
             forbidden: ['EntityNotFoundError', 'SelectSqlBuilder', 'executeProjectionToArray'],
         },
         {
-            file: 'src/query/joined-query-projected.ts',
+            file: 'packages/core/src/query/joined-query-projected.ts',
             forbidden: ['EntityNotFoundError', 'SelectSqlBuilder', 'executeProjectionToArray'],
         },
         {
-            file: 'src/query/projected-query-terminals.ts',
+            file: 'packages/core/src/query/projected-query-terminals.ts',
             forbidden: [
                 'createQueryProxy',
                 'createJoinedQueryProxy',
@@ -55,23 +55,23 @@ describe('query module ownership', () => {
             ],
         },
         {
-            file: 'src/query/queryable-terminals.ts',
+            file: 'packages/core/src/query/queryable-terminals.ts',
             forbidden: ['EntityNotFoundError', 'MultipleEntitiesFoundError'],
         },
         {
-            file: 'src/query/aggregate-query-terminals.ts',
+            file: 'packages/core/src/query/aggregate-query-terminals.ts',
             forbidden: ['EntityNotFoundError', 'MultipleEntitiesFoundError'],
         },
         {
-            file: 'src/query/unsafe-raw-sql-queryable.ts',
+            file: 'packages/core/src/query/unsafe-raw-sql-queryable.ts',
             forbidden: ['EntityNotFoundError', 'MultipleEntitiesFoundError'],
         },
         {
-            file: 'src/query/queryable-aggregate.ts',
+            file: 'packages/core/src/query/queryable-aggregate.ts',
             forbidden: ['EntityNotFoundError', 'SelectSqlBuilder', 'executeAggregateToArray'],
         },
         {
-            file: 'src/query/joined-query-aggregate.ts',
+            file: 'packages/core/src/query/joined-query-aggregate.ts',
             forbidden: ['EntityNotFoundError', 'SelectSqlBuilder', 'executeAggregateToArray'],
         },
     ]);
@@ -80,35 +80,35 @@ describe('query module ownership', () => {
         {
             maximumLines: 100,
             files: [
-                'src/query/query-model-snapshot.ts',
-                'src/query/aggregate-query-terminals.ts',
-                'src/query/queryable-aggregate.ts',
-                'src/query/joined-query-aggregate.ts',
+                'packages/core/src/query/query-model-snapshot.ts',
+                'packages/core/src/query/aggregate-query-terminals.ts',
+                'packages/core/src/query/queryable-aggregate.ts',
+                'packages/core/src/query/joined-query-aggregate.ts',
             ],
         },
         {
             maximumLines: 110,
             files: [
-                'src/query/include-loader-helpers.ts',
-                'src/query/include-key-helpers.ts',
-                'src/query/include-navigation-helpers.ts',
+                'packages/core/src/query/include-loader-helpers.ts',
+                'packages/core/src/query/include-key-helpers.ts',
+                'packages/core/src/query/include-navigation-helpers.ts',
             ],
         },
     ]);
 
     it('keeps all QueryModel cloning in the snapshot owner', () => {
         const consumers = [
-            'src/query/queryable-state.ts',
-            'src/query/queryable-projected.ts',
-            'src/query/queryable-aggregate.ts',
-            'src/query/queryable-grouped.ts',
-            'src/query/joined-query/queryable-state.ts',
-            'src/query/joined-query-projected.ts',
-            'src/query/joined-query-aggregate.ts',
-            'src/query/joined-query-grouped.ts',
+            'packages/core/src/query/queryable-state.ts',
+            'packages/core/src/query/queryable-projected.ts',
+            'packages/core/src/query/queryable-aggregate.ts',
+            'packages/core/src/query/queryable-grouped.ts',
+            'packages/core/src/query/joined-query/queryable-state.ts',
+            'packages/core/src/query/joined-query-projected.ts',
+            'packages/core/src/query/joined-query-aggregate.ts',
+            'packages/core/src/query/joined-query-grouped.ts',
         ];
         const offenders = consumers.filter(file =>
-            !staticImportsOf(file).includes('src/query/query-model-snapshot.ts'),
+            !staticImportsOf(file).includes('packages/core/src/query/query-model-snapshot.ts'),
         );
 
         expect(offenders).toEqual([]);
@@ -117,7 +117,7 @@ describe('query module ownership', () => {
     it('preserves the joined-query clone compatibility export', () => {
         expect(
             hasNamedReExport(
-                'src/query/joined-query-helpers.ts',
+                'packages/core/src/query/joined-query-helpers.ts',
                 'snapshotJoinedQueryModel',
                 'cloneJoinedQueryModel',
             ),

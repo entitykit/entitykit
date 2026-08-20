@@ -1,4 +1,4 @@
-import { RecordingDatabaseConnection } from '../src/testing';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 describe('RecordingDatabaseConnection', () => {
     it('returns an empty result when no result is queued', async () => {

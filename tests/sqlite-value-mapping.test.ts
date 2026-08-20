@@ -1,7 +1,7 @@
 import { requireDefined } from './support/require-defined';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
-import { sqliteProviderServices, sqliteValueReader } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import { sqliteProviderServices, sqliteValueReader } from '../packages/sqlite/src';
 
 describe('sqliteValueReader', () => {
     it('restores booleans from SQLite storage values', () => {

@@ -1,13 +1,13 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     ContextStateRestorationError,
     DbContext,
     valueConverter,
-} from '../src';
-import { postgresDialect } from '../src/providers/postgres';
-import { generatedRelationshipTarget } from '../src/tracking/generated-relationship-target-store';
-import type { EntityEntry as InternalEntityEntry } from '../src/tracking/entity-entry';
-import type { TrackedRelationshipMetadata } from '../src/tracking/tracked-relationship-metadata';
+} from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
+import { generatedRelationshipTarget } from '../packages/core/src/tracking/generated-relationship-target-store';
+import type { EntityEntry as InternalEntityEntry } from '../packages/core/src/tracking/entity-entry';
+import type { TrackedRelationshipMetadata } from '../packages/core/src/tracking/tracked-relationship-metadata';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import { internalEntityEntry } from './support/public-api-internals';
 

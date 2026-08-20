@@ -1,5 +1,5 @@
 import { requireDefined } from '../support/require-defined';
-import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../src/tooling';
+import { generateDbPullCode, generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 import { compileGeneratedFiles, createGeneratedModelSnapshot } from './support';
 
 describe('db pull with composite keys', () => {

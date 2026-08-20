@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
+import type { PostgresConnectionConfig } from '@entitykit/core';
 import { observePostgresPoolErrors } from './postgres-pool-errors';
 import type { PgModule, Pool } from './postgres-driver-contract';
 
@@ -11,7 +11,7 @@ export type {
 
 const loadModule = createRequire(__filename);
 
-export type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
+export type { PostgresConnectionConfig } from '@entitykit/core';
 
 export function createPostgresPool(
     config: string | PostgresConnectionConfig,

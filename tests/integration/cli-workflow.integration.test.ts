@@ -1,8 +1,8 @@
 import { requireDefined } from '../support/require-defined';
 import fs from 'fs';
 import path from 'path';
-import { runEntityKitCli } from '../../src/cli/api';
-import { PostgresDatabaseConnection } from '../../src/providers/postgres';
+import { runEntityKitCli } from '../../packages/cli/src/api';
+import { PostgresDatabaseConnection } from '../../packages/postgres/src';
 import { createManagedTempDirectory } from '../support/managed-temp-directory';
 
 /**

@@ -1,10 +1,10 @@
 import { requireDefined } from '../support/require-defined';
-import { generateDbPullCodeWithDiagnostics, type DatabaseTable } from '../../src/tooling';
+import { generateDbPullCodeWithDiagnostics, type DatabaseTable } from '../../packages/core/src/tooling';
 import {
     MySqlDatabaseConnection,
     MySqlSchemaIntrospector,
-} from '../../src/providers/mysql';
-import * as mysqlProvider from '../../src/providers/mysql';
+} from '../../packages/mysql/src';
+import * as mysqlProvider from '../../packages/mysql/src';
 import { loadGeneratedDbContext } from '../support/load-generated-db-context';
 import {
     richSchemaShape,

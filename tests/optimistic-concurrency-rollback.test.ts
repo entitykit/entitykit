@@ -1,4 +1,4 @@
-import { EntityState, type SaveChangesDiagnosticEvent } from '../src';
+import { EntityState, type SaveChangesDiagnosticEvent } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     ConcurrencyContext,

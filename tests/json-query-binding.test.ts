@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import type { JsonValue } from '../src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import type { JsonValue } from '../packages/core/src';
 import {
     createProjectionBuilder,
     createProjectionExpression,
@@ -9,9 +9,9 @@ import {
     createQueryProxy,
     Queryable,
     type QueryExecutor,
-} from '../src/experimental';
-import { SelectSqlBuilder } from '../src/sql/select-sql-builder';
-import { mySqlDialect } from '../src/providers/mysql';
+} from '../packages/core/src/experimental';
+import { SelectSqlBuilder } from '../packages/core/src/sql/select-sql-builder';
+import { mySqlDialect } from '../packages/mysql/src';
 
 class JsonDocument {
     public id!: string;

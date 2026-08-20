@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { boundedIdentifier } from '../src/relational-identifiers';
-import { valueConverter } from '../src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { boundedIdentifier } from '../packages/core/src/relational-identifiers';
+import { valueConverter } from '../packages/core/src';
 
 class RelationshipOwner {
     public id = '';

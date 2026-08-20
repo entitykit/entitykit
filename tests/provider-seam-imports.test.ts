@@ -7,11 +7,11 @@ import {
 
 describe('provider seam architecture: imports', () => {
     it('keeps core options from importing the Postgres adapter and loads it lazily', () => {
-        const source = readSource('src/core/context-options/db-context-options-builder.ts');
+        const source = readSource('packages/core/src/core/context-options/db-context-options-builder.ts');
 
         expect(source).not.toContain('PostgresDatabaseConnection');
         expect(source).not.toMatch(/from\s+["']pg["']/);
-        expect(source).not.toMatch(/import[^\n]*from\s+["'][^"']*providers\/postgres/);
+        expect(source).not.toMatch(/import[^\n]*from\s+["'][^"']*(?:packages\/postgres\/src|@entitykit\/postgres)/);
         expect(source).toContain('useProvider(');
         expect(source).toContain('loadBuiltInPostgresProviderServices');
     });
@@ -22,7 +22,7 @@ describe('provider seam architecture: imports', () => {
         for (const file of files) {
             const source = readSource(file);
 
-            expect(source).not.toMatch(/from\s+["'][^"']*providers\/postgres/);
+            expect(source).not.toMatch(/from\s+["'][^"']*(?:packages\/postgres\/src|@entitykit\/postgres)/);
             expect(source).not.toContain('PostgresDatabaseConnection');
             expect(source).not.toContain('PostgresSchemaIntrospector');
             expect(source).not.toContain('postgresProviderServices');
@@ -44,20 +44,20 @@ describe('provider seam architecture: imports', () => {
         expect(postgresFixture).toContain('PostgresSchemaIntrospector');
         expect(postgresFixture).toContain('postgresProviderServices');
         expect(futureCorePackage).toContain('DatabaseProviderServices');
-        expect(futureCorePackage).not.toMatch(/Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres|providers\/postgres/);
-        expect(futureCoreConsumer).not.toMatch(/Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres|providers\/postgres/);
-        expect(futurePostgresPackage).toMatch(/providers\/postgres/);
+        expect(futureCorePackage).not.toMatch(/Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres|packages\/postgres/);
+        expect(futureCoreConsumer).not.toMatch(/Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres|packages\/postgres/);
+        expect(futurePostgresPackage).toMatch(/packages\/postgres\/src/);
         expect(futurePostgresConsumer).toContain('useProvider');
         // The recording test doubles are their own package, so the core stand-in
         // must not re-export them and the consumer must name them separately.
-        expect(futureCorePackage).not.toMatch(/src\/testing|RecordingDatabaseConnection/);
-        expect(futureTestingPackage).toMatch(/src\/testing/);
+        expect(futureCorePackage).not.toMatch(/packages\/testing\/src|RecordingDatabaseConnection/);
+        expect(futureTestingPackage).toMatch(/packages\/testing\/src/);
         expect(futureTestingPackage).toContain('RecordingDatabaseConnection');
         expect(futureCoreConsumer).toMatch(/from '\.\/future-testing-package'/);
     });
 
     it('keeps generic provider services free of concrete Postgres services', () => {
-        const source = readSource('src/storage/database-provider-services.ts');
+        const source = readSource('packages/core/src/storage/database-provider-services.ts');
 
         expect(source).not.toContain('PostgresDatabaseConnection');
         expect(source).not.toContain('PostgresSchemaIntrospector');
@@ -68,10 +68,10 @@ describe('provider seam architecture: imports', () => {
 
     it('keeps core query and migration paths from importing concrete Postgres storage', () => {
         const files = [
-            ...listSourceFiles('src/core'),
-            ...listSourceFiles('src/query'),
-            ...listSourceFiles('src/sql'),
-            ...listSourceFiles('src/migrations'),
+            ...listSourceFiles('packages/core/src/core'),
+            ...listSourceFiles('packages/core/src/query'),
+            ...listSourceFiles('packages/core/src/sql'),
+            ...listSourceFiles('packages/core/src/migrations'),
         ];
 
         for (const file of files) {
@@ -86,29 +86,29 @@ describe('provider seam architecture: imports', () => {
     it('keeps pg loading isolated to the Postgres driver boundary', () => {
         expect(filesContaining(/from\s+["']pg["']/)).toEqual([]);
         expect(filesContaining(/loadModule\(["']pg["']\)/)).toEqual([
-            'src/providers/postgres/postgres-driver.ts',
+            'packages/postgres/src/postgres-driver.ts',
         ]);
     });
 
     it('keeps direct node:sqlite imports isolated to the SQLite connection implementation', () => {
         expect(filesContaining(/from\s+["']node:sqlite["']/)).toEqual([
-            'src/providers/sqlite/sqlite-buffered-query.ts',
-            'src/providers/sqlite/sqlite-database-connection.ts',
-            'src/providers/sqlite/sqlite-statement.ts',
+            'packages/sqlite/src/sqlite-buffered-query.ts',
+            'packages/sqlite/src/sqlite-database-connection.ts',
+            'packages/sqlite/src/sqlite-statement.ts',
         ]);
     });
 
     it('keeps the SQLite adapter out of core, cli, and core-neutral source roots', () => {
         const files = [
-            ...listSourceFiles('src/core'),
-            ...listSourceFiles('src/cli'),
+            ...listSourceFiles('packages/core/src/core'),
+            ...listSourceFiles('packages/cli/src'),
             ...coreNeutralSourceRoots.flatMap(root => listSourceFiles(root)),
-        ].filter(file => file !== 'src/core/built-in-sqlite.ts');
+        ].filter(file => file !== 'packages/core/src/core/built-in-sqlite.ts');
 
         for (const file of files) {
             const source = readSource(file);
 
-            expect(source).not.toMatch(/from\s+["'][^"']*providers\/sqlite/);
+            expect(source).not.toMatch(/from\s+["'][^"']*(?:packages\/sqlite\/src|@entitykit\/sqlite)/);
             expect(source).not.toContain('SqliteDatabaseConnection');
             expect(source).not.toContain('sqliteProviderServices');
         }
@@ -117,26 +117,26 @@ describe('provider seam architecture: imports', () => {
     it('keeps concrete Postgres service ownership in the adapter, barrels, and the lazy core bridge', () => {
         const concreteOwnerFiles = filesContaining(/PostgresDatabaseConnection|PostgresSchemaIntrospector|postgresProviderServices/);
 
-        // `src/experimental/index.ts` is deliberately absent: the experimental
+        // `packages/core/src/experimental/index.ts` is deliberately absent: the
         // entry belongs to core and must not name a provider's concrete
         // services, or core would depend on the Postgres package after the split.
         expect(concreteOwnerFiles).toEqual([
-            'src/core/built-in-postgres.ts',
-            'src/providers/postgres/index.ts',
-            'src/providers/postgres/pg-database-connection.ts',
-            'src/providers/postgres/postgres-data-source.ts',
-            'src/providers/postgres/postgres-provider-services.ts',
-            'src/providers/postgres/postgres-schema-introspector.ts',
+            'packages/core/src/core/built-in-postgres.ts',
+            'packages/postgres/src/index.ts',
+            'packages/postgres/src/pg-database-connection.ts',
+            'packages/postgres/src/postgres-data-source.ts',
+            'packages/postgres/src/postgres-provider-services.ts',
+            'packages/postgres/src/postgres-schema-introspector.ts',
         ]);
     });
 
     it('keeps core and cli free of static Postgres adapter imports (package-split ready)', () => {
-        const files = [...listSourceFiles('src/core'), ...listSourceFiles('src/cli')];
+        const files = [...listSourceFiles('packages/core/src/core'), ...listSourceFiles('packages/cli/src')];
 
         for (const file of files) {
             const source = readSource(file);
 
-            expect(source).not.toMatch(/import[^\n]*from\s+["'][^"']*providers\/postgres/);
+            expect(source).not.toMatch(/import[^\n]*from\s+["'][^"']*(?:packages\/postgres\/src|@entitykit\/postgres)/);
             expect(source).not.toMatch(/from\s+["']pg["']/);
         }
     });

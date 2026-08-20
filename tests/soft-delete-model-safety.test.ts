@@ -2,10 +2,10 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     PropertyBuilder,
-} from '../src';
-import { DbContext, EntityState, valueConverter } from '../src';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContext, EntityState, valueConverter } from '../packages/core/src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class SoftDeleteModelRow {
     public id = '';

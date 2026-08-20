@@ -1,5 +1,5 @@
-import * as migrations from '../../src/migrations/api';
-import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../src/tooling';
+import * as migrations from '../../packages/core/src/migrations/api';
+import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 import { compileGeneratedFiles, createGeneratedModelSnapshot } from './support';
 
 describe('db pull model mapping', () => {

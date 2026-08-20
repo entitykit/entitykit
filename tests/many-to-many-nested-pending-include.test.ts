@@ -2,11 +2,11 @@ import type {
     IncludeLoaderContext,
     IncludeLoadRoot,
     ManyToManyRelationshipInfo,
-} from '../src/query/include-loader-context';
+} from '../packages/core/src/query/include-loader-context';
 import {
     assignManyToManyRelated,
-} from '../src/query/include-many-to-many-stitch';
-import { directNavigationWriter } from '../src/tracking/navigation-writer';
+} from '../packages/core/src/query/include-many-to-many-stitch';
+import { directNavigationWriter } from '../packages/core/src/tracking/navigation-writer';
 import {
     IncludeManyToManyContext,
     Post,

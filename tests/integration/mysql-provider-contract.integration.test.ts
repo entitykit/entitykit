@@ -1,5 +1,5 @@
 import { requireDefined } from '../support/require-defined';
-import { mySqlProviderServices } from '../../src/providers/mysql';
+import { mySqlProviderServices } from '../../packages/mysql/src';
 import {
     defineProviderContractTests,
     expectDatabaseProviderError,

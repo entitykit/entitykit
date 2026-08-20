@@ -4,8 +4,8 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     SqlStatement,
-} from '../src';
-import { DbContext, EntityState } from '../src';
+} from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 const originalTime = new Date('2026-01-01T00:00:00.000Z');

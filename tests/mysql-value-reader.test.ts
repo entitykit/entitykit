@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { mySqlValueReader } from '../src/providers/mysql/mysql-value-reader';
+import { mySqlValueReader } from '../packages/mysql/src/mysql-value-reader';
 
 describe('MySQL value reader', () => {
     it.each([

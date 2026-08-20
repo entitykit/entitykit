@@ -1,12 +1,12 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
     ModelValidationError,
-} from '../src';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class ContractUser {
     public id!: string;

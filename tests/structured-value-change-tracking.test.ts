@@ -1,12 +1,12 @@
 import { requireDefined } from './support/require-defined';
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../src';
+    ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     EntityState,
     valueConverter,
-} from '../src';
+} from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 interface DocumentPayload {

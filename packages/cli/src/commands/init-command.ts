@@ -6,7 +6,7 @@ import type { EntityKitCliOptions, EntityKitCliResult } from '../cli-result';
 import { ok } from '../cli-result';
 import { resolveCliCwd } from '../cli-runtime';
 import { renderCommandHelp } from '../cli-help';
-import { writeFilesAtomically, type AtomicFileWrite } from '../../tooling/atomic-file-writer';
+import { writeFilesAtomically, type AtomicFileWrite } from '@entitykit/core/tooling';
 import { CliUsageError } from '../cli-usage-error';
 import {
     type BuiltInProvider,

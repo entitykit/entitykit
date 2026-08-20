@@ -2,14 +2,14 @@ import {
     DatabaseProviderError,
     DatabaseTransactionCleanupError,
     type DatabaseProviderOperation,
-} from '../../storage/database-errors';
+} from '@entitykit/core/adapter';
 import type { MySqlConnection, MySqlQueryOptions } from './mysql-driver';
 import { createMysqlProviderError } from './mysql-provider-error';
 import type {
     TransactionIsolationLevel,
     TransactionOptions,
-} from '../../storage/database-connection';
-import { throwIfOperationAborted } from '../../storage/operation-cancellation';
+} from '@entitykit/core/adapter';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 import { mysqlCommitFailure } from './mysql-commit-outcome';
 
 export async function runMysqlTransaction<TResult>(

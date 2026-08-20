@@ -3,7 +3,7 @@ import type { DatabaseProviderServices } from '../storage/database-provider-serv
 import { loadBuiltInProviderServices } from './built-in-provider-loader';
 
 const mysqlProviderModule = __filename.endsWith('.ts')
-    ? '../providers/mysql/mysql-provider-services'
+    ? '../../../mysql/src/mysql-provider-services'
     : 'entitykit/mysql';
 
 /**

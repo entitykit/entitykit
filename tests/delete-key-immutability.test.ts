@@ -1,12 +1,12 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
     valueConverter,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class DeleteItem {
     public id!: string;

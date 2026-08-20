@@ -1,5 +1,5 @@
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
-import { contextMigrations } from '../src/migrations/api';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
+import { contextMigrations } from '../packages/core/src/migrations/api';
 import {
     createConcurrencyContext,
     createConcurrencyUser,

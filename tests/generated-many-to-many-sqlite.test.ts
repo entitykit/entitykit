@@ -3,8 +3,8 @@ import {
     GeneratedTag,
     startGeneratedManyToManyContext,
 } from './support/generated-many-to-many-context';
-import type { SavePlanEntry } from '../src';
-import { EntityState } from '../src';
+import type { SavePlanEntry } from '../packages/core/src';
+import { EntityState } from '../packages/core/src';
 
 function relationshipEntry(
     plan: readonly SavePlanEntry[],

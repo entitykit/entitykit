@@ -1,9 +1,9 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { ContextStateRestorationError, DbContext, EntityState } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { savePlanExecution } from '../src/core/save-plan-execution';
-import { acceptVersionIncrements } from '../src/core/unit-of-work/tracked-version-acceptance';
-import { RestorationScope } from '../src/restoration-scope';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { ContextStateRestorationError, DbContext, EntityState } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { savePlanExecution } from '../packages/core/src/core/save-plan-execution';
+import { acceptVersionIncrements } from '../packages/core/src/core/unit-of-work/tracked-version-acceptance';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
 
 class AcceptanceParent {
     private storedId = 0;

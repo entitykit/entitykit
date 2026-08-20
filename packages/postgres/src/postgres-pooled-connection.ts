@@ -1,15 +1,15 @@
-import type { SqlStatement } from '../../sql/sql-statement';
-import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionOptions } from '../../storage/database-connection';
-import { EnclosingTransactionState } from '../../storage/enclosing-transaction-state';
-import { validateTransactionOptions } from '../../storage/transaction-options';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionOptions } from '@entitykit/core/adapter';
+import { EnclosingTransactionState } from '@entitykit/core/adapter';
+import { validateTransactionOptions } from '@entitykit/core/adapter';
 import type { Pool, PoolClient } from './postgres-driver';
 import { runPostgresTransaction } from './postgres-transaction';
 import { streamPostgresConnectionRows } from './postgres-stream-lease';
 import { executePostgresBufferedQuery } from './postgres-buffered-query';
-import { throwIfOperationAborted } from '../../storage/operation-cancellation';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 import { createPostgresProviderError } from './postgres-provider-error';
 import { runPostgresPooledSavepoint } from './postgres-pooled-savepoint';
-import { TransactionUsability } from '../../storage/transaction-usability';
+import { TransactionUsability } from '@entitykit/core/adapter';
 export class PostgresPooledConnection implements DatabaseConnection {
     private activeClient?: PoolClient;
     private transactionDepth = 0;

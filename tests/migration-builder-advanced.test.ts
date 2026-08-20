@@ -1,5 +1,5 @@
-import type { SqlDialect } from '../src/adapter';
-import { MigrationBuilder } from '../src/migrations/api';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { MigrationBuilder } from '../packages/core/src/migrations/api';
 
 const bracketDialect: SqlDialect = {
     name: 'bracket-sql',

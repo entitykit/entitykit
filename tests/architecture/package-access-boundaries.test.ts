@@ -5,46 +5,48 @@ import {
     coreSourceFiles,
     corePackageConsumers,
     crossPackageReferences,
-    futurePackageOf,
-    servingEntries,
+    workspacePackageOf,
     type CrossPackageReference,
 } from './package-access-test-support';
 
 /**
- * The access discipline the monorepo cutover depends on.
+ * The access discipline the monorepo cutover established.
  *
- * Once `src/providers/*`, `src/cli`, and `src/testing` become packages of their
- * own, a relative import that reaches across one of those boundaries has to be
- * rewritten into a package specifier. That rewrite is only mechanical while two
- * things hold:
+ * `packages/{sqlite,postgres,mysql,cli,testing}` are packages of their own now,
+ * and a published consumer only ever gets what a package specifier resolves to.
+ * Three properties keep that honest:
  *
- *   1. every cross-boundary import from a consumer package lands in core, and
- *      binds only names some public core entry already re-exports; and
- *   2. core imports nothing from a consumer package, so the dependency arrow
+ *   1. no relative import leaves the package that wrote it — a path that walks
+ *      out of `packages/<name>/src` would resolve in this repository and
+ *      nowhere else;
+ *   2. every cross-package reference lands in core, through one of core's
+ *      declared public entries, binding only names that entry re-exports; and
+ *   3. core references nothing from a consumer package, so the dependency arrow
  *      never has to be reversed.
  *
- * Break either and the split stops being a move and becomes a redesign, which
- * is why this file has no whitelist. Reachability is judged by name rather than
- * by module, matching what the rewrite will do: it repoints the specifier and
- * keeps the import clause.
+ * Break any of them and an installed package is broken in a way no test that
+ * runs from source would otherwise notice, which is why this file has no
+ * whitelist.
  */
 
 const entries = corePublicEntryNames();
-const publicSubpaths = Object.keys(corePublicEntries).join(', ');
+const publicSpecifiers = Object.keys(corePublicEntries).join(', ');
 
 function describeReference(reference: CrossPackageReference): string {
     const names = reference.names.length > 0 ? reference.names.join(', ') : '<no named bindings>';
-    return `${reference.from}:${String(reference.line)} -> ${reference.to} (${names})`;
+    return `${reference.from}:${String(reference.line)} -> ${reference.specifier} (${names})`;
 }
 
 const consumerReferences = consumerSourceFiles().flatMap(crossPackageReferences);
+const coreReferences = coreSourceFiles().flatMap(crossPackageReferences);
 
 describe('package access boundaries', () => {
-    it('assigns every source file to exactly one future package', () => {
-        expect(futurePackageOf('src/index.ts')).toBe('core');
-        expect(futurePackageOf('src/providers/postgres/index.ts')).toBe('postgres');
-        expect(futurePackageOf('src/cli/api.ts')).toBe('cli');
-        expect(futurePackageOf('src/testing/index.ts')).toBe('testing');
+    it('assigns every source file to exactly one package', () => {
+        expect(workspacePackageOf('packages/core/src/index.ts')).toBe('core');
+        expect(workspacePackageOf('packages/postgres/src/index.ts')).toBe('postgres');
+        expect(workspacePackageOf('packages/cli/src/api.ts')).toBe('cli');
+        expect(workspacePackageOf('packages/testing/src/index.ts')).toBe('testing');
+        expect(workspacePackageOf('tests/architecture/file-conventions.test.ts')).toBeUndefined();
         expect(corePackageConsumers).toEqual(
             ['mysql', 'postgres', 'sqlite', 'cli', 'testing'],
         );
@@ -53,12 +55,20 @@ describe('package access boundaries', () => {
     });
 
     it('publishes a non-empty export closure for every public core entry', () => {
-        for (const [subpath, names] of entries) {
-            expect(`${subpath}:${String(names.size > 0)}`).toBe(`${subpath}:true`);
+        for (const [specifier, names] of entries) {
+            expect(`${specifier}:${String(names.size > 0)}`).toBe(`${specifier}:true`);
         }
     });
 
-    it('sends every cross-package import from a consumer package into core', () => {
+    it('keeps every relative import inside the package that wrote it', () => {
+        const offenders = [...consumerReferences, ...coreReferences]
+            .filter(reference => reference.relativeEscape)
+            .map(describeReference);
+
+        expect(offenders).toEqual([]);
+    });
+
+    it('sends every cross-package reference from a consumer package into core', () => {
         const offenders = consumerReferences
             .filter(reference => reference.toPackage !== 'core')
             .map(describeReference);
@@ -66,10 +76,10 @@ describe('package access boundaries', () => {
         expect(offenders).toEqual([]);
     });
 
-    it('names what it imports, so the rewrite has something to repoint', () => {
+    it('names what it imports, so the specifier can be checked against the entry', () => {
         // A namespace import, a default import, a bare side-effect import, or a
         // runtime `require` across the seam cannot be checked for reachability
-        // and cannot be rewritten by inspection.
+        // by inspection.
         const offenders = consumerReferences
             .filter(reference => reference.opaque)
             .map(describeReference);
@@ -77,26 +87,31 @@ describe('package access boundaries', () => {
         expect(offenders).toEqual([]);
     });
 
-    it(`reaches core only through names public on one of: ${publicSubpaths}`, () => {
+    it(`reaches core only through one of: ${publicSpecifiers}`, () => {
         const offenders = consumerReferences
-            .filter(reference => servingEntries(reference.names, entries).length === 0)
-            .map(reference => {
-                const [nearest] = [...entries]
-                    .map(([subpath, exported]) => ({
-                        subpath,
-                        absent: reference.names.filter(name => !exported.has(name)),
-                    }))
-                    .sort((left, right) => left.absent.length - right.absent.length);
-                return `${describeReference(reference)} — nearest ${nearest.subpath} is missing ${nearest.absent.join(', ')}`;
-            });
+            .filter(reference => !(reference.specifier in corePublicEntries))
+            .map(describeReference);
 
         expect(offenders).toEqual([]);
     });
 
-    it('keeps core free of imports from providers, the CLI, and testing', () => {
-        const offenders = coreSourceFiles()
-            .flatMap(crossPackageReferences)
-            .map(describeReference);
+    it('binds only names the entry it names actually re-exports', () => {
+        const offenders = consumerReferences.flatMap(reference => {
+            const exported = entries.get(reference.specifier);
+            if (exported === undefined) {
+                return [];
+            }
+            const absent = reference.names.filter(name => !exported.has(name));
+            return absent.length === 0
+                ? []
+                : [`${describeReference(reference)} — ${reference.specifier} is missing ${absent.join(', ')}`];
+        });
+
+        expect(offenders).toEqual([]);
+    });
+
+    it('keeps core free of references to providers, the CLI, and testing', () => {
+        const offenders = coreReferences.map(describeReference);
 
         expect(offenders).toEqual([]);
     });

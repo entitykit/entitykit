@@ -7,7 +7,7 @@ describe('missing pg driver', () => {
         // The bare module-not-found this produced was a stack trace pointing into a
         // hashed file inside `dist`, which tells the reader nothing.
         const source = readFileSync(
-            join(process.cwd(), 'src', 'providers', 'postgres', 'postgres-driver.ts'),
+            join(process.cwd(), 'packages', 'postgres', 'src', 'postgres-driver.ts'),
             'utf8',
         );
 

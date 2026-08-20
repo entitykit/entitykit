@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext, valueConverter } from '../../src';
-import { postgresDialect } from '../../src/providers/postgres';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext, valueConverter } from '../../packages/core/src';
+import { postgresDialect } from '../../packages/postgres/src';
 import type { RecordingDatabaseConnection } from './recording-database-connection';
 
 export class TransactionNumberPrincipal {

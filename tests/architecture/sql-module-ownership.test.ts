@@ -10,23 +10,23 @@ import {
 describe('SQL module ownership', () => {
     testIdentifierBoundaries([
         {
-            file: 'src/sql/row-select-builder.ts',
+            file: 'packages/core/src/sql/row-select-builder.ts',
             forbidden: ['ProjectionExpression'],
         },
         {
-            file: 'src/sql/joined-select-builder.ts',
+            file: 'packages/core/src/sql/joined-select-builder.ts',
             forbidden: ['ProjectionExpression'],
         },
         {
-            file: 'src/sql/select-terminal-statement.ts',
+            file: 'packages/core/src/sql/select-terminal-statement.ts',
             forbidden: ['EntityMetadata', 'QueryModel'],
         },
         {
-            file: 'src/sql/relation-existence-sql-compiler.ts',
+            file: 'packages/core/src/sql/relation-existence-sql-compiler.ts',
             forbidden: ['joinSchemaName', 'currentJoinColumns'],
         },
         {
-            file: 'src/sql/insert-sql-builder.ts',
+            file: 'packages/core/src/sql/insert-sql-builder.ts',
             forbidden: [
                 'SqlParameterBag',
                 'validateRequiredProperties',
@@ -34,23 +34,23 @@ describe('SQL module ownership', () => {
             ],
         },
         {
-            file: 'src/sql/entity-insert-sql.ts',
+            file: 'packages/core/src/sql/entity-insert-sql.ts',
             forbidden: ['ManyToManyMetadata'],
         },
         {
-            file: 'src/sql/outbox-insert-sql.ts',
+            file: 'packages/core/src/sql/outbox-insert-sql.ts',
             forbidden: ['EntityMetadata', 'ManyToManyMetadata'],
         },
         {
-            file: 'src/sql/modification-sql-builder.ts',
+            file: 'packages/core/src/sql/modification-sql-builder.ts',
             forbidden: ['typeColumn', 'occurredAtColumn'],
         },
         {
-            file: 'src/sql/modification-sql-outbox-builder.ts',
+            file: 'packages/core/src/sql/modification-sql-outbox-builder.ts',
             forbidden: ['EntityMetadata', 'ManyToManyMetadata'],
         },
         {
-            file: 'src/sql/upsert-sql-builder.ts',
+            file: 'packages/core/src/sql/upsert-sql-builder.ts',
             forbidden: [
                 'SqlParameterBag',
                 'toStoreValue',
@@ -63,30 +63,30 @@ describe('SQL module ownership', () => {
         {
             maximumLines: 100,
             files: [
-                'src/sql/upsert-sql-builder.ts',
-                'src/sql/batch-upsert-sql.ts',
-                'src/sql/postgres-upsert-sql.ts',
-                'src/sql/upsert-property-selection.ts',
+                'packages/core/src/sql/upsert-sql-builder.ts',
+                'packages/core/src/sql/batch-upsert-sql.ts',
+                'packages/core/src/sql/postgres-upsert-sql.ts',
+                'packages/core/src/sql/upsert-property-selection.ts',
             ],
         },
         {
             maximumLines: 110,
             files: [
-                'src/sql/insert-sql-builder.ts',
-                'src/sql/entity-insert-sql.ts',
-                'src/sql/many-to-many-insert-sql.ts',
-                'src/sql/outbox-insert-sql.ts',
+                'packages/core/src/sql/insert-sql-builder.ts',
+                'packages/core/src/sql/entity-insert-sql.ts',
+                'packages/core/src/sql/many-to-many-insert-sql.ts',
+                'packages/core/src/sql/outbox-insert-sql.ts',
             ],
         },
     ]);
 
     it('keeps relation-existence cache keys coupled to the many-to-many grammar', () => {
-        expect(staticImportsOf('src/sql/select/cache-key-relation.ts'))
-            .toContain('src/sql/relation-existence-many-to-many.ts');
+        expect(staticImportsOf('packages/core/src/sql/select/cache-key-relation.ts'))
+            .toContain('packages/core/src/sql/relation-existence-many-to-many.ts');
     });
 
     it('keeps Postgres defaults out of the SQL dialect contract', () => {
-        const declarations = topLevelDeclarationNames('src/sql/sql-dialect.ts');
+        const declarations = topLevelDeclarationNames('packages/core/src/sql/sql-dialect.ts');
 
         expect(declarations.has('postgresDialect')).toBe(false);
         expect(declarations.has('quoteIdentifier')).toBe(false);

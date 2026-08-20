@@ -2,7 +2,7 @@ import {
     DbContext,
     type DatabaseOperationOptions,
     type DbSet,
-} from '../src';
+} from '../packages/core/src';
 
 class User {
     public id!: string;

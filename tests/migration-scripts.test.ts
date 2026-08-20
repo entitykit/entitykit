@@ -1,11 +1,11 @@
-import type { SqlDialect } from '../src/adapter';
+import type { SqlDialect } from '../packages/core/src/adapter';
 import {
     Migration,
     MigrationBuilder,
     MigrationSqlGenerator,
     selectMigrationRange,
     type MigrationSqlDialect,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 
 class CreateUsers extends Migration {
     public readonly id = '20260601120000_CreateUsers';

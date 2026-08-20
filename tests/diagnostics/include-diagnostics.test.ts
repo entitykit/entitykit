@@ -1,4 +1,4 @@
-import { type IncludeDiagnosticEvent } from '../../src';
+import { type IncludeDiagnosticEvent } from '../../packages/core/src';
 import {
     DiagnosticsContext,
     fallbackDialect,

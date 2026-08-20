@@ -1,4 +1,4 @@
-import type { StoreGenerationStrategy } from '../../model/store-generation';
+import type { StoreGenerationStrategy } from '@entitykit/core/adapter';
 import type { ColumnRow } from './postgres-introspect-queries';
 import { normalizePostgresBoolean } from './postgres-introspection-values';
 

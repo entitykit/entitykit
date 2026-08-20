@@ -1,4 +1,4 @@
-import { type QueryPlanDiagnosticEvent } from '../../src';
+import { type QueryPlanDiagnosticEvent } from '../../packages/core/src';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 import { containing } from '../support/jest-asymmetric-matchers';
 import { AppDbContext, createDb, createScopedDb } from './support';

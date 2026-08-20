@@ -1,8 +1,8 @@
 import type {
     DatabaseForeignKey,
     DatabasePrimaryKey,
-} from '../../introspection/database-schema';
-import type { DatabaseConnection } from '../../storage/database-connection';
+} from '@entitykit/core/adapter';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
 
 interface ForeignKeyRow extends Record<string, unknown> {
     id: number;

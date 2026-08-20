@@ -1,8 +1,8 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, valueConverter } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import type { EntityEntry } from '../src/tracking/entity-entry';
-import { temporaryGeneratedProperty } from '../src/tracking/temporary-generated-identity';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { temporaryGeneratedProperty } from '../packages/core/src/tracking/temporary-generated-identity';
 import { internalEntityEntry } from './support/public-api-internals';
 
 let generatedHydrated = false;

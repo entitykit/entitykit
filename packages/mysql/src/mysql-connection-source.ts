@@ -1,5 +1,5 @@
-import type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
-import type { DatabaseConnectionSource } from '../../storage/database-data-source';
+import type { MySqlConnectionConfig } from '@entitykit/core';
+import type { DatabaseConnectionSource } from '@entitykit/core/adapter';
 import { createMysqlPool, type MySqlPool } from './mysql-driver';
 import { createMysqlProviderError } from './mysql-provider-error';
 import { MySqlPooledConnection } from './mysql-pooled-connection';

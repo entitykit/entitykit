@@ -1,4 +1,4 @@
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
 import {
     User,
     createUserMetadata,

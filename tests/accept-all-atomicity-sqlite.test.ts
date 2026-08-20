@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder, ValueConverter } from '../src';
-import { ContextStateRestorationError, DbContext, EntityState } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import { navigationSnapshot } from '../src/tracking/navigation-snapshot';
+import type { DbContextOptionsBuilder, ModelBuilder, ValueConverter } from '../packages/core/src';
+import { ContextStateRestorationError, DbContext, EntityState } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import { navigationSnapshot } from '../packages/core/src/tracking/navigation-snapshot';
 import {
     internalChangeTracker,
     internalEntityEntry,

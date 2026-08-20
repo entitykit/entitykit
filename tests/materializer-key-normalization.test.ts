@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { Materializer } from '../src/experimental';
-import { ChangeTracker } from '../src/tracking/change-tracker';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { Materializer } from '../packages/core/src/experimental';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
 
 class NormalizingKeyUser {
     public static setterCalls = 0;

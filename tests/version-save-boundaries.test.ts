@@ -5,8 +5,8 @@ import type {
     ModelBuilder,
     SaveChangesInterceptor,
     SqlStatement,
-} from '../src';
-import { DbContext, EntityState } from '../src';
+} from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class VersionedDocument {

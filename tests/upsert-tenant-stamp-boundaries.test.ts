@@ -4,13 +4,13 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     SqlStatement,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
     OperationCanceledError,
     UniqueConstraintError,
     valueConverter,
-} from '../src';
+} from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     bulkUpsertFixture,

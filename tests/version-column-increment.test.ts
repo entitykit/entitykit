@@ -1,13 +1,13 @@
 import { requireDefined } from './support/require-defined';
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../src';
+    ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     EntityState,
     bigintAsBigInt,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * The update statement applies `version = version + 1` in the database, so the

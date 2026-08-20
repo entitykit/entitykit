@@ -1,10 +1,10 @@
 import { requireDefined } from './support/require-defined';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     ForeignEntityEntryError,
     NavigationLoadUnavailableError,
-} from '../src';
+} from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {

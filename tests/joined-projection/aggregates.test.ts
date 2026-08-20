@@ -1,4 +1,4 @@
-import { postgres } from '../../src/providers/postgres';
+import { postgres } from '../../packages/postgres/src';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 import { AppDbContext, createDb, createScopedDb } from './support';
 

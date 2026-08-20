@@ -1,7 +1,7 @@
-import { valueConverter } from '../src';
-import { ModelBuilder } from '../src/model/model-builder';
-import type { PropertyMetadata } from '../src/model/property-metadata';
-import { writeVerifiedProperty } from '../src/verified-property-write';
+import { valueConverter } from '../packages/core/src';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
+import type { PropertyMetadata } from '../packages/core/src/model/property-metadata';
+import { writeVerifiedProperty } from '../packages/core/src/verified-property-write';
 
 function defineAccessor(
     row: object,

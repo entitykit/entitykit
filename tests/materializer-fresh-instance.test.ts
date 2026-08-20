@@ -1,9 +1,9 @@
-import { EntityState, valueConverter } from '../src';
-import { Materializer } from '../src/experimental';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import type { StoreValueReader } from '../src/storage/store-value-reader';
-import { ChangeTracker } from '../src/tracking/change-tracker';
+import { EntityState, valueConverter } from '../packages/core/src';
+import { Materializer } from '../packages/core/src/experimental';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import type { StoreValueReader } from '../packages/core/src/storage/store-value-reader';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
 
 class FactoryRow {
     public id = '';

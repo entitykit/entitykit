@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';import type { ModelSnapshot } from '../src/tooling';
-import { createModelSnapshot } from '../src/model/model-snapshot';
-import { diffModelSnapshots } from '../src/migrations/api';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';import type { ModelSnapshot } from '../packages/core/src/tooling';
+import { createModelSnapshot } from '../packages/core/src/model/model-snapshot';
+import { diffModelSnapshots } from '../packages/core/src/migrations/api';
 
 /**
  * A model diff generates default foreign-key and index names, which must fit the

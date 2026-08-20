@@ -1,7 +1,7 @@
 import { requireDefined } from '../support/require-defined';
-import type { MigrationBuilder } from '../../src/migrations/api';
-import { Migration, MigrationRunner } from '../../src/migrations/api';
-import { PostgresDatabaseConnection } from '../../src/providers/postgres';
+import type { MigrationBuilder } from '../../packages/core/src/migrations/api';
+import { Migration, MigrationRunner } from '../../packages/core/src/migrations/api';
+import { PostgresDatabaseConnection } from '../../packages/postgres/src';
 
 const shouldRunPostgresTests = process.env.RUN_POSTGRES_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
 const describePostgres = shouldRunPostgresTests ? describe : describe.skip;

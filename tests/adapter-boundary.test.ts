@@ -34,7 +34,7 @@ describe('provider adapter package boundary rehearsal', () => {
         expect(source).toContain('DatabaseProviderServices');
         expect(source).toContain('RecordingDatabaseConnection');
         expect(source).not.toMatch(/Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres/);
-        expect(source).not.toMatch(/providers\/postgres/);
+        expect(source).not.toMatch(/packages\/postgres/);
     });
 
     it('typechecks the built-in Postgres adapter through the intended public entrypoint', () => {
@@ -49,14 +49,14 @@ describe('provider adapter package boundary rehearsal', () => {
         expect(source).toContain('usePostgres');
         // the adapter's public entrypoint is now the entitykit/postgres subpath barrel,
         // not the root and not a deeper internal module file
-        expect(source).toMatch(/from ['"]\.\.\/\.\.\/\.\.\/src\/providers\/postgres['"]/);
-        expect(source).not.toMatch(/providers\/postgres\/\w/);
+        expect(source).toMatch(/from ['"]\.\.\/\.\.\/\.\.\/packages\/postgres\/src['"]/);
+        expect(source).not.toMatch(/packages\/postgres\/src\/\w/);
     });
 
     it('typechecks a future core-package dry run without concrete adapter imports', () => {
         const packageSource = read('tests/fixtures/adapter-split-dry-run/future-core-package.ts');
         const consumerSource = read('tests/fixtures/adapter-split-dry-run/future-core-consumer.ts');
-        const forbiddenConcreteAdapter = /Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres|providers\/postgres/;
+        const forbiddenConcreteAdapter = /Postgres|PostgresDatabaseConnection|postgresProviderServices|usePostgres|packages\/postgres/;
 
         expect(createFutureCoreProvider().name).toBe('future-core-provider');
         expect(createFutureCoreContext()).toBeDefined();
@@ -64,7 +64,7 @@ describe('provider adapter package boundary rehearsal', () => {
         expect(packageSource).toContain('DatabaseProviderServices');
         expect(packageSource).toContain('DatabaseConnection');
         expect(packageSource).not.toMatch(forbiddenConcreteAdapter);
-        expect(packageSource).not.toMatch(/from\s+["']\.\.\/\.\.\/\.\.\/src["']/);
+        expect(packageSource).not.toMatch(/from\s+["']\.\.\/\.\.\/\.\.\/packages\/core\/src["']/);
         expect(consumerSource).not.toMatch(forbiddenConcreteAdapter);
     });
 
@@ -77,7 +77,7 @@ describe('provider adapter package boundary rehearsal', () => {
         expect(new FutureTestingRecordingConnection().operations).toEqual([]);
         expect(testingPackageSource).toContain('RecordingDatabaseConnection');
         expect(packageSource).not.toContain('RecordingDatabaseConnection');
-        expect(packageSource).not.toMatch(/src\/testing/);
+        expect(packageSource).not.toMatch(/packages\/testing\/src/);
     });
 
     it('typechecks a future Postgres adapter dry run through core contracts', () => {
@@ -89,10 +89,10 @@ describe('provider adapter package boundary rehearsal', () => {
         expect(createFuturePostgresOptions).toBeDefined();
         expect(createFuturePostgresIntrospector).toBeDefined();
         expect(adapterPackageSource).toContain('DatabaseProviderServices');
-        expect(adapterPackageSource).toMatch(/providers\/postgres/);
+        expect(adapterPackageSource).toMatch(/packages\/postgres\/src/);
         expect(consumerSource).toContain('DbContextOptionsBuilder');
         expect(consumerSource).toContain('useProvider');
-        expect(consumerSource).not.toMatch(/from\s+["']\.\.\/\.\.\/\.\.\/src/);
+        expect(consumerSource).not.toMatch(/from\s+["']\.\.\/\.\.\/\.\.\/packages/);
     });
 
 });

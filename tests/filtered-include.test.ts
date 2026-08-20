@@ -1,9 +1,9 @@
 import { requireDefined } from './support/require-defined';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import type { SqlDialect } from '../src/adapter';
-import { sqliteDialect } from '../src/providers/sqlite/sqlite-dialect';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { sqliteDialect } from '../packages/sqlite/src/sqlite-dialect';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {

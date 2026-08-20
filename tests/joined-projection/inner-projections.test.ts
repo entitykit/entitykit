@@ -1,4 +1,4 @@
-import type { SqlDialect } from '../../src/adapter';
+import type { SqlDialect } from '../../packages/core/src/adapter';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 import { AppDbContext, createDb } from './support';
 

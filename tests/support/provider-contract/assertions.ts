@@ -1,6 +1,6 @@
-import { DatabaseProviderError } from '../../../src';
-import type { DatabaseProviderServices } from '../../../src/adapter';
-import { migrationChecksum } from '../../../src/migrations/api';
+import { DatabaseProviderError } from '../../../packages/core/src';
+import type { DatabaseProviderServices } from '../../../packages/core/src/adapter';
+import { migrationChecksum } from '../../../packages/core/src/migrations/api';
 import type { CreateProviderContractUsers } from './migrations';
 
 export function contractMigrationHistoryRow(migration: CreateProviderContractUsers, providerServices: DatabaseProviderServices): { id: string; name: string; checksum: string; } {

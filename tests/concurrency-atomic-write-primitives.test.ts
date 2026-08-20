@@ -1,10 +1,10 @@
-import { applyMaterializedValues } from '../src/materialization/complex-value-materializer';
+import { applyMaterializedValues } from '../packages/core/src/materialization/complex-value-materializer';
 import {
     ensureComplexPropertyPathFailureAtomic,
-} from '../src/materialization/complex-property-path-write';
-import { ModelBuilder } from '../src/model/model-builder';
-import { RestorationScope } from '../src/restoration-scope';
-import { syncDatabaseVersions } from '../src/tracking/entity-entry-version-sync';
+} from '../packages/core/src/materialization/complex-property-path-write';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
+import { syncDatabaseVersions } from '../packages/core/src/tracking/entity-entry-version-sync';
 
 class Revision {
     public version?: number | null;

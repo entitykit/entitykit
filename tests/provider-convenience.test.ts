@@ -1,6 +1,6 @@
-import type { ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import { DbContextOptionsBuilder } from '../src/core/context-options/db-context-options-builder';
+import type { ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { DbContextOptionsBuilder } from '../packages/core/src/core/context-options/db-context-options-builder';
 import { contextOptions } from './support/public-api-internals';
 
 /**

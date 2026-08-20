@@ -1,18 +1,18 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
-} from '../src';
+} from '../packages/core/src';
 import type {
-    MigrationBuilder } from '../src/migrations/api';
+    MigrationBuilder } from '../packages/core/src/migrations/api';
 import {
     Migration,
     contextMigrations,
     MigrationRunner,
     MigrationSqlGenerator,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class CreateUsersMigration extends Migration {

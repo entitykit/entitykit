@@ -1,7 +1,7 @@
 import type {
     DatabaseCheckConstraint,
     DatabaseIndexKeyPart,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 import {
     collectNamedCheckNames,
     hasKeywordSequence,

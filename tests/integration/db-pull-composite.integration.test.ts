@@ -1,6 +1,6 @@
 import { requireDefined } from '../support/require-defined';
-import { generateDbPullCodeWithDiagnostics } from '../../src/tooling';
-import { PostgresDatabaseConnection, PostgresSchemaIntrospector } from '../../src/providers/postgres';
+import { generateDbPullCodeWithDiagnostics } from '../../packages/core/src/tooling';
+import { PostgresDatabaseConnection, PostgresSchemaIntrospector } from '../../packages/postgres/src';
 
 const shouldRunPostgresTests = process.env.RUN_POSTGRES_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
 const describePostgres = shouldRunPostgresTests ? describe : describe.skip;

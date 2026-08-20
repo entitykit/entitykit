@@ -9,7 +9,7 @@
  * touched it" and "Unchanged because the newer work was already accepted" are
  * the same value, so state cannot be what authorises a silent detach.
  */
-import { EntityState } from '../src';
+import { EntityState } from '../packages/core/src';
 import {
     expectDetachPoison,
     expectPoison,

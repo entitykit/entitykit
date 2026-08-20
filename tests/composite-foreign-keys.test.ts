@@ -1,9 +1,9 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import { requireDefined } from './support/require-defined';
-import type { DbContextOptionsBuilder , ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import { contextMigrations } from '../src/migrations/api';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder , ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { contextMigrations } from '../packages/core/src/migrations/api';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class OrderLine {
     public orderId!: string;

@@ -4,8 +4,8 @@ import type {
     DatabaseQueryResult,
     SqlStatement,
     TransactionOptions,
-} from '../../src';
-import { OperationCanceledError } from '../../src';
+} from '../../packages/core/src';
+import { OperationCanceledError } from '../../packages/core/src';
 
 type QueuedQueryResult = DatabaseQueryResult | Error;
 

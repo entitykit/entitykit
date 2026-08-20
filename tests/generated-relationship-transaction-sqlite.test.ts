@@ -1,8 +1,8 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
-import type { EntityEntry } from '../src/tracking/entity-entry';
-import { activeTemporaryGeneratedIdentity } from '../src/tracking/temporary-generated-identity';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { activeTemporaryGeneratedIdentity } from '../packages/core/src/tracking/temporary-generated-identity';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { internalEntityEntry } from './support/public-api-internals';
 
 class SqliteTransactionParent {

@@ -1,9 +1,9 @@
 import {
     DatabaseProviderError,
     TransactionOutcomeUnknownError,
-} from '../src';
-import { RecordingDatabaseConnection } from '../src/testing';
-import { GuardedDatabaseConnection } from '../src/storage/guarded-database-connection';
+} from '../packages/core/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
+import { GuardedDatabaseConnection } from '../packages/core/src/storage/guarded-database-connection';
 
 async function collect<T>(rows: AsyncIterable<T>): Promise<T[]> {
     const values: T[] = [];

@@ -3,7 +3,7 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     RuntimeDiagnosticEvent,
-} from '../src';
+} from '../packages/core/src';
 import {
     ContextConcurrentOperationError,
     ContextDisposedError,
@@ -13,8 +13,8 @@ import {
     ProviderCapabilityError,
     QueryCompilationError,
     type Queryable,
-} from '../src';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 import { RecordingDatabaseConnection as BufferedOnlyConnection } from './support/recording-database-connection';
 
 class StreamUser {

@@ -1,4 +1,4 @@
-import type { DbPullDiagnostic, GeneratedCodeFile } from '../../introspection/db-pull-code-generator';
+import type { DbPullDiagnostic, GeneratedCodeFile } from '@entitykit/core/tooling';
 
 /** Render the summary for db-pull files written to disk. */
 export function renderDbPullWriteResult(

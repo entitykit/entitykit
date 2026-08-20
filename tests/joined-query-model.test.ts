@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';import type { Model } from '../src/model/model';
-import { createJoinedQueryProxy, Queryable, type QueryExecutor } from '../src/experimental';
-import { buildSelectSqlCacheKey } from '../src/sql/select-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';import type { Model } from '../packages/core/src/model/model';
+import { createJoinedQueryProxy, Queryable, type QueryExecutor } from '../packages/core/src/experimental';
+import { buildSelectSqlCacheKey } from '../packages/core/src/sql/select-sql-builder';
 import { containing } from './support/jest-asymmetric-matchers';
 
 class Author {

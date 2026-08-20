@@ -1,4 +1,4 @@
-import { ContextStateRestorationError, EntityState } from '../src';
+import { ContextStateRestorationError, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     createRelationshipDb,

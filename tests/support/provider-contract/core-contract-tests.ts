@@ -2,7 +2,7 @@ import {
     EntityState,
     OperationCanceledError,
     ProviderCapabilityError,
-} from '../../../src';
+} from '../../../packages/core/src';
 import { ProviderContractUser } from './model';
 import type { ProviderContractTestContext } from './test-context';
 

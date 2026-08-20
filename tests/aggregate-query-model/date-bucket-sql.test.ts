@@ -1,5 +1,5 @@
-import type { SqlDialect } from '../../src/adapter';
-import { postgres } from '../../src/providers/postgres';
+import type { SqlDialect } from '../../packages/core/src/adapter';
+import { postgres } from '../../packages/postgres/src';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 import { createDb } from './support';
 

@@ -1,8 +1,8 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import type { DatabaseSchemaSnapshot } from '../src/tooling';
-import { DbContext, RelationshipCardinality } from '../src';
-import { generateDbPullCode } from '../src/tooling';
-import { SchemaSqlBuilder } from '../src/schema/schema-sql-builder';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import type { DatabaseSchemaSnapshot } from '../packages/core/src/tooling';
+import { DbContext, RelationshipCardinality } from '../packages/core/src';
+import { generateDbPullCode } from '../packages/core/src/tooling';
+import { SchemaSqlBuilder } from '../packages/core/src/schema/schema-sql-builder';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import { requireDefined } from './support/require-defined';
 import { contextModel, setMetadata } from './support/public-api-internals';

@@ -1,4 +1,4 @@
-import type { SqlDialect } from '../../sql/sql-dialect';
+import type { SqlDialect } from '@entitykit/core/adapter';
 
 export const mysqlProjectionExpressions: Pick<
     SqlDialect,

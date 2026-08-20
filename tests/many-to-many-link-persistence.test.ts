@@ -1,4 +1,4 @@
-import { mySqlProviderServices } from '../src/providers/mysql';
+import { mySqlProviderServices } from '../packages/mysql/src';
 import {
     createPost,
     createTag,

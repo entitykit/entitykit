@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
+import type { MySqlConnectionConfig } from '@entitykit/core';
 import {
     assertNonEmptyMysqlConnectionString,
     validateMysqlConfig,
@@ -68,7 +68,7 @@ interface MySql2Module {
     createPool(config: Record<string, unknown>): MySqlPool;
 }
 
-export type { MySqlConnectionConfig } from '../../storage/built-in-provider-config';
+export type { MySqlConnectionConfig } from '@entitykit/core';
 
 export function createMysqlPool(
     config: string | MySqlConnectionConfig,

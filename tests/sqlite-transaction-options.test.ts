@@ -1,6 +1,6 @@
-import { DatabaseTransactionCleanupError } from '../src';
-import { SqliteDatabaseConnection } from '../src/providers/sqlite';
-import { SqliteTransactionRunner } from '../src/providers/sqlite/sqlite-transaction-runner';
+import { DatabaseTransactionCleanupError } from '../packages/core/src';
+import { SqliteDatabaseConnection } from '../packages/sqlite/src';
+import { SqliteTransactionRunner } from '../packages/sqlite/src/sqlite-transaction-runner';
 
 async function pragma(
     connection: SqliteDatabaseConnection,

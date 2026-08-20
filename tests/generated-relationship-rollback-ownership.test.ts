@@ -14,8 +14,8 @@ import {
     TransactionUndefinedPrincipal,
 } from './support/generated-relationship-transaction-model';
 import type { GeneratedRelationshipTransactionContext } from './support/generated-relationship-transaction-model';
-import type { TrackedRelationshipMetadata } from '../src/tracking/tracked-relationship-metadata';
-import { generatedRelationshipTarget } from '../src/tracking/generated-relationship-target-store';
+import type { TrackedRelationshipMetadata } from '../packages/core/src/tracking/tracked-relationship-metadata';
+import { generatedRelationshipTarget } from '../packages/core/src/tracking/generated-relationship-target-store';
 import { internalEntityEntry } from './support/public-api-internals';
 import {
     establishGeneratedRelationshipProvenance,

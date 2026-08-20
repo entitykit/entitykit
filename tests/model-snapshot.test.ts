@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, DeleteBehavior, enumString } from '../src';
-import { contextMigrations } from '../src/migrations/api';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, DeleteBehavior, enumString } from '../packages/core/src';
+import { contextMigrations } from '../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {

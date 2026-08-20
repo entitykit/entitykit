@@ -1,4 +1,4 @@
-import { mapStoreTypeToTypeScript } from '../src/introspection/db-pull-type-mapping';
+import { mapStoreTypeToTypeScript } from '../packages/core/src/introspection/db-pull-type-mapping';
 
 describe('db pull type mapping', () => {
     it('maps provider store types with review status', () => {

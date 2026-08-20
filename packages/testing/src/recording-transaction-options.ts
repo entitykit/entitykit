@@ -1,5 +1,5 @@
-import type { TransactionOptions } from '../storage/database-connection';
-import { validateTransactionOptions } from '../storage/transaction-options';
+import type { TransactionOptions } from '@entitykit/core/adapter';
+import { validateTransactionOptions } from '@entitykit/core/adapter';
 
 export function validateRecordingTransactionOptions(
     nested: boolean,

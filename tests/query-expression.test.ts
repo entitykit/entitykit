@@ -1,4 +1,4 @@
-import { FieldExpression, PredicateExpression } from '../src/experimental';
+import { FieldExpression, PredicateExpression } from '../packages/core/src/experimental';
 
 class User {
     public id!: string;

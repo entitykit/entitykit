@@ -2,11 +2,11 @@ import type {
     DbContextOptionsBuilder,
     DbSet,
     ModelBuilder,
-} from '../src';
-import { DbContext } from '../src';
-import { type ModelSnapshot } from '../src/tooling';
-import { contextMigrations, MigrationSqlGenerator, diffModelSnapshots } from '../src/migrations/api';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { type ModelSnapshot } from '../packages/core/src/tooling';
+import { contextMigrations, MigrationSqlGenerator, diffModelSnapshots } from '../packages/core/src/migrations/api';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * `down()` must return the schema to where `up()` found it. Data it drops is

@@ -2,9 +2,9 @@ import type {
     DatabaseConnection,
     DatabaseQueryResult,
     SqlStatement,
-} from '../src';
-import { MySqlSchemaIntrospector } from '../src/providers/mysql';
-import { PostgresSchemaIntrospector } from '../src/providers/postgres';
+} from '../packages/core/src';
+import { MySqlSchemaIntrospector } from '../packages/mysql/src';
+import { PostgresSchemaIntrospector } from '../packages/postgres/src';
 
 describe('schema introspector query sequencing', () => {
     it('serializes Postgres catalog queries on one connection', async () => {

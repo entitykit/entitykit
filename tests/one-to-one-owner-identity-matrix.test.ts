@@ -2,8 +2,8 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     ValueConverter,
-} from '../src';
-import { DbContext, DeleteBehavior, valueConverter } from '../src';
+} from '../packages/core/src';
+import { DbContext, DeleteBehavior, valueConverter } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class NumericOwner {

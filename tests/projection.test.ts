@@ -3,10 +3,10 @@ import type {
     ModelBuilder,
     ProjectedQueryable,
     ValueConverter,
-} from '../src';
-import type { SqlDialect } from '../src/adapter';
-import { DbContext, enumString } from '../src';
-import { mySqlDialect } from '../src/providers/mysql';
+} from '../packages/core/src';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { DbContext, enumString } from '../packages/core/src';
+import { mySqlDialect } from '../packages/mysql/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 type UserStatus = 'active' | 'disabled';

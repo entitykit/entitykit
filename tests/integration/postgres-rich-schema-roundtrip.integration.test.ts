@@ -1,9 +1,9 @@
 import { requireDefined } from '../support/require-defined';
-import { generateDbPullCodeWithDiagnostics, type DatabaseTable } from '../../src/tooling';
+import { generateDbPullCodeWithDiagnostics, type DatabaseTable } from '../../packages/core/src/tooling';
 import {
     PostgresDatabaseConnection,
     PostgresSchemaIntrospector,
-} from '../../src/providers/postgres';
+} from '../../packages/postgres/src';
 import { loadGeneratedDbContext } from '../support/load-generated-db-context';
 import { richSchemaShape } from './rich-schema-roundtrip-support';
 

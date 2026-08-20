@@ -1,10 +1,10 @@
-import { EntityState } from '../src';
-import { SaveTimeWrites } from '../src/core/save-time-writes';
-import { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder } from '../src/model/model-builder';
-import { EntityEntry } from '../src/tracking/entity-entry';
-import { capturePersistedEntrySnapshot } from '../src/tracking/persisted-entry-snapshot';
-import { RestorationScope } from '../src/restoration-scope';
+import { EntityState } from '../packages/core/src';
+import { SaveTimeWrites } from '../packages/core/src/core/save-time-writes';
+import { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
+import { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { capturePersistedEntrySnapshot } from '../packages/core/src/tracking/persisted-entry-snapshot';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
 
 class TenantAuditRow {
     public id = '';

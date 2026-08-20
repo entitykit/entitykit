@@ -5,10 +5,10 @@ import type {
     ModelBuilder,
     SqlStatement,
     ValueConverter,
-} from '../src';
-import { DbContext, EntityState, valueConverter } from '../src';
-import type { SqlDialect } from '../src/adapter';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
+} from '../packages/core/src';
+import { DbContext, EntityState, valueConverter } from '../packages/core/src';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 const prefixed = (prefix: string): ValueConverter<string, string> =>

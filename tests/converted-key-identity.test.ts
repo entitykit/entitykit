@@ -3,9 +3,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     ValueConverter,
-} from '../src';
-import { DbContext, valueConverter } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContext, valueConverter } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * Identity keys, join-table columns, and query parameters each need a key in a

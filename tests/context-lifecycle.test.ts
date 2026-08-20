@@ -1,10 +1,10 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     ContextConcurrentOperationError,
     ContextDisposedError,
     DbContext,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * The lifecycle mistakes a team makes by accident: disposing twice, disposing

@@ -1,4 +1,4 @@
-import type { ModelSnapshot } from '../src/tooling';
+import type { ModelSnapshot } from '../packages/core/src/tooling';
 
 export const emptySnapshot: ModelSnapshot = {
     formatVersion: 1,

@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 /** Tracked saves finalize in-memory acceptance before their transaction commits. */

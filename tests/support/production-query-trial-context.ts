@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext, enumString } from '../../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext, enumString } from '../../packages/core/src';
 import { RecordingDatabaseConnection } from './recording-database-connection';
 import {
     type InvoiceStatus,

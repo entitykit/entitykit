@@ -1,5 +1,5 @@
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import type { StoreValueReader } from '../src/storage/store-value-reader';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import type { StoreValueReader } from '../packages/core/src/storage/store-value-reader';
 import {
     getUniqueObjectList,
     groupIncludes,
@@ -13,11 +13,11 @@ import {
     uniqueEntityInstances,
     uniqueTuples,
     uniqueValues,
-} from '../src/query/include-loader-helpers';
+} from '../packages/core/src/query/include-loader-helpers';
 import type {
     IncludeExpression,
     IncludeFilterModel,
-} from '../src/query/query-model';
+} from '../packages/core/src/query/query-model';
 
 interface Blog {
     posts: object[];

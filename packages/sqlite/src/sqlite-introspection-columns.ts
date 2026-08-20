@@ -1,8 +1,8 @@
 import type {
     DatabaseColumn,
     DatabasePrimaryKey,
-} from '../../introspection/database-schema';
-import type { DatabaseConnection } from '../../storage/database-connection';
+} from '@entitykit/core/adapter';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
 import { parseSqliteTableSql } from './sqlite-ddl-parser';
 
 interface TableInfoRow extends Record<string, unknown> {

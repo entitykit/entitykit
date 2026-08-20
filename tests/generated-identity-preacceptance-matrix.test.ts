@@ -2,8 +2,8 @@ import type {
     DatabaseOperationOptions,
     DatabaseQueryResult,
     SqlStatement,
-} from '../src';
-import { OperationCanceledError } from '../src';
+} from '../packages/core/src';
+import { OperationCanceledError } from '../packages/core/src';
 import {
     GeneratedRelationshipTransactionContext,
     TransactionBigIntDependent,

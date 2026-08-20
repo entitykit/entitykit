@@ -7,10 +7,10 @@ import {
     NotNullConstraintError,
     TransactionOutcomeUnknownError,
     UniqueConstraintError,
-} from '../src';
-import { mapDatabaseProviderError } from '../src/adapter';
-import { MigrationLockReleaseError } from '../src/migrations/api';
-import { createPostgresProviderError } from '../src/providers/postgres/postgres-provider-error';
+} from '../packages/core/src';
+import { mapDatabaseProviderError } from '../packages/core/src/adapter';
+import { MigrationLockReleaseError } from '../packages/core/src/migrations/api';
+import { createPostgresProviderError } from '../packages/postgres/src/postgres-provider-error';
 
 describe('DatabaseProviderError', () => {
     it('wraps postgres query errors with provider metadata and the failed statement', () => {

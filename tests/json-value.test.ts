@@ -1,4 +1,4 @@
-import { normalizeJsonValue, serializeJsonValue } from '../src/json-value';
+import { normalizeJsonValue, serializeJsonValue } from '../packages/core/src/json-value';
 
 describe('JSON value contract', () => {
     it('snapshots every exact JSON shape', () => {

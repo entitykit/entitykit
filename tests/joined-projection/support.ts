@@ -1,12 +1,12 @@
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../../src';
+    ModelBuilder } from '../../packages/core/src';
 import {
     DbContext,
     enumString,
     type RuntimeDiagnosticEvent,
-} from '../../src';
-import type { SqlDialect } from '../../src/adapter';
+} from '../../packages/core/src';
+import type { SqlDialect } from '../../packages/core/src/adapter';
 import { RecordingDatabaseConnection } from '../support/recording-database-connection';
 
 export type AuthorStatus = 'active' | 'disabled';

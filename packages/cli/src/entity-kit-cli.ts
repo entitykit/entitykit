@@ -1,5 +1,5 @@
-import { isEntityKitError } from '../errors/entity-kit-error';
-import { DatabaseProviderError } from '../storage/database-provider-error';
+import { isEntityKitError } from '@entitykit/core';
+import { DatabaseProviderError } from '@entitykit/core/adapter';
 import { executeCliCommand } from './cli-command-handlers';
 import { resolveCliCommand } from './cli-command-resolution';
 import { renderCommandHelp, renderGroupHelp, renderRootHelp } from './cli-help';

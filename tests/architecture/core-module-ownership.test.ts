@@ -10,39 +10,39 @@ import {
 describe('core module ownership', () => {
     testIdentifierBoundaries([
         {
-            file: 'src/core/many-to-many-change-set.ts',
+            file: 'packages/core/src/core/many-to-many-change-set.ts',
             forbidden: ['DbValidationError', 'EntityState'],
         },
         {
-            file: 'src/core/db-set-query-runner.ts',
+            file: 'packages/core/src/core/db-set-query-runner.ts',
             forbidden: ['SelectSqlBuilder', 'readStoreValue'],
         },
         {
-            file: 'src/core/save-time-writes.ts',
+            file: 'packages/core/src/core/save-time-writes.ts',
             forbidden: ['DbValidationError', 'EntityState'],
         },
         {
-            file: 'src/tracking/entity-entry-snapshot.ts',
+            file: 'packages/core/src/tracking/entity-entry-snapshot.ts',
             forbidden: ['navigationEntry', 'EntityState'],
         },
         {
-            file: 'src/core/db-set-query-builder.ts',
+            file: 'packages/core/src/core/db-set-query-builder.ts',
             forbidden: ['EntityNotFoundError', 'OrderExpression'],
         },
         {
-            file: 'src/core/db-set-query-refinements.ts',
+            file: 'packages/core/src/core/db-set-query-refinements.ts',
             forbidden: ['EntityNotFoundError'],
         },
         {
-            file: 'src/testing/recording-database-connection.ts',
+            file: 'packages/testing/src/recording-database-connection.ts',
             forbidden: ['transactionDepth', 'sessionDepth', 'nextTransaction'],
         },
         {
-            file: 'src/testing/recording-transaction.ts',
+            file: 'packages/testing/src/recording-transaction.ts',
             forbidden: ['SqlStatement', 'queuedResults'],
         },
         {
-            file: 'src/testing/recording-session.ts',
+            file: 'packages/testing/src/recording-session.ts',
             forbidden: ['savepoint'],
         },
     ]);
@@ -50,17 +50,17 @@ describe('core module ownership', () => {
     testSizeBudgets([{
         maximumLines: 125,
         files: [
-            'src/tracking/entity-entry.ts',
-            'src/tracking/entity-entry-snapshot.ts',
-            'src/testing/recording-database-connection.ts',
-            'src/testing/recorded-database-operation.ts',
-            'src/testing/recording-transaction.ts',
-            'src/testing/recording-session.ts',
+            'packages/core/src/tracking/entity-entry.ts',
+            'packages/core/src/tracking/entity-entry-snapshot.ts',
+            'packages/testing/src/recording-database-connection.ts',
+            'packages/testing/src/recorded-database-operation.ts',
+            'packages/testing/src/recording-transaction.ts',
+            'packages/testing/src/recording-session.ts',
         ],
     }]);
 
     it('keeps snapshot value mechanics out of EntityEntry coordination', () => {
-        const entityEntry = 'src/tracking/entity-entry.ts';
+        const entityEntry = 'packages/core/src/tracking/entity-entry.ts';
 
         expect(hasInstanceOfExpression(entityEntry, 'Date')).toBe(false);
         expect(hasStaticMethodCall(entityEntry, 'Object', 'entries')).toBe(false);

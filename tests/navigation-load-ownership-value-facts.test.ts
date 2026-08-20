@@ -10,15 +10,15 @@
  */
 import type {
     OwnedEntryCheckpoint,
-} from '../src/tracking/navigation-load-ownership-checkpoint';
+} from '../packages/core/src/tracking/navigation-load-ownership-checkpoint';
 import {
     ownedEntryMatchesCheckpoint,
-} from '../src/tracking/navigation-load-ownership-comparison';
+} from '../packages/core/src/tracking/navigation-load-ownership-comparison';
 import {
     detachOwnedRegistrations,
     fingerprintOwnedRegistration,
     recordOwnedRegistration,
-} from '../src/tracking/navigation-load-ownership';
+} from '../packages/core/src/tracking/navigation-load-ownership';
 import {
     codeConversions,
     deferredCode,

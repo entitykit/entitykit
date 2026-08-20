@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, QueryCompilationError } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, QueryCompilationError } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class ShapeRow {

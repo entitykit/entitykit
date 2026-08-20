@@ -1,6 +1,6 @@
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../src';
+    ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     DeleteBehavior,
@@ -8,8 +8,8 @@ import {
     type DatabaseQueryResult,
     type RuntimeDiagnosticEvent,
     type SqlStatement,
-} from '../src';
-import { SqliteDatabaseConnection, sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { SqliteDatabaseConnection, sqliteProviderServices } from '../packages/sqlite/src';
 
 /**
  * What `include(...)` costs. Loading is batched per include level rather than

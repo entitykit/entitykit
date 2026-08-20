@@ -3,7 +3,7 @@ import { testIdentifierBoundaries } from './module-ownership-test-support';
 describe('provider module ownership', () => {
     testIdentifierBoundaries([
         {
-            file: 'src/providers/postgres/pg-database-connection.ts',
+            file: 'packages/postgres/src/pg-database-connection.ts',
             forbidden: [
                 'createPostgresPool',
                 'createPostgresProviderError',
@@ -11,7 +11,7 @@ describe('provider module ownership', () => {
             ],
         },
         {
-            file: 'src/providers/mysql/mysql-database-connection.ts',
+            file: 'packages/mysql/src/mysql-database-connection.ts',
             forbidden: [
                 'createMysqlPool',
                 'createMysqlProviderError',

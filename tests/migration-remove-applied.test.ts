@@ -38,7 +38,7 @@ jest.mock('pg', () => ({
     }),
 }));
 
-import { runEntityKitCli } from '../src/cli/api';
+import { runEntityKitCli } from '../packages/cli/src/api';
 
 function createProject(): string {
     const cwd = createManagedTempDirectory('entitykit-remove-applied-');

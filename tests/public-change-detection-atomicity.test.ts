@@ -2,9 +2,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     ValueConverter,
-} from '../src';
-import { ContextStateRestorationError, DbContext, EntityState } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { ContextStateRestorationError, DbContext, EntityState } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class DetectionParent {
     public id = '';

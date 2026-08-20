@@ -1,12 +1,12 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-import type { ModelSnapshot } from '../src/tooling';
+import type { ModelSnapshot } from '../packages/core/src/tooling';
 import {
     renderSnapshotSource,
     scaffoldMigration,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 class Account {
@@ -175,7 +175,7 @@ function compileMigrationSource(source: string): readonly string[] {
         noImplicitOverride: true,
         paths: {
             'entitykit/migrations': [
-                path.resolve(__dirname, '../src/migrations/api.ts'),
+                path.resolve(__dirname, '../packages/core/src/migrations/api.ts'),
             ],
         },
         skipLibCheck: true,

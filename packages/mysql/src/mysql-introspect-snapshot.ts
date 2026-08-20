@@ -5,7 +5,7 @@ import type {
     DatabaseIndex,
     DatabasePrimaryKey,
     DatabaseSchemaSnapshot,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 import { normalizeDefault } from './mysql-introspect-defaults';
 import type { CheckConstraintRow, ColumnRow, ForeignKeyRow, StatisticRow, TableRow } from './mysql-introspect-queries';
 import { collectForeignKeyNames, groupForeignKeys, groupIndexes } from './mysql-introspect-relations';

@@ -3,17 +3,26 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'dist');
 const compiler = require.resolve('typescript/bin/tsc');
 
-fs.rmSync(output, { recursive: true, force: true });
+// Dependency order. `tsc -b` walks the project references itself, but naming the
+// packages explicitly keeps the build deterministic and the failure legible.
+const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'];
+
+for (const name of packages) {
+  const packageRoot = path.join(root, 'packages', name);
+  fs.rmSync(path.join(packageRoot, 'dist'), { recursive: true, force: true });
+  fs.rmSync(path.join(packageRoot, 'tsconfig.tsbuildinfo'), { force: true });
+}
+
 const result = spawnSync(
   process.execPath,
-  [compiler, '-p', path.join(root, 'tsconfig.build.json')],
+  [compiler, '-b', ...packages.map(name => path.join(root, 'packages', name))],
   { cwd: root, stdio: 'inherit' },
 );
 if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-fs.chmodSync(path.join(output, 'cli', 'index.js'), 0o755);
+// Only the CLI package ships an executable entry point.
+fs.chmodSync(path.join(root, 'packages', 'cli', 'dist', 'index.js'), 0o755);

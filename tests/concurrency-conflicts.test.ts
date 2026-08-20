@@ -1,8 +1,8 @@
 import { requireDefined } from './support/require-defined';
 import { join } from 'node:path';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, DbUpdateConcurrencyError } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, DbUpdateConcurrencyError } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 /**

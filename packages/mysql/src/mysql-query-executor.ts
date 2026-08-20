@@ -1,5 +1,5 @@
-import type { SqlStatement } from '../../sql/sql-statement';
-import type { DatabaseQueryResult } from '../../storage/database-connection';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { DatabaseQueryResult } from '@entitykit/core/adapter';
 import { toMysqlBindValue } from './mysql-bind-value';
 import type {
     MySqlConnection,

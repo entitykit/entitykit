@@ -2,9 +2,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     RuntimeDiagnosticEvent,
-} from '../../src';
-import { DbContext } from '../../src';
-import { sqliteProviderServices } from '../../src/providers/sqlite';
+} from '../../packages/core/src';
+import { DbContext } from '../../packages/core/src';
+import { sqliteProviderServices } from '../../packages/sqlite/src';
 
 export class Item {
     public id!: string;

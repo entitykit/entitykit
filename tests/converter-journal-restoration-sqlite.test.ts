@@ -1,14 +1,14 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     DeleteBehavior,
     EntityState,
     valueConverter,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import {
     captureConcurrencyRestoration,
-} from '../src/tracking/concurrency-restoration-journal';
+} from '../packages/core/src/tracking/concurrency-restoration-journal';
 import {
     contextModel,
     internalChangeTracker,

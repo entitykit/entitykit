@@ -1,12 +1,12 @@
-import { MigrationBuilder } from '../../migrations/migration-builder';
-import type { DatabaseConnection } from '../../storage/database-connection';
-import type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '../../storage/database-provider-services';
+import { MigrationBuilder } from '@entitykit/core/migrations';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
+import type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '@entitykit/core/adapter';
 import { SqliteDatabaseConnection } from './sqlite-database-connection';
 import { sqliteDialect, sqliteMigrationDialect } from './sqlite-dialect';
 import { SqliteSchemaIntrospector } from './sqlite-schema-introspector';
 import { sqliteValueReader } from './sqlite-value-reader';
-import { DatabaseProviderError, DatabaseTransactionCleanupError } from '../../storage/database-errors';
-import type { SqliteConnectionConfig } from '../../storage/built-in-provider-config';
+import { DatabaseProviderError, DatabaseTransactionCleanupError } from '@entitykit/core/adapter';
+import type { SqliteConnectionConfig } from '@entitykit/core';
 
 export type { SqliteConnectionConfig } from './sqlite-database-connection';
 

@@ -2,7 +2,7 @@ import {
     DatabaseProviderError,
     DatabaseTransactionCleanupError,
     TransactionOutcomeUnknownError,
-} from '../src';
+} from '../packages/core/src';
 import {
     createPostgresDataSource,
     PostgresDatabaseConnection,
@@ -18,8 +18,8 @@ import {
     mysqlPoolCount,
     resetMysqlConnectionMocks,
 } from './support/mysql-database-connection-test-support';
-import { postgresProviderServices } from '../src/providers/postgres';
-import { mySqlProviderServices } from '../src/providers/mysql';
+import { postgresProviderServices } from '../packages/postgres/src';
+import { mySqlProviderServices } from '../packages/mysql/src';
 
 describe('production provider configuration', () => {
     beforeEach(() => {

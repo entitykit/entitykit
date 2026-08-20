@@ -1,5 +1,5 @@
-import { LazyLoadScheduler } from '../src/core/lazy-load-scheduler';
-import type { EntityEntry } from '../src/tracking/entity-entry';
+import { LazyLoadScheduler } from '../packages/core/src/core/lazy-load-scheduler';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
 
 const entry = {} as EntityEntry<object>;
 

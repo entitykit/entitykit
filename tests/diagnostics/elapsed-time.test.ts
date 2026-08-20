@@ -1,4 +1,4 @@
-import { startElapsedTimer } from '../../src/diagnostics/runtime/elapsed-time';
+import { startElapsedTimer } from '../../packages/core/src/diagnostics/runtime/elapsed-time';
 
 describe('elapsed time', () => {
     it('measures from a monotonic clock', () => {

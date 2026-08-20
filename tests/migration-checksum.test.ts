@@ -1,11 +1,11 @@
 import type {
-    MigrationBuilder } from '../src/migrations';
+    MigrationBuilder } from '../packages/core/src/migrations';
 import {
     Migration,
     migrationChecksum,
-} from '../src/migrations';
-import { postgresDialect } from '../src/sql/sql-dialect';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
+} from '../packages/core/src/migrations';
+import { postgresDialect } from '../packages/core/src/sql/sql-dialect';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
 
 class ChecksumMigration extends Migration {
     public readonly id = '20260729000000_Checksum';

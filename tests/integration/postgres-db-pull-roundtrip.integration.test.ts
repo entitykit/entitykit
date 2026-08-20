@@ -1,6 +1,6 @@
 import { requireDefined } from '../support/require-defined';
-import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../src/tooling';
-import { PostgresDatabaseConnection, PostgresSchemaIntrospector } from '../../src/providers/postgres';
+import { generateDbPullCode, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
+import { PostgresDatabaseConnection, PostgresSchemaIntrospector } from '../../packages/postgres/src';
 import { loadGeneratedDbContext } from '../support/load-generated-db-context';
 
 const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;

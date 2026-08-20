@@ -1,7 +1,7 @@
 import { requireDefined } from '../support/require-defined';
-import type { MigrationBuilder } from '../../src/migrations/api';
-import { Migration, MigrationRunner } from '../../src/migrations/api';
-import { MySqlDatabaseConnection, mySqlProviderServices } from '../../src/providers/mysql';
+import type { MigrationBuilder } from '../../packages/core/src/migrations/api';
+import { Migration, MigrationRunner } from '../../packages/core/src/migrations/api';
+import { MySqlDatabaseConnection, mySqlProviderServices } from '../../packages/mysql/src';
 import {
     containing,
     stringContaining,

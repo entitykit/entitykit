@@ -1,4 +1,4 @@
-import { DatabaseTransactionCleanupError } from '../../src';
+import { DatabaseTransactionCleanupError } from '../../packages/core/src';
 import {
     DiagnosticsContext,
     resetDiagnosticsContext,
@@ -8,7 +8,7 @@ import {
     anyNumber,
     containing,
 } from '../support/jest-asymmetric-matchers';
-import { createPostgresProviderError } from '../../src/providers/postgres/postgres-provider-error';
+import { createPostgresProviderError } from '../../packages/postgres/src/postgres-provider-error';
 
 describe('transaction diagnostics', () => {
     beforeEach(resetDiagnosticsContext);

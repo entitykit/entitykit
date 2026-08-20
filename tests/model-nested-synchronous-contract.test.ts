@@ -1,5 +1,5 @@
-import { ModelValidationError } from '../src';
-import { ModelBuilder } from '../src/model/model-builder';
+import { ModelValidationError } from '../packages/core/src';
+import { ModelBuilder } from '../packages/core/src/model/model-builder';
 
 class Coordinates {
     public latitude!: number;

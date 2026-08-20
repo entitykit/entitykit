@@ -1,12 +1,12 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
 import {
     contextMigrations,
     MigrationBuilder,
     diffModelSnapshots,
     type ModelSnapshot,
-} from '../src/migrations/api';
-import { sqliteDialect, sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src/migrations/api';
+import { sqliteDialect, sqliteProviderServices } from '../packages/sqlite/src';
 
 const emptySnapshot: ModelSnapshot = { formatVersion: 1, entities: [] };
 

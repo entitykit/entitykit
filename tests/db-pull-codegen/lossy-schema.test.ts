@@ -1,4 +1,4 @@
-import { generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../src/tooling';
+import { generateDbPullCodeWithDiagnostics, type DatabaseSchemaSnapshot } from '../../packages/core/src/tooling';
 
 describe('db pull lossy schema boundaries', () => {
     it('maps generated values and collations, and skips unsupported indexes', () => {

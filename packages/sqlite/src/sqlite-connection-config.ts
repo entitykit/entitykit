@@ -1,4 +1,4 @@
-import type { SqliteConnectionConfig } from '../../storage/built-in-provider-config';
+import type { SqliteConnectionConfig } from '@entitykit/core';
 
 /** Default lock wait used instead of SQLite's fail-immediately default. */
 export const defaultSqliteBusyTimeoutMs = 5000;

@@ -1,9 +1,9 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
-import { DbContext, EntityState } from '../src';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class ScopedUser {
     public id!: string;

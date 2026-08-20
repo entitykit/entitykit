@@ -1,7 +1,7 @@
 import { requireDefined } from './support/require-defined';
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../src';
+    ModelBuilder } from '../packages/core/src';
 import {
     DbContext,
     bigintAsBigInt,
@@ -10,8 +10,8 @@ import {
     dateOnlyAsUtcDate,
     numericAsNumber,
     numericAsString,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 describe('exact numeric value converters', () => {
     // `pg` returns numeric/bigint columns as strings; SQLite returns numbers.

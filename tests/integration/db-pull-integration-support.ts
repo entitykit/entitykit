@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
 import vm from 'vm';
-import * as entitykit from '../../src';
-import { contextMigrations, type ModelSnapshot } from '../../src/migrations/api';
+import * as entitykit from '../../packages/core/src';
+import { contextMigrations, type ModelSnapshot } from '../../packages/core/src/migrations/api';
 import { createManagedTempDirectory } from '../support/managed-temp-directory';
 
 export function createProject(): string {
@@ -34,7 +34,7 @@ export function compileGeneratedDirectory(generatedDir: string): readonly string
         noEmit: true,
         noImplicitOverride: true,
         paths: {
-            entitykit: [path.resolve(__dirname, '../../src/index.ts')],
+            entitykit: [path.resolve(__dirname, '../../packages/core/src/index.ts')],
         },
         skipLibCheck: true,
         strict: true,

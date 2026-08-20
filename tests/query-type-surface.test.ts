@@ -1,5 +1,5 @@
-import { createAggregateProxy } from '../src/query/aggregate';
-import { createQueryProxy } from '../src/query/query-proxy';
+import { createAggregateProxy } from '../packages/core/src/query/aggregate';
+import { createQueryProxy } from '../packages/core/src/query/query-proxy';
 
 /**
  * A sweep of the query DSL's type gates against what SQL actually supports.

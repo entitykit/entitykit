@@ -1,9 +1,9 @@
-import { buildSnapshot } from '../src/providers/mysql/mysql-introspect-snapshot';
-import { generateDbPullCode, generateDbPullCodeWithDiagnostics } from '../src/tooling';
+import { buildSnapshot } from '../packages/mysql/src/mysql-introspect-snapshot';
+import { generateDbPullCode, generateDbPullCodeWithDiagnostics } from '../packages/core/src/tooling';
 import type {
     ColumnRow,
     StatisticRow,
-} from '../src/providers/mysql/mysql-introspect-queries';
+} from '../packages/mysql/src/mysql-introspect-queries';
 
 describe('MySQL introspection semantic metadata', () => {
     it('keeps auto-increment, collation, and prefix-index warnings', () => {

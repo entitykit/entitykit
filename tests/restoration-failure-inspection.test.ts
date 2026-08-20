@@ -1,9 +1,9 @@
-import { runRestorationActions } from '../src/restoration-actions';
+import { runRestorationActions } from '../packages/core/src/restoration-actions';
 import {
     appendRestorationFailure,
     restorationErrorFrom,
-} from '../src/restoration-failure-inspection';
-import { RestorationScope } from '../src/restoration-scope';
+} from '../packages/core/src/restoration-failure-inspection';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
 
 const uninspectable =
     'Context state restoration produced an uninspectable failure.';

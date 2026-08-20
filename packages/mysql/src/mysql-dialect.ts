@@ -1,5 +1,5 @@
-import type { AlterColumnChange, SqlDialect } from '../../sql/sql-dialect';
-import type { StoreGenerationStrategy } from '../../model/store-generation';
+import type { AlterColumnChange, SqlDialect } from '@entitykit/core/adapter';
+import type { StoreGenerationStrategy } from '@entitykit/core/adapter';
 import { mapMysqlColumnType } from './mysql-column-type';
 import {
     quoteMysqlIdentifier,

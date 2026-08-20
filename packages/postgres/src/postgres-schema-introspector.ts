@@ -1,8 +1,8 @@
-import type { DatabaseConnection } from '../../storage/database-connection';
+import type { DatabaseConnection } from '@entitykit/core/adapter';
 import type {
     DatabaseSchemaIntrospectionOptions,
     DatabaseSchemaSnapshot,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 import {
     queryColumns,
     queryForeignKeys,
@@ -24,7 +24,7 @@ export type {
     DatabaseSchema,
     DatabaseSchemaSnapshot,
     DatabaseTable,
-} from '../../introspection/database-schema';
+} from '@entitykit/core/adapter';
 
 /** EntityKit implementation of postgres schema introspector. */ export class PostgresSchemaIntrospector {
     constructor(private readonly database: DatabaseConnection) {}

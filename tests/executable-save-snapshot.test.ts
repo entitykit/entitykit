@@ -2,9 +2,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     OutboxMessage,
-} from '../src';
-import { DbContext, EntityState } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
+} from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class UnstableRecord {

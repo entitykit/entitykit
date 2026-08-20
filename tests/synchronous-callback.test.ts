@@ -1,4 +1,4 @@
-import { assertSynchronousCallbackResult } from '../src/synchronous-callback';
+import { assertSynchronousCallbackResult } from '../packages/core/src/synchronous-callback';
 
 describe('synchronous callback contract', () => {
     const createError = (message: string): Error => new Error(message);

@@ -1,4 +1,4 @@
-import type { StoreValueReader } from '../../storage/store-value-reader';
+import type { StoreValueReader } from '@entitykit/core/adapter';
 
 /**
  * SQLite stores every value as one of five storage classes, and `node:sqlite`

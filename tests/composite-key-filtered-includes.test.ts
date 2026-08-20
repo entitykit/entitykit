@@ -1,15 +1,15 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
-} from '../src';
+} from '../packages/core/src';
 import {
     sqliteDialect,
     sqliteProviderServices,
-} from '../src/providers/sqlite';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/sqlite/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 class Parent {
     public id!: string;

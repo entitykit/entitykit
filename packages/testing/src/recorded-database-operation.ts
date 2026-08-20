@@ -1,5 +1,5 @@
-import type { SqlStatement } from '../sql/sql-statement';
-import type { TransactionOptions } from '../storage/database-connection';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { TransactionOptions } from '@entitykit/core/adapter';
 
 /**
  * Recorded operation emitted by `RecordingDatabaseConnection`.

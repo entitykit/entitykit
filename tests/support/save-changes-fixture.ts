@@ -1,5 +1,5 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext } from '../../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext } from '../../packages/core/src';
 import { RecordingDatabaseConnection } from './recording-database-connection';
 
 export class User {

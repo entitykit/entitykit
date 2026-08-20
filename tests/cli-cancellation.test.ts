@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runEntityKitCli } from '../src/cli/api';
-import { withOperationSignal } from '../src/storage/with-operation-signal';
+import { runEntityKitCli } from '../packages/cli/src/api';
+import { withOperationSignal } from '../packages/core/src/storage/with-operation-signal';
 import { createProjectWithCustomProvider } from './migration-cli-files/migration-cli-files-test-support';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 

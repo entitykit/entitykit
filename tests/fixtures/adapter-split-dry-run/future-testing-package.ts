@@ -7,5 +7,5 @@
  * a consumer composing core + testing + a provider still typechecks when the
  * three come from three different places.
  */
-export { RecordingDatabaseConnection } from '../../../src/testing';
-export type { RecordedDatabaseOperation } from '../../../src/testing';
+export { RecordingDatabaseConnection } from '../../../packages/testing/src';
+export type { RecordedDatabaseOperation } from '../../../packages/testing/src';

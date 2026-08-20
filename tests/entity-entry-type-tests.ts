@@ -1,4 +1,4 @@
-import { type EntityEntry, EntityState } from '../src';
+import { type EntityEntry, EntityState } from '../packages/core/src';
 
 class TypeTestEntity {
     public id = '';

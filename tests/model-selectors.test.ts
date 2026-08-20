@@ -1,5 +1,5 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import { selectPropertyName } from '../src/model/model-property-selector';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import { selectPropertyName } from '../packages/core/src/model/model-property-selector';
 
 class User {
     public id!: string;

@@ -1,4 +1,4 @@
-import { RecordingDatabaseConnection } from '../src/testing';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 import {
     createOutboxUser,
     OutboxContext,

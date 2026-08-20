@@ -2,11 +2,11 @@ import type {
     DbContextOptionsBuilder,
     EntityConstructor,
     ModelBuilder,
-} from '../../src';
+} from '../../packages/core/src';
 import {
     DbContext,
     DeleteBehavior,
-} from '../../src';
+} from '../../packages/core/src';
 import { RecordingDatabaseConnection } from './recording-database-connection';
 
 export class User {

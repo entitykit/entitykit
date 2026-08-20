@@ -6,15 +6,15 @@ import {
 describe('introspection module ownership', () => {
     testIdentifierBoundaries([
         {
-            file: 'src/introspection/db-pull-type-mapping.ts',
+            file: 'packages/core/src/introspection/db-pull-type-mapping.ts',
             forbidden: ['numericStoreTypes', 'RegExpExecArray'],
         },
         {
-            file: 'src/introspection/db-pull-enum-type.ts',
+            file: 'packages/core/src/introspection/db-pull-enum-type.ts',
             forbidden: ['needsReview'],
         },
         {
-            file: 'src/introspection/db-pull-store-type-classification.ts',
+            file: 'packages/core/src/introspection/db-pull-store-type-classification.ts',
             forbidden: ['mapEnumType'],
         },
     ]);
@@ -22,9 +22,9 @@ describe('introspection module ownership', () => {
     testSizeBudgets([{
         maximumLines: 100,
         files: [
-            'src/introspection/db-pull-type-mapping.ts',
-            'src/introspection/db-pull-enum-type.ts',
-            'src/introspection/db-pull-store-type-classification.ts',
+            'packages/core/src/introspection/db-pull-type-mapping.ts',
+            'packages/core/src/introspection/db-pull-enum-type.ts',
+            'packages/core/src/introspection/db-pull-store-type-classification.ts',
         ],
     }]);
 });

@@ -1,11 +1,11 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     ContextStateRestorationError,
     DbContext,
     DbUpdateConcurrencyError,
     EntityState,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { requireDefined } from './support/require-defined';
 import { refusalMessage, rejection } from './support/accessor-refusal-support';
 import type { FactProfile } from './support/converter-fact-support';

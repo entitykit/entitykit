@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { SqliteDatabaseConnection, defaultSqliteBusyTimeoutMs } from '../src/providers/sqlite';
+import { SqliteDatabaseConnection, defaultSqliteBusyTimeoutMs } from '../packages/sqlite/src';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 async function pragma(connection: SqliteDatabaseConnection, name: string): Promise<unknown> {

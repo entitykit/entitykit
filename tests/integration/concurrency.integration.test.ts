@@ -2,12 +2,12 @@ import { requireDefined } from '../support/require-defined';
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../../src';
+} from '../../packages/core/src';
 import {
     DbContext,
     DbUpdateConcurrencyError,
     EntityState,
-} from '../../src';
+} from '../../packages/core/src';
 
 const shouldRunPostgresTests = process.env.RUN_POSTGRES_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
 const describePostgres = shouldRunPostgresTests ? describe : describe.skip;

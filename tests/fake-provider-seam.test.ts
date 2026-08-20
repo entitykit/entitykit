@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import type { MigrationBuilder } from '../src/migrations/api';
-import { contextMigrations, Migration } from '../src/migrations/api';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import type { MigrationBuilder } from '../packages/core/src/migrations/api';
+import { contextMigrations, Migration } from '../packages/core/src/migrations/api';
 import { createFakeProvider, fakeMigrationDialect, fakeSqlDialect } from './support/fake-provider';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 

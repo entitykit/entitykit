@@ -1,7 +1,7 @@
 import path from 'node:path';
-import { listMigrations } from '../../../migrations/migration-commands';
-import { MigrationSqlGenerator } from '../../../migrations/migration-sql-generator';
-import { writeFilesAtomically } from '../../../tooling/atomic-file-writer';
+import { listMigrations } from '@entitykit/core/migrations';
+import { MigrationSqlGenerator } from '@entitykit/core/migrations';
+import { writeFilesAtomically } from '@entitykit/core/tooling';
 import { parseCommandArguments } from '../../cli-command-parser';
 import type { ParsedGlobalOptions } from '../../cli-option-reader';
 import { CliUsageError } from '../../cli-usage-error';

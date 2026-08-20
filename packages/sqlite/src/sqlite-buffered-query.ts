@@ -1,11 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { OperationCanceledError } from '../../errors/runtime-errors';
-import type { SqlStatement } from '../../sql/sql-statement';
+import { OperationCanceledError } from '@entitykit/core';
+import type { SqlStatement } from '@entitykit/core/adapter';
 import type {
     DatabaseOperationOptions,
     DatabaseQueryResult,
-} from '../../storage/database-connection';
-import { throwIfOperationAborted } from '../../storage/operation-cancellation';
+} from '@entitykit/core/adapter';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 import { sqliteError } from './sqlite-error';
 import { executeStatement } from './sqlite-statement';
 

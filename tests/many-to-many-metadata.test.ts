@@ -1,7 +1,7 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { ModelBuilder } from '../src';
-import { DeleteBehavior } from '../src';
-import { SchemaSqlBuilder } from '../src/schema/schema-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { ModelBuilder } from '../packages/core/src';
+import { DeleteBehavior } from '../packages/core/src';
+import { SchemaSqlBuilder } from '../packages/core/src/schema/schema-sql-builder';
 
 class User {
     public id!: string;

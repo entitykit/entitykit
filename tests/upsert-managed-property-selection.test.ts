@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { PropertyMetadata } from '../src/model/property-metadata';
-import { resolveUpsertProperties } from '../src/sql/upsert-property-selection';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { PropertyMetadata } from '../packages/core/src/model/property-metadata';
+import { resolveUpsertProperties } from '../packages/core/src/sql/upsert-property-selection';
 
 class ManagedRow {
     public id = '';

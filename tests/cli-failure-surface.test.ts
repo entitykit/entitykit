@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { runEntityKitCli, type EntityKitCliResult } from '../src/cli/entity-kit-cli';
+import { runEntityKitCli, type EntityKitCliResult } from '../packages/cli/src/entity-kit-cli';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 describe('CLI failure surface', () => {

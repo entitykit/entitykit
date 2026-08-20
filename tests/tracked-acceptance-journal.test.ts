@@ -1,10 +1,10 @@
-import type { EntityEntry } from '../src/tracking/entity-entry';
-import { EntityState } from '../src/tracking/entity-state';
-import type { TrackedIdentityMap } from '../src/tracking/tracked-identity-map';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { EntityState } from '../packages/core/src/tracking/entity-state';
+import type { TrackedIdentityMap } from '../packages/core/src/tracking/tracked-identity-map';
 import {
     TrackedAcceptanceJournal,
     type AcceptanceCheckpoint,
-} from '../src/tracking/tracked-acceptance-journal';
+} from '../packages/core/src/tracking/tracked-acceptance-journal';
 
 describe('tracked acceptance journal', () => {
     it('attempts every rollback phase when identity preflight fails', () => {

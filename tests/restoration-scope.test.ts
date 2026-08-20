@@ -1,8 +1,8 @@
 import {
     restorationFailureFrom,
     runRestorationActions,
-} from '../src/restoration-actions';
-import { RestorationScope } from '../src/restoration-scope';
+} from '../packages/core/src/restoration-actions';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
 
 describe('restoration scope', () => {
     it('runs every action and aggregates exact cleanup failures', () => {

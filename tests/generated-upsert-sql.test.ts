@@ -1,6 +1,6 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
 
 class GeneratedStatementRow {
     public id = 0;

@@ -1,5 +1,5 @@
-import { PostgresSchemaIntrospector } from '../src/providers/postgres';
-import { generateDbPullCode } from '../src/tooling';
+import { PostgresSchemaIntrospector } from '../packages/postgres/src';
+import { generateDbPullCode } from '../packages/core/src/tooling';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 describe('Postgres schema introspection', () => {

@@ -1,8 +1,8 @@
 import type {
-    MigrationError } from '../src/migrations/api';
+    MigrationError } from '../packages/core/src/migrations/api';
 import {
     postgresMigrationDialect,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import { containing } from './support/jest-asymmetric-matchers';
 
 describe('Postgres migration lock results', () => {

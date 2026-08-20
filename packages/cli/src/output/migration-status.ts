@@ -1,7 +1,7 @@
-import type { DiscoveredMigration } from '../../migrations/migration-discovery-types';
-import type { MigrationBuilderFactory } from '../../migrations/migration-builder-contract';
-import { migrationChecksum, type MigrationHistoryRow } from '../../migrations/migration-history';
-import type { MigrationSqlDialect } from '../../migrations/migration-sql-dialect';
+import type { DiscoveredMigration } from '@entitykit/core/migrations';
+import type { MigrationBuilderFactory } from '@entitykit/core/adapter';
+import { migrationChecksum, type MigrationHistoryRow } from '@entitykit/core/migrations';
+import type { MigrationSqlDialect } from '@entitykit/core/adapter';
 
 /** One actionable mismatch between local and database migration history. */
 export interface MigrationStatusDrift {

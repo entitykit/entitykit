@@ -1,10 +1,10 @@
 import type {
     DbContextOptionsBuilder,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
-} from '../src';
-import { RecordingDatabaseConnection } from '../src/testing';
+} from '../packages/core/src';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 
 let connection: RecordingDatabaseConnection;
 

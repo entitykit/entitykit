@@ -1,13 +1,13 @@
 import {
     DbContext,
     type DbContextOptionsBuilder,
-} from '../../../src';
+} from '../../../packages/core/src';
 import {
     PostgresDatabaseConnection,
     PostgresSchemaIntrospector,
     postgresProviderServices,
     type PostgresConnectionConfig,
-} from '../../../src/providers/postgres';
+} from '../../../packages/postgres/src';
 
 export function createBuiltInPostgresConnection(config: string | PostgresConnectionConfig): PostgresDatabaseConnection {
     return new PostgresDatabaseConnection(config);

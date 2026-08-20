@@ -1,9 +1,9 @@
-import { EntityState } from '../src';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
-import { postgresDialect } from '../src/providers/postgres';
-import { sqliteDialect } from '../src/providers/sqlite';
-import type { SqlDialect } from '../src/sql/sql-dialect';
-import { RecordingDatabaseConnection } from '../src/testing';
+import { EntityState } from '../packages/core/src';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
+import { postgresDialect } from '../packages/postgres/src';
+import { sqliteDialect } from '../packages/sqlite/src';
+import type { SqlDialect } from '../packages/core/src/sql/sql-dialect';
+import { RecordingDatabaseConnection } from '../packages/testing/src';
 import {
     createOutboxUser,
     type DomainEvent,

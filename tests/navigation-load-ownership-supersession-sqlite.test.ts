@@ -7,7 +7,7 @@
  * the durable work a public operation established against them: whose entry is
  * standing under the entity now, and what a detach would take away with it.
  */
-import { EntityState } from '../src';
+import { EntityState } from '../packages/core/src';
 import { rejection } from './support/accessor-refusal-support';
 import { refusal } from './support/link-refusal-support';
 import {

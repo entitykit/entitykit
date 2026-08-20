@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, lazy, valueConverter } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import type { EntityEntry as InternalEntityEntry } from '../src/tracking/entity-entry';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, lazy, valueConverter } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import type { EntityEntry as InternalEntityEntry } from '../packages/core/src/tracking/entity-entry';
 import { requireDefined } from './support/require-defined';
 import {
     internalChangeTracker,

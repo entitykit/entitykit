@@ -1,8 +1,8 @@
-import type { SqlDialect } from '../src/adapter';
-import { createQueryProxy } from '../src/experimental';
-import { ModificationSqlBuilder } from '../src/sql/modification-sql-builder';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { EntityMetadata } from '../src/model/entity-metadata';
+import type { SqlDialect } from '../packages/core/src/adapter';
+import { createQueryProxy } from '../packages/core/src/experimental';
+import { ModificationSqlBuilder } from '../packages/core/src/sql/modification-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
 import {
     User,
     createUserMetadata,

@@ -6,12 +6,12 @@ import type {
     ModelBuilder,
     SqlStatement,
     TransactionOptions,
-} from '../../src';
-import { DbContext } from '../../src';
+} from '../../packages/core/src';
+import { DbContext } from '../../packages/core/src';
 import {
     SqliteDatabaseConnection,
     sqliteProviderServices,
-} from '../../src/providers/sqlite';
+} from '../../packages/sqlite/src';
 import { requireDefined } from './require-defined';
 
 export class PartOwner {

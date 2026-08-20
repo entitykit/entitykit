@@ -1,10 +1,10 @@
 import type {
     DbContextOptionsBuilder,
     ModelBuilder,
-} from '../../src';
+} from '../../packages/core/src';
 import {
     DbContext,
-} from '../../src';
+} from '../../packages/core/src';
 
 /**
  * A `jsonb` column round-trips every JSON shape identically on every provider

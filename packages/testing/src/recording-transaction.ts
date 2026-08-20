@@ -1,7 +1,7 @@
 import type { RecordedDatabaseOperation } from './recorded-database-operation';
-import type { TransactionOptions } from '../storage/database-connection';
+import type { TransactionOptions } from '@entitykit/core/adapter';
 import { validateRecordingTransactionOptions } from './recording-transaction-options';
-import { throwIfOperationAborted } from '../storage/operation-cancellation';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 
 export class RecordingTransaction {
     private depth = 0;

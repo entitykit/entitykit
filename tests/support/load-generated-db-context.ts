@@ -1,8 +1,8 @@
 import ts from 'typescript';
 import vm from 'vm';
-import * as entitykit from '../../src';
-import type { DbContext } from '../../src';
-import type { GeneratedCodeFile } from '../../src/tooling';
+import * as entitykit from '../../packages/core/src';
+import type { DbContext } from '../../packages/core/src';
+import type { GeneratedCodeFile } from '../../packages/core/src/tooling';
 
 /**
  * Compile and evaluate the files `db pull` generated, returning the generated

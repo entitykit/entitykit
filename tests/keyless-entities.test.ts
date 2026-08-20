@@ -1,10 +1,10 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { ModelBuilder } from '../src';
-import { DbContext, type DbContextOptionsBuilder } from '../src';
-import { type DatabaseSchemaSnapshot, generateDbPullCodeWithDiagnostics } from '../src/tooling';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { ModelBuilder } from '../packages/core/src';
+import { DbContext, type DbContextOptionsBuilder } from '../packages/core/src';
+import { type DatabaseSchemaSnapshot, generateDbPullCodeWithDiagnostics } from '../packages/core/src/tooling';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import { compileGeneratedFiles, createGeneratedModelSnapshot } from './db-pull-codegen/support';
-import { diffModelSnapshots } from '../src/migrations/api';
+import { diffModelSnapshots } from '../packages/core/src/migrations/api';
 
 class SalesReport {
     public region!: string;

@@ -1,7 +1,7 @@
-import { mySqlProviderServices } from '../src/providers/mysql';
-import { postgresProviderServices } from '../src/providers/postgres';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import type { DatabaseProviderServices } from '../src/adapter';
+import { mySqlProviderServices } from '../packages/mysql/src';
+import { postgresProviderServices } from '../packages/postgres/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import type { DatabaseProviderServices } from '../packages/core/src/adapter';
 
 /**
  * Provider-specific migration DDL. `alterColumn` and the constraint drops are

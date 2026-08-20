@@ -1,4 +1,4 @@
-import type { DatabaseSchemaSnapshot, DatabaseTable } from '../../src/tooling';
+import type { DatabaseSchemaSnapshot, DatabaseTable } from '../../packages/core/src/tooling';
 
 export function schemaObjects(
     snapshot: DatabaseSchemaSnapshot,

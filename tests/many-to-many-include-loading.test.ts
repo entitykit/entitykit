@@ -1,5 +1,5 @@
-import { sqliteDialect } from '../src/providers/sqlite/sqlite-dialect';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
+import { sqliteDialect } from '../packages/sqlite/src/sqlite-dialect';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     IncludeManyToManyContext,

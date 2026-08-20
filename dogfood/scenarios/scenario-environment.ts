@@ -1,4 +1,4 @@
-import { type DatabaseProviderServices } from '../../src/adapter';
+import { type DatabaseProviderServices } from '../../packages/core/src/adapter';
 import { TrackerDbContext } from '../model/tracker-db-context';
 
 export interface DogfoodEnvironment {

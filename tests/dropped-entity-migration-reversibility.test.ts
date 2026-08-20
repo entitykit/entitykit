@@ -1,15 +1,15 @@
 import type {
     DbContextOptionsBuilder,
-    ModelBuilder } from '../src';
-import { DbContext, DeleteBehavior } from '../src';
-import { type ModelSnapshot } from '../src/tooling';
+    ModelBuilder } from '../packages/core/src';
+import { DbContext, DeleteBehavior } from '../packages/core/src';
+import { type ModelSnapshot } from '../packages/core/src/tooling';
 import {
     diffModelSnapshots,
     contextMigrations,
     MigrationSqlGenerator,
-} from '../src/migrations/api';
-import { renderMigrationSource } from '../src/migrations/migration-scaffold-render';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src/migrations/api';
+import { renderMigrationSource } from '../packages/core/src/migrations/migration-scaffold-render';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class Owner {
     public id!: string;

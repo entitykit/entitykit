@@ -1,8 +1,8 @@
-import { EntityState } from '../src';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { Model } from '../src/model/model';
-import { ChangeTracker } from '../src/tracking/change-tracker';
-import { configureChangeTrackerModel } from '../src/tracking/change-tracker-model';
+import { EntityState } from '../packages/core/src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { Model } from '../packages/core/src/model/model';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
+import { configureChangeTrackerModel } from '../packages/core/src/tracking/change-tracker-model';
 
 class AtomicParent {
     public id = '';

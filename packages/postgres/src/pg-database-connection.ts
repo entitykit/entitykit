@@ -1,16 +1,16 @@
-import type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
+import type { PostgresConnectionConfig } from '@entitykit/core';
 import type {
     DatabaseConnection,
     DatabaseOperationOptions,
     DatabaseQueryResult,
     QueryStreamOptions,
     TransactionOptions,
-} from '../../storage/database-connection';
-import type { SqlStatement } from '../../sql/sql-statement';
+} from '@entitykit/core/adapter';
+import type { SqlStatement } from '@entitykit/core/adapter';
 import type { PostgresPooledConnection } from './postgres-pooled-connection';
 import { PostgresConnectionSource } from './postgres-connection-source';
 
-export type { PostgresConnectionConfig } from '../../storage/built-in-provider-config';
+export type { PostgresConnectionConfig } from '@entitykit/core';
 
 /** Standalone Postgres connection that owns its pool. */
 export class PostgresDatabaseConnection implements DatabaseConnection {

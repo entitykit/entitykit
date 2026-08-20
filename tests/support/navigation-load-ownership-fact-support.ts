@@ -10,18 +10,18 @@
  * exactly one fact is moved per case, which is the only way to say which leg
  * of the comparison refused.
  */
-import { EntityState, valueConverter } from '../../src';
-import type { EntityMetadata } from '../../src/model/entity-metadata';
-import { ModelBuilder } from '../../src/model/model-builder';
-import { ChangeTracker } from '../../src/tracking/change-tracker';
-import type { EntityEntry } from '../../src/tracking/entity-entry';
+import { EntityState, valueConverter } from '../../packages/core/src';
+import type { EntityMetadata } from '../../packages/core/src/model/entity-metadata';
+import { ModelBuilder } from '../../packages/core/src/model/model-builder';
+import { ChangeTracker } from '../../packages/core/src/tracking/change-tracker';
+import type { EntityEntry } from '../../packages/core/src/tracking/entity-entry';
 import {
     suppressNavigationChangeDetection,
-} from '../../src/tracking/navigation-change-detection-state';
+} from '../../packages/core/src/tracking/navigation-change-detection-state';
 import {
     captureOwnedEntryCheckpoint,
     type OwnedEntryCheckpoint,
-} from '../../src/tracking/navigation-load-ownership-checkpoint';
+} from '../../packages/core/src/tracking/navigation-load-ownership-checkpoint';
 
 /** The model value a converter refuses to convert synchronously. */
 export const deferredCode = 'deferred';

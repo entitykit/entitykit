@@ -3,7 +3,7 @@ import type { DatabaseProviderServices } from '../storage/database-provider-serv
 import { loadBuiltInProviderServices } from './built-in-provider-loader';
 
 const sqliteProviderModule = __filename.endsWith('.ts')
-    ? '../providers/sqlite/sqlite-provider-services'
+    ? '../../../sqlite/src/sqlite-provider-services'
     : 'entitykit/sqlite';
 
 /**

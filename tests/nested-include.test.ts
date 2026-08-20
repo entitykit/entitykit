@@ -1,10 +1,10 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { RelationshipMetadata } from '../src/model/relationship-metadata';
-import type { IncludeLoaderContext } from '../src/query/include-loader-context';
-import { IncludeStitcher } from '../src/query/include-loader-stitch';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { RelationshipMetadata } from '../packages/core/src/model/relationship-metadata';
+import type { IncludeLoaderContext } from '../packages/core/src/query/include-loader-context';
+import { IncludeStitcher } from '../packages/core/src/query/include-loader-stitch';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import { requireDefined } from './support/require-defined';
 

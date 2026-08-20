@@ -1,4 +1,4 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';class User {
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';class User {
     public id!: string;
     public email!: string;
     public name!: string;

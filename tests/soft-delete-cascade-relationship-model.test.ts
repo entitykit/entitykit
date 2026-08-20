@@ -1,5 +1,5 @@
-import { DeleteBehavior } from '../src';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { DeleteBehavior } from '../packages/core/src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 
 class PolicyParent {
     public id = '';

@@ -3,7 +3,7 @@ import type { DatabaseProviderServices } from '../storage/database-provider-serv
 import { loadBuiltInProviderServices } from './built-in-provider-loader';
 
 const postgresProviderModule = __filename.endsWith('.ts')
-    ? '../providers/postgres/postgres-provider-services'
+    ? '../../../postgres/src/postgres-provider-services'
     : 'entitykit/postgres';
 
 /**

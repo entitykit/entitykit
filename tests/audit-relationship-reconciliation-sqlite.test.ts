@@ -1,10 +1,10 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
-import type { ChangeTracker } from '../src/tracking/change-tracker';
-import { SaveTimeMutationLog } from '../src/core/save-time-mutations';
-import { RestorationScope } from '../src/restoration-scope';
-import { reconcileSaveTimeRelationships } from '../src/core/save-time-relationship-reconciliation';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
+import type { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
+import { SaveTimeMutationLog } from '../packages/core/src/core/save-time-mutations';
+import { RestorationScope } from '../packages/core/src/restoration-scope';
+import { reconcileSaveTimeRelationships } from '../packages/core/src/core/save-time-relationship-reconciliation';
 import { internalChangeTracker } from './support/public-api-internals';
 
 class AuditActor {

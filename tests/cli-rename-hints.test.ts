@@ -1,4 +1,4 @@
-import { parseRenameHintValues } from '../src/cli/cli-rename-hints';
+import { parseRenameHintValues } from '../packages/cli/src/cli-rename-hints';
 
 describe('CLI rename hints', () => {
     it('returns no hints when no rename options are present', () => {

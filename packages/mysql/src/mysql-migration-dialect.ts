@@ -1,13 +1,13 @@
-import type { Migration } from '../../migrations/migration';
+import type { Migration } from '@entitykit/core/migrations';
 import {
     entityKitMigrationVersion,
     migrationHistoryTableName,
     migrationLockKey,
-} from '../../migrations/migration-metadata';
-import type { MigrationSqlDialect } from '../../migrations/migration-sql-dialect';
-import { MigrationError } from '../../errors/migration-errors';
-import type { SqlStatement } from '../../sql/sql-statement';
-import type { DatabaseQueryResult } from '../../storage/database-connection';
+} from '@entitykit/core/migrations';
+import type { MigrationSqlDialect } from '@entitykit/core/adapter';
+import { MigrationError } from '@entitykit/core/migrations';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { DatabaseQueryResult } from '@entitykit/core/adapter';
 import { mySqlDialect } from './mysql-dialect';
 import { quoteMysqlIdentifier } from './mysql-identifiers';
 

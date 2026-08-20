@@ -1,7 +1,7 @@
-import { MigrationColumnBuilder } from '../src/migrations/migration-column-builder';
+import { MigrationColumnBuilder } from '../packages/core/src/migrations/migration-column-builder';
 import type {
     MutableMigrationColumnDefinition,
-} from '../src/migrations/migration-builder-types';
+} from '../packages/core/src/migrations/migration-builder-types';
 
 function build(
     configure: (builder: MigrationColumnBuilder) => void,

@@ -1,6 +1,6 @@
-import { buildRawSql } from '../src/sql/raw-sql';
-import { postgresDialect } from '../src/sql/sql-dialect';
-import { SqlParameterBag } from '../src/sql/sql-statement';
+import { buildRawSql } from '../packages/core/src/sql/raw-sql';
+import { postgresDialect } from '../packages/core/src/sql/sql-dialect';
+import { SqlParameterBag } from '../packages/core/src/sql/sql-statement';
 
 describe('SQL parameter contract', () => {
     it('rejects a Promise before adding it to the statement', () => {

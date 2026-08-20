@@ -1,5 +1,5 @@
 import { requireDefined } from '../require-defined';
-import { lazy } from '../../src';
+import { lazy } from '../../packages/core/src';
 import { Issue } from '../model/entities';
 import {
     ACME,

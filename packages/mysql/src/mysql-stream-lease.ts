@@ -1,10 +1,10 @@
-import { OperationCanceledError } from '../../errors/runtime-errors';
-import type { SqlStatement } from '../../sql/sql-statement';
-import type { QueryStreamOptions } from '../../storage/database-connection';
+import { OperationCanceledError } from '@entitykit/core';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { QueryStreamOptions } from '@entitykit/core/adapter';
 import {
     queryStreamBatchSize,
     throwIfQueryAborted,
-} from '../../storage/query-stream-options';
+} from '@entitykit/core/adapter';
 import type { MySqlConnection } from './mysql-driver';
 import { createMysqlProviderError } from './mysql-provider-error';
 import { streamMysqlRows } from './mysql-row-stream';

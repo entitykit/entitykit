@@ -1,10 +1,10 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import {
     EntityState,
-} from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { Materializer } from '../src/experimental';
-import { ChangeTracker } from '../src/tracking/change-tracker';
+} from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { Materializer } from '../packages/core/src/experimental';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
 
 class User {
     public id!: string;

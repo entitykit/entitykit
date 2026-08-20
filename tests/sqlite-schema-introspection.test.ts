@@ -1,6 +1,6 @@
 import { requireDefined } from './support/require-defined';
-import { generateDbPullCode } from '../src/tooling';
-import { SqliteDatabaseConnection, SqliteSchemaIntrospector } from '../src/providers/sqlite';
+import { generateDbPullCode } from '../packages/core/src/tooling';
+import { SqliteDatabaseConnection, SqliteSchemaIntrospector } from '../packages/sqlite/src';
 
 describe('SQLite schema introspection', () => {
     let connection: SqliteDatabaseConnection;

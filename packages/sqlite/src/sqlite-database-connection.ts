@@ -1,16 +1,16 @@
 import { createRequire } from 'node:module';
 import type * as NodeSqlite from 'node:sqlite';
 import type { DatabaseSync } from 'node:sqlite';
-import type { SqlStatement } from '../../sql/sql-statement';
-import type { DatabaseProviderOperation } from '../../storage/database-provider-error';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import type { DatabaseProviderOperation } from '@entitykit/core/adapter';
 import type {
     DatabaseConnection,
     DatabaseOperationOptions,
     DatabaseQueryResult,
     QueryStreamOptions,
     TransactionOptions,
-} from '../../storage/database-connection';
-import type { SqliteConnectionConfig } from '../../storage/built-in-provider-config';
+} from '@entitykit/core/adapter';
+import type { SqliteConnectionConfig } from '@entitykit/core';
 import { sqliteError } from './sqlite-error';
 import { iterateStatement } from './sqlite-statement';
 import {
@@ -20,14 +20,14 @@ import { SqliteTransactionRunner } from './sqlite-transaction-runner';
 import {
     queryStreamBatchSize,
     throwIfQueryAborted,
-} from '../../storage/query-stream-options';
-import { OperationCanceledError } from '../../errors/runtime-errors';
-import { throwIfOperationAborted } from '../../storage/operation-cancellation';
+} from '@entitykit/core/adapter';
+import { OperationCanceledError } from '@entitykit/core';
+import { throwIfOperationAborted } from '@entitykit/core/adapter';
 import { executeSqliteBufferedQuery } from './sqlite-buffered-query';
 
 const loadModule = createRequire(__filename);
 
-export type { SqliteConnectionConfig } from '../../storage/built-in-provider-config';
+export type { SqliteConnectionConfig } from '@entitykit/core';
 export { defaultSqliteBusyTimeoutMs } from './sqlite-connection-config';
 
 /**

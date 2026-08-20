@@ -3,9 +3,9 @@ import type {
     DbContextConstructor,
     EntityKitCliContext,
     EntityKitConnectionOptions,
-} from '../entity-kit-config';
-import type { DatabaseProviderServices } from '../storage/database-provider-services';
-import { validateProviderServices } from '../storage/database-provider-validation';
+} from '@entitykit/core';
+import type { DatabaseProviderServices } from '@entitykit/core/adapter';
+import { validateProviderServices } from '@entitykit/core/adapter';
 import { isEntityKitConfig, validatedNow, validateConfigValues } from './entity-kit-config-validation';
 import { findEntityKitConfig, loadEntityKitConfigExport } from './entity-kit-config-loader';
 
@@ -13,12 +13,12 @@ import { findEntityKitConfig, loadEntityKitConfigExport } from './entity-kit-con
  * The definition API now lives in core so a project's `entitykit.config.ts` does
  * not depend on the CLI package. `entitykit/cli` keeps exposing it unchanged.
  */
-export { defineEntityKitConfig } from '../entity-kit-config';
+export { defineEntityKitConfig } from '@entitykit/core';
 export type {
     DbContextConstructor,
     EntityKitCliContext,
     EntityKitConfig,
-} from '../entity-kit-config';
+} from '@entitykit/core';
 
 /** Configuration for resolved entity kit. */ export interface ResolvedEntityKitConfig<
     TContext extends EntityKitCliContext = EntityKitCliContext,

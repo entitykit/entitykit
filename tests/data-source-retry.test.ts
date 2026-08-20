@@ -1,14 +1,14 @@
-import { createDataSource, type DatabaseProviderServices, type EntityKitDataSource } from '../src/adapter';
+import { createDataSource, type DatabaseProviderServices, type EntityKitDataSource } from '../packages/core/src/adapter';
 import {
     DatabaseProviderError,
     OperationCanceledError,
     TransactionOutcomeUnknownError,
-} from '../src';
-import { postgresDialect } from '../src/providers/postgres';
+} from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
 import {
     MigrationBuilder,
     postgresMigrationDialect,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 const transientFailure = new Error('transient');

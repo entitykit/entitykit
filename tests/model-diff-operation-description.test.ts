@@ -1,10 +1,10 @@
 import type {
     ModelDiffOperation,
-} from '../src/migrations/model-diff-operations';
+} from '../packages/core/src/migrations/model-diff-operations';
 import {
     describeModelDiffOperation,
     isDestructiveModelDiffOperation,
-} from '../src/migrations/model-diff-operation-description';
+} from '../packages/core/src/migrations/model-diff-operation-description';
 
 const column = { name: 'id', type: 'text' } as const;
 const tableShape = {

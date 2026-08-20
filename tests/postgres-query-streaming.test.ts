@@ -1,6 +1,6 @@
-import { OperationCanceledError } from '../src';
-import { PostgresPooledConnection } from '../src/providers/postgres/postgres-pooled-connection';
-import type { Pool, PoolClient } from '../src/providers/postgres/postgres-driver';
+import { OperationCanceledError } from '../packages/core/src';
+import { PostgresPooledConnection } from '../packages/postgres/src/postgres-pooled-connection';
+import type { Pool, PoolClient } from '../packages/postgres/src/postgres-driver';
 
 async function collect<T>(rows: AsyncIterable<T>): Promise<T[]> {
     const values: T[] = [];

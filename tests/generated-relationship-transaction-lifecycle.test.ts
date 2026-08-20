@@ -1,6 +1,6 @@
-import { EntityState } from '../src';
-import type { EntityEntry } from '../src/tracking/entity-entry';
-import { temporaryGeneratedIdentity } from '../src/tracking/temporary-generated-identity';
+import { EntityState } from '../packages/core/src';
+import type { EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { temporaryGeneratedIdentity } from '../packages/core/src/tracking/temporary-generated-identity';
 import {
     GeneratedRelationshipTransactionContext,
     TransactionAlternateDependent,

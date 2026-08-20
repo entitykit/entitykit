@@ -19,7 +19,7 @@ jest.mock('pg', () => ({
 import {
     createPostgresDataSource,
     PostgresDatabaseConnection,
-} from '../../src/providers/postgres';
+} from '../../packages/postgres/src';
 
 export interface MockPgPool {
     readonly config: unknown;

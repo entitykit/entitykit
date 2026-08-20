@@ -1,10 +1,10 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 import {
     EntityState,
-} from '../src';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { cloneSnapshotValue, EntityEntry } from '../src/tracking/entity-entry';
-import { publicEntityEntry } from '../src/tracking/public-entity-entry';
+} from '../packages/core/src';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { cloneSnapshotValue, EntityEntry } from '../packages/core/src/tracking/entity-entry';
+import { publicEntityEntry } from '../packages/core/src/tracking/public-entity-entry';
 
 class Document {
     public id!: string;

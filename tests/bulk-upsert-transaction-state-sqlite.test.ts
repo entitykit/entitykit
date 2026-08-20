@@ -1,7 +1,7 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext } from '../src';
-import { postgresDialect } from '../src/providers/postgres';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext } from '../packages/core/src';
+import { postgresDialect } from '../packages/postgres/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class GeneratedDetails {

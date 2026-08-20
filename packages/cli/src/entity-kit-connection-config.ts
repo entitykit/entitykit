@@ -1,5 +1,5 @@
-import type { BuiltInConnectionConfig, EntityKitConnectionOptions } from '../entity-kit-config';
-import type { DatabaseProviderConnectionConfig } from '../storage/database-provider-services';
+import type { BuiltInConnectionConfig, EntityKitConnectionOptions } from '@entitykit/core';
+import type { DatabaseProviderConnectionConfig } from '@entitykit/core/adapter';
 
 /**
  * `connection` and `connectionString` are written in a project's config file, so
@@ -7,7 +7,7 @@ import type { DatabaseProviderConnectionConfig } from '../storage/database-provi
  * callbacks, falling back to `DATABASE_URL`, validating — is CLI behaviour and
  * stays here.
  */
-export type { BuiltInConnectionConfig, EntityKitConnectionOptions } from '../entity-kit-config';
+export type { BuiltInConnectionConfig, EntityKitConnectionOptions } from '@entitykit/core';
 
 /** Public type representing entity kit cli connection. */ export type EntityKitCliConnection =
     DatabaseProviderConnectionConfig<BuiltInConnectionConfig>;

@@ -1,14 +1,14 @@
-import { OperationCanceledError } from '../../errors/runtime-errors';
-import type { SqlStatement } from '../../sql/sql-statement';
+import { OperationCanceledError } from '@entitykit/core';
+import type { SqlStatement } from '@entitykit/core/adapter';
 import type {
     DatabaseOperationOptions,
     DatabaseQueryResult,
-} from '../../storage/database-connection';
+} from '@entitykit/core/adapter';
 import {
     awaitWithOperationCancellation,
     isOperationAborted,
     throwIfOperationAborted,
-} from '../../storage/operation-cancellation';
+} from '@entitykit/core/adapter';
 import type { Pool, PoolClient } from './postgres-driver';
 import { createPostgresProviderError } from './postgres-provider-error';
 

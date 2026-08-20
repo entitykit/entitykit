@@ -1,4 +1,4 @@
-import type { EntityKitErrorCode } from '../errors/entity-kit-error';
+import type { EntityKitErrorCode } from '@entitykit/core/migrations';
 
 /** Stable error codes emitted by the versioned CLI result envelope. */
 export type EntityKitCliErrorCode = 'CLI_ERROR' | 'CLI_USAGE' | EntityKitErrorCode;

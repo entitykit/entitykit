@@ -68,11 +68,20 @@ function runtimeSourceInventory(cwd, config) {
   return { included, excluded };
 }
 
+// Build output and workspace symlinks live under the source root in a monorepo.
+// Neither holds authored TypeScript, and `node_modules` symlinks point back at
+// the packages themselves, so descending into them would inventory every source
+// file twice.
+const SKIPPED_DIRECTORIES = new Set(['dist', 'node_modules']);
+
 function visitTypeScriptFiles(directory) {
   const files = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const absolutePath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
+      if (SKIPPED_DIRECTORIES.has(entry.name)) {
+        continue;
+      }
       files.push(...visitTypeScriptFiles(absolutePath));
     } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
       files.push(absolutePath);

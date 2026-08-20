@@ -1,4 +1,4 @@
-import type { StoreValueReader } from '../../storage/store-value-reader';
+import type { StoreValueReader } from '@entitykit/core/adapter';
 
 /**
  * Restore JavaScript values from what the `mysql2` driver returns.

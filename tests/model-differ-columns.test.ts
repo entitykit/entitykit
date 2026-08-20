@@ -1,4 +1,4 @@
-import { diffModelSnapshots, MigrationSqlGenerator } from '../src/migrations/api';
+import { diffModelSnapshots, MigrationSqlGenerator } from '../packages/core/src/migrations/api';
 import {
     accountsSnapshot,
     emptySnapshot,

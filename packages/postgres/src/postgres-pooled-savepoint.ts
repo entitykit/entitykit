@@ -1,5 +1,5 @@
-import type { TransactionOptions } from '../../storage/database-connection';
-import type { EnclosingTransactionState } from '../../storage/enclosing-transaction-state';
+import type { TransactionOptions } from '@entitykit/core/adapter';
+import type { EnclosingTransactionState } from '@entitykit/core/adapter';
 import type { PoolClient } from './postgres-driver';
 import { runPostgresSavepoint } from './postgres-transaction';
 

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runEntityKitCli } from '../../src/cli/api';
+import { runEntityKitCli } from '../../packages/cli/src/api';
 import {
     createProject,
     createProjectWithCustomProvider,

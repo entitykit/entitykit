@@ -1,6 +1,6 @@
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
-import { DbContext, EntityState, lazy, TenantOwnershipError } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
+import { DbContext, EntityState, lazy, TenantOwnershipError } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 
 class BoundaryParent {
     public id = 0;

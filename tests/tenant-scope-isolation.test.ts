@@ -2,9 +2,9 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     UnsafeRawSqlQueryable,
-} from '../src';
-import { DbContext, TenantOwnershipError, TenantScopeUnavailableError } from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { DbContext, TenantOwnershipError, TenantScopeUnavailableError } from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { requireDefined } from './support/require-defined';
 
 /**

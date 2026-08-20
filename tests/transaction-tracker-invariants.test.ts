@@ -1,4 +1,4 @@
-import { ContextConcurrentOperationError, EntityState } from '../src';
+import { ContextConcurrentOperationError, EntityState } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 import {
     createSaveChangesDb,

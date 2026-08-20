@@ -1,4 +1,4 @@
-import { ContextStateRestorationError, EntityState } from '../src';
+import { ContextStateRestorationError, EntityState } from '../packages/core/src';
 import { requireDefined } from './support/require-defined';
 import type {
     RefusalGraphContext,

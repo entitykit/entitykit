@@ -8,7 +8,7 @@ describe('provider seam architecture: query filters', () => {
         // than trusted per method.
         // Reads compile in DbSetQueryRunner; set-based writes filter in
         // DbSetBulkExecutor. Pin every compile path so none skips the predicate.
-        const compileCalls = ['src/core/db-set-query-executor.ts', 'src/core/db-set-query-runner.ts']
+        const compileCalls = ['packages/core/src/core/db-set-query-executor.ts', 'packages/core/src/core/db-set-query-runner.ts']
             .map(readSource)
             .flatMap(source => [...source.matchAll(/this\.sql\(\)\.build\w*\(\s*this\.metadata,\s*([^)]+)\)/g)]
                 .map(match => match[1].trim()));
@@ -20,7 +20,7 @@ describe('provider seam architecture: query filters', () => {
 
         // The one indirect compiler, used by executeUpdate/executeDelete, filters
         // before handing the model to its callback.
-        expect(readSource('src/core/db-set-bulk-executor.ts')).toMatch(
+        expect(readSource('packages/core/src/core/db-set-bulk-executor.ts')).toMatch(
             /const filteredModel = this\.context\.applyQueryFilters\(this\.metadata, model\);\s+const shape = this\.diagnostics\.queryShape\(operation, filteredModel\);/,
         );
     });
@@ -32,14 +32,14 @@ describe('provider seam architecture: query filters', () => {
         // return every tenant's data.
         // The implicit-filter logic moved to QueryFilterApplier when DbContext was
         // decomposed; the separate-opt-outs invariant lives with it.
-        const applier = readSource('src/core/query-filter-applier.ts');
-        const filters = readSource('src/core/implicit-query-filter.ts');
+        const applier = readSource('packages/core/src/core/query-filter-applier.ts');
+        const filters = readSource('packages/core/src/core/implicit-query-filter.ts');
 
         expect(filters).toContain('if (metadata.softDelete && applies.softDelete)');
         expect(filters).toContain('applies.tenant');
         expect(applier).not.toMatch(/if \(query\.ignoreQueryFilters\) \{\s*\n\s*return query;/);
 
-        for (const file of ['src/query/queryable.ts', 'src/query/joined-query.ts', 'src/core/db-set.ts']) {
+        for (const file of ['packages/core/src/query/queryable.ts', 'packages/core/src/query/joined-query.ts', 'packages/core/src/core/db-set.ts']) {
             const source = readSource(file);
             const ignoreFilters = (source.match(/ignoreQueryFilters\(\):/g) ?? []).length;
             const ignoreTenant = (source.match(/ignoreTenantScope\(\):/g) ?? []).length;

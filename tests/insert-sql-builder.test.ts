@@ -1,7 +1,7 @@
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
-import type { EntityMetadata } from '../src/model/entity-metadata';
-import { mySqlDialect } from '../src/providers/mysql/mysql-dialect';
-import { InsertSqlBuilder } from '../src/sql/insert-sql-builder';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
+import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
+import { mySqlDialect } from '../packages/mysql/src/mysql-dialect';
+import { InsertSqlBuilder } from '../packages/core/src/sql/insert-sql-builder';
 import {
     User,
     createUserMetadata,

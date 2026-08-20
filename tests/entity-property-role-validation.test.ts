@@ -1,5 +1,5 @@
-import type { EntityBuilder } from '../src';
-import { ModelBuilder as ModelBuilderImplementation } from '../src/model/model-builder';
+import type { EntityBuilder } from '../packages/core/src';
+import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
 
 class RoleRow {
     public id = '';

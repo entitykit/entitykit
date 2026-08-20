@@ -1,4 +1,4 @@
-import { EntityState } from '../src';
+import { EntityState } from '../packages/core/src';
 import {
     GeneratedRelationshipTransactionContext,
     TransactionAlternateDependent,

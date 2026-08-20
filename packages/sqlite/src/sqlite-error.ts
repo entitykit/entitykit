@@ -8,8 +8,8 @@
  * standalone module because connect, statement execution, transaction cleanup
  * and dispose all need it.
  */
-import type { SqlStatement } from '../../sql/sql-statement';
-import { DatabaseProviderError, type DatabaseProviderOperation } from '../../storage/database-provider-error';
+import type { SqlStatement } from '@entitykit/core/adapter';
+import { DatabaseProviderError, type DatabaseProviderOperation } from '@entitykit/core/adapter';
 
 /**
  * SQLite reports constraint failures through an extended result code and a

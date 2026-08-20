@@ -1,4 +1,4 @@
-import { EntityState } from '../src';
+import { EntityState } from '../packages/core/src';
 import { requireDefined } from './support/require-defined';
 import { rejection } from './support/accessor-refusal-support';
 import { trackedIds } from './support/late-attach-load-support';

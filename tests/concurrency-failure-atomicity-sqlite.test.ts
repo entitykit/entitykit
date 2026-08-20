@@ -1,12 +1,12 @@
 import { join } from 'node:path';
-import type { DbContextOptionsBuilder, ModelBuilder } from '../src';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import {
     ContextStateRestorationError,
     DbContext,
     DbUpdateConcurrencyError,
     EntityState,
-} from '../src';
-import { sqliteProviderServices } from '../src/providers/sqlite';
+} from '../packages/core/src';
+import { sqliteProviderServices } from '../packages/sqlite/src';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 import { requireDefined } from './support/require-defined';
 

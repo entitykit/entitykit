@@ -1,4 +1,4 @@
-import { MigrationRunner, migrationChecksum, postgresMigrationDialect } from '../../src/migrations/api';
+import { MigrationRunner, migrationChecksum, postgresMigrationDialect } from '../../packages/core/src/migrations/api';
 import {
     arrayContaining,
     containing,

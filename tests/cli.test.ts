@@ -5,7 +5,7 @@ import {
     getEntityKitCliMetadata,
     renderEntityKitCliCompletion,
     runEntityKitCli,
-} from '../src/cli/api';
+} from '../packages/cli/src/api';
 
 describe('EntityKit CLI', () => {
     it('presents one small, coherent command language', async () => {

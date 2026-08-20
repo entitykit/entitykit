@@ -6,9 +6,9 @@
  * `StampContext` carries a `valueGeneratedOnAddOrUpdate` column, which is the
  * one kind of mapped value change detection refuses to call a modification.
  */
-import type { DbContextOptionsBuilder, ModelBuilder } from '../../src';
-import { DbContext } from '../../src';
-import { sqliteProviderServices } from '../../src/providers/sqlite';
+import type { DbContextOptionsBuilder, ModelBuilder } from '../../packages/core/src';
+import { DbContext } from '../../packages/core/src';
+import { sqliteProviderServices } from '../../packages/sqlite/src';
 import { rejection } from './accessor-refusal-support';
 import { refusal } from './link-refusal-support';
 import {

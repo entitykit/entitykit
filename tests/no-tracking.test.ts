@@ -3,8 +3,8 @@ import type {
     ModelBuilder,
     QueryPlanDiagnosticEvent,
     RuntimeDiagnosticEvent,
-} from '../src';
-import { DbContext, lazy } from '../src';
+} from '../packages/core/src';
+import { DbContext, lazy } from '../packages/core/src';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class Reader {

@@ -1,6 +1,6 @@
-import type { PropertyMetadata } from '../src/model/property-metadata';
-import { SaveTimeMutationLog } from '../src/core/save-time-mutations';
-import { restoreGenerationNavigation } from '../src/core/save-time-relationship-generation-values';
+import type { PropertyMetadata } from '../packages/core/src/model/property-metadata';
+import { SaveTimeMutationLog } from '../packages/core/src/core/save-time-mutations';
+import { restoreGenerationNavigation } from '../packages/core/src/core/save-time-relationship-generation-values';
 
 interface ByteEntity {
     value: Uint8Array;

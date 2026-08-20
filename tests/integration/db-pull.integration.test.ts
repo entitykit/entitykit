@@ -1,9 +1,9 @@
 import { requireDefined } from '../support/require-defined';
 import fs from 'fs';
 import path from 'path';
-import * as migrations from '../../src/migrations/api';
-import { runEntityKitCli } from '../../src/cli/api';
-import { PostgresDatabaseConnection } from '../../src/providers/postgres';
+import * as migrations from '../../packages/core/src/migrations/api';
+import { runEntityKitCli } from '../../packages/cli/src/api';
+import { PostgresDatabaseConnection } from '../../packages/postgres/src';
 import {
     compileGeneratedDirectory,
     createGeneratedModelSnapshot,

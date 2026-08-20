@@ -1,9 +1,9 @@
-import type { EntitySnapshot, ModelSnapshot } from '../src/tooling';
+import type { EntitySnapshot, ModelSnapshot } from '../packages/core/src/tooling';
 import {
     diffModelSnapshots,
     MigrationSqlGenerator,
     renderSnapshotSource,
-} from '../src/migrations/api';
+} from '../packages/core/src/migrations/api';
 import {
     arrayContaining,
     containing,

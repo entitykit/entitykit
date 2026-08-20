@@ -1,6 +1,6 @@
-import { addMigration } from '../../../migrations/migration-commands';
+import { addMigration } from '@entitykit/core/migrations';
 import path from 'node:path';
-import { contextMigrations } from '../../../migrations/context-migrations';
+import { contextMigrations } from '@entitykit/core/migrations';
 import { parseCommandArguments } from '../../cli-command-parser';
 import { renderCommandHelp } from '../../cli-help';
 import type { ParsedGlobalOptions } from '../../cli-option-reader';

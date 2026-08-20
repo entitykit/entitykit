@@ -1,4 +1,4 @@
-import { invokeDetachedObserver } from '../src/diagnostics/detached-observer';
+import { invokeDetachedObserver } from '../packages/core/src/diagnostics/detached-observer';
 
 describe('detached observer', () => {
     it('suppresses synchronous observer failures', () => {

@@ -4,18 +4,18 @@ import type {
     DbContextOptionsBuilder,
     ModelBuilder,
     SqlStatement,
-} from '../src';
+} from '../packages/core/src';
 import {
     DbContext,
     EntityState,
     OperationCanceledError,
-} from '../src';
-import type { MigrationBuilder } from '../src/migrations';
+} from '../packages/core/src';
+import type { MigrationBuilder } from '../packages/core/src/migrations';
 import {
     contextMigrations,
     Migration,
     MigrationRunner,
-} from '../src/migrations';
+} from '../packages/core/src/migrations';
 import { RecordingDatabaseConnection } from './support/recording-database-connection';
 
 class User {
