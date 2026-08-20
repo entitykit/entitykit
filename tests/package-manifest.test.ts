@@ -23,6 +23,7 @@ interface PackageManifest {
     readonly exports?: Readonly<Record<string, unknown>>;
     readonly scripts?: Readonly<Record<string, string>>;
     readonly dependencies?: Readonly<Record<string, string>>;
+    readonly devDependencies?: Readonly<Record<string, string>>;
     readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
@@ -62,12 +63,28 @@ describe('package manifest', () => {
             typecheck: 'tsc -p tsconfig.json --noEmit',
             prepack: 'npm run build',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
-            'release:alpha': 'npm publish --workspaces --tag alpha',
             verify: 'npm run lint && npm run typecheck && npm test'
                 + ' && npm run check:package && npm run check:publish-alpha',
         });
         // The P4 placeholder is gone: verify runs the packaging gates for real.
         expect(manifest.scripts?.['//verify']).toBeUndefined();
+    });
+
+    it('has no script that publishes, only one that says where publishing lives', () => {
+        const manifest = readManifest('package.json');
+
+        // release:alpha used to run `npm publish --workspaces --tag alpha`,
+        // which publishes six packages one at a time from whatever a working
+        // copy happens to contain. Releases run in the Release alpha workflow
+        // now, so the script survives only to say so.
+        expect(manifest.scripts?.['release:alpha'])
+            .toBe('node -e "console.error(\'Local publishing is not supported:'
+                + ' dispatch the Release alpha workflow'
+                + ' (.github/workflows/release.yml).\'); process.exit(1)"');
+        for (const [name, script] of Object.entries(manifest.scripts ?? {})) {
+            expect(`${name}:${String(script.includes('npm publish'))}`)
+                .toBe(`${name}:false`);
+        }
     });
 
     it('points every manifest at the same public repository', () => {
@@ -130,10 +147,23 @@ describe('package manifest', () => {
         // npm normalizes bin paths on publish; pinning the normalized spelling
         // keeps the shipped manifest byte-identical to the authored one.
         expect(manifest.bin).toEqual({ entitykit: 'dist/index.js' });
-        expect(manifest.dependencies?.['@entitykit/core']).toBe(manifest.version);
     });
 
-    it.each(['sqlite', 'postgres', 'mysql', 'testing'])(
+    it('never lets the CLI install a core of its own', () => {
+        const manifest = readManifest('packages', 'cli', 'package.json');
+
+        // As a runtime dependency, an app that upgrades core past the CLI gets
+        // a second core nested under node_modules/@entitykit/cli: the app's
+        // DbContext registers in one core's module-level WeakMaps and the CLI
+        // reads the other's, so a packaged `migration add` refuses a context
+        // EntityKit itself created. As a peer, that pair fails at install.
+        expect(manifest.dependencies).toBeUndefined();
+        // The dev entry is only the workspace link that builds the CLI here.
+        expect(manifest.devDependencies)
+            .toEqual({ '@entitykit/core': manifest.version });
+    });
+
+    it.each(['sqlite', 'postgres', 'mysql', 'testing', 'cli'])(
         'has %s depend on core as a peer, so one core is installed',
         name => {
             const manifest = readManifest('packages', name, 'package.json');

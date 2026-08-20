@@ -20,7 +20,9 @@ npm install -D @entitykit/cli@alpha
 
 Swap `@entitykit/sqlite` for `@entitykit/postgres` or `@entitykit/mysql`, and
 install that provider's driver alongside it. SQLite uses Node's built-in
-`node:sqlite` module. EntityKit requires Node 22.13 or newer.
+`node:sqlite` module, which needs no command-line flag from Node 22.13 onward;
+some 22.x releases still print an informational `ExperimentalWarning` when it
+loads. EntityKit requires Node 22.13 or newer.
 
 | Provider | Package | Driver |
 | --- | --- | --- |

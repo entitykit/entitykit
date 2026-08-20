@@ -53,6 +53,19 @@ describe('alpha publish guard', () => {
         },
     );
 
+    it('sends a refused publisher to the release workflow, not to a local script', () => {
+        const refused = run('latest', path.join(process.cwd(), 'packages', 'core'));
+
+        expect(refused.stderr).toContain('.github/workflows/release.yml');
+        expect(refused.stderr)
+            .toContain('Publishing from a working copy is not a supported path.');
+        // The guard used to recommend `npm run release:alpha`, which published
+        // six packages one at a time out of whatever the working copy held.
+        // Nothing local publishes any more, so nothing local is recommended.
+        expect(refused.stderr).not.toContain('release:alpha');
+        expect(refused.stderr).not.toContain('npm publish');
+    });
+
     it('refuses a package whose own publishConfig does not pin alpha', () => {
         const result = run('alpha', packageDirectory({ tag: 'latest' }));
 

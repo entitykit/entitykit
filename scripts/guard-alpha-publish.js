@@ -17,7 +17,10 @@ const invokedTag = process.env.npm_config_tag;
 function refuse(reason) {
   console.error(
     `Refusing prerelease publication of ${manifest.name ?? 'this package'}: `
-    + `${reason} Use npm run release:alpha or npm publish --tag alpha.`,
+    + `${reason} EntityKit publishes from the Release alpha workflow `
+    + '(.github/workflows/release.yml), which packs the six tarballs once and '
+    + 'moves the alpha dist-tag only after all six are on the registry. '
+    + 'Publishing from a working copy is not a supported path.',
   );
   process.exit(1);
 }

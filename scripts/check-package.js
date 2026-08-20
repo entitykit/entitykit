@@ -3,6 +3,11 @@
 // from the outside — types under Node16 and NodeNext, CommonJS and ESM
 // runtimes against a real SQLite database, the installed CLI bin, and the one
 // invariant the whole split rests on: a single @entitykit/core instance.
+//
+// The consumer install is deliberately unassisted — no `overrides`, no
+// `--force`, no `--legacy-peer-deps` — so the single-core result is what the
+// authored dependency graph produces rather than what this script arranged.
+// The last stage skews the CLI's core peer and proves npm refuses the pair.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -11,6 +16,9 @@ const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'];
 const fixtures = path.join(root, 'tests', 'fixtures', 'package-consumer');
+// A core version no tarball here carries, standing in for the skew a real
+// consumer hits when it upgrades core and leaves the CLI behind.
+const skewedCoreVersion = '0.1.0-alpha.999';
 const npmCli = process.env.npm_execpath;
 if (!npmCli) {
   throw new Error('check:package must run through npm.');
@@ -37,6 +45,19 @@ function run(command, args, options = {}) {
 
 function runNpm(args, options = {}) {
   return run(process.execPath, [npmCli, ...args], options);
+}
+
+/** npm run whose failure is the point: the exit status is data, not an error. */
+function attemptNpm(args, options = {}) {
+  const result = spawnSync(process.execPath, [npmCli, ...args], {
+    cwd: options.cwd ?? root,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  return {
+    status: result.status,
+    output: `${result.stdout ?? ''}\n${result.stderr ?? ''}`,
+  };
 }
 
 function assert(condition, message) {
@@ -122,6 +143,10 @@ function writeConsumerManifest(project, tarballs) {
   const manifest = readManifest(project, 'package.json');
   const specs = Object.fromEntries(Object.entries(tarballs)
     .map(([name, tarball]) => [name, `file:${tarball}`]));
+  // The six `file:` specs and nothing else. Every package peers on
+  // @entitykit/core at an exact version, so the root-level core the consumer
+  // installs is the only copy that satisfies all five peers — no `overrides`
+  // entry puts a thumb on that scale.
   manifest.dependencies = {
     ...specs,
     pg: rootManifest.devDependencies.pg,
@@ -129,10 +154,6 @@ function writeConsumerManifest(project, tarballs) {
     typescript: readManifest(root, 'packages', 'core', 'package.json')
       .dependencies.typescript,
   };
-  // @entitykit/cli depends on @entitykit/core by version, which was never
-  // published; the override redirects it to the same tarball the consumer
-  // installs, which is also how one core copy stays one copy.
-  manifest.overrides = specs;
   fs.writeFileSync(
     path.join(project, 'package.json'),
     `${JSON.stringify(manifest, null, 2)}\n`,
@@ -160,6 +181,72 @@ function assertCliVersion(output, version, how) {
   assert(
     result.data?.version === version && result.exitCode === 0,
     `The packaged CLI (${how}) did not report ${version}.`,
+  );
+}
+
+/**
+ * The published CLI tarball, unpacked and repacked with its core peer moved to
+ * a version no sibling carries. `tar -xzf` is the same extractor npm uses to
+ * install a tarball and ships with macOS, Linux, and Windows 10 and newer.
+ */
+function repackSkewedCli(directory, tarball) {
+  fs.mkdirSync(directory);
+  run('tar', ['-xzf', tarball, '-C', directory]);
+  const unpacked = path.join(directory, 'package');
+  const manifestPath = path.join(unpacked, 'package.json');
+  const manifest = readManifest(manifestPath);
+  assert(
+    manifest.peerDependencies?.['@entitykit/core'] !== undefined
+      && manifest.dependencies === undefined,
+    'The packed CLI must peer on @entitykit/core rather than depend on it.',
+  );
+  manifest.peerDependencies['@entitykit/core'] = skewedCoreVersion;
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const packed = JSON.parse(runNpm([
+    'pack', unpacked, '--ignore-scripts', '--json',
+    '--pack-destination', directory,
+  ], { capture: true }));
+  return path.join(directory, packed[0].filename);
+}
+
+/**
+ * A CLI whose core peer cannot be satisfied must be refused at install time.
+ * The alternative — npm nesting a second core under the CLI — type-checks,
+ * runs, and then splits core's module-level WeakMaps in half at the worst
+ * possible moment, so the package graph has to be what rules it out.
+ */
+function assertSkewRejected(project, coreTarball, cliTarball) {
+  fs.mkdirSync(project);
+  fs.writeFileSync(path.join(project, 'package.json'), `${JSON.stringify({
+    name: 'entitykit-package-skew-consumer',
+    version: '1.0.0',
+    private: true,
+    dependencies: {
+      '@entitykit/core': `file:${coreTarball}`,
+      '@entitykit/cli': `file:${cliTarball}`,
+    },
+  }, null, 2)}\n`);
+
+  // Exactly the install a consumer types: no --force, no --legacy-peer-deps.
+  const attempt = attemptNpm([
+    'install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefer-offline',
+  ], { cwd: project });
+  assert(
+    attempt.status !== 0,
+    `npm installed @entitykit/cli beside a core it does not accept.\n${attempt.output}`,
+  );
+  assert(
+    attempt.output.includes('ERESOLVE')
+      && attempt.output.includes(`peer @entitykit/core@"${skewedCoreVersion}"`),
+    'npm rejected the skewed pair for some reason other than the core peer.'
+    + `\n${attempt.output}`,
+  );
+  const nested = path.join(
+    project, 'node_modules', '@entitykit', 'cli', 'node_modules', '@entitykit',
+  );
+  assert(
+    !fs.existsSync(nested),
+    'npm nested a second @entitykit/core under the CLI instead of refusing.',
   );
 }
 
@@ -229,6 +316,16 @@ try {
     process.platform === 'win32' ? 'entitykit.cmd' : 'entitykit',
   )), version, 'installed bin');
   process.stdout.write(`PACKAGE_CLI_OK entitykit ${version}\n`);
+
+  assertSkewRejected(
+    path.join(temporaryRoot, 'skew-consumer'),
+    tarballs['@entitykit/core'],
+    repackSkewedCli(path.join(temporaryRoot, 'skew'), tarballs['@entitykit/cli']),
+  );
+  process.stdout.write(
+    'PACKAGE_SKEW_REJECTED_OK @entitykit/cli peer '
+    + `@entitykit/core@${skewedCoreVersion} ERESOLVE\n`,
+  );
 
   process.stdout.write(
     `PACKAGE_CHECK_OK ${String(packages.length)} packages ${version}\n`,

@@ -2,7 +2,8 @@ name: Release alpha
 
 # Manual dispatch only. There is no push, tag, schedule or pull_request
 # trigger: nothing publishes EntityKit except a human typing the confirmation
-# phrase into this workflow's dispatch form.
+# phrase into this workflow's dispatch form, from main, with the complete CI
+# matrix green on the exact commit the published tarballs are packed from.
 on:
   workflow_dispatch:
     inputs:
@@ -32,39 +33,38 @@ jobs:
             exit 1
           fi
 
-  evidence:
-    name: Release evidence
-    needs: confirm
+  guard:
+    name: Guard the release ref
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18
+    steps:
+      # Every job below needs this one. A dispatch can name any branch or tag,
+      # and the evidence a release rests on is only as good as the ref it was
+      # collected from, so a release from anywhere but main stops here.
+      - name: Require refs/heads/main
         env:
-          POSTGRES_USER: entitykit
-          POSTGRES_PASSWORD: entitykit
-          POSTGRES_DB: entitykit_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U entitykit -d entitykit_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: entitykit
-          MYSQL_DATABASE: entitykit_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pentitykit"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-    env:
-      DATABASE_URL: postgres://entitykit:entitykit@127.0.0.1:5432/entitykit_test
-      MYSQL_URL: mysql://root:entitykit@127.0.0.1:3306/entitykit_test
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "Refusing to publish from $REF: releases run from refs/heads/main." >&2
+            exit 1
+          fi
+          echo "Releasing $REF at $SHA."
+
+  ci:
+    name: Complete release matrix
+    needs: [confirm, guard]
+    # Every lane CI runs, invoked for this dispatch's ref: verify on Node
+    # 22.13 and Node 24, runtime coverage, the critical-path mutation score,
+    # live Postgres, and live MySQL. Calling the workflow instead of restating
+    # a subset of it is what keeps the release gate from drifting behind the
+    # branch gate.
+    uses: ./.github/workflows/ci.yml
+
+  evidence:
+    name: Pack the release tarballs
+    needs: [confirm, guard, ci]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
@@ -74,14 +74,23 @@ jobs:
           node-version: 22.13.0
           cache: npm
       - run: npm ci
-      - run: npm run verify
-      - run: npm run test:coverage
-      - run: npm run test:integration
-      - run: npm run test:integration:mysql
+      - run: npm run build
+      - name: Pack the six workspaces
+        run: |
+          mkdir -p tarballs
+          npm pack --workspaces --pack-destination tarballs
+      # These six files are the release. Everything downstream downloads and
+      # publishes them byte for byte; no job after this one builds anything.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-tarballs
+          path: tarballs/*.tgz
+          if-no-files-found: error
+          retention-days: 7
 
   publish:
-    name: Publish the alpha dist-tag
-    needs: evidence
+    name: Publish the alpha candidates
+    needs: [confirm, guard, ci, evidence]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -89,60 +98,149 @@ jobs:
       id-token: write
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    outputs:
+      version: ${{ steps.preflight.outputs.version }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      # Deliberately no checkout: this job holds no working tree, so it cannot
+      # publish anything except the artifacts the evidence job packed.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          persist-credentials: false
+          name: release-tarballs
+          path: tarballs
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.13.0
-          cache: npm
           registry-url: https://registry.npmjs.org
-      - run: npm ci
-      - run: npm run build
 
-      # Dependency order: core first, then the packages that peer on it, then
-      # the CLI that depends on core outright. Each publish is preceded by the
-      # same guard npm runs as prepublishOnly, so the alpha dist-tag is proven
-      # before the tarball is built rather than only during the publish.
-      - name: Guard @entitykit/core
-        working-directory: packages/core
-        env:
-          npm_config_tag: alpha
-        run: node ../../scripts/guard-alpha-publish.js
-      - run: npm publish --workspace packages/core --provenance --tag alpha
+      # One version for the whole family. Applied migrations stamp history with
+      # entityKitMigrationVersion, and the packages peer on core at an exact
+      # version, so six tarballs that disagree are not a release.
+      - name: Preflight the packed tarballs
+        id: preflight
+        run: |
+          set -euo pipefail
+          names=""
+          versions=""
+          for tarball in tarballs/*.tgz; do
+            manifest=$(tar -xzOf "$tarball" package/package.json)
+            name=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
+            version=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+            echo "$name@$version <- $tarball"
+            names="$names $name"
+            versions="$versions $version"
+          done
+          if [ "$(printf '%s\n' $names | sort -u | wc -l | tr -d ' ')" != "6" ]; then
+            echo "Refusing to publish: expected six packages, found$names." >&2
+            exit 1
+          fi
+          distinct=$(printf '%s\n' $versions | sort -u)
+          if [ "$(printf '%s\n' "$distinct" | wc -l | tr -d ' ')" != "1" ]; then
+            echo "Refusing to publish: the tarballs carry versions$versions." >&2
+            exit 1
+          fi
+          echo "version=$distinct" >> "$GITHUB_OUTPUT"
 
-      - name: Guard @entitykit/sqlite
-        working-directory: packages/sqlite
+      # Stage A. Publishing a tarball does not run prepublishOnly, so
+      # scripts/guard-alpha-publish.js — which refuses any publish whose
+      # dist-tag is not alpha — never fires in this job. What stands in its
+      # place: every publish below names --tag alpha-candidate explicitly, so
+      # nothing reaches the alpha tag here at all; the alpha tag only moves in
+      # the promote job, after all six candidates exist; and this workflow runs
+      # by hand, from main, behind the confirmation phrase.
+      #
+      # Each step skips a version that is already on the registry, so a run
+      # that dies partway through can simply be dispatched again.
+      - name: Publish @entitykit/core
         env:
-          npm_config_tag: alpha
-        run: node ../../scripts/guard-alpha-publish.js
-      - run: npm publish --workspace packages/sqlite --provenance --tag alpha
+          VERSION: ${{ steps.preflight.outputs.version }}
+        run: |
+          if npm view "@entitykit/core@$VERSION" version > /dev/null 2>&1; then
+            echo "Skipping @entitykit/core@$VERSION: already on the registry."
+            exit 0
+          fi
+          npm publish "tarballs/entitykit-core-$VERSION.tgz" --provenance --tag alpha-candidate
 
-      - name: Guard @entitykit/postgres
-        working-directory: packages/postgres
+      - name: Publish @entitykit/sqlite
         env:
-          npm_config_tag: alpha
-        run: node ../../scripts/guard-alpha-publish.js
-      - run: npm publish --workspace packages/postgres --provenance --tag alpha
+          VERSION: ${{ steps.preflight.outputs.version }}
+        run: |
+          if npm view "@entitykit/sqlite@$VERSION" version > /dev/null 2>&1; then
+            echo "Skipping @entitykit/sqlite@$VERSION: already on the registry."
+            exit 0
+          fi
+          npm publish "tarballs/entitykit-sqlite-$VERSION.tgz" --provenance --tag alpha-candidate
 
-      - name: Guard @entitykit/mysql
-        working-directory: packages/mysql
+      - name: Publish @entitykit/postgres
         env:
-          npm_config_tag: alpha
-        run: node ../../scripts/guard-alpha-publish.js
-      - run: npm publish --workspace packages/mysql --provenance --tag alpha
+          VERSION: ${{ steps.preflight.outputs.version }}
+        run: |
+          if npm view "@entitykit/postgres@$VERSION" version > /dev/null 2>&1; then
+            echo "Skipping @entitykit/postgres@$VERSION: already on the registry."
+            exit 0
+          fi
+          npm publish "tarballs/entitykit-postgres-$VERSION.tgz" --provenance --tag alpha-candidate
 
-      - name: Guard @entitykit/testing
-        working-directory: packages/testing
+      - name: Publish @entitykit/mysql
         env:
-          npm_config_tag: alpha
-        run: node ../../scripts/guard-alpha-publish.js
-      - run: npm publish --workspace packages/testing --provenance --tag alpha
+          VERSION: ${{ steps.preflight.outputs.version }}
+        run: |
+          if npm view "@entitykit/mysql@$VERSION" version > /dev/null 2>&1; then
+            echo "Skipping @entitykit/mysql@$VERSION: already on the registry."
+            exit 0
+          fi
+          npm publish "tarballs/entitykit-mysql-$VERSION.tgz" --provenance --tag alpha-candidate
 
-      - name: Guard @entitykit/cli
-        working-directory: packages/cli
+      - name: Publish @entitykit/testing
         env:
-          npm_config_tag: alpha
-        run: node ../../scripts/guard-alpha-publish.js
-      - run: npm publish --workspace packages/cli --provenance --tag alpha
+          VERSION: ${{ steps.preflight.outputs.version }}
+        run: |
+          if npm view "@entitykit/testing@$VERSION" version > /dev/null 2>&1; then
+            echo "Skipping @entitykit/testing@$VERSION: already on the registry."
+            exit 0
+          fi
+          npm publish "tarballs/entitykit-testing-$VERSION.tgz" --provenance --tag alpha-candidate
+
+      - name: Publish @entitykit/cli
+        env:
+          VERSION: ${{ steps.preflight.outputs.version }}
+        run: |
+          if npm view "@entitykit/cli@$VERSION" version > /dev/null 2>&1; then
+            echo "Skipping @entitykit/cli@$VERSION: already on the registry."
+            exit 0
+          fi
+          npm publish "tarballs/entitykit-cli-$VERSION.tgz" --provenance --tag alpha-candidate
+
+  promote:
+    name: Promote the alpha dist-tag
+    needs: [confirm, guard, ci, evidence, publish]
+    runs-on: ubuntu-latest
+    # Moving a dist-tag signs nothing, so this job holds no OIDC identity.
+    permissions:
+      contents: read
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      VERSION: ${{ needs.publish.outputs.version }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.13.0
+          registry-url: https://registry.npmjs.org
+
+      - name: Require all six candidates on the registry
+        run: |
+          for name in core sqlite postgres mysql testing cli; do
+            if ! npm view "@entitykit/$name@$VERSION" version > /dev/null 2>&1; then
+              echo "Refusing to promote: @entitykit/$name@$VERSION is not published." >&2
+              exit 1
+            fi
+          done
+
+      # Stage B. Six dist-tag moves against packages that already exist, so the
+      # window where `npm install @entitykit/core@alpha` and
+      # `@entitykit/sqlite@alpha` disagree about the version is a few seconds
+      # of tag flips rather than the length of six publishes.
+      - name: Move the alpha dist-tag onto the published version
+        run: |
+          for name in core sqlite postgres mysql testing cli; do
+            npm dist-tag add "@entitykit/$name@$VERSION" alpha
+          done

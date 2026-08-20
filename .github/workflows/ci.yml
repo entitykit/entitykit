@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Release alpha calls this workflow for the ref it is publishing, so the
+  # release gate is this gate rather than a hand-copied subset of it.
+  workflow_call:
 
 permissions:
   contents: read

@@ -46,7 +46,10 @@
   "scripts": {
     "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
   },
-  "dependencies": {
+  "peerDependencies": {
+    "@entitykit/core": "0.1.0-alpha.1"
+  },
+  "devDependencies": {
     "@entitykit/core": "0.1.0-alpha.1"
   },
   "engines": {
