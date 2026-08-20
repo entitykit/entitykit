@@ -167,13 +167,19 @@ jobs:
       # skip it; an integrity that differs means the registry holds other bytes
       # under the version being released, and the release stops. Any other npm
       # failure — network, auth — is never read as absence.
+      #
+      # Every $tarball below is absolute, and that is load-bearing. npm reads
+      # the argument as a package spec, and a relative path carrying a slash
+      # but no ./ or file: prefix parses as GitHub shorthand — owner/repo —
+      # sending npm to git ls-remote instead of to the local file. A leading
+      # $PWD leaves no reading but the file.
 
       - name: Publish @entitykit/core
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
           set -euo pipefail
-          tarball="tarballs/entitykit-core-$VERSION.tgz"
+          tarball="$PWD/tarballs/entitykit-core-$VERSION.tgz"
           packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
           if published=$(npm view "@entitykit/core@$VERSION" dist.integrity 2>view.err); then
             published=$(printf '%s' "$published" | tr -d '[:space:]')
@@ -199,7 +205,7 @@ jobs:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
           set -euo pipefail
-          tarball="tarballs/entitykit-sqlite-$VERSION.tgz"
+          tarball="$PWD/tarballs/entitykit-sqlite-$VERSION.tgz"
           packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
           if published=$(npm view "@entitykit/sqlite@$VERSION" dist.integrity 2>view.err); then
             published=$(printf '%s' "$published" | tr -d '[:space:]')
@@ -225,7 +231,7 @@ jobs:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
           set -euo pipefail
-          tarball="tarballs/entitykit-postgres-$VERSION.tgz"
+          tarball="$PWD/tarballs/entitykit-postgres-$VERSION.tgz"
           packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
           if published=$(npm view "@entitykit/postgres@$VERSION" dist.integrity 2>view.err); then
             published=$(printf '%s' "$published" | tr -d '[:space:]')
@@ -251,7 +257,7 @@ jobs:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
           set -euo pipefail
-          tarball="tarballs/entitykit-mysql-$VERSION.tgz"
+          tarball="$PWD/tarballs/entitykit-mysql-$VERSION.tgz"
           packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
           if published=$(npm view "@entitykit/mysql@$VERSION" dist.integrity 2>view.err); then
             published=$(printf '%s' "$published" | tr -d '[:space:]')
@@ -277,7 +283,7 @@ jobs:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
           set -euo pipefail
-          tarball="tarballs/entitykit-testing-$VERSION.tgz"
+          tarball="$PWD/tarballs/entitykit-testing-$VERSION.tgz"
           packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
           if published=$(npm view "@entitykit/testing@$VERSION" dist.integrity 2>view.err); then
             published=$(printf '%s' "$published" | tr -d '[:space:]')
@@ -303,7 +309,7 @@ jobs:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
           set -euo pipefail
-          tarball="tarballs/entitykit-cli-$VERSION.tgz"
+          tarball="$PWD/tarballs/entitykit-cli-$VERSION.tgz"
           packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
           if published=$(npm view "@entitykit/cli@$VERSION" dist.integrity 2>view.err); then
             published=$(printf '%s' "$published" | tr -d '[:space:]')
@@ -356,7 +362,7 @@ jobs:
         run: |
           set -euo pipefail
           for name in core sqlite postgres mysql testing cli; do
-            tarball="tarballs/entitykit-$name-$VERSION.tgz"
+            tarball="$PWD/tarballs/entitykit-$name-$VERSION.tgz"
             if [ ! -f "$tarball" ]; then
               echo "Refusing to promote: $tarball is missing from the release artifact." >&2
               exit 1

@@ -230,12 +230,20 @@ describe('alpha release workflow', () => {
         // core is packed and published before anything that peers on it.
         const offsets = packageNames.map(name => {
             const offset = publish.indexOf(
-                `tarball="tarballs/entitykit-${name}-$VERSION.tgz"`,
+                `tarball="$PWD/tarballs/entitykit-${name}-$VERSION.tgz"`,
             );
             expect(`${name}:${String(offset >= 0)}`).toBe(`${name}:true`);
             return offset;
         });
         expect(offsets).toEqual([...offsets].sort((left, right) => left - right));
+
+        // Every tarball path in the file is absolute. npm reads a publish
+        // argument as a package spec, so a relative path carrying a slash but
+        // no ./ or file: prefix is GitHub shorthand — owner/repo — and npm
+        // goes to git rather than to the file beside it. This assertion is
+        // about the text; release-tarball-spec.test.ts hands the real npm the
+        // form this file pins and watches which of the two it does.
+        expect(workflow).not.toMatch(/tarball="tarballs\//u);
     });
 
     it('resumes on matching bytes and refuses a version that moved', () => {
