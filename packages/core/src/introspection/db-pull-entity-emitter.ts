@@ -57,7 +57,7 @@ export function renderEntityFile(
             `import { ${name} } from "./${toKebabFileStem(name)}";`,
         );
     if (propertyLines.some(line => /\bJsonValue\b/.test(line))) {
-        importLines.unshift('import type { JsonValue } from "entitykit";');
+        importLines.unshift('import type { JsonValue } from "@entitykit/core";');
     }
 
     return [

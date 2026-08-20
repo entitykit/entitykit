@@ -4,15 +4,14 @@ import { loadBuiltInProviderServices } from './built-in-provider-loader';
 
 const mysqlProviderModule = __filename.endsWith('.ts')
     ? '../../../mysql/src/mysql-provider-services'
-    : 'entitykit/mysql';
+    : '@entitykit/mysql';
 
 /**
  * Lazily loads the built-in MySQL provider services.
  *
- * Core keeps this off its static import graph so `entitykit` does not hard-depend
- * on the `mysql2` driver and stays ready for a future `entitykit-mysql` package
- * split. When that split lands, the require target below becomes
- * `require("entitykit-mysql")` and nothing else in core has to change.
+ * Core keeps this off its static import graph so `@entitykit/core` does not
+ * hard-depend on the `mysql2` driver. The adapter ships as its own
+ * `@entitykit/mysql` package, which the require target below names.
  */
 export function loadBuiltInMysqlProviderServices(): DatabaseProviderServices<MySqlConnectionConfig> {
     return loadBuiltInProviderServices(

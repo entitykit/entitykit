@@ -129,7 +129,7 @@ function assertBoolean(name: string, value: boolean | undefined): void {
 }
 
 function requirePg(): PgModule {
-    // Loaded lazily so importing this module (and therefore `entitykit`) does not
+    // Loaded lazily so importing this module (and therefore `@entitykit/core`) does not
     // pull in the optional `pg` peer until a Postgres connection is constructed.
     try {
 

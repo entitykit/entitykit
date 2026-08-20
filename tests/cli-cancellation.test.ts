@@ -28,7 +28,7 @@ describe('CLI cancellation', () => {
         const startedPath = path.join(cwd, 'introspection.started');
         fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
           import fs from "node:fs";
-          import { MigrationBuilder } from "entitykit/migrations";
+          import { MigrationBuilder } from "@entitykit/core/migrations";
           class TestContext { static create() { return new TestContext(); } }
           const sql = {
             name: "cancel-sql",

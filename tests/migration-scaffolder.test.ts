@@ -119,12 +119,12 @@ describe('migration scaffolder', () => {
         expect(result.id).toBe('20260601184530_InitialCreate');
         expect(result.hasChanges).toBe(true);
         expect(result.migrationSource).toContain(
-            'import { Migration, MigrationBuilder, type ModelSnapshot } from "entitykit/migrations";',
+            'import { Migration, MigrationBuilder, type ModelSnapshot } from "@entitykit/core/migrations";',
         );
         expect(result.migrationSource).toContain('export default class InitialCreate extends Migration');
         expect(result.migrationSource).toContain('builder.createSchema("app");');
         expect(result.migrationSource).toContain('builder.createTable("users"');
-        expect(result.snapshotSource).toContain('import type { ModelSnapshot } from "entitykit/migrations";');
+        expect(result.snapshotSource).toContain('import type { ModelSnapshot } from "@entitykit/core/migrations";');
         expect(result.snapshotSource).toContain('"tableName": "users"');
     });
 
@@ -191,7 +191,7 @@ describe('migration scaffolder', () => {
         const dir = tempDir();
         const snapshotPath = path.join(dir, 'EntityKitModelSnapshot.ts');
         fs.writeFileSync(snapshotPath, [
-            'import type { ModelSnapshot } from "entitykit";',
+            'import type { ModelSnapshot } from "@entitykit/core";',
             '',
             'export default {"formatVersion":1,"entities":[{"entityName":"Old","tableName":"old_users","keyProperty":"id","properties":[{"propertyName":"id","columnName":"id","columnType":"uuid","isRequired":true,"isPrimaryKey":true,"isUnique":false,"hasConverter":false,"isConcurrencyToken":false,"isVersion":false}],"ignoredProperties":[],"indexes":[],"relationships":[]}]} satisfies ModelSnapshot;',
         ].join('\n'));

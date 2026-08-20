@@ -16,7 +16,6 @@ module.exports = {
     "^@entitykit/mysql$": "<rootDir>/packages/mysql/src/index.ts",
     "^@entitykit/postgres$": "<rootDir>/packages/postgres/src/index.ts",
     "^@entitykit/sqlite$": "<rootDir>/packages/sqlite/src/index.ts",
-    "^@entitykit/testing$": "<rootDir>/packages/testing/src/index.ts",
-    "^entitykit/migrations$": "<rootDir>/packages/core/src/migrations/api.ts"
+    "^@entitykit/testing$": "<rootDir>/packages/testing/src/index.ts"
   }
 };

@@ -136,7 +136,7 @@ maybe('MySQL schema introspection', () => {
         const contextFile = requireDefined(files.find(file =>
             file.path === 'pulled-reading-context.ts',
         )).contents;
-        expect(contextFile).toContain('import { mySqlProviderServices } from "entitykit/mysql";');
+        expect(contextFile).toContain('import { mySqlProviderServices } from "@entitykit/mysql";');
         expect(contextFile).toContain('options.useProvider(mySqlProviderServices,');
         expect(contextFile).not.toContain('usePostgres');
         expect(contextFile).not.toContain('create schema');
@@ -144,14 +144,14 @@ maybe('MySQL schema introspection', () => {
         expect(contextFile).toContain('entity.toTable("ek_pull_reading");');
         const readingFile = entityFileContaining(files, 'isActive!: boolean;');
         expect(readingFile).toContain('recordedAt!: Date;');
-        expect(readingFile).toContain('import type { JsonValue } from "entitykit";');
+        expect(readingFile).toContain('import type { JsonValue } from "@entitykit/core";');
         expect(readingFile).toContain('payload!: JsonValue;');
         expect(readingFile).toContain('score!: number;');
         expect(readingFile).toContain('big!: string;');
         expect(diagnostics.length).toBeGreaterThan(0);
 
         // 3. Apply the *generated* model's DDL to a clean database.
-        const generatedContext = loadGeneratedDbContext(files, contextName, { 'entitykit/mysql': mysqlProvider });
+        const generatedContext = loadGeneratedDbContext(files, contextName, { '@entitykit/mysql': mysqlProvider });
         const pulled = await generatedContext.create();
         try {
             await connection.query({ text: 'drop table if exists ek_pull_reading', values: [] });
@@ -270,7 +270,7 @@ maybe('MySQL schema introspection', () => {
         // The generated model's schema script re-applies cleanly (the quoted default
         // is valid SQL); prove it by dropping and recreating from the generated DDL.
         const { files } = generateDbPullCodeWithDiagnostics(snapshot, { contextName: 'DefaultsContext', providerName: 'mysql', connectionStringExpression: JSON.stringify(url) });
-        const generated = loadGeneratedDbContext(files, 'DefaultsContext', { 'entitykit/mysql': mysqlProvider });
+        const generated = loadGeneratedDbContext(files, 'DefaultsContext', { '@entitykit/mysql': mysqlProvider });
         const pulled = await generated.create();
         try {
             await connection.query({ text: 'drop table if exists ek_defaults', values: [] });

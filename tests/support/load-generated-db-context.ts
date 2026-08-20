@@ -11,8 +11,8 @@ import type { GeneratedCodeFile } from '../../packages/core/src/tooling';
  * db-pull-codegen.test.ts uses for its compile check, factored out so the
  * MySQL, SQLite, and Postgres round-trips share one loader.
  *
- * The generated code imports `entitykit` and, for non-Postgres providers, a
- * provider subpath (`entitykit/mysql`); pass those modules in `extraModules`
+ * The generated code imports `@entitykit/core` and, for non-Postgres providers, a
+ * provider package (`@entitykit/mysql`); pass those modules in `extraModules`
  * keyed by specifier. Postgres needs none — it wires through `usePostgres`.
  */
 export function loadGeneratedDbContext(
@@ -45,7 +45,7 @@ export function loadGeneratedDbContext(
             dirname: string,
         ) => void;
         fn(module.exports, specifier => {
-            if (specifier === 'entitykit') {
+            if (specifier === '@entitykit/core') {
                 return entitykit;
             }
             if (specifier in extraModules) {

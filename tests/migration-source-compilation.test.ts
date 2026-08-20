@@ -174,7 +174,7 @@ function compileMigrationSource(source: string): readonly string[] {
         noEmit: true,
         noImplicitOverride: true,
         paths: {
-            'entitykit/migrations': [
+            '@entitykit/core/migrations': [
                 path.resolve(__dirname, '../packages/core/src/migrations/api.ts'),
             ],
         },

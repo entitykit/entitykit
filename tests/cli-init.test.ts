@@ -51,7 +51,10 @@ describe('entitykit init', () => {
             .toContain('provider: postgresProviderServices');
         expect(fs.readFileSync(path.join(cwd, 'src/db/app-db-context.ts'), 'utf8'))
             .toContain('options.usePostgres(requiredDatabaseUrl())');
-        expect(result.stdout).toContain('npm install entitykit@alpha pg');
+        expect(result.stdout).toContain(
+            'npm install @entitykit/core@alpha @entitykit/postgres@alpha pg',
+        );
+        expect(result.stdout).toContain('npm install -D @entitykit/cli@alpha');
     });
 
     it.each([

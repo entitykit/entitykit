@@ -48,7 +48,7 @@ describe('SQLite db pull round-trip', () => {
         const contextFile = requireDefined(files.find(file =>
             file.path === 'pulled-sqlite-context.ts',
         )).contents;
-        expect(contextFile).toContain('import { sqliteProviderServices } from "entitykit/sqlite";');
+        expect(contextFile).toContain('import { sqliteProviderServices } from "@entitykit/sqlite";');
         expect(contextFile).toContain('options.useProvider(sqliteProviderServices,');
         // SQLite has no CREATE SCHEMA, and "main" is the implicit database, so the
         // generated model must not qualify tables or it cannot recreate itself.
@@ -61,7 +61,7 @@ describe('SQLite db pull round-trip', () => {
 
         // Apply the *generated* model's DDL to a clean in-memory database and
         // re-introspect: the store types must match the original pull.
-        const generated = loadGeneratedDbContext(files, contextName, { 'entitykit/sqlite': sqliteProvider });
+        const generated = loadGeneratedDbContext(files, contextName, { '@entitykit/sqlite': sqliteProvider });
         const pulled = await generated.create();
         try {
             const script = pulled.database.createScript();
@@ -106,7 +106,7 @@ describe('SQLite db pull round-trip', () => {
         const generated = loadGeneratedDbContext(
             files,
             'PulledSqliteContext',
-            { 'entitykit/sqlite': sqliteProvider },
+            { '@entitykit/sqlite': sqliteProvider },
         );
         const pulled = await generated.create();
         try {

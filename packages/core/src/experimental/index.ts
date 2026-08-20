@@ -11,8 +11,8 @@ export type { SqlDialect, AlterColumnChange } from '../sql/sql-dialect';
 export { postgresMigrationDialect } from '../migrations/migration-sql-dialect';
 export type { MigrationSqlDialect } from '../migrations/migration-sql-dialect';
 // The concrete Postgres adapter — its provider services, query helpers, and
-// schema introspector — lives on the `entitykit/postgres` entry, which becomes
-// its own package. Core must not re-export from a provider.
+// schema introspector — lives in the `@entitykit/postgres` package. Core must
+// not re-export from a provider.
 export type { DatabaseProviderConnectionConfig, DatabaseProviderServices, DatabaseSchemaIntrospector } from '../storage/database-provider-services';
 export { IncludeLoader } from '../query/include-loader';
 export { Materializer } from '../materialization/materializer';

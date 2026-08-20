@@ -96,8 +96,8 @@ function addEntityAndMapping(contextPath: string): void {
     const source = fs.readFileSync(contextPath, 'utf8');
     const edited = source
         .replace(
-            'import { DbContext, type DbContextOptionsBuilder } from "entitykit";',
-            'import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "entitykit";',
+            'import { DbContext, type DbContextOptionsBuilder } from "@entitykit/core";',
+            'import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "@entitykit/core";',
         )
         .replace('export class AppDbContext extends DbContext {', [
             'export class Todo {',

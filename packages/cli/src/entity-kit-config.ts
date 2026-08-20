@@ -11,7 +11,7 @@ import { findEntityKitConfig, loadEntityKitConfigExport } from './entity-kit-con
 
 /**
  * The definition API now lives in core so a project's `entitykit.config.ts` does
- * not depend on the CLI package. `entitykit/cli` keeps exposing it unchanged.
+ * not depend on the CLI package. `@entitykit/cli` keeps exposing it unchanged.
  */
 export { defineEntityKitConfig } from '@entitykit/core';
 export type {

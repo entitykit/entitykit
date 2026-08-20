@@ -10,20 +10,25 @@ Use short-lived contexts and test upgrades against your own schema and queries.
 
 ## Install
 
+EntityKit ships as a family of packages: the runtime, one provider, and the
+command-line tool.
+
 ```bash
-npm install entitykit@alpha
+npm install @entitykit/core@alpha @entitykit/sqlite@alpha
+npm install -D @entitykit/cli@alpha
 ```
 
-Install `pg` or `mysql2` when using those providers. SQLite uses Node's
-built-in `node:sqlite` module. EntityKit requires Node 22.13 or newer.
+Swap `@entitykit/sqlite` for `@entitykit/postgres` or `@entitykit/mysql`, and
+install that provider's driver alongside it. SQLite uses Node's built-in
+`node:sqlite` module. EntityKit requires Node 22.13 or newer.
 
-| Provider | Import | Driver |
+| Provider | Package | Driver |
 | --- | --- | --- |
-| SQLite | `entitykit/sqlite` | built into Node |
-| Postgres | `entitykit/postgres` | `pg` |
-| MySQL | `entitykit/mysql` | `mysql2` |
+| SQLite | `@entitykit/sqlite` | built into Node |
+| Postgres | `@entitykit/postgres` | `pg` |
+| MySQL | `@entitykit/mysql` | `mysql2` |
 
-Importing `entitykit` does not load an optional database driver.
+Importing `@entitykit/core` does not load a provider or a database driver.
 
 ## Quick start
 
@@ -32,7 +37,7 @@ import {
   DbContext,
   type DbContextOptionsBuilder,
   type ModelBuilder
-} from "entitykit";
+} from "@entitykit/core";
 
 class User {
   id = "";
@@ -94,14 +99,15 @@ await db.saveChanges();
 
 ## Package entrypoints
 
-- `entitykit` — contexts, mapping, queries, tracking, and common errors
-- `entitykit/sqlite`, `entitykit/postgres`, `entitykit/mysql` — providers
-- `entitykit/cli` — CLI configuration and programmatic execution
-- `entitykit/migrations` — migration authoring and execution
-- `entitykit/adapter` — custom-provider contracts
-- `entitykit/tooling` — schema introspection and code generation
-- `entitykit/testing` — provider-neutral test doubles
-- `entitykit/experimental` — unstable compiler and tooling internals
+- `@entitykit/core` — contexts, mapping, queries, tracking, common errors, and
+  `defineEntityKitConfig`
+- `@entitykit/sqlite`, `@entitykit/postgres`, `@entitykit/mysql` — providers
+- `@entitykit/cli` — CLI configuration and programmatic execution
+- `@entitykit/core/migrations` — migration authoring and execution
+- `@entitykit/core/adapter` — custom-provider contracts
+- `@entitykit/core/tooling` — schema introspection and code generation
+- `@entitykit/testing` — provider-neutral test doubles
+- `@entitykit/core/experimental` — unstable compiler and tooling internals
 
 ## Migrations
 
@@ -117,6 +123,12 @@ npx entitykit db migrate --dry-run
 npx entitykit db migrate
 ```
 
+`init` generates an `entitykit.config.ts` that imports `defineEntityKitConfig`
+from `@entitykit/core` and its provider services from the provider package.
+Scaffolded migrations and the model snapshot import from
+`@entitykit/core/migrations`; `db pull` generates code that imports
+`@entitykit/core` and, for SQLite and MySQL, the matching provider package.
+
 ## Known alpha limitations
 
 These are current gaps rather than settled design. Each one surfaces as an
@@ -130,7 +142,7 @@ explicit error, a warning, or a generated comment instead of silent behavior.
 | Renames | The model differ does not detect renames. Without `--rename-table` or `--rename-column` a rename is generated as a drop plus an add. |
 | Generated SQL | Migrations are scaffolded from a model diff and expect human review. Destructive operations are reported as warnings and require `--allow-data-loss`; `db migrate --dry-run` prints the exact plan first. |
 | `db pull` | Schema EntityKit cannot model — expression and partial indexes, index prefix lengths, descending key order, foreign keys outside the pulled snapshot — is skipped, marked `// TODO` in the generated file, and listed under `Review required:`. |
-| `entitykit/experimental` | Compiler and builder internals with no compatibility guarantees during the alpha. |
+| `@entitykit/core/experimental` | Compiler and builder internals with no compatibility guarantees during the alpha. |
 
 ## Deliberate boundaries
 

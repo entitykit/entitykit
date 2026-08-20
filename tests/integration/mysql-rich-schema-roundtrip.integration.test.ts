@@ -54,7 +54,7 @@ maybe('MySQL rich-schema round trip', () => {
         const generated = loadGeneratedDbContext(
             pulledCode.files,
             contextName,
-            { 'entitykit/mysql': mysqlProvider },
+            { '@entitykit/mysql': mysqlProvider },
         );
         const context = await generated.create();
         try {

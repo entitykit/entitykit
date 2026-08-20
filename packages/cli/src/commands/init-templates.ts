@@ -19,8 +19,8 @@ export function renderInitConfig(
         : '() => process.env.DATABASE_URL';
     return [
         ...sqlitePathImport(provider, moduleStyle),
-        'import { defineEntityKitConfig } from "entitykit/cli";',
-        `import { ${symbol} } from "entitykit/${provider}";`,
+        'import { defineEntityKitConfig } from "@entitykit/core";',
+        `import { ${symbol} } from "@entitykit/${provider}";`,
         `import { AppDbContext } from "./src/db/app-db-context${moduleStyle === 'esm' ? '.js' : ''}";`,
         '',
         'export default defineEntityKitConfig({',
@@ -47,7 +47,7 @@ export function renderInitContext(
             : 'options.useMySql(requiredDatabaseUrl());';
     return [
         ...sqlitePathImport(provider, moduleStyle),
-        'import { DbContext, type DbContextOptionsBuilder } from "entitykit";',
+        'import { DbContext, type DbContextOptionsBuilder } from "@entitykit/core";',
         '',
         'export class AppDbContext extends DbContext {',
         '  protected override configure(options: DbContextOptionsBuilder): void {',

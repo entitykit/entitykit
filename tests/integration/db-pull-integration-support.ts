@@ -9,7 +9,7 @@ import { createManagedTempDirectory } from '../support/managed-temp-directory';
 export function createProject(): string {
     const cwd = createManagedTempDirectory('entitykit-db-pull-integration-');
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { postgresProviderServices } from "entitykit/postgres";
+    import { postgresProviderServices } from "@entitykit/postgres";
     class TestContext { static create() { return new TestContext(); } }
     export default {
       context: TestContext,
@@ -34,7 +34,7 @@ export function compileGeneratedDirectory(generatedDir: string): readonly string
         noEmit: true,
         noImplicitOverride: true,
         paths: {
-            entitykit: [path.resolve(__dirname, '../../packages/core/src/index.ts')],
+            '@entitykit/core': [path.resolve(__dirname, '../../packages/core/src/index.ts')],
         },
         skipLibCheck: true,
         strict: true,
@@ -82,7 +82,7 @@ export async function createGeneratedModelSnapshot(
             dirname: string,
         ) => void;
         fn(module.exports, specifier => {
-            if (specifier === 'entitykit') {
+            if (specifier === '@entitykit/core') {
                 return entitykit;
             }
             if (specifier.startsWith('./')) {

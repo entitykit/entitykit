@@ -37,7 +37,7 @@ import { runEntityKitCli } from '../packages/cli/src/api';
 function createProject(connectionString = 'postgres://localhost/entitykit'): string {
     const cwd = createManagedTempDirectory('entitykit-db-pull-');
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { postgresProviderServices } from "entitykit/postgres";
+    import { postgresProviderServices } from "@entitykit/postgres";
     class TestContext { static create() { return new TestContext(); } }
     export default {
       context: TestContext,
@@ -51,7 +51,7 @@ function createProject(connectionString = 'postgres://localhost/entitykit'): str
 function createProjectWithoutConnectionString(): string {
     const cwd = createManagedTempDirectory('entitykit-db-pull-');
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { postgresProviderServices } from "entitykit/postgres";
+    import { postgresProviderServices } from "@entitykit/postgres";
     class TestContext { static create() { return new TestContext(); } }
     export default { context: TestContext, provider: postgresProviderServices };
   `);
@@ -62,7 +62,7 @@ function createProjectWithProviderWithoutIntrospection(): string {
     const cwd = createManagedTempDirectory('entitykit-db-pull-');
     fs.writeFileSync(path.join(cwd, 'entitykit.config.js'), `
     class TestContext { static create() { return new TestContext(); } }
-    const { MigrationBuilder } = require("entitykit/migrations");
+    const { MigrationBuilder } = require("@entitykit/core/migrations");
     const provider = {
       name: "custom-provider",
       dialect: {

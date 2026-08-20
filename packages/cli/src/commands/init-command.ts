@@ -43,7 +43,7 @@ export function runInitCommand(
         `Initialized EntityKit with ${provider}.`,
         ...relativeFiles.map(file => `  ${file}`),
         '',
-        installGuidance(root, provider),
+        ...installGuidance(root, provider),
         `Next: add your entities and model mappings to ${path.relative(root, contextPath)}`,
         'Then: entitykit migration add InitialCreate',
         'Then: entitykit db migrate',
@@ -87,12 +87,15 @@ function updatePackageJson(root: string): AtomicFileWrite | undefined {
     };
 }
 
-function installGuidance(root: string, provider: BuiltInProvider): string {
+function installGuidance(root: string, provider: BuiltInProvider): string[] {
     const manager = fs.existsSync(path.join(root, 'pnpm-lock.yaml'))
         ? 'pnpm add'
         : fs.existsSync(path.join(root, 'yarn.lock'))
             ? 'yarn add'
             : 'npm install';
     const driver = provider === 'postgres' ? ' pg' : provider === 'mysql' ? ' mysql2' : '';
-    return `Install if needed: ${manager} entitykit@alpha${driver}`;
+    return [
+        `Install if needed: ${manager} @entitykit/core@alpha @entitykit/${provider}@alpha${driver}`,
+        `Install the CLI: ${manager} -D @entitykit/cli@alpha`,
+    ];
 }

@@ -1,9 +1,9 @@
 /**
- * `entitykit/sqlite` — the built-in SQLite adapter, backed by Node's `node:sqlite`
+ * `@entitykit/sqlite` — the built-in SQLite adapter, backed by Node's `node:sqlite`
  * (`DatabaseSync`, unflagged on Node >= 22.13). Use it through the provider seam:
  *
  * ```ts
- * import { sqliteProviderServices } from "entitykit/sqlite";
+ * import { sqliteProviderServices } from "@entitykit/sqlite";
  * // options.useProvider(sqliteProviderServices, ":memory:")
  * ```
  */

@@ -16,9 +16,9 @@ import type {
  * that declares it is a runtime dependency of the config file itself. It lives
  * in core — not the CLI — so that a project can describe its context and
  * provider without installing the command-line package, and so the migration
- * file loader can resolve the `entitykit/cli` alias without core depending on
- * the CLI. The CLI re-exports everything here, keeping `entitykit/cli`
- * unchanged for existing config files.
+ * migration file loader can resolve it without core depending on the CLI. The
+ * CLI re-exports everything here, so importing it from `@entitykit/cli` keeps
+ * working too.
  *
  * Config *loading* (discovery, validation, resolution) stays in the CLI: it is
  * a tool behaviour, not a contract a config file names.

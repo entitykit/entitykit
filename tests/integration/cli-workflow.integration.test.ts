@@ -21,9 +21,9 @@ const SCHEMA = 'cli_workflow';
 
 function writeConfig(cwd: string, extraProperty: string): void {
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { defineEntityKitConfig } from "entitykit/cli";
-    import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "entitykit";
-    import { postgresProviderServices } from "entitykit/postgres";
+    import { defineEntityKitConfig } from "@entitykit/core";
+    import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "@entitykit/core";
+    import { postgresProviderServices } from "@entitykit/postgres";
 
     class Widget {
       id!: string;
@@ -198,7 +198,7 @@ describePostgres('out-of-order migrations', () => {
         });
         const earlierId = `${String(Number(applied.rows[0].id.slice(0, 14)) - 1)}_EarlierBranch`;
         fs.writeFileSync(path.join(cwd, 'migrations', `${earlierId}.ts`), `
-      import { Migration, MigrationBuilder } from "entitykit/migrations";
+      import { Migration, MigrationBuilder } from "@entitykit/core/migrations";
       export class EarlierBranch extends Migration {
         readonly id = ${JSON.stringify(earlierId)};
         readonly name = "EarlierBranch";

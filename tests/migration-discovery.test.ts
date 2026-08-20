@@ -14,7 +14,7 @@ describe('migration discovery', () => {
       export const migrationName = "CreateUsers";
     `);
         fs.writeFileSync(path.join(dir, '20260601120000_CreateUsers.ts'), `
-      import { Migration, MigrationBuilder } from "entitykit/migrations";
+      import { Migration, MigrationBuilder } from "@entitykit/core/migrations";
       import { migrationName } from "./migration-name";
       export default class CreateUsers extends Migration {
         readonly id = "20260601120000_CreateUsers";
@@ -24,7 +24,7 @@ describe('migration discovery', () => {
       }
     `);
         fs.writeFileSync(path.join(dir, '20260601130000_AddPosts.ts'), `
-      import { Migration, MigrationBuilder } from "entitykit/migrations";
+      import { Migration, MigrationBuilder } from "@entitykit/core/migrations";
       export default class AddPosts extends Migration {
         readonly id = "20260601130000_AddPosts";
         readonly name = "AddPosts";

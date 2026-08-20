@@ -32,7 +32,7 @@ export function validateConfigValues(
     assertOptionalNonEmptyString(config, 'snapshot', configPath);
     if (!config.provider) {
         throw new Error(
-            `EntityKit config '${configPath}' must specify provider services from entitykit/postgres, entitykit/sqlite, or entitykit/mysql.`,
+            `EntityKit config '${configPath}' must specify provider services from @entitykit/postgres, @entitykit/sqlite, or @entitykit/mysql.`,
         );
     }
     if (config.now !== undefined && typeof config.now !== 'function') {

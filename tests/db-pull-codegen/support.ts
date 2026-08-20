@@ -24,7 +24,7 @@ export function compileGeneratedFiles(snapshot: DatabaseSchemaSnapshot): readonl
         noEmit: true,
         noImplicitOverride: true,
         paths: {
-            entitykit: [path.resolve(__dirname, '../../packages/core/src/index.ts')],
+            '@entitykit/core': [path.resolve(__dirname, '../../packages/core/src/index.ts')],
         },
         skipLibCheck: true,
         strict: true,
@@ -69,7 +69,7 @@ export async function createGeneratedModelSnapshot(snapshot: DatabaseSchemaSnaps
             dirname: string,
         ) => void;
         fn(module.exports, specifier => {
-            if (specifier === 'entitykit') {
+            if (specifier === '@entitykit/core') {
                 return entitykit;
             }
             if (specifier.startsWith('./')) {

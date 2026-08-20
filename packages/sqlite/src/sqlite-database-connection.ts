@@ -48,7 +48,7 @@ export class SqliteDatabaseConnection implements DatabaseConnection {
             resolveSqliteConnectionConfig(config);
 
         try {
-            // Load node:sqlite lazily, so importing `entitykit` (or using another
+            // Load node:sqlite lazily, so importing `@entitykit/core` (or using another
             // provider) never pulls in the driver — it loads only when a SQLite
             // connection is actually opened, matching how pg/mysql2 stay lazy.
 

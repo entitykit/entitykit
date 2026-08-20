@@ -5,7 +5,7 @@ export function renderMigrationStub(name: string): string {
     const className = toPascalIdentifier(name);
     const timestamp = 'YYYYMMDDHHMMSS';
     return [
-        'import { Migration, MigrationBuilder } from "entitykit/migrations";',
+        'import { Migration, MigrationBuilder } from "@entitykit/core/migrations";',
         '',
         `export class ${className} extends Migration {`,
         `  readonly id = "${timestamp}_${className}";`,

@@ -9,7 +9,7 @@ describe('provider seam architecture: registration', () => {
         const loader = readSource('packages/core/src/core/built-in-postgres.ts');
 
         expect(loader).toContain('\'../../../postgres/src/postgres-provider-services\'');
-        expect(loader).toContain('\'entitykit/postgres\'');
+        expect(loader).toContain('\'@entitykit/postgres\'');
         expect(loader).not.toMatch(/import[^\n]*from\s+["'][^"']*(?:packages\/postgres\/src|@entitykit\/postgres)/);
 
         expect(readSource('packages/core/src/core/context-options/db-context-options-builder.ts'))
@@ -23,7 +23,7 @@ describe('provider seam architecture: registration', () => {
         const loader = readSource('packages/core/src/core/built-in-sqlite.ts');
 
         expect(loader).toContain('\'../../../sqlite/src/sqlite-provider-services\'');
-        expect(loader).toContain('\'entitykit/sqlite\'');
+        expect(loader).toContain('\'@entitykit/sqlite\'');
         expect(loader).not.toMatch(/import[^\n]*from\s+["'][^"']*(?:packages\/sqlite\/src|@entitykit\/sqlite)/);
         expect(readSource('packages/core/src/core/context-options/db-context-options-builder.ts'))
             .toContain('loadBuiltInSqliteProviderServices');
@@ -33,13 +33,13 @@ describe('provider seam architecture: registration', () => {
         const loader = readSource('packages/core/src/core/built-in-mysql.ts');
 
         expect(loader).toContain('\'../../../mysql/src/mysql-provider-services\'');
-        expect(loader).toContain('\'entitykit/mysql\'');
+        expect(loader).toContain('\'@entitykit/mysql\'');
         expect(loader).not.toMatch(/import[^\n]*from\s+["'][^"']*(?:packages\/mysql\/src|@entitykit\/mysql)/);
         expect(readSource('packages/core/src/core/context-options/db-context-options-builder.ts'))
             .toContain('loadBuiltInMysqlProviderServices');
 
         // The MySQL adapter stays off core's and cli's static import graph everywhere
-        // but that lazy bridge, so `require("entitykit")` never loads `mysql2`.
+        // but that lazy bridge, so `require("@entitykit/core")` never loads `mysql2`.
         const guarded = [...listSourceFiles('packages/core/src/core'), ...listSourceFiles('packages/cli/src')]
             .filter(file => file !== 'packages/core/src/core/built-in-mysql.ts');
         for (const file of guarded) {
@@ -47,7 +47,7 @@ describe('provider seam architecture: registration', () => {
         }
     });
 
-    it('exposes the concrete Postgres adapter through the entitykit/postgres barrel', () => {
+    it('exposes the concrete Postgres adapter through the @entitykit/postgres barrel', () => {
         const barrel = readSource('packages/postgres/src/index.ts');
 
         expect(barrel).toContain('postgresProviderServices');

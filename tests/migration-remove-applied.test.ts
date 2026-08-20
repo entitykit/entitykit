@@ -43,9 +43,9 @@ import { runEntityKitCli } from '../packages/cli/src/api';
 function createProject(): string {
     const cwd = createManagedTempDirectory('entitykit-remove-applied-');
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { defineEntityKitConfig } from "entitykit/cli";
-    import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "entitykit";
-    import { postgresProviderServices } from "entitykit/postgres";
+    import { defineEntityKitConfig } from "@entitykit/core";
+    import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "@entitykit/core";
+    import { postgresProviderServices } from "@entitykit/postgres";
 
     class RecordingConnection {
       readonly isInTransaction = false;

@@ -1,11 +1,10 @@
 /**
- * `entitykit/postgres` — the built-in Postgres adapter surface.
+ * `@entitykit/postgres` — the built-in Postgres adapter surface.
  *
- * This barrel is the in-package boundary that mirrors the planned
- * `entitykit-postgres` package. Import concrete Postgres services, the
- * connection, schema introspection, query helpers, and the Postgres dialects
- * from here (or use `options.usePostgres(...)` in a context), so a
- * later physical package split is a mechanical move rather than a rewrite.
+ * Import concrete Postgres services, the connection, schema introspection,
+ * query helpers, and the Postgres dialects from here (or use
+ * `options.usePostgres(...)` in a context). Core never re-exports any of it,
+ * so a project that never touches Postgres never installs `pg`.
  */
 import { buildRawSql } from '@entitykit/core/adapter';
 import { postgresDialect as rawSqlDialect } from '@entitykit/core/adapter';

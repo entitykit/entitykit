@@ -32,7 +32,7 @@ import { stringifyModelSnapshot } from './model-snapshot-serialization';
 
 /** Render snapshot source. */ export function renderSnapshotSource(snapshot: ModelSnapshot): string {
     return [
-        'import type { ModelSnapshot } from "entitykit/migrations";',
+        'import type { ModelSnapshot } from "@entitykit/core/migrations";',
         '',
         `export default ${stringifyModelSnapshot(snapshot)} satisfies ModelSnapshot;`,
         '',

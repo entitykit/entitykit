@@ -5,9 +5,9 @@ import { createManagedTempDirectory } from '../support/managed-temp-directory';
 export function createProject(): string {
     const cwd = createManagedTempDirectory('entitykit-cli-files-');
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { defineEntityKitConfig } from "entitykit/cli";
-    import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "entitykit";
-    import { postgresProviderServices } from "entitykit/postgres";
+    import { defineEntityKitConfig } from "@entitykit/core";
+    import { DbContext, type DbContextOptionsBuilder, type ModelBuilder } from "@entitykit/core";
+    import { postgresProviderServices } from "@entitykit/postgres";
 
     class RecordingConnection {
       readonly isInTransaction = false;
@@ -86,7 +86,7 @@ export function createProjectWithCustomProvider(
         };
     });
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { defineEntityKitConfig } from "entitykit/cli";
+    import { defineEntityKitConfig } from "@entitykit/core";
     import {
       DbContext,
       DbContextOptionsBuilder,
@@ -99,8 +99,8 @@ export function createProjectWithCustomProvider(
       type MigrationSqlDialect,
       type SqlDialect,
       type SqlStatement
-    } from "entitykit";
-    import { MigrationBuilder } from "entitykit/migrations";
+    } from "@entitykit/core";
+    import { MigrationBuilder } from "@entitykit/core/migrations";
 
     const appliedRows = ${JSON.stringify(appliedRows)};
 
@@ -190,7 +190,7 @@ export function createProjectWithCustomProvider(
 export function createProjectWithThrowingProvider(): string {
     const cwd = createManagedTempDirectory('entitykit-cli-dry-run-');
     fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-    import { defineEntityKitConfig } from "entitykit/cli";
+    import { defineEntityKitConfig } from "@entitykit/core";
     import {
       DbContext,
       DbContextOptionsBuilder,
@@ -201,8 +201,8 @@ export function createProjectWithThrowingProvider(): string {
       type MigrationSqlDialect,
       type SqlDialect,
       type SqlStatement
-    } from "entitykit";
-    import { MigrationBuilder } from "entitykit/migrations";
+    } from "@entitykit/core";
+    import { MigrationBuilder } from "@entitykit/core/migrations";
 
     class RecordingConnection implements DatabaseConnection {
       readonly isInTransaction = false;

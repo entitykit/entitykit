@@ -39,7 +39,7 @@ describe('db pull code generation for MySQL', () => {
         const files = generateDbPullCode(mysqlSnapshot, { contextName: 'PulledDbContext', providerName: 'mysql' });
         const contextFile = files.find(file => file.path === 'pulled-db-context.ts')?.contents ?? '';
 
-        expect(contextFile).toContain('import { mySqlProviderServices } from "entitykit/mysql";');
+        expect(contextFile).toContain('import { mySqlProviderServices } from "@entitykit/mysql";');
         expect(contextFile).toContain('options.useProvider(mySqlProviderServices, process.env.DATABASE_URL!);');
         expect(contextFile).not.toContain('usePostgres');
         // An empty schema (MySQL's own database) is never emitted as a table
@@ -57,7 +57,7 @@ describe('db pull code generation for MySQL', () => {
         expect(readingFile).toContain('isActive!: boolean;');   // tinyint(1), not a small int
         expect(readingFile).toContain('recordedAt!: Date;');    // datetime(3)
         expect(readingFile).toContain('seenOn?: Date | null;'); // bare datetime (also a SQLite spelling)
-        expect(readingFile).toContain('import type { JsonValue } from "entitykit";');
+        expect(readingFile).toContain('import type { JsonValue } from "@entitykit/core";');
         expect(readingFile).toContain('payload!: JsonValue;');
         expect(readingFile).toContain('score!: number;');       // int, previously mapped to unknown
         expect(readingFile).toContain('counter?: number | null;');  // int unsigned

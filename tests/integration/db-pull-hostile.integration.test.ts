@@ -98,7 +98,7 @@ maybe('db pull against a hostile schema', () => {
                     moduleResolution: 'bundler', skipLibCheck: true,
                     baseUrl: process.cwd(),
                     typeRoots: [join(process.cwd(), 'node_modules', '@types')],
-                    paths: { entitykit: ['packages/core/src/index.ts'], 'entitykit/*': ['packages/core/src/*'] },
+                    paths: { '@entitykit/core': ['packages/core/src/index.ts'], '@entitykit/core/*': ['packages/core/src/*'] },
                     types: ['node'],
                 },
                 include: [join(dir, '*.ts')],

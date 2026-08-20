@@ -49,7 +49,7 @@ describe('EntityKit config loading', () => {
         const cwd = createTempProject();
         fs.writeFileSync(path.join(cwd, 'entitykit.config.js'), `
       class TestContext { static create() { return new TestContext(); } }
-      const { MigrationBuilder } = require("entitykit/migrations");
+      const { MigrationBuilder } = require("@entitykit/core/migrations");
       const provider = {
         name: "custom-test",
         dialect: {
@@ -99,8 +99,8 @@ describe('EntityKit config loading', () => {
       }
     `);
         fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-      import { defineEntityKitConfig } from "entitykit/cli";
-      import { postgresProviderServices } from "entitykit/postgres";
+      import { defineEntityKitConfig } from "@entitykit/core";
+      import { postgresProviderServices } from "@entitykit/postgres";
       import { AppContext } from "./src/app-context";
       export default defineEntityKitConfig({
         context: AppContext as never,
@@ -117,11 +117,32 @@ describe('EntityKit config loading', () => {
         expect(config.snapshot).toBe(path.join(cwd, 'db', 'migrations', 'EntityKitModelSnapshot.ts'));
     });
 
+    // The definition API lives in core, but the CLI package re-exports it, so a
+    // config that names either package has to resolve.
+    it('also resolves the definition API through the CLI package', async () => {
+        const cwd = createTempProject();
+        fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
+      import { defineEntityKitConfig } from "@entitykit/cli";
+      import { postgresProviderServices } from "@entitykit/postgres";
+      class AppContext { static create() { return new AppContext(); } }
+      export default defineEntityKitConfig({
+        context: AppContext as never,
+        provider: postgresProviderServices,
+        migrationsDir: "db/migrations"
+      });
+    `);
+
+        const config = await loadEntityKitConfig({ cwd });
+
+        expect(config.provider).toBe(postgresProviderServices);
+        expect(config.migrationsDir).toBe(path.join(cwd, 'db', 'migrations'));
+    });
+
     it('loads Node import.meta paths from an ESM-style TypeScript config', async () => {
         const cwd = createTempProject();
         const configPath = path.join(cwd, 'entitykit.config.mts');
         fs.writeFileSync(configPath, `
-          import { postgresProviderServices } from "entitykit/postgres";
+          import { postgresProviderServices } from "@entitykit/postgres";
           class TestContext { static create() { return new TestContext(); } }
           export default {
             context: TestContext,
@@ -174,7 +195,7 @@ describe('EntityKit config loading', () => {
         const nested = path.join(cwd, 'packages', 'app', 'src');
         fs.mkdirSync(nested, { recursive: true });
         fs.writeFileSync(path.join(cwd, 'entitykit.config.ts'), `
-          import { postgresProviderServices } from "entitykit/postgres";
+          import { postgresProviderServices } from "@entitykit/postgres";
           class TestContext { static create() { return new TestContext(); } }
           export default { context: TestContext, provider: postgresProviderServices, migrationsDir: "db/migrations" };
         `);

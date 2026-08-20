@@ -98,7 +98,7 @@ export { readSynchronousDate } from './synchronous-value';
 
 // The `entitykit.config.ts` definition API. A config file is user runtime code,
 // so the module it imports must not drag the command-line tool in with it;
-// `entitykit/cli` re-exports these for compatibility.
+// `@entitykit/cli` re-exports these unchanged.
 export { defineEntityKitConfig } from './entity-kit-config';
 export type {
     BuiltInConnectionConfig,

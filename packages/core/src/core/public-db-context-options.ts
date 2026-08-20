@@ -24,7 +24,7 @@ export interface DbContextOptionsBuilder {
     /** Scope query and write operations to the current tenant. */ useTenantScope(currentTenantId: () => unknown): this;
     /** Deliberately configure a context whose operations span every tenant. */ allowCrossTenantAccess(): this;
     /** Persist configured outbox messages in the save transaction. */ useOutbox(options: OutboxOptions): this;
-    /** Advanced provider registration; prefer the typed contracts from `entitykit/adapter`. */
+    /** Advanced provider registration; prefer the typed contracts from `@entitykit/core/adapter`. */
     useProvider(
         provider: object,
         config: string | object,

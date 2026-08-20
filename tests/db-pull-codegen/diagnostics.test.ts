@@ -155,7 +155,7 @@ describe('db pull diagnostics and conservative mappings', () => {
         const result = generateDbPullCodeWithDiagnostics(snapshot, { contextName: 'PulledDbContext' });
         const eventFile = result.files.find(file => file.path === 'event.ts')?.contents ?? '';
 
-        expect(eventFile).toContain('import type { JsonValue } from "entitykit";');
+        expect(eventFile).toContain('import type { JsonValue } from "@entitykit/core";');
         expect(eventFile).toContain('payload!: JsonValue;');
         expect(eventFile).toContain('payloadHistory!: JsonValue[];');
         expect(eventFile).toContain('tags!: string[];');

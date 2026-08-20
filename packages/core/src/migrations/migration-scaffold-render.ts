@@ -22,7 +22,7 @@ export function renderMigrationSource(options: {
     readonly warnings: readonly string[];
 }): string {
     return [
-        'import { Migration, MigrationBuilder, type ModelSnapshot } from "entitykit/migrations";',
+        'import { Migration, MigrationBuilder, type ModelSnapshot } from "@entitykit/core/migrations";',
         '',
         `export default class ${options.className} extends Migration {`,
         `  readonly id = ${JSON.stringify(options.id)};`,

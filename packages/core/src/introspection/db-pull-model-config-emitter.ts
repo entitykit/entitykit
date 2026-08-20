@@ -33,7 +33,7 @@ export function renderContextFile(
     const provider = renderProviderConfiguration(options.providerName, connectionStringExpression);
 
     return [
-        'import { DbContext, DeleteBehavior, type DbContextOptionsBuilder, type ModelBuilder } from "entitykit";',
+        'import { DbContext, DeleteBehavior, type DbContextOptionsBuilder, type ModelBuilder } from "@entitykit/core";',
         ...provider.importLine ? [provider.importLine] : [],
         ...imports,
         '',
