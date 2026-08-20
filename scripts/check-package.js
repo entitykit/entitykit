@@ -8,9 +8,14 @@
 // `--force`, no `--legacy-peer-deps` — so the single-core result is what the
 // authored dependency graph produces rather than what this script arranged.
 // The last stage skews the CLI's core peer and proves npm refuses the pair.
+//
+// Set ENTITYKIT_PACKAGE_OUTPUT_DIR to keep the tarballs: they are packed into
+// that directory, accepted there, and left behind when this run finishes, so a
+// caller that ships them ships the exact bytes every stage below ran against.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
@@ -23,6 +28,9 @@ const npmCli = process.env.npm_execpath;
 if (!npmCli) {
   throw new Error('check:package must run through npm.');
 }
+const retained = process.env.ENTITYKIT_PACKAGE_OUTPUT_DIR
+  ? path.resolve(root, process.env.ENTITYKIT_PACKAGE_OUTPUT_DIR)
+  : undefined;
 
 function readManifest(...segments) {
   return JSON.parse(fs.readFileSync(path.join(...segments), 'utf8'));
@@ -64,6 +72,12 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+/** A tarball's SHA-512 SRI, spelled the way npm spells `dist.integrity`. */
+function integrityOf(tarball) {
+  const digest = createHash('sha512').update(fs.readFileSync(tarball)).digest('base64');
+  return `sha512-${digest}`;
 }
 
 /** Every file an `exports` map promises, flattened to tarball-relative paths. */
@@ -257,8 +271,11 @@ const temporaryRoot = fs.mkdtempSync(
   path.join(os.tmpdir(), 'entitykit-package-check-'),
 );
 try {
-  const artifacts = path.join(temporaryRoot, 'artifacts');
-  fs.mkdirSync(artifacts);
+  // One pack for the whole run. Retained or not, these are the files every
+  // stage below installs, type-checks, runs and skews — there is no second
+  // pack anywhere for the retained set to disagree with.
+  const artifacts = retained ?? path.join(temporaryRoot, 'artifacts');
+  fs.mkdirSync(artifacts, { recursive: true });
   const packed = JSON.parse(runNpm([
     'pack', '--workspaces', '--json', '--pack-destination', artifacts,
   ], { capture: true }));
@@ -326,6 +343,27 @@ try {
     'PACKAGE_SKEW_REJECTED_OK @entitykit/cli peer '
     + `@entitykit/core@${skewedCoreVersion} ERESOLVE\n`,
   );
+
+  if (retained !== undefined) {
+    // Printed last, so the audit trail is only ever emitted for a set that
+    // cleared every stage. A caller uploading this directory by glob would
+    // ship a stray tarball too, so the directory has to hold these six alone.
+    const kept = fs.readdirSync(retained).filter(file => file.endsWith('.tgz')).sort();
+    const accepted = Object.values(tarballs).map(tarball => path.basename(tarball)).sort();
+    assert(
+      kept.join(' ') === accepted.join(' '),
+      `${retained} holds ${kept.join(' ')}, not the accepted ${accepted.join(' ')}.`,
+    );
+    process.stdout.write(
+      `PACKAGE_ARTIFACTS_RETAINED_OK ${retained} ${String(kept.length)} tarballs\n`,
+    );
+    for (const name of packages) {
+      process.stdout.write(
+        `PACKAGE_INTEGRITY @entitykit/${name} `
+        + `${integrityOf(tarballs[`@entitykit/${name}`])}\n`,
+      );
+    }
+  }
 
   process.stdout.write(
     `PACKAGE_CHECK_OK ${String(packages.length)} packages ${version}\n`,

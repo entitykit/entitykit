@@ -74,13 +74,18 @@ jobs:
           node-version: 22.13.0
           cache: npm
       - run: npm ci
-      - run: npm run build
-      - name: Pack the six workspaces
-        run: |
-          mkdir -p tarballs
-          npm pack --workspaces --pack-destination tarballs
+      # One operation compiles the workspaces, packs them into tarballs/, and
+      # runs every acceptance stage — the unassisted consumer install, Node16
+      # and NodeNext types, the CommonJS and ESM runtimes, the single-core
+      # invariant, the installed CLI bin, and the peer-skew refusal — against
+      # those exact files, then leaves them in place. Nothing repacks them
+      # afterwards, so the files uploaded below are the files that were
+      # accepted, byte for byte. The PACKAGE_INTEGRITY lines it prints are the
+      # SHA-512 SRIs the publish and promote jobs check the registry against.
+      - name: Build, pack and accept the six workspaces
+        run: ENTITYKIT_PACKAGE_OUTPUT_DIR="$PWD/tarballs" npm run check:package
       # These six files are the release. Everything downstream downloads and
-      # publishes them byte for byte; no job after this one builds anything.
+      # publishes them byte for byte; no job after this one compiles anything.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-tarballs
@@ -112,9 +117,13 @@ jobs:
           node-version: 22.13.0
           registry-url: https://registry.npmjs.org
 
-      # One version for the whole family. Applied migrations stamp history with
+      # One version for the whole family, and exactly the six identities this
+      # release is allowed to be. Applied migrations stamp history with
       # entityKitMigrationVersion, and the packages peer on core at an exact
-      # version, so six tarballs that disagree are not a release.
+      # version, so six tarballs that disagree are not a release. Comparing the
+      # sorted names against the literal roster — rather than counting them —
+      # refuses a set that is short one package, carries a duplicate, or
+      # carries a seventh nobody expected.
       - name: Preflight the packed tarballs
         id: preflight
         run: |
@@ -129,8 +138,11 @@ jobs:
             names="$names $name"
             versions="$versions $version"
           done
-          if [ "$(printf '%s\n' $names | sort -u | wc -l | tr -d ' ')" != "6" ]; then
-            echo "Refusing to publish: expected six packages, found$names." >&2
+          roster=$(printf '%s\n' \
+            "@entitykit/cli" "@entitykit/core" "@entitykit/mysql" \
+            "@entitykit/postgres" "@entitykit/sqlite" "@entitykit/testing")
+          if [ "$(printf '%s\n' $names | sort)" != "$roster" ]; then
+            echo "Refusing to publish: expected exactly the six @entitykit packages, found$names." >&2
             exit 1
           fi
           distinct=$(printf '%s\n' $versions | sort -u)
@@ -148,67 +160,169 @@ jobs:
       # the promote job, after all six candidates exist; and this workflow runs
       # by hand, from main, behind the confirmation phrase.
       #
-      # Each step skips a version that is already on the registry, so a run
-      # that dies partway through can simply be dispatched again.
+      # Each step asks the registry what bytes it already holds for this
+      # version and decides between exactly three outcomes: a clean E404 means
+      # the version is absent, so publish it; an integrity equal to the packed
+      # tarball's means this is a re-dispatch of a run that died partway, so
+      # skip it; an integrity that differs means the registry holds other bytes
+      # under the version being released, and the release stops. Any other npm
+      # failure — network, auth — is never read as absence.
+
       - name: Publish @entitykit/core
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
-          if npm view "@entitykit/core@$VERSION" version > /dev/null 2>&1; then
-            echo "Skipping @entitykit/core@$VERSION: already on the registry."
+          set -euo pipefail
+          tarball="tarballs/entitykit-core-$VERSION.tgz"
+          packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+          if published=$(npm view "@entitykit/core@$VERSION" dist.integrity 2>view.err); then
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to publish: @entitykit/core@$VERSION is already on the registry with different bytes." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              echo "A published version is immutable. Bump the version and dispatch again." >&2
+              exit 1
+            fi
+            echo "Skipping @entitykit/core@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          npm publish "tarballs/entitykit-core-$VERSION.tgz" --provenance --tag alpha-candidate
+          if ! grep -q E404 view.err; then
+            echo "Refusing to publish: npm view @entitykit/core@$VERSION failed for some reason other than an absent version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          npm publish "$tarball" --provenance --tag alpha-candidate
 
       - name: Publish @entitykit/sqlite
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
-          if npm view "@entitykit/sqlite@$VERSION" version > /dev/null 2>&1; then
-            echo "Skipping @entitykit/sqlite@$VERSION: already on the registry."
+          set -euo pipefail
+          tarball="tarballs/entitykit-sqlite-$VERSION.tgz"
+          packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+          if published=$(npm view "@entitykit/sqlite@$VERSION" dist.integrity 2>view.err); then
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to publish: @entitykit/sqlite@$VERSION is already on the registry with different bytes." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              echo "A published version is immutable. Bump the version and dispatch again." >&2
+              exit 1
+            fi
+            echo "Skipping @entitykit/sqlite@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          npm publish "tarballs/entitykit-sqlite-$VERSION.tgz" --provenance --tag alpha-candidate
+          if ! grep -q E404 view.err; then
+            echo "Refusing to publish: npm view @entitykit/sqlite@$VERSION failed for some reason other than an absent version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          npm publish "$tarball" --provenance --tag alpha-candidate
 
       - name: Publish @entitykit/postgres
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
-          if npm view "@entitykit/postgres@$VERSION" version > /dev/null 2>&1; then
-            echo "Skipping @entitykit/postgres@$VERSION: already on the registry."
+          set -euo pipefail
+          tarball="tarballs/entitykit-postgres-$VERSION.tgz"
+          packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+          if published=$(npm view "@entitykit/postgres@$VERSION" dist.integrity 2>view.err); then
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to publish: @entitykit/postgres@$VERSION is already on the registry with different bytes." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              echo "A published version is immutable. Bump the version and dispatch again." >&2
+              exit 1
+            fi
+            echo "Skipping @entitykit/postgres@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          npm publish "tarballs/entitykit-postgres-$VERSION.tgz" --provenance --tag alpha-candidate
+          if ! grep -q E404 view.err; then
+            echo "Refusing to publish: npm view @entitykit/postgres@$VERSION failed for some reason other than an absent version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          npm publish "$tarball" --provenance --tag alpha-candidate
 
       - name: Publish @entitykit/mysql
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
-          if npm view "@entitykit/mysql@$VERSION" version > /dev/null 2>&1; then
-            echo "Skipping @entitykit/mysql@$VERSION: already on the registry."
+          set -euo pipefail
+          tarball="tarballs/entitykit-mysql-$VERSION.tgz"
+          packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+          if published=$(npm view "@entitykit/mysql@$VERSION" dist.integrity 2>view.err); then
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to publish: @entitykit/mysql@$VERSION is already on the registry with different bytes." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              echo "A published version is immutable. Bump the version and dispatch again." >&2
+              exit 1
+            fi
+            echo "Skipping @entitykit/mysql@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          npm publish "tarballs/entitykit-mysql-$VERSION.tgz" --provenance --tag alpha-candidate
+          if ! grep -q E404 view.err; then
+            echo "Refusing to publish: npm view @entitykit/mysql@$VERSION failed for some reason other than an absent version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          npm publish "$tarball" --provenance --tag alpha-candidate
 
       - name: Publish @entitykit/testing
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
-          if npm view "@entitykit/testing@$VERSION" version > /dev/null 2>&1; then
-            echo "Skipping @entitykit/testing@$VERSION: already on the registry."
+          set -euo pipefail
+          tarball="tarballs/entitykit-testing-$VERSION.tgz"
+          packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+          if published=$(npm view "@entitykit/testing@$VERSION" dist.integrity 2>view.err); then
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to publish: @entitykit/testing@$VERSION is already on the registry with different bytes." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              echo "A published version is immutable. Bump the version and dispatch again." >&2
+              exit 1
+            fi
+            echo "Skipping @entitykit/testing@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          npm publish "tarballs/entitykit-testing-$VERSION.tgz" --provenance --tag alpha-candidate
+          if ! grep -q E404 view.err; then
+            echo "Refusing to publish: npm view @entitykit/testing@$VERSION failed for some reason other than an absent version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          npm publish "$tarball" --provenance --tag alpha-candidate
 
       - name: Publish @entitykit/cli
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
         run: |
-          if npm view "@entitykit/cli@$VERSION" version > /dev/null 2>&1; then
-            echo "Skipping @entitykit/cli@$VERSION: already on the registry."
+          set -euo pipefail
+          tarball="tarballs/entitykit-cli-$VERSION.tgz"
+          packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+          if published=$(npm view "@entitykit/cli@$VERSION" dist.integrity 2>view.err); then
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to publish: @entitykit/cli@$VERSION is already on the registry with different bytes." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              echo "A published version is immutable. Bump the version and dispatch again." >&2
+              exit 1
+            fi
+            echo "Skipping @entitykit/cli@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          npm publish "tarballs/entitykit-cli-$VERSION.tgz" --provenance --tag alpha-candidate
+          if ! grep -q E404 view.err; then
+            echo "Refusing to publish: npm view @entitykit/cli@$VERSION failed for some reason other than an absent version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          npm publish "$tarball" --provenance --tag alpha-candidate
 
   promote:
     name: Promote the alpha dist-tag
@@ -221,18 +335,46 @@ jobs:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       VERSION: ${{ needs.publish.outputs.version }}
     steps:
+      # The same artifact the publish job worked from, so the tags can be
+      # checked against the accepted bytes rather than against a name.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-tarballs
+          path: tarballs
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.13.0
           registry-url: https://registry.npmjs.org
 
-      - name: Require all six candidates on the registry
+      # The alpha tag is what users resolve, so it may only ever land on the
+      # exact bytes this release accepted. Existence is not enough: a version
+      # the registry holds from an earlier partial run carries the same name
+      # and number as the one in hand and different bytes. All six are checked
+      # before the first tag moves, so a family that fails this check is never
+      # half-promoted.
+      - name: Require the registry to hold the accepted bytes
         run: |
+          set -euo pipefail
           for name in core sqlite postgres mysql testing cli; do
-            if ! npm view "@entitykit/$name@$VERSION" version > /dev/null 2>&1; then
-              echo "Refusing to promote: @entitykit/$name@$VERSION is not published." >&2
+            tarball="tarballs/entitykit-$name-$VERSION.tgz"
+            if [ ! -f "$tarball" ]; then
+              echo "Refusing to promote: $tarball is missing from the release artifact." >&2
               exit 1
             fi
+            packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+            if ! published=$(npm view "@entitykit/$name@$VERSION" dist.integrity 2>view.err); then
+              echo "Refusing to promote: npm view @entitykit/$name@$VERSION failed." >&2
+              cat view.err >&2
+              exit 1
+            fi
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to promote: @entitykit/$name@$VERSION on the registry is not the accepted tarball." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              exit 1
+            fi
+            echo "Verified @entitykit/$name@$VERSION $packed"
           done
 
       # Stage B. Six dist-tag moves against packages that already exist, so the

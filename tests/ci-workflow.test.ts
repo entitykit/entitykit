@@ -25,7 +25,23 @@ function declaredNeeds(job: string): string {
     return /needs: \[([^\]]*)\]/u.exec(job)?.[1] ?? '';
 }
 
+/** One step's body, from its `- name:` line to the next step beside it. */
+function stepBlock(job: string, name: string): string {
+    const start = job.indexOf(`      - name: ${name}\n`);
+    expect(`${name} step:${String(start >= 0)}`).toBe(`${name} step:true`);
+    const body = job.slice(start + 1);
+    const end = body.indexOf('\n      - ');
+    return end < 0 ? body : body.slice(0, end);
+}
+
 const packageNames = ['core', 'sqlite', 'postgres', 'mysql', 'testing', 'cli'] as const;
+/**
+ * The one SHA-512 SRI computation, spelled the same in the job that publishes
+ * and the job that promotes. `tr -d` is load-bearing: GNU base64 wraps at 76
+ * columns, and an 88-character digest would arrive in two lines without it.
+ */
+const packedIntegrity =
+    'packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d \'\\n\')"';
 /** The lanes a release must clear, all of them owned by ci.yml. */
 const evidenceCommands = [
     'npm run verify', 'npm run test:coverage', 'npm run test:mutation',
@@ -152,29 +168,53 @@ describe('alpha release workflow', () => {
         expect(ci).toContain('image: mysql:8.4');
     });
 
-    it('publishes the exact tarballs the evidence job packed', () => {
-        expect(evidence).toContain('npm pack --workspaces --pack-destination tarballs');
-        expect(evidence).toContain('uses: actions/upload-artifact@');
+    it('uploads the tarballs one build-pack-accept operation accepted', () => {
+        // check:package builds, packs into tarballs/ and runs every acceptance
+        // stage against those files, then leaves them behind — so the artifact
+        // uploaded here is the artifact that was accepted, byte for byte.
+        expect(evidence).toContain(
+            'ENTITYKIT_PACKAGE_OUTPUT_DIR="$PWD/tarballs" npm run check:package',
+        );
+        // A second build or pack anywhere in this workflow would put untested
+        // bytes on the registry, so neither appears in the file at all.
+        for (const absent of ['npm run build', 'npm pack']) {
+            expect(`${absent} in release.yml:${String(workflow.includes(absent))}`)
+                .toBe(`${absent} in release.yml:false`);
+        }
+        expect(evidence.indexOf('uses: actions/upload-artifact@'))
+            .toBeGreaterThan(evidence.indexOf('ENTITYKIT_PACKAGE_OUTPUT_DIR'));
         expect(evidence).toContain('name: release-tarballs');
+        expect(evidence).toContain('path: tarballs/*.tgz');
         expect(evidence).toContain('if-no-files-found: error');
 
         expect(publish).toContain('uses: actions/download-artifact@');
         expect(publish).toContain('name: release-tarballs');
         // The publish job has no working tree at all, so there is nothing for
         // it to rebuild: what it publishes is what the matrix above verified.
-        for (const absent of ['actions/checkout', 'npm ci', 'npm run build']) {
+        for (const absent of ['actions/checkout', 'npm ci']) {
             expect(`${absent} in publish:${String(publish.includes(absent))}`)
                 .toBe(`${absent} in publish:false`);
         }
         expect(declaredNeeds(publish)).toContain('evidence');
     });
 
-    it('refuses a release whose six tarballs disagree', () => {
+    it('refuses a tarball set that is not exactly the six identities', () => {
+        const preflight = stepBlock(publish, 'Preflight the packed tarballs');
+
         expect(publish).toContain('id: preflight');
-        expect(publish).toContain('tar -xzOf "$tarball" package/package.json');
-        expect(publish).toContain('Refusing to publish: expected six packages');
-        expect(publish).toContain('Refusing to publish: the tarballs carry versions');
-        expect(publish).toContain('echo "version=$distinct" >> "$GITHUB_OUTPUT"');
+        expect(preflight).toContain('tar -xzOf "$tarball" package/package.json');
+        // The roster is named rather than counted: six tarballs missing one
+        // package and repeating another still count to six.
+        for (const name of packageNames) {
+            expect(`${name} named in the roster:`
+                + String(preflight.includes(`"@entitykit/${name}"`)))
+                .toBe(`${name} named in the roster:true`);
+        }
+        expect(preflight).toContain('!= "$roster"');
+        expect(preflight)
+            .toContain('Refusing to publish: expected exactly the six @entitykit packages');
+        expect(preflight).toContain('Refusing to publish: the tarballs carry versions');
+        expect(preflight).toContain('echo "version=$distinct" >> "$GITHUB_OUTPUT"');
     });
 
     it('publishes six candidates in dependency order, never the alpha tag', () => {
@@ -186,9 +226,11 @@ describe('alpha release workflow', () => {
             && command.endsWith('--tag alpha-candidate')))
             .toBe(true);
 
+        // Each step names its own tarball out of the downloaded artifact, and
+        // core is packed and published before anything that peers on it.
         const offsets = packageNames.map(name => {
             const offset = publish.indexOf(
-                `npm publish "tarballs/entitykit-${name}-$VERSION.tgz"`,
+                `tarball="tarballs/entitykit-${name}-$VERSION.tgz"`,
             );
             expect(`${name}:${String(offset >= 0)}`).toBe(`${name}:true`);
             return offset;
@@ -196,15 +238,36 @@ describe('alpha release workflow', () => {
         expect(offsets).toEqual([...offsets].sort((left, right) => left - right));
     });
 
-    it('skips a package that is already on the registry, so a run can resume', () => {
+    it('resumes on matching bytes and refuses a version that moved', () => {
         for (const name of packageNames) {
-            expect(publish).toContain(
-                `if npm view "@entitykit/${name}@$VERSION" version > /dev/null 2>&1; then`,
+            const step = stepBlock(publish, `Publish @entitykit/${name}`);
+            const spec = `@entitykit/${name}@$VERSION`;
+
+            // What the registry holds is compared to what was packed, not to
+            // whether the version exists.
+            expect(step).toContain(packedIntegrity);
+            expect(step).toContain(`if published=$(npm view "${spec}" dist.integrity`);
+            // Outcome one: this exact tarball is already up, so a run that
+            // died partway can simply be dispatched again.
+            expect(step).toContain(`echo "Skipping ${spec}: already on the registry`);
+            // Outcome two: the version is taken by other bytes. A published
+            // version is immutable, so the release stops rather than
+            // assembling a family from two different commits.
+            expect(step).toContain('if [ "$published" != "$packed" ]; then');
+            expect(step).toContain(
+                `Refusing to publish: ${spec} is already on the registry with different bytes.`,
             );
+            expect(step).toContain('echo "  registry: $published" >&2');
+            expect(step).toContain('echo "  packed:   $packed" >&2');
+            expect(step).toContain('Bump the version and dispatch again.');
+            // Outcome three: only a clean E404 means absent. A network or auth
+            // failure must never be read as an empty version slot.
+            expect(step).toContain('if ! grep -q E404 view.err; then');
+            expect(step).toContain(
+                `Refusing to publish: npm view ${spec} failed for some reason other than`,
+            );
+            expect(step.match(/exit 1$/gum)?.length).toBe(2);
         }
-        expect(publish.match(
-            /echo "Skipping @entitykit\/\w+@\$VERSION: already on the registry\."/gu,
-        )?.length).toBe(packageNames.length);
     });
 
     it('explains why the prepublishOnly guard cannot stand in for the tag', () => {
@@ -215,9 +278,27 @@ describe('alpha release workflow', () => {
         expect(publish).not.toContain('node ../../scripts/guard-alpha-publish.js');
     });
 
-    it('moves the alpha dist-tag only after all six candidates exist', () => {
+    it('moves the alpha dist-tag only onto the bytes it accepted', () => {
+        const verify = stepBlock(promote, 'Require the registry to hold the accepted bytes');
+
         expect(declaredNeeds(promote)).toContain('publish');
-        expect(promote).toContain('Refusing to promote:');
+        // The tag users resolve may only land on the accepted tarballs, so
+        // this job re-derives every SRI from the same artifact the publish job
+        // worked from rather than trusting a version number.
+        expect(promote).toContain('uses: actions/download-artifact@');
+        expect(promote).toContain('name: release-tarballs');
+        expect(verify).toContain(packedIntegrity);
+        expect(verify).toContain('npm view "@entitykit/$name@$VERSION" dist.integrity');
+        expect(verify).toContain('if [ "$published" != "$packed" ]; then');
+        expect(verify).toContain('Refusing to promote:');
+        expect(verify)
+            .toContain('on the registry is not the accepted tarball');
+        expect(verify).toContain('is missing from the release artifact');
+
+        // All six are verified before the first flip, so a family that fails
+        // verification is never half-promoted.
+        expect(promote.indexOf('npm dist-tag add'))
+            .toBeGreaterThan(promote.lastIndexOf('is not the accepted tarball'));
         expect(promote).toContain('npm dist-tag add "@entitykit/$name@$VERSION" alpha');
         expect(promote).not.toContain('npm publish');
         // Stage B strictly follows stage A: the inconsistent window is six tag
