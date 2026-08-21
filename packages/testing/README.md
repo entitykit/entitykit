@@ -1,18 +1,28 @@
 # @entitykit/testing
 
-Provider-neutral test doubles for EntityKit. `RecordingDatabaseConnection`
-stands in for a real connection and records every statement, parameter set, and
-transaction or savepoint boundary a context would issue, so a test can assert
-the SQL a save or query produces without a database running.
+**Provider-neutral database test doubles for EntityKit.**
 
-```bash
+`RecordingDatabaseConnection` records statements, parameters, transactions,
+savepoints, and provider sessions without starting a database.
+
+## Install
+
+```sh
 npm install -D @entitykit/core@alpha @entitykit/testing@alpha
 ```
 
+## Use
+
 ```ts
 import { RecordingDatabaseConnection } from "@entitykit/testing";
+
+const connection = new RecordingDatabaseConnection();
+connection.queueResult({ rows: [{ id: "usr_1" }] });
 ```
 
-`@entitykit/core` is a peer dependency. See the
-[EntityKit repository README](../../README.md) for the project overview,
-installation, and documentation.
+Pass the connection to `options.useConnection(connection)`, then assert against
+`connection.statements`, `operations`, `transactionEvents`, or `sessionEvents`.
+`@entitykit/core` is a peer dependency.
+
+See the [project README](https://github.com/entitykit/entitykit#readme) for the
+complete model and alpha boundaries.

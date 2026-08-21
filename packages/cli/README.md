@@ -1,21 +1,37 @@
 # @entitykit/cli
 
-The `entitykit` command-line tool: `init` scaffolds a project, `migration add`
-and `migration script` author migrations from a model diff, `db migrate` and
-`db status` apply and inspect them, and `db pull` generates a model from an
-existing database. It reads `entitykit.config.ts` and also exposes the same
-commands programmatically through `runEntityKitCli`. Install it as a dev
-dependency — it is a build-time tool, not part of your application runtime.
+**Migrations, inspection, and scaffolding for EntityKit projects.**
 
-```bash
+The CLI reads `entitykit.config.ts`. Install it as a development dependency;
+it is a build-time tool, not part of the application runtime.
+
+## Install
+
+```sh
 npm install -D @entitykit/cli@alpha
 ```
 
-```ts
-import { runEntityKitCli } from "@entitykit/cli";
+## Start
+
+```sh
+npx entitykit init
+npx entitykit migration add InitialCreate
+npx entitykit db migrate --dry-run
+npx entitykit db migrate
 ```
 
-It depends on `@entitykit/core`; the provider package you use stays a
-dependency of your own project. See the
-[EntityKit repository README](../../README.md) for the project overview,
-installation, and documentation.
+Use `db status` to inspect migrations, `migration script` to render SQL, and
+`db pull` to generate a model from an existing database.
+
+## Programmatic use
+
+```ts
+import { runEntityKitCli } from "@entitykit/cli";
+
+const result = await runEntityKitCli(["db", "status"]);
+```
+
+The CLI depends on `@entitykit/core`; provider packages remain dependencies of
+the project using them. See the
+[project README](https://github.com/entitykit/entitykit#readme) for the complete
+workflow and alpha boundaries.

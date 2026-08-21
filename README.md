@@ -1,9 +1,31 @@
-# EntityKit
+<h1 align="center">EntityKit</h1>
 
-EntityKit is an Entity Framework-inspired ORM for TypeScript. It combines
-ordinary class entities, fluent mapping, `DbContext`, typed queries, change
-tracking, migrations, and transactional writes across SQLite, Postgres, and
-MySQL.
+<p align="center"><strong>Entity Framework-inspired data access for TypeScript.</strong></p>
+
+<p align="center">
+  Ordinary classes, fluent mapping, typed queries, change tracking, migrations,
+  and transactional writes across SQLite, Postgres, and MySQL.
+</p>
+
+<p align="center">
+  <a href="https://github.com/entitykit/entitykit/actions/workflows/ci.yml"><img src="https://github.com/entitykit/entitykit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
+
+<p align="center">
+  <a href="#install">Install</a>
+  <span> · </span>
+  <a href="#start">Start</a>
+  <span> · </span>
+  <a href="#model">Model</a>
+  <span> · </span>
+  <a href="#packages">Packages</a>
+  <span> · </span>
+  <a href="#migrations">Migrations</a>
+  <span> · </span>
+  <a href="#alpha">Alpha</a>
+</p>
+
+<br />
 
 The `0.1.0-alpha` line is a public preview. APIs may still change before 1.0.
 Use short-lived contexts and test upgrades against your own schema and queries.
@@ -13,7 +35,7 @@ Use short-lived contexts and test upgrades against your own schema and queries.
 EntityKit ships as a family of packages: the runtime, one provider, and the
 command-line tool.
 
-```bash
+```sh
 npm install @entitykit/core@alpha @entitykit/sqlite@alpha
 npm install -D @entitykit/cli@alpha
 ```
@@ -32,7 +54,7 @@ loads. EntityKit requires Node 22.13 or newer.
 
 Importing `@entitykit/core` does not load a provider or a database driver.
 
-## Quick start
+## Start
 
 ```ts
 import {
@@ -85,7 +107,7 @@ loaded.name = "Ada Lovelace";
 await db.saveChanges();
 ```
 
-## Core behavior
+## Model
 
 - Entities are ordinary TypeScript classes; decorators and generated clients
   are not required.
@@ -99,17 +121,20 @@ await db.saveChanges();
   objects, set-based writes, and transactional outbox rows are supported.
 - SQL parameters remain separate from SQL text.
 
-## Package entrypoints
+## Packages
 
-- `@entitykit/core` — contexts, mapping, queries, tracking, common errors, and
-  `defineEntityKitConfig`
-- `@entitykit/sqlite`, `@entitykit/postgres`, `@entitykit/mysql` — providers
-- `@entitykit/cli` — CLI configuration and programmatic execution
-- `@entitykit/core/migrations` — migration authoring and execution
-- `@entitykit/core/adapter` — custom-provider contracts
-- `@entitykit/core/tooling` — schema introspection and code generation
-- `@entitykit/testing` — provider-neutral test doubles
-- `@entitykit/core/experimental` — unstable compiler and tooling internals
+| Package | Role |
+| --- | --- |
+| [`@entitykit/core`](./packages/core/) | Contexts, mapping, queries, tracking, errors, and configuration |
+| [`@entitykit/sqlite`](./packages/sqlite/) | SQLite provider using Node's built-in driver |
+| [`@entitykit/postgres`](./packages/postgres/) | Postgres provider using `pg` |
+| [`@entitykit/mysql`](./packages/mysql/) | MySQL provider using `mysql2` |
+| [`@entitykit/cli`](./packages/cli/) | Migrations, database inspection, and scaffolding |
+| [`@entitykit/testing`](./packages/testing/) | Provider-neutral database test doubles |
+
+Core also exposes `/migrations`, `/adapter`, `/tooling`, and `/experimental`
+subpaths. The experimental surface has no compatibility guarantees during the
+alpha.
 
 ## Migrations
 
@@ -117,7 +142,7 @@ await db.saveChanges();
 entities and model mappings to `src/db/app-db-context.ts` before the first
 migration; without them the model is empty and nothing is detected to migrate.
 
-```bash
+```sh
 npx entitykit init
 # add entities and model mappings to src/db/app-db-context.ts
 npx entitykit migration add InitialCreate
@@ -131,7 +156,7 @@ Scaffolded migrations and the model snapshot import from
 `@entitykit/core/migrations`; `db pull` generates code that imports
 `@entitykit/core` and, for SQLite and MySQL, the matching provider package.
 
-## Known alpha limitations
+## Alpha
 
 These are current gaps rather than settled design. Each one surfaces as an
 explicit error, a warning, or a generated comment instead of silent behavior.
@@ -146,11 +171,18 @@ explicit error, a warning, or a generated comment instead of silent behavior.
 | `db pull` | Schema EntityKit cannot model — expression and partial indexes, index prefix lengths, descending key order, foreign keys outside the pulled snapshot — is skipped, marked `// TODO` in the generated file, and listed under `Review required:`. |
 | `@entitykit/core/experimental` | Compiler and builder internals with no compatibility guarantees during the alpha. |
 
-## Deliberate boundaries
+## Boundaries
 
 EntityKit does not use decorators, hidden lazy loading, generated clients, or
 function-source parsing. The experimental subpath does not carry compatibility
 guarantees during the alpha.
+
+## Development
+
+```sh
+npm ci
+npm run verify
+```
 
 ## License
 

@@ -1,20 +1,30 @@
 # @entitykit/postgres
 
-The Postgres provider for EntityKit, backed by the `pg` driver. It carries the
-concrete Postgres services, pooled connection, schema introspector, query
-helpers, and dialects; core never re-exports any of it, so a project that never
-uses Postgres never loads `pg`. Register it with
-`options.usePostgres(connectionString)` or pass its services to
-`options.useProvider(...)`.
+**Postgres for EntityKit, using `pg`.**
 
-```bash
+The package provides pooled connections, schema introspection, query helpers,
+and Postgres dialects. Core never loads `pg` unless a context selects Postgres.
+
+## Install
+
+```sh
 npm install @entitykit/core@alpha @entitykit/postgres@alpha pg
 ```
 
+## Configure
+
 ```ts
-import { postgresProviderServices } from "@entitykit/postgres";
+import { DbContext, type DbContextOptionsBuilder } from "@entitykit/core";
+
+class AppDbContext extends DbContext {
+  protected override configure(options: DbContextOptionsBuilder): void {
+    options.usePostgres(process.env.DATABASE_URL ?? "");
+  }
+}
 ```
 
-`@entitykit/core` and `pg` are peer dependencies. See the
-[EntityKit repository README](../../README.md) for the project overview,
-installation, and documentation.
+The package also exports `postgresProviderServices` for explicit provider
+registration. `@entitykit/core` and `pg` are peer dependencies.
+
+See the [project README](https://github.com/entitykit/entitykit#readme) for the
+complete model and alpha boundaries.

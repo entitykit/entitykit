@@ -1,19 +1,30 @@
 # @entitykit/mysql
 
-The MySQL provider for EntityKit, backed by the `mysql2` driver. It carries the
-concrete MySQL services, pooled data source, schema introspector, and dialects,
-and stays off core's import graph so a project that never uses MySQL never
-loads `mysql2`. Register it with `options.useMySql(connectionString)` or pass
-its services to `options.useProvider(...)`.
+**MySQL for EntityKit, using `mysql2`.**
 
-```bash
+The package provides pooled connections, schema introspection, and MySQL
+dialects. Core never loads `mysql2` unless a context selects MySQL.
+
+## Install
+
+```sh
 npm install @entitykit/core@alpha @entitykit/mysql@alpha mysql2
 ```
 
+## Configure
+
 ```ts
-import { mySqlProviderServices } from "@entitykit/mysql";
+import { DbContext, type DbContextOptionsBuilder } from "@entitykit/core";
+
+class AppDbContext extends DbContext {
+  protected override configure(options: DbContextOptionsBuilder): void {
+    options.useMySql(process.env.DATABASE_URL ?? "");
+  }
+}
 ```
 
-`@entitykit/core` and `mysql2` are peer dependencies. See the
-[EntityKit repository README](../../README.md) for the project overview,
-installation, and documentation.
+The package also exports `mySqlProviderServices` for explicit provider
+registration. `@entitykit/core` and `mysql2` are peer dependencies.
+
+See the [project README](https://github.com/entitykit/entitykit#readme) for the
+complete model and alpha boundaries.

@@ -1,21 +1,38 @@
 # @entitykit/core
 
-The EntityKit runtime: `DbContext`, fluent model mapping, typed queries, change
-tracking, materialization, migrations, and the `defineEntityKitConfig` API that
-a project's `entitykit.config.ts` imports. Core carries no database driver — add
-a provider package (`@entitykit/sqlite`, `@entitykit/postgres`, or
-`@entitykit/mysql`) for the database you use. Subpaths cover the rest:
-`@entitykit/core/migrations` for migration authoring, `@entitykit/core/adapter`
-for custom-provider contracts, `@entitykit/core/tooling` for introspection and
-code generation, and `@entitykit/core/experimental` for unstable internals.
+**The provider-neutral runtime for EntityKit.**
 
-```bash
-npm install @entitykit/core@alpha
+Use ordinary TypeScript classes with `DbContext`, fluent model mapping, typed
+queries, change tracking, migrations, and transactional writes. Core carries
+no database driver.
+
+## Install
+
+```sh
+npm install @entitykit/core@alpha @entitykit/sqlite@alpha
 ```
+
+Choose `@entitykit/postgres` or `@entitykit/mysql` instead when appropriate.
+
+## Start
 
 ```ts
 import { DbContext, type DbContextOptionsBuilder } from "@entitykit/core";
+
+class AppDbContext extends DbContext {
+  protected override configure(options: DbContextOptionsBuilder): void {
+    options.useSqlite("./app.db");
+  }
+}
 ```
 
-See the [EntityKit repository README](../../README.md) for the project
-overview, installation, and documentation.
+## Includes
+
+- `/migrations` for migration authoring and execution
+- `/adapter` for custom-provider contracts
+- `/tooling` for schema introspection and code generation
+- `/experimental` for unstable compiler and tooling internals
+
+EntityKit requires Node 22.13 or newer. See the
+[project README](https://github.com/entitykit/entitykit#readme) for the complete
+model, package map, and alpha boundaries.
