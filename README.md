@@ -1,4 +1,6 @@
-<h1 align="center">EntityKit</h1>
+<p align="center">
+  <img src="./entitykit-logo.svg" alt="EntityKit" width="720">
+</p>
 
 <p align="center"><strong>Entity Framework-inspired data access for TypeScript.</strong></p>
 
