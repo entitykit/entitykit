@@ -12,7 +12,6 @@ import type {
 } from '@entitykit/core/adapter';
 import type { SqliteConnectionConfig } from '@entitykit/core';
 import { sqliteError } from './sqlite-error';
-import { iterateStatement } from './sqlite-statement';
 import {
     resolveSqliteConnectionConfig,
 } from './sqlite-connection-config';
@@ -24,6 +23,7 @@ import {
 import { OperationCanceledError } from '@entitykit/core';
 import { throwIfOperationAborted } from '@entitykit/core/adapter';
 import { executeSqliteBufferedQuery } from './sqlite-buffered-query';
+import { streamSqliteRows } from './sqlite-row-stream';
 
 const loadModule = createRequire(__filename);
 
@@ -96,11 +96,7 @@ export class SqliteDatabaseConnection implements DatabaseConnection {
         queryStreamBatchSize(options);
         throwIfQueryAborted(options.signal);
         try {
-            for (const row of iterateStatement<TRow>(this.db, statement)) {
-                throwIfQueryAborted(options.signal);
-                yield row;
-            }
-            throwIfQueryAborted(options.signal);
+            yield* streamSqliteRows<TRow>(this.db, statement, options.signal);
         } catch (error) {
             if (error instanceof OperationCanceledError) {
                 throw error;

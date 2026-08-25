@@ -8,7 +8,7 @@
  * yields rows, so the SQL text is classified up front to choose `all()` vs
  * `run()`. Binding and error mapping are delegated to their own modules.
  */
-import type { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync, StatementSync } from 'node:sqlite';
 import type { SqlStatement } from '@entitykit/core/adapter';
 import type { DatabaseQueryResult } from '@entitykit/core/adapter';
 import { toBindValue } from './sqlite-binding';
@@ -123,15 +123,26 @@ export function executeStatement<TRow extends Record<string, unknown> = Record<s
     }
 }
 
+interface SqliteStatementRows<TRow> {
+    readonly iterator: IterableIterator<TRow>;
+    readonly statement: StatementSync;
+}
+
 /** Prepare one row-returning statement and expose SQLite's lazy row iterator. */
 export function iterateStatement<TRow extends Record<string, unknown> = Record<string, unknown>>(
     db: DatabaseSync,
     statement: SqlStatement,
-): IterableIterator<TRow> {
+): SqliteStatementRows<TRow> {
     if (hasMultipleStatements(statement.text)) {
         throw new Error('SQLite streaming requires exactly one row-returning statement.');
     }
     const prepared = db.prepare(statement.text);
     const params = statement.values.map(toBindValue);
-    return prepared.iterate(...params) as IterableIterator<TRow>;
+    return {
+        iterator: prepared.iterate(...params) as IterableIterator<TRow>,
+        // Keep the StatementSync wrapper alive for the iterator's full lifetime.
+        // Older node:sqlite releases do not guarantee that the native iterator
+        // itself retains this JavaScript owner across garbage collections.
+        statement: prepared,
+    };
 }
