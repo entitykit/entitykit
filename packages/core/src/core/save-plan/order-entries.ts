@@ -5,6 +5,7 @@ import { findPrincipalEntry } from './find-principal-entry';
 import { addOneToOneDisplacementEdges } from './one-to-one-ordering';
 import type { ChangeTracker } from '../../tracking/change-tracker';
 import type { Model } from '../../model/model';
+import { stableTopologicalOrder } from './stable-topological-order';
 
 /** Order dependencies, then unrelated modified, added, and deleted entries. */
 export function orderSaveEntries(
@@ -100,42 +101,13 @@ export function orderSaveEntries(
 
     addOneToOneDisplacementEdges(entries, addEdge);
 
-    return stableTopologicalOrder(entries, outgoing, incoming, originalIndex);
-}
-
-function stableTopologicalOrder(
-    entries: readonly PersistedEntrySnapshot[],
-    outgoing: ReadonlyMap<
-        PersistedEntrySnapshot,
-        ReadonlySet<PersistedEntrySnapshot>
-    >,
-    incoming: Map<PersistedEntrySnapshot, number>,
-    originalIndex: ReadonlyMap<PersistedEntrySnapshot, number>,
-): PersistedEntrySnapshot[] {
-    const remaining = new Set(entries);
-    const ordered: PersistedEntrySnapshot[] = [];
     const compare = (
         left: PersistedEntrySnapshot,
         right: PersistedEntrySnapshot,
     ): number =>
         statePriority(left.state) - statePriority(right.state) ||
     (originalIndex.get(left) ?? 0) - (originalIndex.get(right) ?? 0);
-
-    while (remaining.size > 0) {
-        const ready = [...remaining]
-            .filter(entry => (incoming.get(entry) ?? 0) === 0)
-            .sort(compare);
-        // Cyclic graphs have no ready node. Break the cycle deterministically and
-        // let the provider enforce any irreducible constraint.
-        const next = ready[0] ?? [...remaining].sort(compare)[0];
-        remaining.delete(next);
-        ordered.push(next);
-        for (const dependent of outgoing.get(next) ?? []) {
-            incoming.set(dependent, (incoming.get(dependent) ?? 0) - 1);
-        }
-    }
-
-    return ordered;
+    return stableTopologicalOrder(entries, outgoing, incoming, compare);
 }
 
 function statePriority(state: EntityState): number {

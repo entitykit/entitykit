@@ -90,9 +90,6 @@ export class ChangeTrackerRegistry {
             this.identities,
             this.trackedEntries,
             () => this.notifyTracked(entity),
-            () => {
-                this.assertInvariant();
-            },
         );
         return entry;
     }

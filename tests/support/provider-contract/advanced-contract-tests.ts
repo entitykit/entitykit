@@ -99,6 +99,9 @@ export function defineAdvancedProviderContractTests(context: ProviderContractTes
         if (!runtime.prepareValueRoundTrip || runtime.expectedMaxStatementParameters === null) {
             return;
         }
+        // Abort through the public operation-options path before Jest's outer
+        // timeout so a live provider can unwind its transaction and pool.
+        const signal = AbortSignal.timeout(90_000);
 
         await runtime.prepareValueRoundTrip(db);
 
@@ -118,7 +121,7 @@ export function defineAdvancedProviderContractTests(context: ProviderContractTes
             }));
         }
 
-        expect(await db.saveChanges()).toBe(rows);
+        expect(await db.saveChanges({ signal })).toBe(rows);
         db.changeTracker.clear();
         expect(await db.values.count()).toBe(rows);
     }, 120000);

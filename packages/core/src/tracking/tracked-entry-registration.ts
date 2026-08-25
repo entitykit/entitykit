@@ -13,6 +13,7 @@ import type {
     TrackingIdentityFactory,
 } from './tracking-identity-factory';
 import { captureInitialTrackedEntrySnapshot } from './initial-tracked-entry-snapshot';
+import { assertTrackedEntryRegistration } from './tracked-entry-registration-invariant';
 
 export interface PreparedTrackedRegistration {
     readonly values: Record<string, unknown>;
@@ -55,7 +56,6 @@ export function publishTrackedRegistration(
     identities: TrackedIdentityMap,
     trackedEntries: Set<EntityEntry<object>>,
     notify: () => (() => void) | undefined,
-    assertInvariant: () => void,
 ): void {
     let cleanup: (() => void) | undefined;
     try {
@@ -64,7 +64,13 @@ export function publishTrackedRegistration(
         trackedEntries.add(entry);
         if (model) initializeNavigationSnapshots(entry, model);
         cleanup = notify();
-        assertInvariant();
+        assertTrackedEntryRegistration(
+            entity,
+            entry,
+            entriesByEntity,
+            identities,
+            trackedEntries,
+        );
     } catch (error) {
         cleanup?.();
         clearTemporaryGeneratedIdentity(entry);

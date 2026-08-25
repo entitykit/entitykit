@@ -5,6 +5,7 @@ import {
     internalEntityEntry,
     setMetadata,
 } from './support/public-api-internals';
+import { TrackedIdentityMap } from '../packages/core/src/tracking/tracked-identity-map';
 
 class User {
     public id!: string;
@@ -74,6 +75,30 @@ describe('ChangeTracker identity map', () => {
 
         expect(db.users.attach(user)).toBe(first);
         expect(db.changeTracker.entries()).toEqual([first]);
+    });
+
+    it('validates new registrations without rescanning every tracked identity', () => {
+        const fullScan = jest.spyOn(
+            TrackedIdentityMap.prototype,
+            'assertConsistent',
+        );
+        try {
+            const db = AppDbContext.create();
+            for (let index = 0; index < 4_000; index++) {
+                db.users.add(new User({
+                    id: `usr_${String(index)}`,
+                    email: `${String(index)}@example.com`,
+                    name: 'User',
+                }));
+            }
+
+            expect(db.changeTracker.entries()).toHaveLength(4_000);
+            expect(fullScan).not.toHaveBeenCalled();
+            db.changeTracker.clear();
+            expect(fullScan).toHaveBeenCalledTimes(1);
+        } finally {
+            fullScan.mockRestore();
+        }
     });
 
     it('can look up entries by metadata and primary key', () => {

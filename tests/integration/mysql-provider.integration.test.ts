@@ -121,16 +121,6 @@ maybe('MySQL provider', () => {
         expect(matched).toEqual(['lower']);
     });
 
-    it('saves more rows than one statement can bind', async () => {
-        const rows = Math.floor(65535 / 6) + 50;
-        for (let index = 0; index < rows; index++) {
-            db.values.add(value(`bulk_${String(index)}`, { score: index }));
-        }
-        expect(await db.saveChanges()).toBe(rows);
-        db.changeTracker.clear();
-        expect(await db.values.count()).toBe(rows);
-    }, 60_000);
-
     it('upserts, inserting what is missing and overwriting what is not', async () => {
         await db.values.upsert([value('u1', { score: 1 }), value('u2', { score: 2 })]);
         db.changeTracker.clear();
