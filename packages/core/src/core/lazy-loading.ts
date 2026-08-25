@@ -16,7 +16,7 @@
  * on the entity, so serializing or logging an entity cannot trigger a query.
  * Entities stay plain class instances with no `Proxy` around them.
  *
- * See `docs/product/lazy-loading-design.md`.
+ * See the relationship-loading section in the repository's `USAGE.md`.
  */
 
 /** Attached to a tracked entity at materialization; not a property of the model. */

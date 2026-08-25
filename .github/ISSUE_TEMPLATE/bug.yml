@@ -1,0 +1,62 @@
+name: Bug report
+description: Report incorrect runtime, provider, migration, packaging, or type behavior.
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for helping improve EntityKit. Reduce the report to the smallest
+        useful reproduction and remove credentials, connection strings, and
+        private data before posting it.
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - "@entitykit/core"
+        - "@entitykit/sqlite"
+        - "@entitykit/postgres"
+        - "@entitykit/mysql"
+        - "@entitykit/cli"
+        - "@entitykit/testing"
+        - "Packaging or release workflow"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest model, query or command, and setup that reproduces the behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Observed and expected behavior
+      description: Include the complete error and the state left behind when failure recovery matters.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: EntityKit version or commit
+      placeholder: 0.1.0-alpha.1 or a full commit SHA
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Node.js, TypeScript, provider driver, database, and operating-system versions.
+      placeholder: Node 22.13, TypeScript 5.x, pg 8.x, Postgres 18, Ubuntu
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This report contains no credentials, tokens, private connection strings, or personal data.
+          required: true
+        - label: I will use private vulnerability reporting instead if this may be a security issue.
+          required: true

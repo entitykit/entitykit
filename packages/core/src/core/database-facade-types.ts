@@ -7,9 +7,9 @@ export interface DatabaseFacade {
     readonly providerName: string;
     /** Advanced access to the provider-neutral connection contract. */
     readonly connection: DatabaseConnection;
-    /** Create model objects that do not already exist. */
+    /** Execute the provider's complete schema-creation plan. */
     ensureCreated(options?: DatabaseOperationOptions): Promise<void>;
-    /** Render the idempotent schema-creation script for the current model. */
+    /** Render the provider's complete schema-creation script for the current model. */
     createScript(): string;
     /** Run a parameterized SQL query and return its rows. */
     sql<TRow extends Record<string, unknown> = Record<string, unknown>>(

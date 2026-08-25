@@ -16,7 +16,7 @@ import { SqliteDatabaseConnection, sqliteProviderServices } from '../packages/sq
 /**
  * Awaitable lazy loading. EF loads during property access because a C# getter
  * can block on I/O; TypeScript cannot, so the `await` lives in the caller's
- * code instead. See docs/product/lazy-loading-design.md.
+ * code instead. See the relationship-loading section in USAGE.md.
  */
 class Author {
     public id!: string;

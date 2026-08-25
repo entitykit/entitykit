@@ -3,8 +3,6 @@ dist/
 packages/*/dist/
 *.tsbuildinfo
 coverage/
-docs/api/reference/
-docs/site/
 temp/
 .env
 .DS_Store
