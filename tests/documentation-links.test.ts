@@ -61,7 +61,9 @@ describe('public documentation', () => {
             path.join(root, '.github/ISSUE_TEMPLATE/config.yml'),
             'utf8',
         );
-        expect(config).toContain('/blob/main/SECURITY.md');
+        expect(config).toContain(
+            '/entitykit/entitykit/security/advisories/new',
+        );
     });
 
     it.each(documentationFiles())('resolves every local link in %s', file => {

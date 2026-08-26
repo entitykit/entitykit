@@ -158,6 +158,7 @@ the registry from outside the workflow using the retained artifact.
 Set the version and run id, then download the exact accepted files:
 
 ```sh
+export ENTITYKIT_REPO="$(git rev-parse --show-toplevel)"
 export ENTITYKIT_RELEASE_VERSION=0.1.0-alpha.1
 export ENTITYKIT_RELEASE_RUN=<github-run-id>
 export ENTITYKIT_ARTIFACT_DIR="$(mktemp -d)"
@@ -225,21 +226,27 @@ the downloaded accepted tarballs—never repack assets from a working tree:
 
 ```sh
 export ENTITYKIT_RELEASE_SHA=<full-dispatch-sha>
+export ENTITYKIT_RELEASE_NOTES="$ENTITYKIT_REPO/docs/releases/$ENTITYKIT_RELEASE_VERSION.md"
 
-git fetch origin main
-git tag --sign --message "v$ENTITYKIT_RELEASE_VERSION" \
+git -C "$ENTITYKIT_REPO" fetch origin main
+git -C "$ENTITYKIT_REPO" tag --sign --message "v$ENTITYKIT_RELEASE_VERSION" \
   "v$ENTITYKIT_RELEASE_VERSION" \
   "$ENTITYKIT_RELEASE_SHA"
-git push origin "v$ENTITYKIT_RELEASE_VERSION"
+git -C "$ENTITYKIT_REPO" push origin "v$ENTITYKIT_RELEASE_VERSION"
 
 gh release create \
   "v$ENTITYKIT_RELEASE_VERSION" \
   "$ENTITYKIT_ARTIFACT_DIR"/*.tgz \
+  --repo entitykit/entitykit \
   --verify-tag \
   --prerelease \
   --title "EntityKit $ENTITYKIT_RELEASE_VERSION" \
-  --generate-notes
+  --notes-file "$ENTITYKIT_RELEASE_NOTES"
 ```
+
+Review the release notes against the accepted artifact and exact compatibility
+boundary before creating the release. Do not substitute an unreviewed generated
+commit list for user-facing notes.
 
 Verify the signed tag resolves to the dispatch SHA and inspect the GitHub
 Release assets after upload. A pushed tag and a GitHub Release are distinct

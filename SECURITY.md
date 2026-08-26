@@ -2,7 +2,10 @@
 
 ## Reporting a vulnerability
 
-Email [shawn@zsumz.com](mailto:shawn@zsumz.com) with the subject
+Submit a
+[private vulnerability report](https://github.com/entitykit/entitykit/security/advisories/new).
+If GitHub's private reporting form is unavailable, email
+[shawn@zsumz.com](mailto:shawn@zsumz.com) with the subject
 `EntityKit security report`. Do not open a public issue, discussion, or pull
 request for a suspected vulnerability.
 

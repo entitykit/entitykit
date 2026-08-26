@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/entitykit/entitykit/blob/main/SECURITY.md
-    about: Follow the private reporting process in the security policy.
+    url: https://github.com/entitykit/entitykit/security/advisories/new
+    about: Report a suspected vulnerability privately to the maintainers.
   - name: Usage and compatibility
     url: https://github.com/entitykit/entitykit/blob/main/USAGE.md
     about: Check the usage guide and current alpha boundary before filing.
