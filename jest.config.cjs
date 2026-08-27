@@ -14,6 +14,7 @@ module.exports = {
     "^@entitykit/core/tooling$": "<rootDir>/packages/core/src/tooling/index.ts",
     "^@entitykit/cli$": "<rootDir>/packages/cli/src/api.ts",
     "^@entitykit/mysql$": "<rootDir>/packages/mysql/src/index.ts",
+    "^@entitykit/nestjs$": "<rootDir>/packages/nestjs/src/index.ts",
     "^@entitykit/postgres$": "<rootDir>/packages/postgres/src/index.ts",
     "^@entitykit/sqlite$": "<rootDir>/packages/sqlite/src/index.ts",
     "^@entitykit/testing$": "<rootDir>/packages/testing/src/index.ts"

@@ -12,9 +12,9 @@ import type { DbSet } from './db-set-types';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
 import { DbContextPublicTracking } from './db-context-public-tracking';
+import type { DatabaseDataSource } from '../storage/database-data-source';
 
 export type { RelationshipSavePlanPair, SavePlanEntry } from './save-plan';
-
 /**
  * Base class for an EntityKit unit of work.
  *
@@ -30,7 +30,8 @@ export abstract class DbContext {
     private readonly publicTracking: DbContextPublicTracking;
     private databaseFacade?: DatabaseFacade;
 
-    constructor() {
+    /** Create a context, optionally backed by an application-scoped data source. */
+    constructor(private readonly dataSource?: DatabaseDataSource) {
         this.contextHost = new DbContextHost(
             options => this.configure(options),
             model => this.model(model),
@@ -49,7 +50,9 @@ export abstract class DbContext {
     }
     /** Configure the database provider and production options for this context. */
     protected configure(options: DbContextOptionsBuilder): unknown {
-        void options;
+        if (this.dataSource !== undefined) {
+            options.useDataSource(this.dataSource);
+        }
         return undefined;
     }
     /** Configure mapped entity types for this context. */
@@ -113,7 +116,6 @@ export abstract class DbContext {
     ): Promise<TResult> {
         return this.contextHost.transaction(async () => work(this), options);
     }
-
     /** Add a link between two tracked entities in a many-to-many relationship. */
     public link<TEntity extends object, TTarget extends object>(
         source: TEntity,
@@ -122,7 +124,6 @@ export abstract class DbContext {
     ): void {
         this.contextHost.link(source, navigationSelector, target);
     }
-
     /** Remove a link between two tracked entities in a many-to-many relationship. */
     public unlink<TEntity extends object, TTarget extends object>(
         source: TEntity,
@@ -131,7 +132,6 @@ export abstract class DbContext {
     ): void {
         this.contextHost.unlink(source, navigationSelector, target);
     }
-
     /** Release resources owned by this object. */
     public async dispose(): Promise<void> {
         await this.contextHost.dispose();

@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'];
+const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs'];
 const npmCli = process.env.npm_execpath;
 if (!npmCli) {
   throw new Error('check:publish-alpha must run through npm.');
@@ -16,8 +16,10 @@ function readManifest(...segments) {
   return JSON.parse(fs.readFileSync(path.join(root, ...segments), 'utf8'));
 }
 
-function dryRun(args) {
+function dryRun(args, acceptance = false) {
   const env = { ...process.env };
+  if (acceptance) env.ENTITYKIT_ALPHA_DRY_RUN = 'accept';
+  else delete env.ENTITYKIT_ALPHA_DRY_RUN;
   // A tag inherited from the outer npm invocation would mask the plain path.
   delete env.npm_config_tag;
   const result = spawnSync(
@@ -53,7 +55,15 @@ for (const name of packages) {
     plain,
   );
 
-  const alpha = dryRun(['--workspace', workspace, '--tag', 'alpha']);
+  const directAlpha = dryRun(['--workspace', workspace, '--tag', 'alpha']);
+  assert(
+    directAlpha.status !== 0
+      && directAlpha.output.includes('working-copy publication is disabled'),
+    `An unmarked alpha publish dry run of ${manifest.name} bypassed the guard.`,
+    directAlpha,
+  );
+
+  const alpha = dryRun(['--workspace', workspace, '--tag', 'alpha'], true);
   assert(alpha.status === 0, `Alpha publish dry run of ${manifest.name} failed.`, alpha);
   assert(
     /with tag alpha and public access/u.test(alpha.output)
@@ -68,7 +78,7 @@ for (const name of packages) {
   );
   process.stdout.write(
     `ALPHA_PUBLISH_PACKAGE_OK ${manifest.name}@${manifest.version} `
-    + 'tag=alpha plain=blocked\n',
+    + 'tag=alpha direct=blocked acceptance=dry-run\n',
   );
 }
 
@@ -96,5 +106,5 @@ assert(
 
 process.stdout.write(
   `ALPHA_PUBLISH_DRY_RUN_OK packages=${String(packages.length)} `
-  + 'tag=alpha plain=blocked root=private\n',
+  + 'tag=alpha direct=blocked acceptance=dry-run root=private\n',
 );

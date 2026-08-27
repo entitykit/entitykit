@@ -18,6 +18,8 @@
   <span> · </span>
   <a href="#quick-start">Quick start</a>
   <span> · </span>
+  <a href="./docs/README.md">Docs</a>
+  <span> · </span>
   <a href="#model">Model</a>
   <span> · </span>
   <a href="#packages">Packages</a>
@@ -32,8 +34,11 @@
 <br />
 
 > [!IMPORTANT]
-> EntityKit is prerelease software. The `0.1.0-alpha` line is for evaluation
-> and early projects; APIs may change before 1.0.
+> EntityKit is prerelease software; APIs may change before 1.0. This branch is
+> the coordinated `0.1.0-alpha.2` family. The previous `alpha.1` release lacks
+> both `@entitykit/nestjs` and the source-backed `DbContext` constructor shown
+> below; if `@alpha` still resolves there, select a shared source explicitly
+> with `options.useDataSource(source)` in `configure()`.
 
 ## Install
 
@@ -68,9 +73,9 @@ Define an ordinary class and map it in a `DbContext`:
 ```ts
 import {
   DbContext,
-  type DbContextOptionsBuilder,
   type ModelBuilder,
 } from "@entitykit/core";
+import { createSqliteDataSource } from "@entitykit/sqlite";
 
 class User {
   id = "";
@@ -79,11 +84,7 @@ class User {
 }
 
 class AppDbContext extends DbContext {
-  readonly users = this.set(User);
-
-  protected override configure(options: DbContextOptionsBuilder): void {
-    options.useSqlite("./app.db");
-  }
+  readonly users = this.set<User, [id: string]>(User);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -96,31 +97,43 @@ class AppDbContext extends DbContext {
     });
   }
 }
+
+const dataSource = createSqliteDataSource("./app.db");
 ```
 
 Create a local schema, write a row, query it, and save a tracked change:
 
 ```ts
-await using db = AppDbContext.create();
+try {
+  await using db = dataSource.createContext(AppDbContext);
 
-await db.database.ensureCreated();
+  await db.database.ensureCreated();
 
-const user = Object.assign(new User(), {
-  id: "usr_1",
-  email: "ada@example.com",
-  name: "Ada",
-});
+  const user = Object.assign(new User(), {
+    id: "usr_1",
+    email: "ada@example.com",
+    name: "Ada",
+  });
 
-db.users.add(user);
-await db.saveChanges();
+  db.users.add(user);
+  await db.saveChanges();
 
-const loaded = await db.users
-  .where(candidate => candidate.email.eq("ada@example.com"))
-  .single();
+  const loaded = await db.users
+    .where(candidate => candidate.email.eq("ada@example.com"))
+    .single();
 
-loaded.name = "Ada Lovelace";
-await db.saveChanges();
+  loaded.name = "Ada Lovelace";
+  await db.saveChanges();
+} finally {
+  await dataSource.dispose();
+}
 ```
+
+The lifecycle is deliberate: create one provider data source for the
+application, create a fresh context for every request, job, or other unit of
+work, dispose that context, then dispose the data source during application
+shutdown. `DbContext` accepts the source in its optional constructor, so a
+source-backed context needs no provider-specific `configure()` method.
 
 `ensureCreated()` is convenient for a one-time prototype or disposable-database
 bootstrap; it is not a deployment or schema-evolution primitive. Once a schema
@@ -181,6 +194,7 @@ values stay separate from generated SQL.
 | [`@entitykit/mysql`](./packages/mysql/) | MySQL provider using `mysql2` |
 | [`@entitykit/cli`](./packages/cli/) | Migrations, database inspection, and scaffolding |
 | [`@entitykit/testing`](./packages/testing/) | Provider-neutral recording test doubles |
+| [`@entitykit/nestjs`](./packages/nestjs/) | Native-ESM NestJS 12 lifecycle integration; begins in `alpha.2` |
 
 Core also exposes focused `/migrations`, `/tooling`, and `/adapter` entry
 points. `/experimental` contains unstable compiler and builder internals.
@@ -207,10 +221,16 @@ deployment scripts, database-first projects, and provider-specific DDL rules.
 
 ## Learn
 
+- [Documentation map](./docs/README.md) — the shortest path for newcomers,
+  framework users, contributors, and release maintainers.
 - [Usage guide](./USAGE.md) — build a real context, query, save, load
   relationships, run transactions, and manage migrations.
 - [API reference](./API.md) — packages, entry points, public operations, errors,
   and extension surfaces.
+- [Framework guide](./docs/frameworks.md) — NestJS 12 and the Node-runtime
+  Next.js 16 integration pattern.
+- [Next.js + Postgres demo](./examples/nextjs-postgres/) — a production-shaped
+  App Router example pinned to the exact `alpha.2` workspace family.
 - [Compatibility](./docs/compatibility.md) — Node support, provider parity, and
   current alpha boundaries.
 - [Architecture](./docs/architecture.md) — package ownership, provider seams,
@@ -218,9 +238,12 @@ deployment scripts, database-first projects, and provider-specific DDL rules.
 
 ## Alpha
 
-EntityKit is deliberately honest about its current boundary:
+EntityKit is deliberately honest about its current boundary. The
+`0.1.0-alpha.1` release was the original six-package family; the coordinated
+`0.1.0-alpha.2` source adds the NestJS package and the refined data-source
+lifecycle API.
 
-- All six packages move on one exact prerelease version.
+- Every package in a coordinated release moves on one exact prerelease version.
 - The public API may change before 1.0; `/experimental` has no compatibility
   promise during alpha.
 - Provider-neutral behavior is shared, but database DDL, isolation, locking,
@@ -242,7 +265,7 @@ npm run verify
 Read [Contributing](./CONTRIBUTING.md) before changing package boundaries or a
 public API. Report suspected vulnerabilities through the private process in
 [Security](./SECURITY.md). Maintainers should follow the exact
-[release runbook](./docs/releasing.md) for the six-package alpha.
+[release runbook](./docs/releasing.md) for the published alpha family.
 
 ## License
 

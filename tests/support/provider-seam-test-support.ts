@@ -33,9 +33,9 @@ export function listSourceFiles(relativeDir: string): string[] {
     });
 }
 
-/** Every authored source file in the workspace, across all six packages. */
+/** Every authored source file in the workspace packages. */
 export function listPackageSourceFiles(): string[] {
-    return ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing']
+    return ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs']
         .flatMap(name => listSourceFiles(`packages/${name}/src`));
 }
 

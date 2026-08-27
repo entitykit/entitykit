@@ -13,13 +13,15 @@ const declaredTag = manifest.publishConfig?.tag;
 // npm does NOT fold publishConfig.tag into npm_config_tag, so a bare
 // `npm publish` leaves this undefined even for an alpha-pinned package.
 const invokedTag = process.env.npm_config_tag;
+const isDryRun = process.env.npm_config_dry_run === 'true';
+const isAcceptanceRun = process.env.ENTITYKIT_ALPHA_DRY_RUN === 'accept';
 
 function refuse(reason) {
   console.error(
     `Refusing prerelease publication of ${manifest.name ?? 'this package'}: `
     + `${reason} EntityKit publishes from the Release alpha workflow `
-    + '(.github/workflows/release.yml), which packs the six tarballs once and '
-    + 'moves the alpha dist-tag only after all six are on the registry. '
+    + '(.github/workflows/release.yml), which packs the seven tarballs once and '
+    + 'moves the alpha dist-tag only after all seven are on the registry. '
     + 'Publishing from a working copy is not a supported path.',
   );
   process.exit(1);
@@ -27,6 +29,10 @@ function refuse(reason) {
 
 if (declaredTag !== undefined && declaredTag !== 'alpha') {
   refuse(`its publishConfig pins dist-tag '${declaredTag}'.`);
+}
+
+if (!isDryRun || !isAcceptanceRun) {
+  refuse('working-copy publication is disabled, including explicit alpha-tag publishes.');
 }
 
 if (invokedTag !== 'alpha') {

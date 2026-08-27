@@ -21,9 +21,11 @@ not separate release lanes during the alpha.
 
 ## Modules and TypeScript
 
-The published artifacts are CommonJS. Node can consume them from either module
-system, and the package gate installs the packed tarballs into an otherwise
-empty application before testing them.
+The six packages published as `0.1.0-alpha.1` are CommonJS. Node can consume
+them from either module system, and the package gate installs the packed
+tarballs into an otherwise empty application before testing them.
+`@entitykit/nestjs` on `main` is a native-ESM package intended for the next
+coordinated alpha; it is not part of this published qualification.
 
 | Consumer | Qualified | What is proved |
 | --- | --- | --- |
@@ -31,7 +33,7 @@ empty application before testing them.
 | ESM `import` | Yes | Node's ESM-to-CommonJS interoperability against the same installed artifacts. |
 | TypeScript `module: Node16` | Yes | Strict typechecking with `skipLibCheck: false`. |
 | TypeScript `module: NodeNext` | Yes | Strict ESM typechecking from an `.mts` consumer with `skipLibCheck: false`. |
-| Native ESM output | No | EntityKit does not publish a second ESM build in this alpha. |
+| Native ESM output | No for the published `alpha.1` family | The six published packages do not include a second ESM build. The unreleased NestJS package on `main` emits ESM. |
 | Bundler-specific resolution | Not qualified | Deep imports and undeclared entry points are unsupported. |
 
 The build target is ES2022. The public entry points are:
@@ -43,9 +45,26 @@ The build target is ES2022. The public entry points are:
 - `@entitykit/core/experimental`
 - the root entry of each provider, CLI, and testing package
 
+The `@entitykit/nestjs` root entry is public in the development workspace but
+does not become part of the registry contract until its coordinated alpha is
+published and accepted through the package gate.
+
 Only paths declared in a package's `exports` map are public. The package smoke
 test covers every declared entry from the actual tarballs; repository-relative
 or `dist/` deep imports are not compatibility contracts.
+
+## Frameworks
+
+| Integration | Status | Boundary |
+| --- | --- | --- |
+| NestJS 12 | `alpha.2` release candidate; registry qualification pending | `@entitykit/nestjs` provides native-ESM `forRoot`, `forRootAsync`, `forFeature`, and context-runner lifecycle APIs. It did not exist in `0.1.0-alpha.1`. |
+| Next.js 16 App Router, Node runtime | Repository example; not generally qualified | The [Postgres demo](../examples/nextjs-postgres/) shows the intended Node-only lifecycle and external-package configuration. It is not yet a compatibility claim for arbitrary Next.js applications or bundlers. |
+| Next.js Edge, browser, or Client Component data access | Unsupported | EntityKit requires Node database drivers and server-only APIs. |
+
+The [framework guide](frameworks.md) documents the supported ownership shape.
+General Next.js or bundler support remains unqualified until a required gate
+builds the exact packed artifacts and proves the live production runtime path.
+A source example or source-only typecheck is not that gate.
 
 ## Providers
 
@@ -107,15 +126,15 @@ silently updating the wrong row.
 | --- | --- |
 | Public APIs | May change between alpha releases. Test an upgrade against the application's real schema, queries, and migrations. |
 | Experimental entry | `@entitykit/core/experimental` has no compatibility guarantee during the alpha. |
-| Package family | All six packages are released at one version. Providers, CLI, and testing use an exact peer on core; mixed EntityKit versions are unsupported. |
-| Context lifecycle | A `DbContext` is a short-lived unit of work. Overlapping `saveChanges()` calls are rejected; use separate contexts for concurrent units of work. |
+| Package family | The published `alpha.1` family has six packages at one exact version. Future coordinated releases must move every included package together; mixed EntityKit versions are unsupported. `@entitykit/nestjs` on `main` is not retroactively part of `alpha.1`. |
+| Context lifecycle | Create one provider data source per application, then one short-lived `DbContext` per request, job, or unit of work. Dispose the context first and the source at application shutdown. Overlapping operations on one context are rejected. |
 | Tenant scope | Typed queries and writes enforce configured scope. `ignoreTenantScope()`, cross-tenant contexts, raw SQL, and direct connection access are explicit bypasses, not authorization. |
 | Migration generation | Generated migrations require review. Renames need explicit hints; destructive forward plans require `--allow-data-loss`; rollback plans can also lose data without that gate. Use `db migrate --dry-run` before applying either direction. |
 | Database-first generation | `db pull` emits `TODO` comments and `Review required:` diagnostics for schema it cannot model safely. Unsupported details are not silently approximated. |
 | SQLite migrations | Table rebuilds reproduce modeled schema only. Keep a backup and account for hand-authored triggers or other out-of-model objects. |
 | MySQL migrations | A failure after DDL begins can leave part of a migration applied because MySQL commits DDL implicitly. |
 | MySQL schema bootstrap | `ensureCreated()` and `createScript()` may include unguarded index DDL. Treat them as one-time creation plans, not repeatable reconciliation. |
-| Platform surface | Node.js only; no browser, edge, alternative-runtime, native-ESM, or bundler support claim yet. |
+| Platform surface | Node.js only. The published `alpha.1` family makes no browser, Edge, alternative-runtime, native-ESM-output, or bundler support claim. The unreleased NestJS package's ESM output does not broaden that runtime boundary. |
 
 The executable sources for these claims are the [CI matrix](../.github/workflows/ci.yml),
 [package acceptance test](../scripts/check-package.js), and

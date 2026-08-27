@@ -7,7 +7,7 @@ const compiler = require.resolve('typescript/bin/tsc');
 
 // Dependency order. `tsc -b` walks the project references itself, but naming the
 // packages explicitly keeps the build deterministic and the failure legible.
-const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'];
+const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs'];
 
 for (const name of packages) {
   const packageRoot = path.join(root, 'packages', name);

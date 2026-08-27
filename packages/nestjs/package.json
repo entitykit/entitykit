@@ -1,0 +1,57 @@
+{
+  "name": "@entitykit/nestjs",
+  "version": "0.1.0-alpha.2",
+  "description": "Lifecycle-safe EntityKit integration for NestJS applications.",
+  "keywords": [
+    "orm",
+    "typescript",
+    "entitykit",
+    "nestjs",
+    "integration"
+  ],
+  "author": "zsumz <shawn@zsumz.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/entitykit/entitykit.git",
+    "directory": "packages/nestjs"
+  },
+  "homepage": "https://github.com/entitykit/entitykit",
+  "bugs": {
+    "url": "https://github.com/entitykit/entitykit/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "alpha"
+  },
+  "scripts": {
+    "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
+  },
+  "peerDependencies": {
+    "@entitykit/core": "0.1.0-alpha.2",
+    "@nestjs/common": "^12.0.0",
+    "@nestjs/core": "^12.0.0",
+    "reflect-metadata": "^0.1.13 || ^0.2.0",
+    "rxjs": "^7.2.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "sideEffects": false
+}

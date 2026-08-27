@@ -23,6 +23,7 @@
       "@entitykit/core/tooling": ["./packages/core/src/tooling/index.ts"],
       "@entitykit/cli": ["./packages/cli/src/api.ts"],
       "@entitykit/mysql": ["./packages/mysql/src/index.ts"],
+      "@entitykit/nestjs": ["./packages/nestjs/src/index.ts"],
       "@entitykit/postgres": ["./packages/postgres/src/index.ts"],
       "@entitykit/sqlite": ["./packages/sqlite/src/index.ts"],
       "@entitykit/testing": ["./packages/testing/src/index.ts"]

@@ -34,7 +34,9 @@ function stepBlock(job: string, name: string): string {
     return end < 0 ? body : body.slice(0, end);
 }
 
-const packageNames = ['core', 'sqlite', 'postgres', 'mysql', 'testing', 'cli'] as const;
+const packageNames = [
+    'core', 'sqlite', 'postgres', 'mysql', 'nestjs', 'testing', 'cli',
+] as const;
 /**
  * The one SHA-512 SRI computation, spelled the same in the job that publishes
  * and the job that promotes. `tr -d` is load-bearing: GNU base64 wraps at 76
@@ -58,13 +60,17 @@ describe('public alpha CI workflow', () => {
 
     it('runs every alpha release evidence lane', () => {
         for (const lane of [
-            'verify:', 'coverage:', 'mutation:', 'postgres:', 'mysql:',
+            'verify:', 'coverage:', 'mutation:', 'postgres:', 'mysql:', 'nextjs:',
         ]) {
             expect(workflow).toContain(`  ${lane}`);
         }
         for (const command of evidenceCommands) {
             expect(workflow).toContain(`- run: ${command}`);
         }
+        expect(workflow).toContain('npm run test:e2e'
+            + ' --workspace @entitykit/example-nextjs-postgres');
+        expect(workflow).toContain('image: postgres:18');
+        expect(workflow).toContain('npx playwright install --with-deps chromium');
         expect(workflow).toContain('node: [22.13.0, 24]');
     });
 
@@ -89,7 +95,7 @@ describe('public alpha CI workflow', () => {
         expect(uses.every(value => /@[0-9a-f]{40}$/u.test(value)))
             .toBe(true);
         expect(workflow.match(/persist-credentials: false/gu)?.length)
-            .toBe(5);
+            .toBe(6);
         expect(workflow).toContain('permissions:\n  contents: read');
     });
 
@@ -198,13 +204,12 @@ describe('alpha release workflow', () => {
         expect(declaredNeeds(publish)).toContain('evidence');
     });
 
-    it('refuses a tarball set that is not exactly the six identities', () => {
+    it('refuses a tarball set that is not exactly the seven identities', () => {
         const preflight = stepBlock(publish, 'Preflight the packed tarballs');
-
         expect(publish).toContain('id: preflight');
         expect(preflight).toContain('tar -xzOf "$tarball" package/package.json');
-        // The roster is named rather than counted: six tarballs missing one
-        // package and repeating another still count to six.
+        // The roster is named rather than counted: seven tarballs missing one
+        // package and repeating another still count to seven.
         for (const name of packageNames) {
             expect(`${name} named in the roster:`
                 + String(preflight.includes(`"@entitykit/${name}"`)))
@@ -212,12 +217,16 @@ describe('alpha release workflow', () => {
         }
         expect(preflight).toContain('!= "$roster"');
         expect(preflight)
-            .toContain('Refusing to publish: expected exactly the six @entitykit packages');
+            .toContain('Refusing to publish: expected exactly the seven @entitykit packages');
         expect(preflight).toContain('Refusing to publish: the tarballs carry versions');
+        expect(preflight).toContain('is not an -alpha.N prerelease version');
+        expect(preflight).toContain('npm view "@entitykit/core@alpha" version');
+        expect(preflight).toContain('is older than current alpha');
+        expect(preflight).toContain('Accepting same-version retry');
+        expect(preflight).toContain('Accepting forward alpha movement');
         expect(preflight).toContain('echo "version=$distinct" >> "$GITHUB_OUTPUT"');
     });
-
-    it('publishes six candidates in dependency order, never the alpha tag', () => {
+    it('publishes seven candidates in dependency order, never the alpha tag', () => {
         const publishes = [...publish.matchAll(/npm publish[^\n]*/gu)]
             .map(match => match[0]);
         expect(publishes).toHaveLength(packageNames.length);
@@ -288,7 +297,6 @@ describe('alpha release workflow', () => {
 
     it('moves the alpha dist-tag only onto the bytes it accepted', () => {
         const verify = stepBlock(promote, 'Require the registry to hold the accepted bytes');
-
         expect(declaredNeeds(promote)).toContain('publish');
         // The tag users resolve may only land on the accepted tarballs, so
         // this job re-derives every SRI from the same artifact the publish job
@@ -303,14 +311,19 @@ describe('alpha release workflow', () => {
             .toContain('on the registry is not the accepted tarball');
         expect(verify).toContain('is missing from the release artifact');
 
-        // All six are verified before the first flip, so a family that fails
+        // All seven are verified before the first flip, so a family that fails
         // verification is never half-promoted.
         expect(promote.indexOf('npm dist-tag add'))
             .toBeGreaterThan(promote.lastIndexOf('is not the accepted tarball'));
         expect(promote).toContain('npm dist-tag add "@entitykit/$name@$VERSION" alpha');
+        expect(promote).toContain('for attempt in 1 2 3');
+        expect(promote).toContain('after three attempts; rerun this release');
+        expect(promote).toContain('npm view "@entitykit/$name@alpha" version');
+        expect(promote).toContain('Alpha promotion verification failed:');
+        expect(promote).toContain('Verified @entitykit/$name@alpha -> $VERSION');
         expect(promote).not.toContain('npm publish');
-        // Stage B strictly follows stage A: the inconsistent window is six tag
-        // flips, not six publishes.
+        // Stage B strictly follows stage A: the inconsistent window is seven tag
+        // flips, not seven publishes.
         expect(workflow.indexOf('npm dist-tag add'))
             .toBeGreaterThan(workflow.lastIndexOf('npm publish'));
     });

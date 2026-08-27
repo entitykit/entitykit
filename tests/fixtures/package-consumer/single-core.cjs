@@ -29,6 +29,7 @@ const siblings = [
   '@entitykit/sqlite',
   '@entitykit/postgres',
   '@entitykit/mysql',
+  '@entitykit/nestjs',
   '@entitykit/cli',
   '@entitykit/testing',
 ];

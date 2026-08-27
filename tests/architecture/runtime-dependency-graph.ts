@@ -11,7 +11,9 @@ interface SourceDirectoryEntry {
     isFile(): boolean;
 }
 
-const packageNames = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'] as const;
+const packageNames = [
+    'core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs',
+] as const;
 
 /**
  * Public entry each package specifier resolves to, relative to the repository.
@@ -29,6 +31,7 @@ const packageEntries: Readonly<Partial<Record<string, string>>> = {
     '@entitykit/core/tooling': 'packages/core/src/tooling/index.ts',
     '@entitykit/cli': 'packages/cli/src/api.ts',
     '@entitykit/mysql': 'packages/mysql/src/index.ts',
+    '@entitykit/nestjs': 'packages/nestjs/src/index.ts',
     '@entitykit/postgres': 'packages/postgres/src/index.ts',
     '@entitykit/sqlite': 'packages/sqlite/src/index.ts',
     '@entitykit/testing': 'packages/testing/src/index.ts',

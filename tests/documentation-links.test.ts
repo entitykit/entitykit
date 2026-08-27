@@ -10,7 +10,9 @@ const requiredPublicDocs = [
     'SECURITY.md',
     'docs/architecture.md',
     'docs/compatibility.md',
+    'docs/frameworks.md',
     'docs/migrations.md',
+    'docs/README.md',
     'docs/releasing.md',
 ] as const;
 const packageNames = [
@@ -20,7 +22,9 @@ const packageNames = [
     'mysql',
     'cli',
     'testing',
+    'nestjs',
 ] as const;
+const exampleDocs = ['examples/nextjs-postgres/README.md'] as const;
 const communityFiles = [
     '.github/ISSUE_TEMPLATE/bug.yml',
     '.github/ISSUE_TEMPLATE/feature.yml',
@@ -66,6 +70,22 @@ describe('public documentation', () => {
         );
     });
 
+    it('prepares release notes for the exact repository version', () => {
+        const manifest = JSON.parse(fs.readFileSync(
+            path.join(root, 'package.json'),
+            'utf8',
+        )) as { readonly version: string };
+        const releaseNotes = path.join(
+            root,
+            'docs',
+            'releases',
+            `${manifest.version}.md`,
+        );
+
+        expect(`${manifest.version}:${String(fs.existsSync(releaseNotes))}`)
+            .toBe(`${manifest.version}:true`);
+    });
+
     it.each(documentationFiles())('resolves every local link in %s', file => {
         const absoluteFile = path.join(root, file);
         const markdown = stripCodeFences(fs.readFileSync(absoluteFile, 'utf8'));
@@ -90,6 +110,7 @@ function documentationFiles(): string[] {
     return [
         ...requiredPublicDocs,
         ...packageNames.map(name => `packages/${name}/README.md`),
+        ...exampleDocs,
         ...communityFiles.filter(file => file.endsWith('.md')),
         ...markdownFilesBelow(path.join(root, 'docs')),
     ].filter((file, index, files) => files.indexOf(file) === index).sort();

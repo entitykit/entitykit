@@ -1,6 +1,6 @@
 {
   "name": "@entitykit/cli",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "The EntityKit command-line interface for scaffolding, migrations, and project inspection.",
   "keywords": [
     "orm",
@@ -47,10 +47,10 @@
     "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
   },
   "peerDependencies": {
-    "@entitykit/core": "0.1.0-alpha.1"
+    "@entitykit/core": "0.1.0-alpha.2"
   },
   "devDependencies": {
-    "@entitykit/core": "0.1.0-alpha.1"
+    "@entitykit/core": "0.1.0-alpha.2"
   },
   "engines": {
     "node": ">=22.13"

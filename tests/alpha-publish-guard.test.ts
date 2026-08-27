@@ -5,10 +5,21 @@ import { createManagedTempDirectory } from './support/managed-temp-directory';
 
 const guard = path.join(process.cwd(), 'scripts', 'guard-alpha-publish.js');
 
-function run(tag?: string, cwd = process.cwd()): ReturnType<typeof spawnSync> {
+function run(
+    tag?: string,
+    cwd = process.cwd(),
+    acceptanceDryRun = false,
+): ReturnType<typeof spawnSync> {
     const env = { ...process.env };
     if (tag === undefined) delete env.npm_config_tag;
     else env.npm_config_tag = tag;
+    if (acceptanceDryRun) {
+        env.npm_config_dry_run = 'true';
+        env.ENTITYKIT_ALPHA_DRY_RUN = 'accept';
+    } else {
+        delete env.npm_config_dry_run;
+        delete env.ENTITYKIT_ALPHA_DRY_RUN;
+    }
     return spawnSync(process.execPath, [guard], {
         cwd, encoding: 'utf8', env,
     });
@@ -27,26 +38,33 @@ describe('alpha publish guard', () => {
     it.each([undefined, 'latest', 'beta'])(
         'rejects non-alpha tag %s',
         tag => {
-            const result = run(tag);
+            const result = run(tag, process.cwd(), true);
             expect(result.status).toBe(1);
             expect(result.stderr).toContain('Refusing prerelease publication');
         },
     );
 
-    it('accepts only the alpha tag', () => {
-        const result = run('alpha');
+    it('accepts the alpha tag only for the repository dry-run gate', () => {
+        const result = run('alpha', process.cwd(), true);
         expect(result.status).toBe(0);
         expect(result.stderr).toBe('');
     });
 
-    it.each(['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'])(
+    it('rejects a real working-copy alpha publish', () => {
+        const result = run('alpha');
+
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain('working-copy publication is disabled');
+    });
+
+    it.each(['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs'])(
         'reads the invoking %s package rather than the repository root',
         name => {
             // npm runs prepublishOnly with the cwd set to the package directory.
             const directory = path.join(process.cwd(), 'packages', name);
 
-            expect(run('alpha', directory).status).toBe(0);
-            const refused = run('latest', directory);
+            expect(run('alpha', directory, true).status).toBe(0);
+            const refused = run('latest', directory, true);
             expect(refused.status).toBe(1);
             expect(refused.stderr).toContain(`@entitykit/${name}`);
             expect(refused.stderr).toContain('dist-tag \'latest\'');
@@ -60,14 +78,14 @@ describe('alpha publish guard', () => {
         expect(refused.stderr)
             .toContain('Publishing from a working copy is not a supported path.');
         // The guard used to recommend `npm run release:alpha`, which published
-        // six packages one at a time out of whatever the working copy held.
+        // packages one at a time out of whatever the working copy held.
         // Nothing local publishes any more, so nothing local is recommended.
         expect(refused.stderr).not.toContain('release:alpha');
         expect(refused.stderr).not.toContain('npm publish');
     });
 
     it('refuses a package whose own publishConfig does not pin alpha', () => {
-        const result = run('alpha', packageDirectory({ tag: 'latest' }));
+        const result = run('alpha', packageDirectory({ tag: 'latest' }), true);
 
         expect(result.status).toBe(1);
         expect(result.stderr)
@@ -77,7 +95,7 @@ describe('alpha publish guard', () => {
     it('still demands the alpha tag when a package declares none', () => {
         const directory = packageDirectory(undefined);
 
-        expect(run('alpha', directory).status).toBe(0);
-        expect(run(undefined, directory).status).toBe(1);
+        expect(run('alpha', directory, true).status).toBe(0);
+        expect(run(undefined, directory, true).status).toBe(1);
     });
 });

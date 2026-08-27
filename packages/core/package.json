@@ -1,6 +1,6 @@
 {
   "name": "@entitykit/core",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "The EntityKit core runtime: the model, change tracking, queries, materialization, and migrations.",
   "keywords": [
     "orm",

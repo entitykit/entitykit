@@ -5,10 +5,17 @@ import type {
     PostgresConnectionConfig,
     SqliteConnectionConfig,
 } from '../storage/built-in-provider-config';
+import type { DatabaseConnection } from '../storage/database-connection';
+import type { DatabaseDataSource } from '../storage/database-data-source';
+import type {
+    DatabaseProviderConnectionConfig,
+    DatabaseRuntimeProviderServices,
+} from '../storage/database-provider-services';
 import type {
     AuditOptions,
     LazyLoadingOptions,
     TenantScopeOptions,
+    UseConnectionOptions,
 } from './context-options/db-context-option-types';
 import type { OutboxOptions } from './outbox-options';
 
@@ -25,16 +32,16 @@ export interface DbContextOptionsBuilder {
     /** Deliberately configure a context whose operations span every tenant. */ allowCrossTenantAccess(): this;
     /** Persist configured outbox messages in the save transaction. */ useOutbox(options: OutboxOptions): this;
     /** Advanced provider registration; prefer the typed contracts from `@entitykit/core/adapter`. */
-    useProvider(
-        provider: object,
-        config: string | object,
+    useProvider<TConfig extends object>(
+        provider: DatabaseRuntimeProviderServices<TConfig>,
+        config: DatabaseProviderConnectionConfig<TConfig>,
     ): this;
-    /** Advanced data-source registration. */
-    useDataSource(dataSource: object): this;
-    /** Advanced provider-neutral connection registration. */
+    /** Reuse provider resources owned by an application-scoped data source. */
+    useDataSource(dataSource: DatabaseDataSource): this;
+    /** Use one provider-neutral connection, optionally transferring ownership. */
     useConnection(
-        connection: object,
-        options?: object,
+        connection: DatabaseConnection,
+        options?: UseConnectionOptions,
     ): this;
 }
 

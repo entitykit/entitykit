@@ -3,7 +3,8 @@ import type { DatabaseDataSource } from './database-data-source';
 
 /** Retry policy for an application-scoped EntityKit data source. */
 export interface EntityKitDataSourceOptions {
-    /** The retry. */ readonly retry?: RetryPolicyOptions;
+    /** Retry transient failures at the application data-source boundary. */
+    readonly retry?: RetryPolicyOptions;
 }
 
 /** Static context factory accepted by `EntityKitDataSource.createContext()`. */
@@ -12,27 +13,37 @@ export interface EntityKitContextFactory<
     TContext extends object,
     TArguments extends unknown[],
 > {
-    /** The prototype. */ readonly prototype: TContext;
-    /** Create and initialize an instance. */ create(
+    /** Runtime prototype used to identify the context class. */
+    readonly prototype: TContext;
+    /** Create and synchronously initialize one context from the shared source. */
+    create(
         dataSource: EntityKitDataSource<TConfig>,
         ...arguments_: TArguments
     ): TContext;
 }
 
-/** Application-scoped provider resources and retry coordination. */
+/**
+ * Application-scoped provider resources shared by short-lived `DbContext`s.
+ *
+ * Create one source for a server process or warm serverless instance. Dispose
+ * every context before disposing the source during application shutdown.
+ */
 export interface EntityKitDataSource<
     TConfig extends object = Record<string, unknown>,
 > extends DatabaseDataSource {
-    /** Create context. */ createContext<
+    /** Create one initialized context; the caller owns and must dispose it. */
+    createContext<
         TArguments extends unknown[],
         TFactory extends EntityKitContextFactory<TConfig, object, TArguments>,
     >(
         contextType: TFactory,
         ...arguments_: TArguments
     ): TFactory['prototype'];
-    /** Perform the execute with retry operation. */ executeWithRetry<TResult>(
+    /** Execute retry-safe work; the callback may run more than once. */
+    executeWithRetry<TResult>(
         operation: (attempt: RetryAttempt) => TResult | Promise<TResult>,
         options?: RetryExecutionOptions,
     ): Promise<TResult>;
-    /** Release resources owned by this object. */ dispose(): Promise<void>;
+    /** Close provider resources after every context and retry operation ends. */
+    dispose(): Promise<void>;
 }

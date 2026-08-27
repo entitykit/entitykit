@@ -1,6 +1,6 @@
 {
   "name": "entitykit",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "private": true,
   "description": "An Entity Framework-inspired ORM for TypeScript with SQLite, Postgres, and MySQL providers.",
   "keywords": [
@@ -24,12 +24,14 @@
   },
   "type": "commonjs",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
     "build": "node scripts/build-package.js",
     "check:package": "node scripts/check-package.js",
     "check:publish-alpha": "node scripts/check-alpha-publish.js",
+    "check:nextjs": "npm run build && npm run verify --workspace @entitykit/example-nextjs-postgres",
     "lint": "eslint . --ignore-pattern temp/ --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/ --testPathIgnorePatterns=/node_modules/ --testPathIgnorePatterns=/.claude/",
@@ -39,12 +41,15 @@
     "prepack": "npm run build",
     "prepublishOnly": "node scripts/guard-alpha-publish.js",
     "release:alpha": "node -e \"console.error('Local publishing is not supported: dispatch the Release alpha workflow (.github/workflows/release.yml).'); process.exit(1)\"",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run check:package && npm run check:publish-alpha",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run check:nextjs && npm run check:package && npm run check:publish-alpha",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
     "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/testing": "^12.0.1",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/jest-runner": "^9.6.1",
     "@types/jest": "^30.0.0",
@@ -55,7 +60,9 @@
     "fast-check": "^4.9.0",
     "jest": "^30.4.2",
     "mysql2": "^3.23.2",
-    "pg": "^8.21.0",
+    "pg": "8.22.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
     "ts-jest": "^29.4.12"
   },
   "engines": {

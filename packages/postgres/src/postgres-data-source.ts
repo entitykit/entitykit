@@ -6,7 +6,8 @@ import {
 import type { PostgresConnectionConfig } from '@entitykit/core';
 import { postgresProviderServices } from './postgres-provider-services';
 
-/** Create postgres data source. */ export function createPostgresDataSource(
+/** Create an application-scoped Postgres data source backed by one reusable pool. */
+export function createPostgresDataSource(
     config: string | PostgresConnectionConfig,
     options: EntityKitDataSourceOptions = {},
 ): EntityKitDataSource<PostgresConnectionConfig> {

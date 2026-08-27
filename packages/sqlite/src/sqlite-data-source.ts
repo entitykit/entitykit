@@ -6,7 +6,8 @@ import {
 import type { SqliteConnectionConfig } from '@entitykit/core';
 import { sqliteProviderServices } from './sqlite-provider-services';
 
-/** Create sqlite data source. */ export function createSqliteDataSource(
+/** Create an application-scoped SQLite data source for short-lived contexts. */
+export function createSqliteDataSource(
     config: string | SqliteConnectionConfig,
     options: EntityKitDataSourceOptions = {},
 ): EntityKitDataSource<SqliteConnectionConfig> {

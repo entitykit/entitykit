@@ -1,6 +1,6 @@
 {
   "name": "@entitykit/postgres",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "The Postgres provider for EntityKit, backed by the pg driver.",
   "keywords": [
     "orm",
@@ -44,7 +44,7 @@
     "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
   },
   "peerDependencies": {
-    "@entitykit/core": "0.1.0-alpha.1",
+    "@entitykit/core": "0.1.0-alpha.2",
     "pg": "^8.21.0"
   },
   "engines": {

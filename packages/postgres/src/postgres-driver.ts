@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import type { PostgresConnectionConfig } from '@entitykit/core';
 import { observePostgresPoolErrors } from './postgres-pool-errors';
 import type { PgModule, Pool } from './postgres-driver-contract';
@@ -8,8 +7,6 @@ export type {
     PoolClient,
     PostgresQueryResult,
 } from './postgres-driver-contract';
-
-const loadModule = createRequire(__filename);
 
 export type { PostgresConnectionConfig } from '@entitykit/core';
 
@@ -129,20 +126,24 @@ function assertBoolean(name: string, value: boolean | undefined): void {
 }
 
 function requirePg(): PgModule {
-    // Loaded lazily so importing this module (and therefore `@entitykit/core`) does not
-    // pull in the optional `pg` peer until a Postgres connection is constructed.
     try {
-
-        return loadModule('pg') as PgModule;
+        // A direct lazy require lets server bundlers externalize `pg` and lets
+        // Node resolve the peer from the consuming application.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports -- Runtime peer dependency.
+        return require('pg') as PgModule;
     } catch (error) {
-        if ((error as { code?: string }).code !== 'MODULE_NOT_FOUND') {
+        if (!isMissingModule(error, 'pg')) {
             throw error;
         }
-
         throw new Error(
-            'The Postgres provider needs the \'pg\' package, which is an optional peer dependency and is not installed. ' +
+            'The Postgres provider needs the \'pg\' peer dependency, which is not installed. ' +
       'Run `npm install pg` (and `npm install --save-dev @types/pg` for types).',
             { cause: error },
         );
     }
+}
+
+function isMissingModule(error: unknown, moduleId: string): boolean {
+    const candidate = error as NodeJS.ErrnoException | undefined;
+    return candidate?.code === 'MODULE_NOT_FOUND' && candidate.message.startsWith(`Cannot find module '${moduleId}'`);
 }

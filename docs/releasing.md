@@ -1,27 +1,28 @@
 # Releasing
 
-EntityKit releases six public packages as one versioned family:
+EntityKit releases seven public packages as one versioned family:
 
 ```text
 @entitykit/core
 @entitykit/sqlite
 @entitykit/postgres
 @entitykit/mysql
+@entitykit/nestjs
 @entitykit/testing
 @entitykit/cli
 ```
 
-An alpha is not six independent publishes. It is one accepted set of tarballs,
+An alpha is not seven independent publishes. It is one accepted set of tarballs,
 built from one commit, proven by the complete CI matrix, published under a
 candidate tag when absent or accepted by exact integrity on retry, and promoted
-only after the registry holds all six exact files.
+only after the registry holds all seven exact files.
 
 The supported publication path is the manual **Release alpha** GitHub Actions
 workflow in [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 `npm run release:alpha` deliberately exits, and a plain working-copy
-`npm publish` is guarded. Even though the repository tests an explicit
-`--tag alpha` dry run, publishing from a working tree is not a supported release
-path. Do not bypass the workflow.
+`npm publish` is guarded. The repository's acceptance script carries a private
+marker for explicit `--dry-run --tag alpha` checks; every real working-copy
+publish is refused. Do not bypass the workflow.
 
 This guide describes the evidence a release must produce. It does not assert
 that the current branch, hosted CI, npm credential, or registry state is ready;
@@ -31,12 +32,17 @@ verify each one again in the release window.
 
 ### 1. Move the family together
 
-Choose one prerelease version, such as `0.1.0-alpha.1`, and apply it to every
-publishable package. The five sibling packages must peer on
+Choose one prerelease version, such as `0.1.0-alpha.2`, and apply it to every
+publishable package. The six sibling packages must peer on
 `@entitykit/core` at that exact version; the CLI's development link to core is
 exact as well. Keep `entityKitMigrationVersion` in
 `packages/core/src/migrations/migration-metadata.ts` equal to the package
 version because every applied migration records it.
+
+Keep the private Next.js demo's core, Postgres, and CLI pins on that same family
+version so CI exercises the release candidate rather than the previous alpha.
+Its exact `pg` version must also match the root development version used by the
+workspace provider.
 
 The repository tests enforce this family invariant. Do not loosen the peers to
 a range to make a skewed release install.
@@ -50,9 +56,10 @@ npm ci
 npm run verify
 ```
 
-`verify` covers lint, types, tests, all six packed-package acceptance paths,
-and alpha-publish guards. The package check builds and packs once, then proves
-the same six files through a fresh unassisted install, Node16 and NodeNext type
+`verify` covers lint, types, tests, the offline Next.js production build, all
+seven packed-package acceptance paths, and alpha-publish guards. The package
+check builds and packs once, then proves
+the same seven files through a fresh unassisted install, Node16 and NodeNext type
 consumers, CommonJS and ESM runtimes against SQLite, the installed CLI, one
 shared core instance, and peer-skew rejection.
 
@@ -63,7 +70,8 @@ This local result is necessary but not the release verdict. The exact commit on
 - runtime coverage;
 - the critical-path mutation score;
 - live Postgres 18 integration; and
-- live MySQL 8.4 integration.
+- live MySQL 8.4 integration; and
+- the Next.js 16 production demo against Postgres 18 through Playwright.
 
 The release workflow invokes that complete matrix for its own ref and will not
 pack until every lane is green. Never substitute an older green run or a
@@ -115,9 +123,9 @@ The workflow advances through five barriers:
 | --- | --- |
 | Confirm and guard | A human typed the phrase and the ref is `main` |
 | Complete CI | Every release lane passed on the dispatch SHA |
-| Evidence | Exactly six tarballs were packed once and accepted as consumer artifacts |
+| Evidence | Exactly seven tarballs were packed once and accepted as consumer artifacts |
 | Candidate or retry acceptance | Absent versions were published with provenance under `alpha-candidate`; existing versions were accepted only when integrity matched |
-| Promotion | Registry integrity matched all six accepted files before any `alpha` tag moved |
+| Promotion | Registry integrity matched all seven accepted files before any `alpha` tag moved |
 
 ### Accepted tarballs are immutable
 
@@ -126,7 +134,7 @@ uploads those already-accepted `.tgz` files. Publish and promotion jobs download
 that artifact; they do not check out source, rebuild, or repack.
 
 Before publishing, the workflow reads each packed manifest and requires the
-literal six-package roster and one distinct version. For each package it then
+literal seven-package roster and one distinct version. For each package it then
 computes the tarball's SHA-512 SRI and asks npm what, if anything, already
 exists:
 
@@ -141,14 +149,16 @@ or overwritten; bump the entire family and produce a new release.
 ### Candidate first, alpha second
 
 Candidate publication happens in dependency order: core, SQLite, Postgres,
-MySQL, testing, then CLI. The public `alpha` tag is untouched while packages
+MySQL, NestJS, testing, then CLI. The public `alpha` tag is untouched while packages
 are still being uploaded.
 
-Promotion first compares all six registry integrities with the accepted
+Promotion first compares all seven registry integrities with the accepted
 tarballs. Only after the whole set matches does it move each package's `alpha`
-dist-tag to the new version. The tag moves are separate npm operations, so a
-brief transition window still exists, but it is limited to six tag updates—not
-six package uploads.
+dist-tag to the new version. Each tag update gets three bounded attempts, and a
+final registry pass proves all seven tags resolve to the family version before
+the workflow succeeds. npm has no atomic multi-package tag operation, so a
+failed promotion may still be briefly mixed; keep the release window closed to
+installs and rerun the same accepted release until the final proof passes.
 
 ## Verify the public release
 
@@ -159,7 +169,7 @@ Set the version and run id, then download the exact accepted files:
 
 ```sh
 export ENTITYKIT_REPO="$(git rev-parse --show-toplevel)"
-export ENTITYKIT_RELEASE_VERSION=0.1.0-alpha.1
+export ENTITYKIT_RELEASE_VERSION=0.1.0-alpha.2
 export ENTITYKIT_RELEASE_RUN=<github-run-id>
 export ENTITYKIT_ARTIFACT_DIR="$(mktemp -d)"
 
@@ -174,7 +184,7 @@ same family version:
 ```sh
 set -euo pipefail
 
-for name in core sqlite postgres mysql testing cli; do
+for name in core sqlite postgres mysql nestjs testing cli; do
   tarball="$ENTITYKIT_ARTIFACT_DIR/entitykit-$name-$ENTITYKIT_RELEASE_VERSION.tgz"
   accepted="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
   published="$(npm view "@entitykit/$name@$ENTITYKIT_RELEASE_VERSION" dist.integrity | tr -d '[:space:]')"
@@ -197,12 +207,15 @@ npm install \
   @entitykit/sqlite@alpha \
   @entitykit/postgres@alpha \
   @entitykit/mysql@alpha \
+  @entitykit/nestjs@alpha \
   @entitykit/testing@alpha \
   @entitykit/cli@alpha \
+  @nestjs/common@^12 @nestjs/core@^12 reflect-metadata rxjs \
   pg mysql2
 
 ./node_modules/.bin/entitykit --version
 node -e "require('@entitykit/core'); require('@entitykit/sqlite'); require('@entitykit/postgres'); require('@entitykit/mysql'); require('@entitykit/testing')"
+node --input-type=module -e "await import('@entitykit/nestjs')"
 npm ls @entitykit/core --all
 ```
 
@@ -210,7 +223,7 @@ The CLI version must equal `ENTITYKIT_RELEASE_VERSION`, every import must load,
 and `npm ls` must show one compatible core rather than a nested split. Also
 confirm the provenance attestation is visible for each version on npm.
 
-Archive the run URL, dispatch SHA, six package identities, version, accepted
+Archive the run URL, dispatch SHA, seven package identities, version, accepted
 integrities, registry integrities, dist-tag results, and clean-install output.
 These are the evidence that the published release is the release CI accepted.
 
@@ -267,9 +280,10 @@ into Actions, the workflow and this guide must change together.
   and missing packages continue. If regenerated evidence differs, stop and
   bump the family.
 - **After all candidates but before promotion:** re-dispatch from the same
-  commit. Promotion will not begin until all six integrities match.
-- **During dist-tag movement:** rerun the same release. The integrity barrier
-  remains valid and the tag additions are repeatable.
+  commit. Promotion will not begin until all seven integrities match.
+- **During dist-tag movement:** the workflow retries each move three times and
+  verifies the complete public family. If it still stops, rerun the same
+  release; the integrity barrier remains valid and tag additions are repeatable.
 - **After npm succeeds but tag or GitHub Release creation fails:** retry only
   the manual metadata step against the same SHA and accepted assets. Do not
   republish npm packages.

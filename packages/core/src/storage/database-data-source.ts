@@ -10,16 +10,24 @@ import type { StoreValueReader } from './store-value-reader';
  * Implementations must not expose connection strings or credentials.
  */
 export interface DatabaseDataSource {
-    /** The provider name. */ readonly providerName: string;
-    /** The dialect. */ readonly dialect: SqlDialect;
-    /** The migration dialect. */ readonly migrationDialect: MigrationSqlDialect;
-    /** The create migration builder. */ readonly createMigrationBuilder: MigrationBuilderFactory;
-    /** The value reader. */ readonly valueReader?: StoreValueReader;
-    /** Create connection. */ createConnection(): DatabaseConnection;
+    /** Stable provider identifier used in diagnostics and validation. */
+    readonly providerName: string;
+    /** SQL rendering rules for runtime queries and writes. */
+    readonly dialect: SqlDialect;
+    /** SQL rendering rules for migrations. */
+    readonly migrationDialect: MigrationSqlDialect;
+    /** Create a migration builder bound to this provider's capabilities. */
+    readonly createMigrationBuilder: MigrationBuilderFactory;
+    /** Convert provider values into modeled JavaScript values. */
+    readonly valueReader?: StoreValueReader;
+    /** Lease one context-owned connection from the provider resources. */
+    createConnection(): DatabaseConnection;
 }
 
 /** Provider-owned pool or connection factory wrapped by `EntityKitDataSource`. */
 export interface DatabaseConnectionSource {
-    /** Create connection. */ createConnection(): DatabaseConnection;
-    /** Release resources owned by this object. */ dispose?(): Promise<void>;
+    /** Create or lease one database connection. */
+    createConnection(): DatabaseConnection;
+    /** Close the underlying pool or resource owner. */
+    dispose?(): Promise<void>;
 }

@@ -29,7 +29,7 @@ export function sourceFiles(relativeDirectory: string): string[] {
 
 /** The workspace packages the cutover produced, in dependency order. */
 export const workspacePackages = [
-    'core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing',
+    'core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs',
 ] as const;
 
 /** Repository-relative source root of one workspace package. */
@@ -37,7 +37,7 @@ export function packageSourceRoot(name: string): string {
     return `packages/${name}/src`;
 }
 
-/** Every authored source file, across all six workspace packages. */
+/** Every authored source file across the workspace packages. */
 export function packageSourceFiles(): string[] {
     return workspacePackages.flatMap(name => sourceFiles(packageSourceRoot(name)));
 }

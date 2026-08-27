@@ -1,6 +1,6 @@
 {
   "name": "@entitykit/testing",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Recording test doubles for EntityKit: assert the SQL and transactions a context would issue.",
   "keywords": [
     "orm",
@@ -44,7 +44,7 @@
     "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
   },
   "peerDependencies": {
-    "@entitykit/core": "0.1.0-alpha.1"
+    "@entitykit/core": "0.1.0-alpha.2"
   },
   "engines": {
     "node": ">=22.13"

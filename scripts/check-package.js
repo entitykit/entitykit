@@ -1,4 +1,4 @@
-// Acceptance for the six published tarballs: pack them, install them into a
+// Acceptance for the seven published tarballs: pack them, install them into a
 // fresh consumer project by `file:` spec, and prove the scoped world works
 // from the outside — types under Node16 and NodeNext, CommonJS and ESM
 // runtimes against a real SQLite database, the installed CLI bin, and the one
@@ -19,7 +19,7 @@ const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'];
+const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs'];
 const fixtures = path.join(root, 'tests', 'fixtures', 'package-consumer');
 // A core version no tarball here carries, standing in for the skew a real
 // consumer hits when it upgrades core and leaves the CLI behind.
@@ -157,7 +157,7 @@ function writeConsumerManifest(project, tarballs) {
   const manifest = readManifest(project, 'package.json');
   const specs = Object.fromEntries(Object.entries(tarballs)
     .map(([name, tarball]) => [name, `file:${tarball}`]));
-  // The six `file:` specs and nothing else. Every package peers on
+  // The seven `file:` specs and their external peers. Every package peers on
   // @entitykit/core at an exact version, so the root-level core the consumer
   // installs is the only copy that satisfies all five peers — no `overrides`
   // entry puts a thumb on that scale.
@@ -165,6 +165,11 @@ function writeConsumerManifest(project, tarballs) {
     ...specs,
     pg: rootManifest.devDependencies.pg,
     mysql2: rootManifest.devDependencies.mysql2,
+    '@nestjs/common': rootManifest.devDependencies['@nestjs/common'],
+    '@nestjs/core': rootManifest.devDependencies['@nestjs/core'],
+    '@nestjs/testing': rootManifest.devDependencies['@nestjs/testing'],
+    'reflect-metadata': rootManifest.devDependencies['reflect-metadata'],
+    rxjs: rootManifest.devDependencies.rxjs,
     typescript: readManifest(root, 'packages', 'core', 'package.json')
       .dependencies.typescript,
   };
@@ -276,8 +281,11 @@ try {
   // pack anywhere for the retained set to disagree with.
   const artifacts = retained ?? path.join(temporaryRoot, 'artifacts');
   fs.mkdirSync(artifacts, { recursive: true });
+  const workspaceArguments = packages.flatMap(name => [
+    '--workspace', `packages/${name}`,
+  ]);
   const packed = JSON.parse(runNpm([
-    'pack', '--workspaces', '--json', '--pack-destination', artifacts,
+    'pack', ...workspaceArguments, '--json', '--pack-destination', artifacts,
   ], { capture: true }));
   assert(
     Array.isArray(packed) && packed.length === packages.length,
@@ -301,7 +309,7 @@ try {
   fs.cpSync(fixtures, project, { recursive: true });
   writeConsumerManifest(project, tarballs);
   // `--prefer-offline` keeps pg, mysql2 and typescript coming from the local
-  // npm cache; the six packages themselves never touch a registry.
+  // npm cache; the seven EntityKit packages themselves never touch a registry.
   runNpm([
     'install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefer-offline',
   ], { cwd: project });
@@ -347,7 +355,7 @@ try {
   if (retained !== undefined) {
     // Printed last, so the audit trail is only ever emitted for a set that
     // cleared every stage. A caller uploading this directory by glob would
-    // ship a stray tarball too, so the directory has to hold these six alone.
+    // ship a stray tarball too, so the directory has to hold these seven alone.
     const kept = fs.readdirSync(retained).filter(file => file.endsWith('.tgz')).sort();
     const accepted = Object.values(tarballs).map(tarball => path.basename(tarball)).sort();
     assert(

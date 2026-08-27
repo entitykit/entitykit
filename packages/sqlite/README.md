@@ -23,26 +23,62 @@ required. Core loads it only when a context selects SQLite.
 npm install @entitykit/core@alpha @entitykit/sqlite@alpha
 ```
 
-## Configure
+> [!IMPORTANT]
+> This README describes `0.1.0-alpha.2`. With the previous `0.1.0-alpha.1`,
+> select the shared source explicitly with `options.useDataSource(source)` in
+> `configure()`.
+
+## Application data source
+
+```ts
+import { DbContext } from "@entitykit/core";
+import { createSqliteDataSource } from "@entitykit/sqlite";
+
+class AppDbContext extends DbContext {}
+
+const dataSource = createSqliteDataSource("./app.db");
+
+const db = dataSource.createContext(AppDbContext);
+try {
+  // Await one request, job, or other unit of work through db.
+} finally {
+  await db.dispose();
+}
+
+// Application shutdown, after every context has been disposed:
+await dataSource.dispose();
+```
+
+Create the source once for the application, create and dispose a fresh context
+for each unit of work, then dispose the source during application shutdown.
+`DbContext` accepts the source through its optional constructor, so a
+source-backed context does not need provider configuration.
+
+Use `":memory:"` for a single-context isolated database:
+
+```ts
+const dataSource = createSqliteDataSource(":memory:");
+```
+
+Each context leased from that source opens a distinct in-memory database, so
+schema and rows do not carry into the next context. Use a temporary file when a
+test needs multiple contexts to observe the same SQLite database.
+
+Typed configuration also supports read-only access, foreign-key enforcement,
+busy timeout, and journal mode.
+
+For a short-lived script, migration context, or isolated test, direct context
+configuration is also available. That context owns and closes its connection:
 
 ```ts
 import { DbContext, type DbContextOptionsBuilder } from "@entitykit/core";
 
-class AppDbContext extends DbContext {
+class ScriptDbContext extends DbContext {
   protected override configure(options: DbContextOptionsBuilder): void {
     options.useSqlite("./app.db");
   }
 }
 ```
-
-Use `":memory:"` for an isolated in-memory database:
-
-```ts
-options.useSqlite(":memory:");
-```
-
-Typed configuration also supports read-only access, foreign-key enforcement,
-busy timeout, and journal mode.
 
 ## Direct provider API
 

@@ -3,8 +3,14 @@
 // `createRequire` path into `@entitykit/sqlite`, so this also proves core can
 // find its sibling provider from an installed tree.
 const { DbContext, EntityState } = require('@entitykit/core');
-const { mySqlProviderServices } = require('@entitykit/mysql');
-const { postgresProviderServices } = require('@entitykit/postgres');
+const {
+  createMySqlDataSource,
+  mySqlProviderServices,
+} = require('@entitykit/mysql');
+const {
+  createPostgresDataSource,
+  postgresProviderServices,
+} = require('@entitykit/postgres');
 const { sqliteProviderServices } = require('@entitykit/sqlite');
 const { RecordingDatabaseConnection } = require('@entitykit/testing');
 const { getEntityKitCliMetadata } = require('@entitykit/cli');
@@ -45,6 +51,17 @@ async function main() {
   if (getEntityKitCliMetadata().schemaVersion !== 1) {
     throw new Error('Packaged CLI library entry point did not load.');
   }
+
+  // Pool construction is lazy with respect to the network, so this proves the
+  // packed providers resolve their runtime peers without needing live servers.
+  const postgresSource = createPostgresDataSource(
+    'postgres://entitykit:entitykit@127.0.0.1:1/entitykit_package_check',
+  );
+  await postgresSource.dispose();
+  const mysqlSource = createMySqlDataSource(
+    'mysql://entitykit:entitykit@127.0.0.1:1/entitykit_package_check',
+  );
+  await mysqlSource.dispose();
 
   const db = ConsumerContext.create();
   await db.database.connection.query({

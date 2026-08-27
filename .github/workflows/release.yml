@@ -56,7 +56,8 @@ jobs:
     needs: [confirm, guard]
     # Every lane CI runs, invoked for this dispatch's ref: verify on Node
     # 22.13 and Node 24, runtime coverage, the critical-path mutation score,
-    # live Postgres, and live MySQL. Calling the workflow instead of restating
+    # live Postgres, live MySQL, and the Next.js/Postgres browser flow. Calling
+    # the workflow instead of restating
     # a subset of it is what keeps the release gate from drifting behind the
     # branch gate.
     uses: ./.github/workflows/ci.yml
@@ -82,9 +83,9 @@ jobs:
       # afterwards, so the files uploaded below are the files that were
       # accepted, byte for byte. The PACKAGE_INTEGRITY lines it prints are the
       # SHA-512 SRIs the publish and promote jobs check the registry against.
-      - name: Build, pack and accept the six workspaces
+      - name: Build, pack and accept the seven workspaces
         run: ENTITYKIT_PACKAGE_OUTPUT_DIR="$PWD/tarballs" npm run check:package
-      # These six files are the release. Everything downstream downloads and
+      # These seven files are the release. Everything downstream downloads and
       # publishes them byte for byte; no job after this one compiles anything.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -117,38 +118,69 @@ jobs:
           node-version: 22.13.0
           registry-url: https://registry.npmjs.org
 
-      # One version for the whole family, and exactly the six identities this
+      # One version for the whole family, and exactly the seven identities this
       # release is allowed to be. Applied migrations stamp history with
       # entityKitMigrationVersion, and the packages peer on core at an exact
-      # version, so six tarballs that disagree are not a release. Comparing the
+      # version, so seven tarballs that disagree are not a release. Comparing the
       # sorted names against the literal roster — rather than counting them —
       # refuses a set that is short one package, carries a duplicate, or
-      # carries a seventh nobody expected.
+      # carries an eighth nobody expected.
       - name: Preflight the packed tarballs
         id: preflight
         run: |
           set -euo pipefail
-          names=""
-          versions=""
+          names=()
+          versions=()
           for tarball in tarballs/*.tgz; do
             manifest=$(tar -xzOf "$tarball" package/package.json)
             name=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
             version=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
             echo "$name@$version <- $tarball"
-            names="$names $name"
-            versions="$versions $version"
+            names+=("$name")
+            versions+=("$version")
           done
           roster=$(printf '%s\n' \
-            "@entitykit/cli" "@entitykit/core" "@entitykit/mysql" \
+            "@entitykit/cli" "@entitykit/core" "@entitykit/mysql" "@entitykit/nestjs" \
             "@entitykit/postgres" "@entitykit/sqlite" "@entitykit/testing")
-          if [ "$(printf '%s\n' $names | sort)" != "$roster" ]; then
-            echo "Refusing to publish: expected exactly the six @entitykit packages, found$names." >&2
+          if [ "$(printf '%s\n' "${names[@]}" | sort)" != "$roster" ]; then
+            echo "Refusing to publish: expected exactly the seven @entitykit packages, found ${names[*]}." >&2
             exit 1
           fi
-          distinct=$(printf '%s\n' $versions | sort -u)
+          distinct=$(printf '%s\n' "${versions[@]}" | sort -u)
           if [ "$(printf '%s\n' "$distinct" | wc -l | tr -d ' ')" != "1" ]; then
-            echo "Refusing to publish: the tarballs carry versions$versions." >&2
+            echo "Refusing to publish: the tarballs carry versions ${versions[*]}." >&2
             exit 1
+          fi
+          if [[ ! "$distinct" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
+            echo "Refusing to publish: $distinct is not an -alpha.N prerelease version." >&2
+            exit 1
+          fi
+          if ! current=$(npm view "@entitykit/core@alpha" version 2>view.err); then
+            echo "Refusing to publish: could not resolve the current @entitykit/core alpha version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          current=$(printf '%s' "$current" | tr -d '[:space:]')
+          if [[ ! "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
+            echo "Refusing to publish: current alpha version $current is not comparable." >&2
+            exit 1
+          fi
+          if ! node -e '
+            const parts = value => value.match(/\d+/gu).map(Number);
+            const next = parts(process.argv[1]);
+            const current = parts(process.argv[2]);
+            for (let index = 0; index < next.length; index += 1) {
+              if (next[index] === current[index]) continue;
+              process.exit(next[index] > current[index] ? 0 : 1);
+            }
+          ' "$distinct" "$current"; then
+            echo "Refusing to publish: $distinct is older than current alpha $current." >&2
+            exit 1
+          fi
+          if [ "$distinct" = "$current" ]; then
+            echo "Accepting same-version retry for $distinct; registry integrity still decides each package."
+          else
+            echo "Accepting forward alpha movement from $current to $distinct."
           fi
           echo "version=$distinct" >> "$GITHUB_OUTPUT"
 
@@ -157,7 +189,7 @@ jobs:
       # dist-tag is not alpha — never fires in this job. What stands in its
       # place: every publish below names --tag alpha-candidate explicitly, so
       # nothing reaches the alpha tag here at all; the alpha tag only moves in
-      # the promote job, after all six candidates exist; and this workflow runs
+      # the promote job, after all seven candidates exist; and this workflow runs
       # by hand, from main, behind the confirmation phrase.
       #
       # Each step asks the registry what bytes it already holds for this
@@ -278,6 +310,32 @@ jobs:
           fi
           npm publish "$tarball" --provenance --tag alpha-candidate
 
+      - name: Publish @entitykit/nestjs
+        env:
+          VERSION: ${{ steps.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          tarball="$PWD/tarballs/entitykit-nestjs-$VERSION.tgz"
+          packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
+          if published=$(npm view "@entitykit/nestjs@$VERSION" dist.integrity 2>view.err); then
+            published=$(printf '%s' "$published" | tr -d '[:space:]')
+            if [ "$published" != "$packed" ]; then
+              echo "Refusing to publish: @entitykit/nestjs@$VERSION is already on the registry with different bytes." >&2
+              echo "  registry: $published" >&2
+              echo "  packed:   $packed" >&2
+              echo "A published version is immutable. Bump the version and dispatch again." >&2
+              exit 1
+            fi
+            echo "Skipping @entitykit/nestjs@$VERSION: already on the registry with the packed bytes, $packed."
+            exit 0
+          fi
+          if ! grep -q E404 view.err; then
+            echo "Refusing to publish: npm view @entitykit/nestjs@$VERSION failed for some reason other than an absent version." >&2
+            cat view.err >&2
+            exit 1
+          fi
+          npm publish "$tarball" --provenance --tag alpha-candidate
+
       - name: Publish @entitykit/testing
         env:
           VERSION: ${{ steps.preflight.outputs.version }}
@@ -355,13 +413,13 @@ jobs:
       # The alpha tag is what users resolve, so it may only ever land on the
       # exact bytes this release accepted. Existence is not enough: a version
       # the registry holds from an earlier partial run carries the same name
-      # and number as the one in hand and different bytes. All six are checked
+      # and number as the one in hand and different bytes. All seven are checked
       # before the first tag moves, so a family that fails this check is never
       # half-promoted.
       - name: Require the registry to hold the accepted bytes
         run: |
           set -euo pipefail
-          for name in core sqlite postgres mysql testing cli; do
+          for name in core sqlite postgres mysql nestjs testing cli; do
             tarball="$PWD/tarballs/entitykit-$name-$VERSION.tgz"
             if [ ! -f "$tarball" ]; then
               echo "Refusing to promote: $tarball is missing from the release artifact." >&2
@@ -383,12 +441,34 @@ jobs:
             echo "Verified @entitykit/$name@$VERSION $packed"
           done
 
-      # Stage B. Six dist-tag moves against packages that already exist, so the
-      # window where `npm install @entitykit/core@alpha` and
-      # `@entitykit/sqlite@alpha` disagree about the version is a few seconds
-      # of tag flips rather than the length of six publishes.
+      # Stage B. Seven dist-tag moves against packages that already exist. Each
+      # move gets bounded retries, then a final loop proves the public family is
+      # coherent before the workflow can finish green.
       - name: Move the alpha dist-tag onto the published version
         run: |
-          for name in core sqlite postgres mysql testing cli; do
-            npm dist-tag add "@entitykit/$name@$VERSION" alpha
+          set -euo pipefail
+          for name in core sqlite postgres mysql nestjs testing cli; do
+            moved=false
+            for attempt in 1 2 3; do
+              if npm dist-tag add "@entitykit/$name@$VERSION" alpha; then
+                moved=true
+                break
+              fi
+              if [ "$attempt" != "3" ]; then
+                echo "Retrying @entitykit/$name alpha tag after attempt $attempt." >&2
+                sleep "$((attempt * 2))"
+              fi
+            done
+            if [ "$moved" != "true" ]; then
+              echo "Alpha promotion stopped at @entitykit/$name after three attempts; rerun this release to converge the family." >&2
+              exit 1
+            fi
+          done
+          for name in core sqlite postgres mysql nestjs testing cli; do
+            tagged=$(npm view "@entitykit/$name@alpha" version | tr -d '[:space:]')
+            if [ "$tagged" != "$VERSION" ]; then
+              echo "Alpha promotion verification failed: @entitykit/$name resolves to $tagged, expected $VERSION." >&2
+              exit 1
+            fi
+            echo "Verified @entitykit/$name@alpha -> $VERSION"
           done

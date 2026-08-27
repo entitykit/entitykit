@@ -27,7 +27,9 @@ interface PackageManifest {
     readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
-const packageNames = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing'] as const;
+const packageNames = [
+    'core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs',
+] as const;
 
 /** Export subpaths each published package promises, keyed by directory name. */
 const publishedExports: Readonly<Record<string, readonly string[]>> = {
@@ -37,6 +39,7 @@ const publishedExports: Readonly<Record<string, readonly string[]>> = {
     mysql: ['.'],
     cli: ['.'],
     testing: ['.'],
+    nestjs: ['.'],
 };
 
 function readManifest(...segments: string[]): PackageManifest {
@@ -52,7 +55,7 @@ describe('package manifest', () => {
 
         // Nothing publishes from the root any more: each package ships itself.
         expect(manifest.private).toBe(true);
-        expect(manifest.workspaces).toEqual(['packages/*']);
+        expect(manifest.workspaces).toEqual(['packages/*', 'examples/*']);
         expect(manifest.main).toBeUndefined();
         expect(manifest.exports).toBeUndefined();
         expect(manifest.bin).toBeUndefined();
@@ -60,11 +63,14 @@ describe('package manifest', () => {
             build: 'node scripts/build-package.js',
             'check:package': 'node scripts/check-package.js',
             'check:publish-alpha': 'node scripts/check-alpha-publish.js',
+            'check:nextjs': 'npm run build && npm run verify'
+                + ' --workspace @entitykit/example-nextjs-postgres',
             typecheck: 'tsc -p tsconfig.json --noEmit',
             prepack: 'npm run build',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
             verify: 'npm run lint && npm run typecheck && npm test'
-                + ' && npm run check:package && npm run check:publish-alpha',
+                + ' && npm run check:nextjs && npm run check:package'
+                + ' && npm run check:publish-alpha',
         });
         // The P4 placeholder is gone: verify runs the packaging gates for real.
         expect(manifest.scripts?.['//verify']).toBeUndefined();
@@ -74,7 +80,7 @@ describe('package manifest', () => {
         const manifest = readManifest('package.json');
 
         // release:alpha used to run `npm publish --workspaces --tag alpha`,
-        // which publishes six packages one at a time from whatever a working
+        // which publishes packages one at a time from whatever a working
         // copy happens to contain. Releases run in the Release alpha workflow
         // now, so the script survives only to say so.
         expect(manifest.scripts?.['release:alpha'])
@@ -108,7 +114,7 @@ describe('package manifest', () => {
 
             expect(manifest.name).toBe(name === 'core' ? '@entitykit/core' : `@entitykit/${name}`);
             expect(manifest.private).not.toBe(true);
-            expect(manifest.type).toBe('commonjs');
+            expect(manifest.type).toBe(name === 'nestjs' ? 'module' : 'commonjs');
             expect(manifest.main).toBe(name === 'cli' ? './dist/api.js' : './dist/index.js');
             expect(manifest.types).toBe(name === 'cli' ? './dist/api.d.ts' : './dist/index.d.ts');
             expect(manifest.author).toBe('zsumz <shawn@zsumz.com>');
@@ -163,7 +169,7 @@ describe('package manifest', () => {
             .toEqual({ '@entitykit/core': manifest.version });
     });
 
-    it.each(['sqlite', 'postgres', 'mysql', 'testing', 'cli'])(
+    it.each(['sqlite', 'postgres', 'mysql', 'testing', 'cli', 'nestjs'])(
         'has %s depend on core as a peer, so one core is installed',
         name => {
             const manifest = readManifest('packages', name, 'package.json');
@@ -171,6 +177,19 @@ describe('package manifest', () => {
             expect(manifest.peerDependencies?.['@entitykit/core']).toBe(manifest.version);
         },
     );
+
+    it('keeps Nest and its runtime contracts as peers', () => {
+        const manifest = readManifest('packages', 'nestjs', 'package.json');
+
+        expect(manifest.dependencies).toBeUndefined();
+        expect(manifest.peerDependencies).toEqual({
+            '@entitykit/core': manifest.version,
+            '@nestjs/common': '^12.0.0',
+            '@nestjs/core': '^12.0.0',
+            'reflect-metadata': '^0.1.13 || ^0.2.0',
+            rxjs: '^7.2.0',
+        });
+    });
 
     it.each([['postgres', 'pg'], ['mysql', 'mysql2']])(
         'keeps the %s driver a peer dependency rather than a bundled one',
@@ -193,5 +212,17 @@ describe('package manifest', () => {
         // would stamp a version its own siblings never shipped.
         expect(new Set(versions).size).toBe(1);
         expect(entityKitMigrationVersion).toBe(versions[0]);
+    });
+
+    it('keeps the private Next demo on the exact family and pg runtime under test', () => {
+        const root = readManifest('package.json');
+        const core = readManifest('packages', 'core', 'package.json');
+        const demo = readManifest('examples', 'nextjs-postgres', 'package.json');
+
+        expect(demo.private).toBe(true);
+        expect(demo.dependencies?.['@entitykit/core']).toBe(core.version);
+        expect(demo.dependencies?.['@entitykit/postgres']).toBe(core.version);
+        expect(demo.devDependencies?.['@entitykit/cli']).toBe(core.version);
+        expect(demo.dependencies?.pg).toBe(root.devDependencies?.pg);
     });
 });

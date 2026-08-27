@@ -19,6 +19,8 @@ body:
         - "@entitykit/mysql"
         - "@entitykit/cli"
         - "@entitykit/testing"
+        - "@entitykit/nestjs (main / next alpha)"
+        - "Framework integration or example"
         - "Packaging or release workflow"
     validations:
       required: true
@@ -47,8 +49,8 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Node.js, TypeScript, provider driver, database, and operating-system versions.
-      placeholder: Node 22.13, TypeScript 5.x, pg 8.x, Postgres 18, Ubuntu
+      description: Node.js, TypeScript, module system, framework, provider driver, database, and operating-system versions.
+      placeholder: Node 22.13, TypeScript 5.x NodeNext, Next.js 16 Node runtime, pg 8.x, Postgres 18, Ubuntu
     validations:
       required: true
   - type: checkboxes

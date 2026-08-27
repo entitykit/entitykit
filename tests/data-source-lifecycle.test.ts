@@ -58,6 +58,19 @@ class InvalidDataSourceContext extends DbContext {
     }
 }
 
+class ConventionDataSourceContext extends DbContext {
+    public rows = this.set<DataSourceRow, [id: string]>(DataSourceRow);
+
+    protected override model(model: ModelBuilder): void {
+        model.entity(DataSourceRow, entity => {
+            entity.toTable('convention_data_source_rows');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.label).hasColumnType('text').isRequired();
+        });
+    }
+}
+
 describe('EntityKitDataSource lifecycle', () => {
     let directory: string;
 
@@ -80,6 +93,21 @@ describe('EntityKitDataSource lifecycle', () => {
         const second = DataSourceContext.create(source, 'request-2');
         expect(await second.rows.count()).toBe(1);
         await second.dispose();
+        await source.dispose();
+    });
+
+    it('configures a context from its constructor data source by convention', async () => {
+        const source = createSqliteDataSource(join(directory, 'convention.db'));
+        const context = source.createContext(ConventionDataSourceContext);
+
+        await context.database.connection.query({
+            text: 'create table convention_data_source_rows '
+                + '(id text primary key, label text not null)',
+            values: [],
+        });
+        context.rows.add(Object.assign(new DataSourceRow(), { id: 'one', label: 'First' }));
+        await expect(context.saveChanges()).resolves.toBe(1);
+        await context.dispose();
         await source.dispose();
     });
 

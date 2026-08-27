@@ -1,0 +1,44 @@
+{
+  "name": "@entitykit/example-nextjs-postgres",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A production-shaped Next.js App Router demo for EntityKit and Postgres.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run lint && npm run typecheck && npm run build",
+    "db:add": "entitykit migration add",
+    "db:check": "entitykit migration check",
+    "db:migrate:dry": "entitykit db migrate --dry-run",
+    "db:migrate": "entitykit db migrate",
+    "db:status": "entitykit db status --check",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@entitykit/core": "0.1.0-alpha.2",
+    "@entitykit/postgres": "0.1.0-alpha.2",
+    "@next/env": "16.3.3",
+    "next": "16.3.3",
+    "pg": "8.22.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@entitykit/cli": "0.1.0-alpha.2",
+    "@playwright/test": "1.62.1",
+    "@types/node": "^22.20.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "16.3.3",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

@@ -28,14 +28,19 @@ npm install @entitykit/core@alpha @entitykit/sqlite@alpha
 
 Choose `@entitykit/postgres` or `@entitykit/mysql` instead when appropriate.
 
+> [!IMPORTANT]
+> This README describes `0.1.0-alpha.2`. With the previous `0.1.0-alpha.1`,
+> select the shared source explicitly with `options.useDataSource(source)` in
+> `configure()`.
+
 ## Start
 
 ```ts
 import {
   DbContext,
-  type DbContextOptionsBuilder,
   type ModelBuilder,
 } from "@entitykit/core";
+import { createSqliteDataSource } from "@entitykit/sqlite";
 
 class User {
   id = "";
@@ -43,11 +48,7 @@ class User {
 }
 
 class AppDbContext extends DbContext {
-  readonly users = this.set(User);
-
-  protected override configure(options: DbContextOptionsBuilder): void {
-    options.useSqlite("./app.db");
-  }
+  readonly users = this.set<User, [id: string]>(User);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -59,12 +60,25 @@ class AppDbContext extends DbContext {
   }
 }
 
-await using db = AppDbContext.create();
+const dataSource = createSqliteDataSource("./app.db");
 
-const users = await db.users
-  .where(user => user.email.endsWith("@example.com"))
-  .toArray();
+try {
+  await using db = dataSource.createContext(AppDbContext);
+
+  const users = await db.users
+    .where(user => user.email.endsWith("@example.com"))
+    .toArray();
+} finally {
+  await dataSource.dispose();
+}
 ```
+
+In an application, keep the data source for the application lifetime and make
+the context inside each request, job, or unit of work. Dispose the context
+first, then dispose the source during shutdown. The optional `DbContext`
+constructor selects a supplied data source automatically; an override of
+`configure()` should call `super.configure(options)` before adding other
+context options.
 
 ## Includes
 
@@ -75,6 +89,7 @@ const users = await db.users
 - Explicit relationship loading and opt-in awaitable lazy loading
 - Tenant scopes, soft deletes, audit fields, outbox rows, and diagnostics
 - Migration, schema-generation, and provider-extension contracts
+- Application-scoped data sources with bounded retry coordination
 
 ## Entry points
 

@@ -3,7 +3,13 @@
 // `useProvider` seam here, so the ESM lane covers the path a user wires by
 // hand rather than core's lazy built-in loader.
 import { DbContext, EntityState } from '@entitykit/core';
-import { sqliteProviderServices } from '@entitykit/sqlite';
+import {
+  EntityKitModule,
+  getEntityKitContextRunnerToken,
+} from '@entitykit/nestjs';
+import { createSqliteDataSource, sqliteProviderServices } from '@entitykit/sqlite';
+import { createPostgresDataSource } from '@entitykit/postgres';
+import { Test } from '@nestjs/testing';
 
 class Widget {}
 
@@ -27,9 +33,72 @@ class ConsumerContext extends DbContext {
   }
 }
 
-if (DbContext.name !== 'DbContext' || sqliteProviderServices.name !== 'sqlite') {
+class LifecycleContext extends DbContext {
+  constructor(source, requestId) {
+    super(source);
+    this.requestId = requestId;
+  }
+}
+
+if (
+  DbContext.name !== 'DbContext'
+  || EntityKitModule.name !== 'EntityKitModule'
+  || sqliteProviderServices.name !== 'sqlite'
+) {
   throw new Error('Packaged ESM imports did not resolve CommonJS exports.');
 }
+
+const sharedSource = createSqliteDataSource(':memory:');
+const nestModule = await Test.createTestingModule({
+  imports: [
+    EntityKitModule.forRoot({ dataSource: sharedSource }),
+    EntityKitModule.forFeature([LifecycleContext]),
+  ],
+}).compile();
+await nestModule.init();
+const runner = nestModule.get(getEntityKitContextRunnerToken(LifecycleContext));
+await runner.run(async context => {
+  if (context.requestId !== 'packed-consumer') {
+    throw new Error('The packaged Nest runner did not forward context arguments.');
+  }
+  return context.database.connection.query({
+    text: 'select 1 as value',
+    values: [],
+  });
+}, 'packed-consumer');
+await nestModule.close();
+let sourceClosed = false;
+try {
+  sharedSource.createContext(LifecycleContext);
+} catch (error) {
+  sourceClosed = error instanceof Error && error.message.includes('disposed');
+}
+if (!sourceClosed) {
+  throw new Error('The packaged Nest module did not close its owned data source.');
+}
+
+const externalSource = createSqliteDataSource(':memory:');
+const asyncNestModule = await Test.createTestingModule({
+  imports: [
+    EntityKitModule.forRootAsync({
+      useFactory: async () => ({
+        dataSource: externalSource,
+        ownership: 'external',
+      }),
+    }),
+    EntityKitModule.forFeature([LifecycleContext]),
+  ],
+}).compile();
+await asyncNestModule.init();
+await asyncNestModule.close();
+const externalContext = externalSource.createContext(LifecycleContext, 'external-owner');
+await externalContext.dispose();
+await externalSource.dispose();
+
+const postgresSource = createPostgresDataSource(
+  'postgres://entitykit:entitykit@127.0.0.1:1/entitykit_package_check',
+);
+await postgresSource.dispose();
 
 const db = ConsumerContext.create();
 await db.database.connection.query({

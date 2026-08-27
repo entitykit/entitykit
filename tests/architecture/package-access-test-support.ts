@@ -27,10 +27,11 @@ export const corePublicEntries: Readonly<Record<string, string>> = {
 
 /** A package the cutover carved out of the original single package. */
 export type WorkspacePackage =
-    | 'core' | 'cli' | 'mysql' | 'postgres' | 'sqlite' | 'testing';
+    | 'core' | 'cli' | 'mysql' | 'nestjs' | 'postgres' | 'sqlite' | 'testing';
 
 const packageRoots: ReadonlyArray<readonly [string, WorkspacePackage]> = [
     ['packages/mysql/', 'mysql'],
+    ['packages/nestjs/', 'nestjs'],
     ['packages/postgres/', 'postgres'],
     ['packages/sqlite/', 'sqlite'],
     ['packages/cli/', 'cli'],

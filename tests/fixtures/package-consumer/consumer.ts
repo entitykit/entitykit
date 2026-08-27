@@ -30,6 +30,8 @@ class ConsumerContext extends DbContext {
 
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useProvider(sqliteProviderServices, ':memory:');
+        // @ts-expect-error Provider configuration typos must not cross the public facade.
+        options.useProvider(sqliteProviderServices, { filename: ':memory:', filemane: 'typo' });
     }
 
     protected override model(model: ModelBuilder): void {
@@ -41,6 +43,7 @@ class ConsumerContext extends DbContext {
         });
     }
 }
+
 
 const context = ConsumerContext.create();
 const query: UnsafeRawSqlQueryable<Widget> =

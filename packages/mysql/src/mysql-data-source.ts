@@ -6,7 +6,8 @@ import {
 import type { MySqlConnectionConfig } from '@entitykit/core';
 import { mySqlProviderServices } from './mysql-provider-services';
 
-/** Create my sql data source. */ export function createMySqlDataSource(
+/** Create an application-scoped MySQL data source backed by one reusable pool. */
+export function createMySqlDataSource(
     config: string | MySqlConnectionConfig,
     options: EntityKitDataSourceOptions = {},
 ): EntityKitDataSource<MySqlConnectionConfig> {

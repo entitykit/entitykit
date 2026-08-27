@@ -12,7 +12,7 @@ import {
 /**
  * The access discipline the monorepo cutover established.
  *
- * `packages/{sqlite,postgres,mysql,cli,testing}` are packages of their own now,
+ * `packages/{sqlite,postgres,mysql,nestjs,cli,testing}` are packages of their own now,
  * and a published consumer only ever gets what a package specifier resolves to.
  * Three properties keep that honest:
  *
@@ -48,7 +48,7 @@ describe('package access boundaries', () => {
         expect(workspacePackageOf('packages/testing/src/index.ts')).toBe('testing');
         expect(workspacePackageOf('tests/architecture/file-conventions.test.ts')).toBeUndefined();
         expect(corePackageConsumers).toEqual(
-            ['mysql', 'postgres', 'sqlite', 'cli', 'testing'],
+            ['mysql', 'nestjs', 'postgres', 'sqlite', 'cli', 'testing'],
         );
         expect(consumerSourceFiles().length).toBeGreaterThan(0);
         expect(coreSourceFiles().length).toBeGreaterThan(0);

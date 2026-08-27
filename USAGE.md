@@ -1,10 +1,10 @@
 # Usage
 
-EntityKit maps ordinary TypeScript classes to a database through a short-lived
-`DbContext`. This guide follows the common path from the first model to a
-production migration. The [API reference](./API.md) lists the complete public
-surface; the [README](./README.md) covers packages, alpha limits, and provider
-differences.
+EntityKit maps ordinary TypeScript classes to a database through an
+application-scoped data source and short-lived `DbContext` units of work. This
+guide follows the common path from the first model to a production migration.
+The [documentation map](./docs/README.md) offers role-based routes; the
+[API reference](./API.md) lists the public surface.
 
 ## Install
 
@@ -22,7 +22,12 @@ npm install -D @entitykit/cli@alpha
 ```
 
 EntityKit requires Node 22.13 or newer. `@entitykit/core` does not load a
-provider or driver until a context selects one.
+provider or driver until a data source or context selects one.
+
+> [!IMPORTANT]
+> This guide targets `0.1.0-alpha.2`. With the previous `0.1.0-alpha.1`, store
+> the source on the context and select it with `options.useDataSource(source)`
+> inside `configure()`.
 
 ## Define a context
 
@@ -53,12 +58,8 @@ class Post {
 }
 
 export class AppDbContext extends DbContext {
-  readonly users = this.set<User, [string]>(User);
-  readonly posts = this.set<Post, [string]>(Post);
-
-  protected override configure(options: DbContextOptionsBuilder): void {
-    options.useSqlite("./app.db");
-  }
+  readonly users = this.set<User, [id: string]>(User);
+  readonly posts = this.set<Post, [id: string]>(Post);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -89,15 +90,57 @@ export class AppDbContext extends DbContext {
 }
 ```
 
-For another database, install its package and change the provider call:
+## Own the data source
+
+Create one provider data source when the application starts. It owns the
+provider's shared resources, including the Postgres or MySQL connection pool.
 
 ```ts
-options.usePostgres(process.env.DATABASE_URL ?? "");
-options.useMySql(process.env.DATABASE_URL ?? "");
+import { createSqliteDataSource } from "@entitykit/sqlite";
+
+const dataSource = createSqliteDataSource("./app.db");
 ```
 
-Configure exactly one provider per context. In production, validate required
-environment variables instead of accepting an empty connection string.
+For another database, install its provider and use the matching factory:
+
+```ts
+import { createPostgresDataSource } from "@entitykit/postgres";
+import { createMySqlDataSource } from "@entitykit/mysql";
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required");
+}
+
+const postgres = createPostgresDataSource(databaseUrl);
+const mysql = createMySqlDataSource(databaseUrl);
+```
+
+Create a fresh context for each request, job, or other unit of work. Dispose the
+context first; dispose the data source only during application shutdown.
+
+```ts
+const db = dataSource.createContext(AppDbContext);
+try {
+  // Await one unit of work through db.
+} finally {
+  await db.dispose();
+}
+
+// Application shutdown, after every context has been disposed:
+await dataSource.dispose();
+```
+
+`DbContext` accepts the data source through its optional constructor, and
+`EntityKitDataSource.createContext()` passes it automatically. A subclass that
+overrides `configure()` should call `super.configure(options)` before adding
+diagnostics, tenant scope, auditing, or other context options.
+
+Direct `options.useSqlite()`, `options.usePostgres()`, and
+`options.useMySql()` configuration remains useful for short-lived scripts,
+migration contexts, and isolated tests. Each such context owns its connection;
+for Postgres and MySQL, creating one per request would also create one pool per
+request. Server applications should use an application-scoped data source.
 
 ## Create a database
 
@@ -106,7 +149,7 @@ bootstrap a new test, local-tool, or disposable database—not to evolve or
 repeatedly reconcile an existing schema.
 
 ```ts
-await using db = AppDbContext.create();
+await using db = dataSource.createContext(AppDbContext);
 await db.database.ensureCreated();
 ```
 
@@ -122,7 +165,7 @@ Queries are immutable and execute only at a terminal operation such as
 `toArray()`, `firstOrNull()`, `single()`, `count()`, or `exists()`.
 
 ```ts
-await using db = AppDbContext.create();
+await using db = dataSource.createContext(AppDbContext);
 
 const page = await db.users
   .where(user => user.email.endsWith("@example.com"))
@@ -338,15 +381,33 @@ style.
 ## Configure migrations
 
 The CLI reads `entitykit.config.ts`. The provider service comes from the
-installed provider package, while the config helper comes from core.
+installed provider package, while the config helper comes from core. CLI
+commands construct the configured context without application arguments, so
+give them a small zero-argument context that owns its short-lived provider
+connection:
+
+```ts
+import { type DbContextOptionsBuilder } from "@entitykit/core";
+import { AppDbContext } from "./app-db-context";
+
+export class MigrationDbContext extends AppDbContext {
+  protected override configure(options: DbContextOptionsBuilder): void {
+    options.useSqlite("./app.db");
+  }
+}
+```
+
+Keep model mapping in the shared base context so runtime and migration contexts
+cannot drift. The configuration points the CLI at the migration-specific
+context:
 
 ```ts
 import { defineEntityKitConfig } from "@entitykit/core";
 import { sqliteProviderServices } from "@entitykit/sqlite";
-import { AppDbContext } from "./src/db/app-db-context";
+import { MigrationDbContext } from "./src/db/migration-db-context";
 
 export default defineEntityKitConfig({
-  context: AppDbContext,
+  context: MigrationDbContext,
   provider: sqliteProviderServices,
   connection: "./app.db",
   migrationsDir: "src/db/migrations",
@@ -381,11 +442,10 @@ lazy loads, and migrations.
 
 ```ts
 protected override configure(options: DbContextOptionsBuilder): void {
-  options
-    .useSqlite("./app.db")
-    .useDiagnostics(event => {
-      console.info(event.kind, event.provider, event.durationMs);
-    });
+  super.configure(options);
+  options.useDiagnostics(event => {
+    console.info(event.kind, event.provider, event.durationMs);
+  });
 }
 ```
 
@@ -467,8 +527,11 @@ failures also have typed error codes.
 
 - Install only the provider packages and drivers the application uses; configure
   exactly one provider per context.
-- Validate connection configuration before creating the context.
-- Use one short-lived context per request, job, or unit of work.
+- Validate connection configuration before creating the application data source.
+- Create one application-scoped data source, then one short-lived context per
+  request, job, or unit of work.
+- Dispose each context before disposing the data source during application
+  shutdown.
 - Do not run concurrent operations through the same context.
 - Use migrations, review their SQL, and run `db migrate --dry-run` before
   applying them.
@@ -481,3 +544,5 @@ failures also have typed error codes.
 - Keep sensitive diagnostics disabled outside controlled local debugging.
 - Handle concurrency conflicts and unknown transaction outcomes explicitly.
 - Test the exact provider and migration path used in production.
+- Follow the [framework lifecycle guide](./docs/frameworks.md) for NestJS or
+  Next.js applications.

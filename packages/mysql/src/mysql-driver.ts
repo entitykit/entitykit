@@ -1,14 +1,11 @@
-import { createRequire } from 'node:module';
 import type { MySqlConnectionConfig } from '@entitykit/core';
 import {
     assertNonEmptyMysqlConnectionString,
     validateMysqlConfig,
 } from './mysql-config-validation';
 
-const loadModule = createRequire(__filename);
-
 // Structural types for the parts of `mysql2/promise` EntityKit uses, so this
-// provider can compile without the optional peer dependency installed.
+// provider can compile without the peer dependency installed.
 export interface MySqlQueryResult {
     readonly affectedRows?: number;
     readonly insertId?: number | string | bigint;
@@ -126,19 +123,24 @@ function definedOptions(options: Record<string, unknown>): Record<string, unknow
 }
 
 function requireMysql2(): MySql2Module {
-    // `mysql2` is an optional peer dependency, loaded lazily so importing this
-    // module does not pull it in. A missing driver names itself and the fix,
-    // rather than surfacing a bare module-not-found from inside `dist`.
     try {
-        return loadModule('mysql2/promise') as MySql2Module;
+        // A direct lazy require lets server bundlers externalize `mysql2` and
+        // lets Node resolve the peer from the consuming application.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports -- Runtime peer dependency.
+        return require('mysql2/promise') as MySql2Module;
     } catch (error) {
-        if ((error as { code?: string }).code !== 'MODULE_NOT_FOUND') {
+        if (!isMissingModule(error, 'mysql2/promise')) {
             throw error;
         }
         throw new Error(
-            'The MySQL provider needs the \'mysql2\' package, which is an optional peer dependency and is not installed. ' +
+            'The MySQL provider needs the \'mysql2\' peer dependency, which is not installed. ' +
             'Run `npm install mysql2`.',
             { cause: error },
         );
     }
+}
+
+function isMissingModule(error: unknown, moduleId: string): boolean {
+    const candidate = error as NodeJS.ErrnoException | undefined;
+    return candidate?.code === 'MODULE_NOT_FOUND' && candidate.message.startsWith(`Cannot find module '${moduleId}'`);
 }

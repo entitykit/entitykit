@@ -11,7 +11,7 @@ import { collectMigrationOperation } from './migration-operation-collector';
 
 export const migrationHistoryTableName = '__entitykit_migrations';
 export const migrationLockKey = 'entitykit:migrations';
-export const entityKitMigrationVersion = '0.1.0-alpha.1';
+export const entityKitMigrationVersion = '0.1.0-alpha.2';
 
 /** Perform the migration checksum operation. */ export function migrationChecksum(
     migration: Migration,

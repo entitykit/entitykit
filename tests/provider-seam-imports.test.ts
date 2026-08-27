@@ -85,8 +85,15 @@ describe('provider seam architecture: imports', () => {
 
     it('keeps pg loading isolated to the Postgres driver boundary', () => {
         expect(filesContaining(/from\s+["']pg["']/)).toEqual([]);
-        expect(filesContaining(/loadModule\(["']pg["']\)/)).toEqual([
+        expect(filesContaining(/require\(["']pg["']\)/)).toEqual([
             'packages/postgres/src/postgres-driver.ts',
+        ]);
+    });
+
+    it('keeps mysql2 loading isolated to the MySQL driver boundary', () => {
+        expect(filesContaining(/from\s+["']mysql2(?:\/promise)?["']/)).toEqual([]);
+        expect(filesContaining(/require\(["']mysql2\/promise["']\)/)).toEqual([
+            'packages/mysql/src/mysql-driver.ts',
         ]);
     });
 

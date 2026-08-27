@@ -8,6 +8,11 @@ differences and prerelease guarantees live in
 EntityKit is in alpha. The public TypeScript declarations shipped with each
 package are the canonical source for every generic and overload.
 
+This reference describes the coordinated `0.1.0-alpha.2` source family. The
+previous `0.1.0-alpha.1` registry family contains core, the three providers,
+CLI, and testing; it has neither `@entitykit/nestjs` nor the source-backed
+`DbContext` constructor documented below.
+
 ## Entry points
 
 | Import | Purpose |
@@ -22,14 +27,64 @@ package are the canonical source for every generic and overload.
 | `@entitykit/mysql` | MySQL provider backed by `mysql2` |
 | `@entitykit/cli` | CLI execution, metadata, config loading, and connection resolution |
 | `@entitykit/testing` | Provider-neutral recording database connection |
+| `@entitykit/nestjs` | NestJS 12 module, context runners, and injection tokens; begins in `alpha.2` |
+
+## Data-source lifecycle
+
+`EntityKitDataSource` owns application-scoped provider resources and creates
+short-lived contexts. Each first-party provider exports a factory:
+
+```ts
+import { createSqliteDataSource } from "@entitykit/sqlite";
+
+const dataSource = createSqliteDataSource("./app.db", {
+  retry: { maxAttempts: 3 },
+});
+```
+
+```ts
+interface EntityKitDataSource<TConfig extends object> {
+  readonly providerName: string;
+
+  createContext<
+    TArguments extends unknown[],
+    TFactory extends EntityKitContextFactory<TConfig, object, TArguments>,
+  >(
+    contextType: TFactory,
+    ...arguments_: TArguments
+  ): TFactory["prototype"];
+
+  executeWithRetry<TResult>(
+    operation: (attempt: RetryAttempt) => TResult | Promise<TResult>,
+    options?: RetryExecutionOptions,
+  ): Promise<TResult>;
+
+  dispose(): Promise<void>;
+}
+```
+
+Create one data source for the application, a fresh context for each request,
+job, or unit of work, and dispose that context on every path. Dispose the data
+source only after all contexts and retry operations finish during application
+shutdown.
+
+`createSqliteDataSource`, `createPostgresDataSource`, and
+`createMySqlDataSource` accept provider configuration plus optional
+`EntityKitDataSourceOptions`. An `executeWithRetry()` callback may run more than
+once, so keep non-database side effects outside it or make them idempotent. It
+never retries an unknown transaction outcome. A data source rejects new work
+after disposal and rejects disposal while connection leases or retry operations
+are active.
 
 ## `DbContext`
 
-Derive one context class for a unit of work. Declare sets as fields, choose a
-provider in `configure()`, and map entities in `model()`.
+Derive one context class for a unit of work. Declare sets as fields and map
+entities in `model()`. Passing a data source to the optional constructor selects
+that source by convention.
 
 ```ts
 abstract class DbContext {
+  constructor(dataSource?: DatabaseDataSource);
   static create<TContext>(...args): TContext;
 
   protected configure(options: DbContextOptionsBuilder): unknown;
@@ -38,7 +93,9 @@ abstract class DbContext {
   readonly database: DatabaseFacade;
   readonly changeTracker: ChangeTracker;
 
-  set<TEntity>(entityType): DbSet<TEntity>;
+  set<TEntity, TKey extends readonly unknown[] = readonly unknown[]>(
+    entityType,
+  ): DbSet<TEntity, TKey>;
   entry<TEntity>(entity): EntityEntry<TEntity> | undefined;
   saveChanges(options?): Promise<number>;
   clearChanges(): void;
@@ -55,8 +112,27 @@ abstract class DbContext {
 remains asynchronous. A context also implements `Symbol.asyncDispose`, so it
 can be owned by `await using`.
 
+`DatabaseDataSource` is the low-level contract exported from
+`@entitykit/core/adapter`. First-party provider factories return the richer
+`EntityKitDataSource` subtype exported from `@entitykit/core`.
+
 Use one short-lived context per unit of work. Concurrent operations on the same
 context are rejected.
+
+```ts
+class AppDbContext extends DbContext {
+  readonly users = this.set<User, [id: string]>(User);
+}
+
+await using db = dataSource.createContext(AppDbContext);
+```
+
+When a source-backed context overrides `configure()`, it must call
+`super.configure(options)` before adding non-provider options. The direct
+`useSqlite()`, `usePostgres()`, and `useMySql()` methods instead create a
+context-owned connection; they are concise for scripts, migration contexts,
+and isolated tests, but a server should not use them to create a new Postgres
+or MySQL pool for every request.
 
 ### `database`
 
@@ -267,6 +343,9 @@ Provider configs accept connection strings or typed options. Postgres and MySQL
 also expose TLS, pool, timeout, and driver escape-hatch options. SQLite accepts
 file/read-only, foreign-key, busy-timeout, and journal-mode options.
 
+`useDataSource()` is called automatically by the base `DbContext.configure()`
+when the optional constructor receives a data source.
+
 ## Tracking and concurrency
 
 `ChangeTracker` exposes `entry`, `entries`, `detach`, `detectChanges`,
@@ -389,6 +468,35 @@ examples.
 The package also exports `runEntityKitCli`, config loading/definition,
 connection resolution, CLI metadata/schema/completion functions, and
 machine-readable result and error types.
+
+## NestJS
+
+`@entitykit/nestjs` is the native-ESM NestJS 12 integration introduced by the
+coordinated `0.1.0-alpha.2` family. It does not exist in `0.1.0-alpha.1`.
+
+| Export | Purpose |
+| --- | --- |
+| `EntityKitModule.forRoot(options)` | Registers one ready application-scoped data source |
+| `EntityKitModule.forRootAsync(options)` | Resolves the root options through Nest dependency injection |
+| `EntityKitModule.forFeature(contextTypes)` | Registers injectable runners for selected context classes |
+| `EntityKitContextRunner<TContext>.run(work, ...args)` | Creates, awaits, and disposes one context per unit of work |
+| `InjectEntityKitContextRunner(ContextType)` | Injects the runner registered for a context class |
+| `InjectEntityKitDataSource()` | Injects the application data source for an advanced integration boundary |
+| `getEntityKitContextRunnerToken(ContextType)` | Returns the underlying Nest injection token |
+| `getEntityKitDataSourceToken()` | Returns the data-source injection token |
+
+`EntityKitModuleOptions` accepts `dataSource` and optional ownership of
+`"module"` or `"external"`. Module ownership is the default and disposes the
+source during Nest application shutdown. External ownership leaves disposal to
+the caller.
+
+`EntityKitContextRunner.run()` forwards constructor arguments after the data
+source. It preserves both errors in an `AggregateError` when the unit of work
+and context disposal fail. The module intentionally does not provide raw
+singleton or request-scoped contexts.
+
+See the [framework guide](./docs/frameworks.md#nestjs-12) for registration,
+injection, tenant arguments, ESM configuration, and shutdown ownership.
 
 ## Testing
 

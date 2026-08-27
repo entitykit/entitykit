@@ -85,6 +85,16 @@ export { DatabaseProviderError, DatabaseTransactionCleanupError, findTransaction
 export type { DatabaseProviderErrorDetails, DatabaseProviderOperation } from './storage/database-errors';
 export type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult, QueryStreamOptions, TransactionIsolationLevel, TransactionOptions } from './storage/database-connection';
 export type { DatabaseTlsOptions, DatabaseTlsVersion, DriverOptions, MySqlConnectionConfig, MySqlPoolOptions, PostgresConnectionConfig, PostgresPoolOptions, SqliteConnectionConfig } from './storage/built-in-provider-config';
+export type {
+    EntityKitContextFactory,
+    EntityKitDataSource,
+    EntityKitDataSourceOptions,
+} from './storage/entity-kit-data-source-types';
+export type {
+    RetryAttempt,
+    RetryExecutionOptions,
+    RetryPolicyOptions,
+} from './storage/data-source-retry';
 
 // Model and callback primitives that provider packages and configuration files
 // compose against. They are small, stable, and already named in the shapes above
