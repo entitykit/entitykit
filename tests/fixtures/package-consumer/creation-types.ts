@@ -1,4 +1,4 @@
-import { DbContext, type DbSet, type EntityConstructor, type EntityCreationFactory, type EntityEntry } from '@entitykit/core';
+import { DbContext, type DbSet, type EntityConstructor, type EntityCreationConstructor, type EntityCreationFactory, type EntityEntry } from '@entitykit/core';
 
 type NewUser = { id: string; name: string };
 class User {
@@ -28,7 +28,7 @@ class CreationTypesContext extends DbContext {
     public defaults = this.set(Defaults);
     public tuples = this.set(TupleEntity);
     public privateUsers = this.set(PrivateUser, { create: PrivateUser.build });
-    public privateKeyed = this.set<typeof PrivateUser.build, [id: string]>(
+    public privateKeyed = this.set<PrivateUser, typeof PrivateUser.build, [id: string]>(
         PrivateUser, { create: PrivateUser.build },
     );
     public abstractUsers = this.set(AbstractUser, { create: () => new ConcreteUser() });
@@ -98,17 +98,17 @@ const abstractUser: AbstractUser = db.abstractUsers.create();
 void abstractUser;
 
 // A factory annotation must not cause overload inference to widen to any.
-declare const annotatedFactory: EntityCreationFactory<User>;
+declare const annotatedFactory: EntityCreationFactory<User, [input: NewUser]>;
 const annotated = db.set(User, { create: annotatedFactory });
 type IsAny<T> = 0 extends (1 & T) ? true : false;
-const annotatedUser = annotated.create();
+const annotatedUser = annotated.create({ id: 'ada', name: 'Ada' });
 const precise: IsAny<typeof annotatedUser> = false;
 void precise;
 // @ts-expect-error the annotated factory still returns the mapped user
-annotated.create().unknownProperty;
+annotated.create({ id: 'ada', name: 'Ada' }).unknownProperty;
 
-declare const annotatedConstructor: new (...arguments_: never[]) => User;
-const constructedUser = db.set(annotatedConstructor).create();
+declare const annotatedConstructor: EntityCreationConstructor<User, [input: NewUser]>;
+const constructedUser = db.set(annotatedConstructor).create({ id: 'ada', name: 'Ada' });
 const preciseConstructor: IsAny<typeof constructedUser> = false;
 void preciseConstructor;
 // @ts-expect-error annotated constructor results also retain the entity type

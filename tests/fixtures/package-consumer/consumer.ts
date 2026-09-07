@@ -1,3 +1,4 @@
+import './factory-creation-types.js';
 import './creation-types.js';
 // Type-level acceptance for a CommonJS consumer resolving the published
 // tarballs under `module: Node16`. Every scoped entry point the release

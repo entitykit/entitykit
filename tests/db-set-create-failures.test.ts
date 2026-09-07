@@ -27,7 +27,7 @@ describe('DbSet creation failures', () => {
     it.each([null, undefined, 42, {}, { id: 'plain', name: 'Plain' }])(
         'rejects a non-entity result (%p) before enrollment', async result => {
             await using db = CreationContext.create();
-            const factory = (() => result) as unknown as EntityCreationFactory<CreationUser>;
+            const factory = (() => result) as unknown as EntityCreationFactory<CreationUser, []>;
             expect(() => db.set(CreationUser, { create: factory }).create()).toThrow('must return an instance');
             expect(db.changeTracker.entries()).toEqual([]);
         },
@@ -40,7 +40,7 @@ describe('DbSet creation failures', () => {
                 if (mode === 'reject') return Promise.reject(new Error('async failure'));
                 if (mode === 'thenable') return { then: (): void => undefined };
                 return Promise.resolve(new CreationUser({ id: 'async', name: 'Async' }));
-            }) as unknown as EntityCreationFactory<CreationUser>;
+            }) as unknown as EntityCreationFactory<CreationUser, []>;
             const unhandled: unknown[] = [];
             const observe = (reason: unknown): void => {
                 unhandled.push(reason);

@@ -9,7 +9,7 @@ import type { ChangeTracker } from '../tracking/change-tracker-types';
 import type { EntityEntry } from '../tracking/entity-entry-types';
 import type { EntityConstructor } from '../types';
 import type { DbSet } from './db-set-types';
-import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFactory, EntityCreationResult } from './db-set-creation-types';
+import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFunction, EntityCreationResult, EntityCreationArguments } from './db-set-creation-types';
 import { dbSetCreationFactory } from './db-set-create';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
@@ -62,19 +62,19 @@ export abstract class DbContext {
         return this.databaseFacade;
     }
     /** Bind a creation factory to this gateway; other sets retain their construction policy. */
-    public set<TFactory extends EntityCreationFactory, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: EntityConstructor<NoInfer<EntityCreationResult<TFactory>>>, options: DbSetCreationOptions<TFactory>,
-    ): DbSet<EntityCreationResult<TFactory>, TKey, Parameters<TFactory>>;
+    public set<TEntity extends object, TFactory extends EntityCreationFunction<NoInfer<TEntity>>, TKey extends readonly unknown[] = readonly unknown[]>(
+        entityType: EntityConstructor<TEntity>, options: DbSetCreationOptions<TFactory>,
+    ): DbSet<TEntity, TKey, EntityCreationArguments<TFactory>>;
     /** Infer creation arguments from a public constructor. */
     public set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(
         entityType: TConstructor,
-    ): DbSet<EntityCreationResult<TConstructor>, TKey, ConstructorParameters<TConstructor>>;
+    ): DbSet<EntityCreationResult<TConstructor>, TKey, EntityCreationArguments<TConstructor>>;
     /** Preserve identity-only registration and existing entity/key type arguments. */
     public set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(
         entityType: EntityConstructor<TEntity>,
     ): DbSet<TEntity, TKey>;
     public set<TEntity extends object>(
-        entityType: EntityConstructor<TEntity>, options?: DbSetCreationOptions<EntityCreationFactory<TEntity>>,
+        entityType: EntityConstructor<TEntity>, options?: DbSetCreationOptions<EntityCreationFunction<TEntity>>,
     ): unknown {
         return this.contextHost.set(entityType, dbSetCreationFactory(options));
     }

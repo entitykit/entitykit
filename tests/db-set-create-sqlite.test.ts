@@ -4,6 +4,26 @@ import path from 'node:path';
 import { CreationContext, CreationUser } from './support/creation-context';
 
 describe('creation and explicit materialization', () => {
+    it('accepts a subclass factory while queries still materialize the mapped class', async () => {
+        class SpecialUser extends CreationUser {
+            public role = 'special';
+        }
+        await using db = CreationContext.create();
+        await db.database.ensureCreated();
+        const users = db.set(CreationUser, {
+            create: (name: string) => new SpecialUser({ id: 'special', name }),
+        });
+        const created = users.create('Special');
+        expect(created).toBeInstanceOf(SpecialUser);
+        expect(created.identity()).toBe('special');
+        await expect(db.saveChanges()).resolves.toBe(1);
+        db.clearChanges();
+        const loaded = await users.findOrThrow('special');
+        expect(loaded).toBeInstanceOf(CreationUser);
+        expect(loaded).not.toBeInstanceOf(SpecialUser);
+        expect(loaded.name).toBe('Special');
+    });
+
     it('persists once and rehydrates through a fresh context without invoking the creation factory', async () => {
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'entitykit-creation-'));
         const filename = path.join(directory, 'creation.db');

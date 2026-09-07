@@ -20,7 +20,7 @@ import type { QueryModel } from '../query/query-model';
 import { addDbSetEntity } from './db-set-add';
 import { createDbSetEntity } from './db-set-create';
 import { removeDbSetEntity } from './db-set-remove';
-import type { EntityCreationFactory } from './db-set-creation-types';
+import type { EntityCreationFunction } from './db-set-creation-types';
 import type { BoundFindValues } from './bound-find-values';
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
@@ -33,7 +33,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         public readonly entityType: EntityConstructor<TEntity>,
         private readonly cancelAddedEntity: (entity: object) => void =
             entity => context.changeTracker.detach(entity),
-        private readonly creationFactory?: EntityCreationFactory<TEntity>,
+        private readonly creationFactory?: EntityCreationFunction<TEntity>,
     ) {
         super();
         const diagnostics = new DbSetDiagnostics(context, entityType);

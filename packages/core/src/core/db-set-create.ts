@@ -2,13 +2,13 @@ import type { EntityConstructor } from '../types';
 import type { EntityMetadata } from '../model/entity-metadata';
 import { assertSynchronousCallbackResult } from '../synchronous-callback';
 import type { DbSetContext } from './db-set-context';
-import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFactory } from './db-set-creation-types';
+import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFunction } from './db-set-creation-types';
 import { addDbSetEntity } from './db-set-add';
 
 /** Read and validate a binding once, before it can affect any set. */
 export function dbSetCreationFactory<TEntity extends object>(
-    options?: DbSetCreationOptions<EntityCreationFactory<TEntity>>,
-): EntityCreationFactory<TEntity> | undefined {
+    options?: DbSetCreationOptions<EntityCreationFunction<TEntity>>,
+): EntityCreationFunction<TEntity> | undefined {
     if (options === undefined) return undefined;
     const factory = options.create;
     if (typeof factory !== 'function') {
@@ -22,7 +22,7 @@ export function createDbSetEntity<TEntity extends object>(
     context: DbSetContext,
     metadata: EntityMetadata<TEntity>,
     entityType: EntityConstructor<TEntity>,
-    factory: EntityCreationFactory<TEntity> | undefined,
+    factory: EntityCreationFunction<TEntity> | undefined,
     arguments_: unknown[],
 ): TEntity {
     // This guard checks initialization and disposal without executing a command.

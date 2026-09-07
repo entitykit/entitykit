@@ -58,7 +58,7 @@ export type { DatabaseFacade } from './core/database-facade-types';
 export { DbUpdateConcurrencyError } from './core/db-update-concurrency-error';
 export type { RelationshipSavePlanPair, SavePlanEntry } from './core/db-context';
 export type { DbSet, UpsertOptions } from './core/db-set-types';
-export type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFactory, EntityCreationResult } from './core/db-set-creation-types';
+export type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFactory, EntityCreationResult, EntityCreationArguments } from './core/db-set-creation-types';
 export type { ChangeTracker } from './tracking/change-tracker-types';
 export type { EntityEntry } from './tracking/entity-entry-types';
 export type { EntityDatabaseValues } from './tracking/entity-database-values';
