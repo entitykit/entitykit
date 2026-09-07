@@ -15,7 +15,12 @@ const { sqliteProviderServices } = require('@entitykit/sqlite');
 const { RecordingDatabaseConnection } = require('@entitykit/testing');
 const { getEntityKitCliMetadata } = require('@entitykit/cli');
 
-class Widget {}
+class Widget {
+  constructor(input) {
+    this.id = input.id;
+    this.label = input.label;
+  }
+}
 
 class ConsumerContext extends DbContext {
   constructor() {
@@ -33,6 +38,7 @@ class ConsumerContext extends DbContext {
       entity.hasKey(widget => widget.id);
       entity.property(widget => widget.id).hasColumnType('text').isRequired();
       entity.property(widget => widget.label).hasColumnType('text').isRequired();
+      entity.materialize(values => new Widget(values));
     });
   }
 }
@@ -68,8 +74,7 @@ async function main() {
     text: 'create table widgets (id text primary key, label text not null)',
     values: [],
   });
-  const widget = Object.assign(new Widget(), { id: 'one', label: 'First' });
-  db.widgets.add(widget);
+  const widget = db.widgets.create({ id: 'one', label: 'First' });
   if (db.changeTracker.entry(widget).state !== EntityState.Added) {
     throw new Error('Packaged change tracking did not report the added entity.');
   }

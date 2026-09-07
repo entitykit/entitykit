@@ -18,6 +18,7 @@ export interface UpsertOptions<TEntity extends object> extends DatabaseOperation
 export interface DbSet<
     TEntity extends object,
     TKey extends readonly unknown[] = readonly unknown[],
+    TCreateArguments extends unknown[] = never,
 > extends Omit<
         Queryable<TEntity>,
         'executeDelete' | 'executeUpdate' | 'toDebugSql' | 'toPlan' | 'toSql'
@@ -29,6 +30,9 @@ export interface DbSet<
     /** Find by key or throw, optionally followed by cancelable operation options. */ findOrThrow(
         ...keyValuesAndOptions: [...TKey] | [...TKey, DatabaseOperationOptions]
     ): Promise<TEntity>;
+    /** Construct and track one new entity as Added. No SQL is executed. */ create(
+        ...arguments_: TCreateArguments
+    ): TEntity;
     /** Perform the add operation. */ add(entity: TEntity): EntityEntry<TEntity>;
     /** Perform the attach operation. */ attach(entity: TEntity): EntityEntry<TEntity>;
     /** Perform the remove operation. */ remove(entity: TEntity): EntityEntry<TEntity>;

@@ -9,27 +9,18 @@ import type { ChangeTracker } from '../tracking/change-tracker-types';
 import type { EntityEntry } from '../tracking/entity-entry-types';
 import type { EntityConstructor } from '../types';
 import type { DbSet } from './db-set-types';
+import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFactory, EntityCreationResult } from './db-set-creation-types';
+import { dbSetCreationFactory } from './db-set-create';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
 import { DbContextPublicTracking } from './db-context-public-tracking';
 import type { DatabaseDataSource } from '../storage/database-data-source';
-
 export type { RelationshipSavePlanPair, SavePlanEntry } from './save-plan';
-/**
- * Base class for an EntityKit unit of work.
- *
- * Derive from `DbContext`, declare `DbSet` properties, configure the provider in
- * `configure(...)`, and describe the model in `model(...)` with the fluent
- * `ModelBuilder`.
- *
- * The public class delegates to focused internal stages for lifecycle, queries,
- * migrations, raw SQL, relationships, and saving.
- */
+/** A unit of work with explicitly configured providers, entity mapping, and saving. */
 export abstract class DbContext {
     private readonly contextHost: DbContextHost;
     private readonly publicTracking: DbContextPublicTracking;
     private databaseFacade?: DatabaseFacade;
-
     /** Create a context, optionally backed by an application-scoped data source. */
     constructor(private readonly dataSource?: DatabaseDataSource) {
         this.contextHost = new DbContextHost(
@@ -70,11 +61,22 @@ export abstract class DbContext {
             createDbContextDatabaseFacade(this.contextHost);
         return this.databaseFacade;
     }
-    /** Return the tracked query and mutation gateway for an entity type. */
+    /** Bind a creation factory to this gateway; other sets retain their construction policy. */
+    public set<TFactory extends EntityCreationFactory, TKey extends readonly unknown[] = readonly unknown[]>(
+        entityType: EntityConstructor<NoInfer<EntityCreationResult<TFactory>>>, options: DbSetCreationOptions<TFactory>,
+    ): DbSet<EntityCreationResult<TFactory>, TKey, Parameters<TFactory>>;
+    /** Infer creation arguments from a public constructor. */
+    public set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(
+        entityType: TConstructor,
+    ): DbSet<EntityCreationResult<TConstructor>, TKey, ConstructorParameters<TConstructor>>;
+    /** Preserve identity-only registration and existing entity/key type arguments. */
     public set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(
         entityType: EntityConstructor<TEntity>,
-    ): DbSet<TEntity, TKey> {
-        return this.contextHost.set<TEntity, TKey>(entityType);
+    ): DbSet<TEntity, TKey>;
+    public set<TEntity extends object>(
+        entityType: EntityConstructor<TEntity>, options?: DbSetCreationOptions<EntityCreationFactory<TEntity>>,
+    ): unknown {
+        return this.contextHost.set(entityType, dbSetCreationFactory(options));
     }
     /** Return the tracked entry for an entity, or `undefined` when it is not tracked. */
     public entry<TEntity extends object>(
@@ -136,12 +138,10 @@ export abstract class DbContext {
     public async dispose(): Promise<void> {
         await this.contextHost.dispose();
     }
-
     /** Dispose the context when used with `await using`. */
     public async [Symbol.asyncDispose](): Promise<void> {
         await this.dispose();
     }
-
     private initializeContext(): void {
         this.contextHost.initializeContext();
     }

@@ -3,6 +3,7 @@ import type { DbContextOptions } from './context-options/db-context-option-types
 import type { EntityConstructor } from '../types';
 import { ContextDisposedError } from '../errors/runtime-errors';
 import { DbSet } from './db-set';
+import type { EntityCreationFactory } from './db-set-creation-types';
 import type { DbSet as DbSetContract } from './db-set-types';
 import type { Model } from '../model/model';
 import type { EntityMetadata } from '../model/entity-metadata';
@@ -59,11 +60,10 @@ export abstract class DbContextRuntime {
     }
     public set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(
         entityType: EntityConstructor<TEntity>,
+        creationFactory?: EntityCreationFactory<TEntity>,
     ): DbSetContract<TEntity, TKey> {
         const existing = this.state.findSet(entityType);
-        if (existing) {
-            return existing;
-        }
+        if (existing && !creationFactory) return existing;
         const created: DbSet<TEntity> = new DbSet(
             createDbSetContextAdapter({
                 options: () => this.options,
@@ -86,9 +86,9 @@ export abstract class DbContextRuntime {
                 loadNavigation: async (entry, navigationProperty) =>
                     this.loadNavigation(entry, navigationProperty),
             }), entityType,
-            this.cancelAddedEntity.bind(this),
+            this.cancelAddedEntity.bind(this), creationFactory,
         );
-        this.state.addSet(entityType, created);
+        if (!creationFactory) this.state.addSet(entityType, created);
         return created;
     }
     public currentTenantIdForWrites(): unknown {

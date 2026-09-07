@@ -18,6 +18,9 @@ import { createDbSetRawQueryHost } from './db-set-raw-query-host';
 import type { QueryFilterOperation } from './query-filter-operation';
 import type { QueryModel } from '../query/query-model';
 import { addDbSetEntity } from './db-set-add';
+import { createDbSetEntity } from './db-set-create';
+import { removeDbSetEntity } from './db-set-remove';
+import type { EntityCreationFactory } from './db-set-creation-types';
 import type { BoundFindValues } from './bound-find-values';
 
 /** Entity-specific gateway for tracking, querying, and set-based writes. */
@@ -30,6 +33,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         public readonly entityType: EntityConstructor<TEntity>,
         private readonly cancelAddedEntity: (entity: object) => void =
             entity => context.changeTracker.detach(entity),
+        private readonly creationFactory?: EntityCreationFactory<TEntity>,
     ) {
         super();
         const diagnostics = new DbSetDiagnostics(context, entityType);
@@ -73,6 +77,13 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         return this.queryExecutor.executeToArrayInOperation(model, operation, options);
     }
 
+    /** Construct and track a new entity as `Added`, without executing SQL. */
+    public create(...arguments_: unknown[]): TEntity {
+        return createDbSetEntity(
+            this.context, this.metadata, this.entityType, this.creationFactory, arguments_,
+        );
+    }
+
     /** Start tracking a new entity as `Added`. */
     public add(entity: TEntity): EntityEntry<TEntity> {
         return addDbSetEntity(this.context, this.metadata, entity);
@@ -94,20 +105,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
 
     /** Mark an entity as deleted, or cancel it when it was just added. */
     public remove(entity: TEntity): EntityEntry<TEntity> {
-        this.context.assertStateUsable?.('remove()');
-        this.metadata.assertWritable('remove()');
-        const entry = this.context.changeTracker.entry(entity) ??
-            this.context.changeTracker.track(
-                entity,
-                this.metadata,
-                EntityState.Unchanged,
-            );
-        if (entry.state === EntityState.Added) {
-            this.cancelAddedEntity(entity);
-            return publicEntityEntry(entry, this.context);
-        }
-        entry.markDeleted();
-        return publicEntityEntry(entry, this.context);
+        return removeDbSetEntity(this.context, this.metadata, entity, this.cancelAddedEntity);
     }
 
     /** Stop tracking an entity instance. */

@@ -11,7 +11,12 @@ import { createSqliteDataSource, sqliteProviderServices } from '@entitykit/sqlit
 import { createPostgresDataSource } from '@entitykit/postgres';
 import { Test } from '@nestjs/testing';
 
-class Widget {}
+class Widget {
+  constructor(input) {
+    this.id = input.id;
+    this.label = input.label;
+  }
+}
 
 class ConsumerContext extends DbContext {
   constructor() {
@@ -29,6 +34,7 @@ class ConsumerContext extends DbContext {
       entity.hasKey(widget => widget.id);
       entity.property(widget => widget.id).hasColumnType('text').isRequired();
       entity.property(widget => widget.label).hasColumnType('text').isRequired();
+      entity.materialize(values => new Widget(values));
     });
   }
 }
@@ -105,7 +111,7 @@ await db.database.connection.query({
   text: 'create table widgets (id text primary key, label text not null)',
   values: [],
 });
-db.widgets.add(Object.assign(new Widget(), { id: 'two', label: 'Second' }));
+db.widgets.create({ id: 'two', label: 'Second' });
 if (await db.saveChanges() !== 1) {
   throw new Error('Packaged SQLite save failed under ESM.');
 }
