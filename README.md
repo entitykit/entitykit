@@ -40,6 +40,25 @@
 > below; if `@alpha` still resolves there, select a shared source explicitly
 > with `options.useDataSource(source)` in `configure()`.
 
+With a configured context, application code looks like this:
+
+```ts
+const user = db.users.create({
+  id: "usr_1",
+  email: "ada@example.com",
+  name: "Ada",
+});
+
+await db.saveChanges();
+
+const users = await db.users
+  .where(user => user.email.endsWith("@example.com"))
+  .orderBy(user => user.name)
+  .toArray();
+```
+
+The quick start below includes the complete model and context setup.
+
 ## Install
 
 Install the provider-neutral runtime, one database provider, and the CLI:
@@ -101,11 +120,15 @@ class AppDbContext extends DbContext {
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
       entity.property(user => user.name).hasColumnType("text").isRequired();
-      entity.materialize(values => new User({
-        id: values.id ?? "",
-        email: values.email ?? "",
-        name: values.name ?? "",
-      }));
+      entity.materialize(values => {
+        const { id, email, name } = values;
+        if (typeof id !== "string" ||
+            typeof email !== "string" ||
+            typeof name !== "string") {
+          throw new Error("Cannot materialize User: required fields are missing or invalid.");
+        }
+        return new User({ id, email, name });
+      });
       entity.hasIndex(user => user.email).isUnique();
     });
   }

@@ -47,12 +47,12 @@ interface EntityKitDataSource<TConfig extends object> {
   readonly providerName: string;
 
   createContext<
+    TContext extends object,
     TArguments extends unknown[],
-    TFactory extends EntityKitContextFactory<TConfig, object, TArguments>,
   >(
-    contextType: TFactory,
-    ...arguments_: TArguments
-  ): TFactory["prototype"];
+    contextType: EntityKitContextFactory<TConfig, TContext, TArguments>,
+    ...arguments_: NoInfer<TArguments>
+  ): TContext;
 
   executeWithRetry<TResult>(
     operation: (attempt: RetryAttempt) => TResult | Promise<TResult>,
@@ -111,6 +111,12 @@ abstract class DbContext {
 `create()` synchronously constructs and initializes the context. Database work
 remains asynchronous. A context also implements `Symbol.asyncDispose`, so it
 can be owned by `await using`.
+
+`EntityKitContextFactory` includes a public constructor that accepts the data
+source first. `createContext()` infers its context and trailing argument tuple
+from that constructor; the static `create()` method and supplied arguments must
+conform to that tuple. An inherited generic static method cannot erase missing
+or incorrectly typed constructor arguments.
 
 `DatabaseDataSource` is the low-level contract exported from
 `@entitykit/core/adapter`. First-party provider factories return the richer
@@ -181,10 +187,23 @@ constructor signature.
 
 `set(User, { create: factory })` binds an explicit synchronous factory to the
 returned gateway. Its arguments define the creation input. For an explicit
-key tuple, use `set<typeof factory, [id: string]>(User, { create: factory })`.
+key tuple, use `set<User, typeof factory, [id: string]>(User, { create: factory })`.
 The gateway shares tracking with all other sets in the context; its factory
 does not change their construction behavior. Default `set(User)` lookups
 continue to return the cached constructor-backed set.
+
+The entity identity determines the mapped set type; only the argument tuple
+comes from the factory. A subclass result is accepted, but queries and
+`create()` remain typed as the mapped entity. A broad `object` result or a
+union containing an incompatible result is rejected.
+
+`EntityCreationFactory<TEntity, TArguments>` and
+`EntityCreationConstructor<TEntity, TArguments>` preserve explicitly annotated
+argument tuples. Their default `never` does not permit calls. Use `satisfies`
+when checking a factory without erasing its inferred inputs, or provide an
+explicit tuple (`[]` for an actual zero-argument factory). Annotating a set as
+`DbSet<User>` also erases creation arguments; prefer inference or retain the
+creation tuple as the third `DbSet` type argument.
 
 `create()` runs the constructor or factory once, validates that it returned an
 instance of the mapped class, and delegates enrollment to the ordinary add

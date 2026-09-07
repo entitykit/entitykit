@@ -63,10 +63,14 @@ class AppDbContext extends DbContext {
       entity.hasKey(user => user.id);
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
-      entity.materialize(values => new User({
-        id: values.id ?? "",
-        email: values.email ?? "",
-      }));
+      entity.materialize(values => {
+        const { id, email } = values;
+        if (typeof id !== "string" ||
+            typeof email !== "string") {
+          throw new Error("Cannot materialize User: required fields are missing or invalid.");
+        }
+        return new User({ id, email });
+      });
     });
   }
 }

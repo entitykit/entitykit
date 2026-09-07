@@ -75,8 +75,8 @@ class Post {
 }
 
 export class AppDbContext extends DbContext {
-  readonly users = this.set<typeof User, [id: string]>(User);
-  readonly posts = this.set<typeof Post, [id: string]>(Post);
+  readonly users = this.set(User);
+  readonly posts = this.set(Post);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -85,11 +85,15 @@ export class AppDbContext extends DbContext {
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
       entity.property(user => user.name).hasColumnType("text").isRequired();
-      entity.materialize(values => new User({
-        id: values.id ?? "",
-        email: values.email ?? "",
-        name: values.name ?? "",
-      }));
+      entity.materialize(values => {
+        const { id, email, name } = values;
+        if (typeof id !== "string" ||
+            typeof email !== "string" ||
+            typeof name !== "string") {
+          throw new Error("Cannot materialize User: required fields are missing or invalid.");
+        }
+        return new User({ id, email, name });
+      });
       entity.hasIndex(user => user.email).isUnique();
     });
 
@@ -103,12 +107,14 @@ export class AppDbContext extends DbContext {
         .isRequired();
       entity.property(post => post.title).hasColumnType("text").isRequired();
       entity.property(post => post.status).hasColumnType("text").isRequired();
-      entity.materialize(values => new Post({
-        id: values.id ?? "",
-        authorId: values.authorId ?? "",
-        title: values.title ?? "",
-        status: values.status,
-      }));
+      entity.materialize(values => {
+        const { id, authorId, title, status } = values;
+        if (typeof id !== "string" || typeof authorId !== "string" ||
+            typeof title !== "string" || typeof status !== "string") {
+          throw new Error("Cannot materialize Post: required fields are missing or invalid.");
+        }
+        return new Post({ id, authorId, title, status });
+      });
       entity.hasOne(User, post => post.author)
         .withMany(user => user.posts)
         .hasForeignKey(post => post.authorId)
@@ -163,6 +169,11 @@ await dataSource.dispose();
 `EntityKitDataSource.createContext()` passes it automatically. A subclass that
 overrides `configure()` should call `super.configure(options)` before adding
 diagnostics, tenant scope, auditing, or other context options.
+
+`createContext()` checks the actual context constructor: it must accept the
+data source first, and required, optional, and rest arguments after that source
+retain their types. For example, a constructor taking `(source, requestId:
+string)` requires `dataSource.createContext(RequestContext, "request_1")`.
 
 Direct `options.useSqlite()`, `options.usePostgres()`, and
 `options.useMySql()` configuration remains useful for short-lived scripts,
@@ -297,10 +308,16 @@ const affected = await db.saveChanges();
 `this.set(User)` infers the constructor's complete argument tuple. A constructor
 with no arguments permits `create()` with no arguments; EntityKit does not
 infer required creation data from mapped properties. For typed `find()` keys,
-use `this.set<typeof User, [id: string]>(User)` as above. Existing
+use `this.set<typeof User, [id: string]>(User)`. Existing
 `this.set<User, [string]>(User)` declarations retain their query and tracking
 contracts; switch the first type argument to `typeof User` to enable typed
 constructor creation.
+
+Keep set declarations inferred: `readonly users = this.set(User)` preserves
+creation arguments. An annotation such as `readonly users: DbSet<User> =
+this.set(User)` erases those arguments and intentionally makes `create()`
+unavailable. If an explicit set type is necessary, retain its input tuple, for
+example `DbSet<User, [id: string], [input: NewUser]>`.
 
 Creation factories can accept inputs that differ from persisted properties:
 
@@ -317,6 +334,31 @@ or constructor used by another set reference. Factories must return a fresh
 instance of the mapped class synchronously; promises and already-tracked
 instances are rejected. Private constructors and domain creation policies can
 use this explicit factory route.
+
+The entity argument defines what the set contains. A factory may return a
+subclass, but `set(User, { create: factory })` still queries and returns the
+mapped `User` type. Broad `object` results and unions containing non-user
+values do not satisfy that contract.
+
+For a reusable factory, `satisfies` checks the result while preserving inputs:
+
+```ts
+import type { EntityCreationFactory } from "@entitykit/core";
+
+const makeUser = (
+  (input: NewUser) => new User(input)
+) satisfies EntityCreationFactory<User>;
+```
+
+An explicit annotation should include the argument tuple, such as
+`EntityCreationFactory<User, [input: NewUser]>`. Omitting the tuple erases the
+inputs and makes creation unavailable; it does not mean the factory takes no
+arguments. Use `EntityCreationFactory<User, []>` for a real zero-argument
+factory. The same tuple rule applies to `EntityCreationConstructor`.
+
+For an explicitly typed key on a factory-bound set, use
+`this.set<User, typeof makeUser, [id: string]>(User, { create: makeUser })`.
+Ordinary factory bindings need no explicit type arguments.
 
 Creation runs the ordinary `add()` enrollment path, including tenant defaults
 and rollback on failure. It does not recursively insert navigation objects.
