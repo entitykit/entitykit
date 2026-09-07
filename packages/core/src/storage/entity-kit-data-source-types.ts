@@ -13,13 +13,15 @@ export interface EntityKitContextFactory<
     TContext extends object,
     TArguments extends unknown[],
 > {
+    /** The constructor establishes the context type and arguments after the source. */
+    new (dataSource: EntityKitDataSource<TConfig>, ...arguments_: TArguments): TContext;
     /** Runtime prototype used to identify the context class. */
     readonly prototype: TContext;
     /** Create and synchronously initialize one context from the shared source. */
     create(
         dataSource: EntityKitDataSource<TConfig>,
-        ...arguments_: TArguments
-    ): TContext;
+        ...arguments_: NoInfer<TArguments>
+    ): NoInfer<TContext>;
 }
 
 /**
@@ -33,12 +35,12 @@ export interface EntityKitDataSource<
 > extends DatabaseDataSource {
     /** Create one initialized context; the caller owns and must dispose it. */
     createContext<
+        TContext extends object,
         TArguments extends unknown[],
-        TFactory extends EntityKitContextFactory<TConfig, object, TArguments>,
     >(
-        contextType: TFactory,
-        ...arguments_: TArguments
-    ): TFactory['prototype'];
+        contextType: EntityKitContextFactory<TConfig, TContext, TArguments>,
+        ...arguments_: NoInfer<TArguments>
+    ): TContext;
     /** Execute retry-safe work; the callback may run more than once. */
     executeWithRetry<TResult>(
         operation: (attempt: RetryAttempt) => TResult | Promise<TResult>,

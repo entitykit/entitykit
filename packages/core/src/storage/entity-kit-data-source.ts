@@ -74,12 +74,12 @@ class EntityKitDataSourceImplementation<
     }
 
     public createContext<
+        TContext extends object,
         TArguments extends unknown[],
-        TFactory extends EntityKitContextFactory<TConfig, object, TArguments>,
     >(
-        contextType: TFactory,
-        ...arguments_: TArguments
-    ): TFactory['prototype'] {
+        contextType: EntityKitContextFactory<TConfig, TContext, TArguments>,
+        ...arguments_: NoInfer<TArguments>
+    ): TContext {
         this.assertActive();
         return contextType.create(this, ...arguments_);
     }
