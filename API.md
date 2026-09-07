@@ -202,6 +202,10 @@ possible signature; a single factory accepting a union input retains that input.
 Factories run unbound (`this` is `undefined`). Explicitly receiver-dependent
 methods must be bound to their owner or wrapped in a closure.
 
+For an overloaded factory, `create()` uses the final declared signature. That
+signature must return the mapped entity and work unbound. Select a different
+overload with a typed closure, such as `(id: string) => makeUser(id)`.
+
 `EntityCreationFactory<TEntity, TArguments>` and
 `EntityCreationConstructor<TEntity, TArguments>` preserve explicitly annotated
 argument tuples. Their default `never` does not permit calls. Use `satisfies`

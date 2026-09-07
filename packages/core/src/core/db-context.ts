@@ -9,7 +9,7 @@ import type { ChangeTracker } from '../tracking/change-tracker-types';
 import type { EntityEntry } from '../tracking/entity-entry-types';
 import type { EntityConstructor } from '../types';
 import type { DbSet } from './db-set-types';
-import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFunction, EntityCreationResult, EntityCreationArguments } from './db-set-creation-types';
+import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFunction, EntityCreationResult, EntityCreationArguments, ValidCreationFactory } from './db-set-creation-types';
 import { dbSetCreationFactory } from './db-set-create';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
@@ -63,7 +63,7 @@ export abstract class DbContext {
     }
     /** Bind a creation factory to this gateway; other sets retain their construction policy. */
     public set<TEntity extends object, TFactory extends EntityCreationFunction<NoInfer<TEntity>>, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: EntityConstructor<TEntity>, options: DbSetCreationOptions<TFactory>,
+        entityType: EntityConstructor<TEntity>, options: DbSetCreationOptions<TFactory> & ValidCreationFactory<NoInfer<TEntity>, NoInfer<TFactory>>,
     ): DbSet<TEntity, TKey, EntityCreationArguments<TFactory>>;
     /** Infer creation arguments from a public constructor. */
     public set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(

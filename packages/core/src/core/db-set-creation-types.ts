@@ -19,6 +19,18 @@ export interface DbSetCreationOptions<TFactory extends EntityCreationFunction> {
     readonly create: TFactory;
 }
 
+/** Validate the effective result and receiver together, including choices of overloaded factories. */
+export type ValidCreationFactory<TEntity extends object, TFactory extends EntityCreationFunction> =
+    [CreationFactorySignatureCheck<TEntity, TFactory>] extends [true] ? unknown : never;
+
+// Check each possible factory before requiring every effective signature to pass.
+type CreationFactorySignatureCheck<TEntity extends object, TFactory extends EntityCreationFunction> =
+    TFactory extends (this: infer TReceiver, ...arguments_: never) => infer TResult
+        ? ((this: TReceiver, ...arguments_: never) => TResult) extends EntityCreationFunction<TEntity>
+            ? true
+            : false
+        : false;
+
 /** Preserve entity results without the any fallback of ReturnType for erased signatures. */
 export type EntityCreationResult<TCreation extends EntityCreationConstructor | EntityCreationFunction> =
     TCreation extends new (...arguments_: never) => infer TEntity

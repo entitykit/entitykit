@@ -157,3 +157,78 @@ const explicitlyUnbound: EntityCreationFactory<User, [id: string]> = function (t
     return new User(id);
 };
 db.set(User, { create: explicitlyUnbound }).create('ada');
+
+// Validate the same final overload whose arguments are exposed by create().
+function overloadedResult(id: string): User;
+function overloadedResult(id: number): { invalid: boolean };
+function overloadedResult(id: string | number): User | { invalid: boolean } {
+    return typeof id === 'string' ? new User(id) : { invalid: true };
+}
+// @ts-expect-error an earlier entity-returning overload cannot approve the exposed invalid result
+db.set(User, { create: overloadedResult });
+// @ts-expect-error explicit factory/key types must not bypass effective-signature validation
+db.set<User, typeof overloadedResult, [id: string]>(User, { create: overloadedResult });
+const selectedOverload = db.set(User, { create: (id: string) => overloadedResult(id) });
+const selectedUser: User = selectedOverload.create('ada');
+void selectedUser;
+// @ts-expect-error a wrapper selecting the string overload rejects the invalid number path
+selectedOverload.create(42);
+
+declare function overloadedReceiver(this: void, id: string): User;
+declare function overloadedReceiver(this: { prefix: string }, id: number): User;
+// @ts-expect-error an earlier unbound overload cannot approve the exposed receiver-dependent path
+db.set(User, { create: overloadedReceiver });
+const receiverOverloadWrapper = db.set(User, { create: (id: string) => overloadedReceiver(id) });
+receiverOverloadWrapper.create('ada');
+const boundOverload = db.set(User, { create: overloadedReceiver.bind({ prefix: 'usr_' }) });
+boundOverload.create(42);
+// @ts-expect-error binding the receiver preserves the final overload's input
+boundOverload.create('ada');
+
+declare function nullableOverload(id: string): User;
+declare function nullableOverload(id: number): User | null;
+// @ts-expect-error final-overload validation must preserve nullable results
+db.set(User, { create: nullableOverload });
+declare function asyncOverload(id: string): User;
+declare function asyncOverload(id: number): Promise<User>;
+// @ts-expect-error a synchronous earlier overload cannot approve an exposed async result
+db.set(User, { create: asyncOverload });
+declare function zeroArgumentOverload(id: string): User;
+declare function zeroArgumentOverload(): { invalid: boolean };
+// @ts-expect-error zero-argument creation must validate the exposed result too
+db.set(User, { create: zeroArgumentOverload });
+
+// Earlier overloads need not be exposed when the final overload is safe.
+function safeFinalOverload(this: { prefix: string }, id: string): { invalid: boolean };
+function safeFinalOverload(this: void, id: number, label?: string, ...flags: boolean[]): User;
+function safeFinalOverload(this: { prefix: string } | void, id: string | number, _label?: string, ..._flags: boolean[]): User | { invalid: boolean } {
+    return typeof id === 'number' ? new User(String(id)) : { invalid: true };
+}
+const safeOverloadedUsers = db.set(User, { create: safeFinalOverload });
+const safeOverloadedUser: User = safeOverloadedUsers.create(42);
+void safeOverloadedUser;
+safeOverloadedUsers.create(42, 'Ada', true, false);
+// @ts-expect-error only the final overload's arguments are exposed
+safeOverloadedUsers.create('ada');
+// @ts-expect-error the effective overload's required argument remains required
+safeOverloadedUsers.create();
+// @ts-expect-error the effective overload's rest argument types stay precise
+safeOverloadedUsers.create(42, 'Ada', 1);
+// @ts-expect-error the returned entity type must not widen to any
+safeOverloadedUsers.create(42).unknownProperty;
+const safeKeyedOverload = db.set<User, typeof safeFinalOverload, [id: string]>(User, { create: safeFinalOverload });
+safeKeyedOverload.create(42);
+void safeKeyedOverload.find('42');
+// @ts-expect-error keyed overload bindings retain their key tuple
+void safeKeyedOverload.find(42);
+
+// Choices of overloaded and ordinary factories must validate every effective signature.
+const numericFactory = (id: number) => new User(String(id));
+const resultOverloadChoice = useObjectInput ? overloadedResult : numericFactory;
+// @ts-expect-error an ordinary entity factory cannot hide another branch's invalid exposed result
+db.set(User, { create: resultOverloadChoice });
+declare const receiverOverloadChoice: typeof overloadedReceiver | typeof numericFactory;
+// @ts-expect-error an ordinary unbound factory cannot hide another branch's required receiver
+db.set(User, { create: receiverOverloadChoice });
+const safeOverloadChoice = useObjectInput ? safeFinalOverload : numericFactory;
+db.set(User, { create: safeOverloadChoice }).create(42);
