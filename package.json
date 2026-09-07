@@ -29,6 +29,7 @@
   ],
   "scripts": {
     "build": "node scripts/build-package.js",
+    "postbuild": "npm rebuild @entitykit/cli --ignore-scripts",
     "check:package": "node scripts/check-package.js",
     "check:publish-alpha": "node scripts/check-alpha-publish.js",
     "check:nextjs": "npm run build && npm run verify --workspace @entitykit/example-nextjs-postgres",
