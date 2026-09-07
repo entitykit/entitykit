@@ -195,7 +195,12 @@ continue to return the cached constructor-backed set.
 The entity identity determines the mapped set type; only the argument tuple
 comes from the factory. A subclass result is accepted, but queries and
 `create()` remain typed as the mapped entity. A broad `object` result or a
-union containing an incompatible result is rejected.
+union containing an incompatible result is rejected. When the factory itself
+is a union of possible callables, creation arguments must satisfy every
+possible signature; a single factory accepting a union input retains that input.
+
+Factories run unbound (`this` is `undefined`). Explicitly receiver-dependent
+methods must be bound to their owner or wrapped in a closure.
 
 `EntityCreationFactory<TEntity, TArguments>` and
 `EntityCreationConstructor<TEntity, TArguments>` preserve explicitly annotated

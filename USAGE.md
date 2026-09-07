@@ -333,7 +333,10 @@ Factory-bound sets share the context's tracker. They do not replace the factory
 or constructor used by another set reference. Factories must return a fresh
 instance of the mapped class synchronously; promises and already-tracked
 instances are rejected. Private constructors and domain creation policies can
-use this explicit factory route.
+use this explicit factory route. Factories are invoked unbound, with `this`
+set to `undefined`; preserve a method receiver with
+`userFactory.make.bind(userFactory)` or a closure such as
+`(id: string) => userFactory.make(id)`.
 
 The entity argument defines what the set contains. A factory may return a
 subclass, but `set(User, { create: factory })` still queries and returns the

@@ -1,16 +1,17 @@
+/* eslint @typescript-eslint/no-invalid-void-type: ["error", { "allowAsThisParameter": true }] -- Factories declare their unbound receiver. */
 /** Annotate a public constructor with its argument tuple, or use satisfies to retain inference. */
 export type EntityCreationConstructor<
     TEntity extends object = object, TArguments extends unknown[] = never,
 > = new (...arguments_: TArguments) => TEntity;
 
-/** Annotate a domain factory with its argument tuple, or use satisfies to retain inference. */
+/** An unbound domain factory; annotate its argument tuple or use satisfies to retain inference. */
 export type EntityCreationFactory<
     TEntity extends object = object, TArguments extends unknown[] = never,
-> = (...arguments_: TArguments) => TEntity;
+> = (this: void, ...arguments_: TArguments) => TEntity;
 
 /** Internal callable constraint; an erased signature does not establish creation arguments. */
 export type EntityCreationFunction<TEntity extends object = object> =
-    (...arguments_: never) => TEntity;
+    (this: void, ...arguments_: never) => TEntity;
 
 /** Bind a domain factory to the returned set without changing other sets. */
 export interface DbSetCreationOptions<TFactory extends EntityCreationFunction> {
@@ -26,11 +27,11 @@ export type EntityCreationResult<TCreation extends EntityCreationConstructor | E
             ? Extract<TEntity, object>
             : never;
 
-/** Preserve declared tuples; neither never nor never[] establishes zero-argument creation. */
+/** Require arguments shared by every possible signature; erased tuples do not permit calls. */
 export type EntityCreationArguments<TCreation extends EntityCreationConstructor | EntityCreationFunction> =
-    TCreation extends new (...arguments_: infer TArguments) => object
+    [TCreation] extends [new (...arguments_: infer TArguments) => object]
         ? KnownCreationArguments<TArguments>
-        : TCreation extends (...arguments_: infer TArguments) => object
+        : [TCreation] extends [(...arguments_: infer TArguments) => object]
             ? KnownCreationArguments<TArguments>
             : never;
 
