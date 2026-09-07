@@ -42,13 +42,20 @@ import {
 } from "@entitykit/core";
 import { createSqliteDataSource } from "@entitykit/sqlite";
 
+type NewUser = { id: string; email: string };
+
 class User {
-  id = "";
-  email = "";
+  id: string;
+  email: string;
+
+  constructor(input: NewUser) {
+    this.id = input.id;
+    this.email = input.email;
+  }
 }
 
 class AppDbContext extends DbContext {
-  readonly users = this.set<User, [id: string]>(User);
+  readonly users = this.set(User);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -56,6 +63,10 @@ class AppDbContext extends DbContext {
       entity.hasKey(user => user.id);
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
+      entity.materialize(values => new User({
+        id: values.id ?? "",
+        email: values.email ?? "",
+      }));
     });
   }
 }
@@ -65,6 +76,10 @@ const dataSource = createSqliteDataSource("./app.db");
 try {
   await using db = dataSource.createContext(AppDbContext);
 
+  await db.database.ensureCreated();
+  const ada = db.users.create({ id: "usr_1", email: "ada@example.com" });
+  await db.saveChanges();
+
   const users = await db.users
     .where(user => user.email.endsWith("@example.com"))
     .toArray();
@@ -72,6 +87,10 @@ try {
   await dataSource.dispose();
 }
 ```
+
+`users.create()` constructs and tracks a new entity without executing SQL. Its
+input comes from the `User` constructor; `saveChanges()` writes the row. The
+separate `materialize()` factory reconstructs stored rows when querying.
 
 In an application, keep the data source for the application lifetime and make
 the context inside each request, job, or unit of work. Dispose the context

@@ -77,14 +77,22 @@ import {
 } from "@entitykit/core";
 import { createSqliteDataSource } from "@entitykit/sqlite";
 
+type NewUser = { id: string; email: string; name: string };
+
 class User {
-  id = "";
-  email = "";
-  name = "";
+  id: string;
+  email: string;
+  name: string;
+
+  constructor(input: NewUser) {
+    this.id = input.id;
+    this.email = input.email;
+    this.name = input.name;
+  }
 }
 
 class AppDbContext extends DbContext {
-  readonly users = this.set<User, [id: string]>(User);
+  readonly users = this.set(User);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -93,6 +101,11 @@ class AppDbContext extends DbContext {
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
       entity.property(user => user.name).hasColumnType("text").isRequired();
+      entity.materialize(values => new User({
+        id: values.id ?? "",
+        email: values.email ?? "",
+        name: values.name ?? "",
+      }));
       entity.hasIndex(user => user.email).isUnique();
     });
   }
@@ -101,7 +114,9 @@ class AppDbContext extends DbContext {
 const dataSource = createSqliteDataSource("./app.db");
 ```
 
-Create a local schema, write a row, query it, and save a tracked change:
+Create a local schema, write a row, query it, and save a tracked change.
+`users.create()` constructs and tracks the entity; it executes no SQL.
+`saveChanges()` persists the pending work:
 
 ```ts
 try {
@@ -109,13 +124,12 @@ try {
 
   await db.database.ensureCreated();
 
-  const user = Object.assign(new User(), {
+  const user = db.users.create({
     id: "usr_1",
     email: "ada@example.com",
     name: "Ada",
   });
 
-  db.users.add(user);
   await db.saveChanges();
 
   const loaded = await db.users

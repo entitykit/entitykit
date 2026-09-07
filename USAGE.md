@@ -42,24 +42,41 @@ import {
   type ModelBuilder,
 } from "@entitykit/core";
 
+type NewUser = { id: string; email: string; name: string };
+
 class User {
-  id = "";
-  email = "";
-  name = "";
+  id: string;
+  email: string;
+  name: string;
   posts: Post[] = [];
+
+  constructor(input: NewUser) {
+    this.id = input.id;
+    this.email = input.email;
+    this.name = input.name;
+  }
 }
 
+type NewPost = { id: string; authorId: string; title: string; status?: string };
+
 class Post {
-  id = "";
-  authorId = "";
-  title = "";
+  id: string;
+  authorId: string;
+  title: string;
   status = "draft";
   author: User | null = null;
+
+  constructor(input: NewPost) {
+    this.id = input.id;
+    this.authorId = input.authorId;
+    this.title = input.title;
+    this.status = input.status ?? "draft";
+  }
 }
 
 export class AppDbContext extends DbContext {
-  readonly users = this.set<User, [id: string]>(User);
-  readonly posts = this.set<Post, [id: string]>(Post);
+  readonly users = this.set<typeof User, [id: string]>(User);
+  readonly posts = this.set<typeof Post, [id: string]>(Post);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -68,6 +85,11 @@ export class AppDbContext extends DbContext {
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
       entity.property(user => user.name).hasColumnType("text").isRequired();
+      entity.materialize(values => new User({
+        id: values.id ?? "",
+        email: values.email ?? "",
+        name: values.name ?? "",
+      }));
       entity.hasIndex(user => user.email).isUnique();
     });
 
@@ -81,6 +103,12 @@ export class AppDbContext extends DbContext {
         .isRequired();
       entity.property(post => post.title).hasColumnType("text").isRequired();
       entity.property(post => post.status).hasColumnType("text").isRequired();
+      entity.materialize(values => new Post({
+        id: values.id ?? "",
+        authorId: values.authorId ?? "",
+        title: values.title ?? "",
+        status: values.status,
+      }));
       entity.hasOne(User, post => post.author)
         .withMany(user => user.posts)
         .hasForeignKey(post => post.authorId)
@@ -246,17 +274,17 @@ Plain property access never performs hidden I/O.
 
 ## Track and save changes
 
-Add an entity, change a tracked entity, or mark one for removal, then call
-`saveChanges()`.
+Create an entity, change a tracked entity, or mark one for removal, then call
+`saveChanges()`. `create()` synchronously constructs the entity, tracks it as
+added, and returns that same instance. It performs no database operation.
 
 ```ts
-const created = Object.assign(new User(), {
+const created = db.users.create({
   id: "usr_2",
   email: "grace@example.com",
   name: "Grace",
 });
 
-db.users.add(created);
 await db.saveChanges();
 
 const loaded = await db.users.findOrThrow("usr_2");
@@ -265,6 +293,40 @@ loaded.name = "Grace Hopper";
 console.log(db.getSavePlanDebugView());
 const affected = await db.saveChanges();
 ```
+
+`this.set(User)` infers the constructor's complete argument tuple. A constructor
+with no arguments permits `create()` with no arguments; EntityKit does not
+infer required creation data from mapped properties. For typed `find()` keys,
+use `this.set<typeof User, [id: string]>(User)` as above. Existing
+`this.set<User, [string]>(User)` declarations retain their query and tracking
+contracts; switch the first type argument to `typeof User` to enable typed
+constructor creation.
+
+Creation factories can accept inputs that differ from persisted properties:
+
+```ts
+// A context field; its factory belongs only to this returned set.
+readonly registrations = this.set(User, {
+  create: (input: { id: string; email: string; displayName: string }) =>
+    new User({ id: input.id, email: input.email, name: input.displayName.trim() }),
+});
+```
+
+Factory-bound sets share the context's tracker. They do not replace the factory
+or constructor used by another set reference. Factories must return a fresh
+instance of the mapped class synchronously; promises and already-tracked
+instances are rejected. Private constructors and domain creation policies can
+use this explicit factory route.
+
+Creation runs the ordinary `add()` enrollment path, including tenant defaults
+and rollback on failure. It does not recursively insert navigation objects.
+The `materialize()` mapping above handles reads separately; reads never invoke
+the set's creation factory. TypeScript contracts do not validate unchecked
+request input, and EntityKit cannot roll back external side effects inside a
+domain constructor or factory.
+
+Use `new User(input)` for a detached object and `db.users.add(user)` when an
+entity has already been constructed. `create()` returns the entity itself.
 
 `add()`, `attach()`, and `remove()` return an `EntityEntry`. The entry exposes
 original values, changed properties, database values, reload, and explicit
@@ -292,12 +354,13 @@ Both operations require an explicit `where()` and reject result-shaping clauses
 such as `orderBy()`, `skip()`, and `take()`. They do not refresh entities the
 context already tracks; clear or reload those entries before using them again.
 
-Use `upsert()` for an insert-or-update batch. The portable shape targets the
+Use detached objects from constructors or domain factories for `upsert()`,
+which writes immediately and bypasses tracking. The portable shape targets the
 primary key on a model without secondary unique keys:
 
 ```ts
 await db.posts.upsert(
-  [Object.assign(new Post(), {
+  [new Post({
     id: "post_2",
     authorId: "usr_1",
     title: "A typed unit of work",
@@ -321,12 +384,12 @@ raw commands must commit together.
 
 ```ts
 await db.transaction(async transaction => {
-  transaction.posts.add(Object.assign(new Post(), {
+  transaction.posts.create({
     id: "post_1",
     authorId: "usr_1",
     title: "Hello, EntityKit",
     status: "published",
-  }));
+  });
 
   await transaction.saveChanges();
   await transaction.database.execute`

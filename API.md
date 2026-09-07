@@ -164,12 +164,40 @@ immutable query.
 | --- | --- |
 | `find(...keyValues)` | Returns a tracked entity by key or `null` |
 | `findOrThrow(...keyValues)` | Returns a tracked entity or throws `EntityNotFoundError` |
+| `create(...arguments)` | Constructs and tracks one new entity as added; returns the entity without executing SQL |
 | `add(entity)` | Tracks an entity as added |
 | `attach(entity)` | Tracks an existing entity without scheduling an insert |
 | `remove(entity)` | Marks a tracked entity for deletion |
 | `detach(entity)` | Removes an entity from the context identity map |
 | `upsert(entities, options?)` | Performs set-based upsert within the provider's conflict-target rules |
 | `` fromSqlUnsafe`...${value}...` `` | Materializes caller-owned SQL without automatic query filters |
+
+`set(User)` infers the public constructor's argument tuple for `create()`.
+`set<typeof User, [id: string]>(User)` also types the key. Identity-only
+registrations and existing `set<User, [string]>(User)` calls remain supported,
+but cannot call `create()` without retaining a constructor or factory type.
+The exported `EntityConstructor` remains an identity contract with no required
+constructor signature.
+
+`set(User, { create: factory })` binds an explicit synchronous factory to the
+returned gateway. Its arguments define the creation input. For an explicit
+key tuple, use `set<typeof factory, [id: string]>(User, { create: factory })`.
+The gateway shares tracking with all other sets in the context; its factory
+does not change their construction behavior. Default `set(User)` lookups
+continue to return the cached constructor-backed set.
+
+`create()` runs the constructor or factory once, validates that it returned an
+instance of the mapped class, and delegates enrollment to the ordinary add
+path. It rejects promises and already-tracked instances before enrollment.
+It preserves defaults and private state without a property-assignment pass,
+applies tenant rules, and stages one entity without recursive graph insertion.
+Failed enrollment uses the same tracking and tenant restoration as `add()`.
+Creation input typing is not runtime request validation.
+
+Reads use the independent `entity.materialize(factory)` mapping. Supply one
+for classes whose constructor requires input. `saveChanges()` persists created
+entities; use detached constructors or domain factories to prepare `upsert()`
+inputs. Existing `add()`, `attach()`, and `remove()` return `EntityEntry`.
 
 `upsert()` accepts `conflictProperties` and `updateProperties`. It bypasses the
 change tracker, save interceptors, audit fields, concurrency tokens, and outbox
