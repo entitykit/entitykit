@@ -24,7 +24,7 @@ export interface EntityMaterializationRow<TEntity extends object> {
     nullable<TValue>(selector: PropertyPathSelector<TEntity, TValue>, guard: MaterializationGuard<NoInfer<NonNullable<TValue>>>): NonNullable<TValue> | null;
 }
 
-/** Construct a fresh entity synchronously from checked mapped values. */
+/** Construct a fresh entity synchronously, checking requested scalars; mapped values are assigned afterward. */
 export type CheckedEntityMaterializer<TEntity extends object> = (
     row: EntityMaterializationRow<TEntity>,
 ) => TEntity;

@@ -27,8 +27,12 @@ export interface EntityBuilder<TEntity extends object> {
     /** Mark the entity as query-only and without a primary key. */ hasNoKey(): this;
     /** Set the database schema for this entity. */ hasSchema(schemaName: string): this;
     /** Add a named table check constraint. */ hasCheckConstraint(name: string, sql: string): this;
-    /** Supply an explicit rehydration factory for constructor-rich entities. */ materialize(factory: EntityMaterializer<TEntity>): this;
-    /** Construct a fresh entity from checked mapped scalars; replaces any prior materializer. */
+    /** Supply a raw rehydration factory; captured mapped values are assigned after it returns. */ materialize(factory: EntityMaterializer<TEntity>): this;
+    /**
+     * Register a fresh-entity factory that checks requested scalar values only.
+     * Captured mapped values are assigned afterward and can overwrite constructor-only transformations.
+     * Replaces any prior materializer. Configuration executes no SQL.
+     */
     materializeChecked(factory: CheckedEntityMaterializer<TEntity>): this;
     /** Configure one mapped scalar property. */ property<TProperty = TEntity[EntityPropertyKey<TEntity>]>(
         propertyOrSelector:

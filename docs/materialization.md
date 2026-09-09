@@ -10,8 +10,14 @@ entity.materializeChecked(row => new User({
 }));
 ```
 
-The application constructs its domain object. EntityKit checks each selected
-mapped scalar and reports failures with its entity and property, such as
+The callback constructs its domain object and checks the scalar values it
+requests. EntityKit then assigns the captured mapped values, including any
+configured read conversions. Constructor-only transformations can be
+overwritten; values not read through checked accessors receive no additional
+checks. Use a configured read conversion for transformations that must survive
+mapped assignment.
+
+Requested scalar checks report failures with the entity and property, such as
 `Cannot materialize 'User.email': the mapped value is missing.` Values have
 already passed through the provider reader and any configured value converter.
 Reading a value again does not rerun that conversion.
@@ -69,10 +75,9 @@ rehydration. Its argument remains `Readonly<Partial<TEntity>>`; it does not
 promise a complete entity. The last call to `materialize()` or
 `materializeChecked()` selects the entity's rehydration policy.
 
-Both factories must return a fresh entity synchronously. Normal identity
-resolution, mapped-property assignment, and tracking still apply. Only values
-read through the checked accessors receive these additional checks. Partial
-raw SQL rows must provide every scalar that the factory requests.
+Both factories must return a fresh entity synchronously. Identity resolution
+and tracking still apply. Partial raw SQL rows must provide every scalar that
+the factory requests.
 
 Creation is separate: `db.users.create(input)` invokes the set's constructor
 or creation factory, tracks the returned entity as Added, and executes no SQL.

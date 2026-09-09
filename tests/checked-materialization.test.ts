@@ -27,6 +27,39 @@ function metadata(configure?: (entity: EntityBuilder<User>) => void): EntityMeta
 }
 
 describe('checked materialization', () => {
+    it.each(['tracked', 'untracked'])('assigns captured values after %s constructor normalization', mode => {
+        class NormalizingUser extends User {
+            public readonly constructedName: string;
+            constructor(id: string, name: string) {
+                super(id, name.trim());
+                this.constructedName = this.name;
+            }
+        }
+        const mapping = metadata(entity => entity.materializeChecked(row => new NormalizingUser(
+            row.required(user => user.id), row.required(user => user.name),
+        )));
+        const tracker = new ChangeTracker();
+        const reader = new Materializer();
+        const row = { id: '1', display_name: ' Ada ', nickname: null };
+        const user = mode === 'tracked'
+            ? reader.materialize(mapping, row, tracker)
+            : reader.materializeUntracked(mapping, row);
+
+        expect(user).toBeInstanceOf(NormalizingUser);
+        expect(user).toMatchObject({ constructedName: 'Ada', name: ' Ada ' });
+        if (mode === 'tracked') {
+            expect(tracker.entry(user)?.originalValues.name).toBe(' Ada ');
+            expect(tracker.entry(user)?.modifiedProperties()).toEqual([]);
+        }
+    });
+
+    it('does not add scalar validation for values the factory does not request', () => {
+        const user = new Materializer().materializeUntracked(metadata(), {
+            id: '1', display_name: 'Ada', nickname: 42,
+        });
+        expect(user.nickname).toBe(42);
+    });
+
     it('constructs the domain object and retains tracked identity and local edits', () => {
         const mapping = metadata();
         const tracker = new ChangeTracker();
