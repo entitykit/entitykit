@@ -10,6 +10,7 @@ export type {
 } from './types';
 export type { JsonPrimitive, JsonValue } from './json-value';
 export type { EntityAuditConfiguration, EntityBuilder } from './model/entity-builder-types';
+export type { CheckedEntityMaterializer, EntityMaterializationRow, MaterializationGuard, MaterializationScalar } from './model/checked-materialization-types';
 export { BaseEntityConfiguration } from './model/entity-type-configuration';
 export type { EntityTypeConfiguration } from './model/entity-type-configuration';
 export type { ModelBuilder } from './model/model-builder-types';

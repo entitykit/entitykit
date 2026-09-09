@@ -3,6 +3,7 @@ import type {
     EntityMaterializer,
     EntityPropertyKey,
 } from '../types';
+import type { CheckedEntityMaterializer } from './checked-materialization-types';
 import type {
     ComplexPropertyBuilder,
     ComplexPropertyOptions,
@@ -27,6 +28,8 @@ export interface EntityBuilder<TEntity extends object> {
     /** Set the database schema for this entity. */ hasSchema(schemaName: string): this;
     /** Add a named table check constraint. */ hasCheckConstraint(name: string, sql: string): this;
     /** Supply an explicit rehydration factory for constructor-rich entities. */ materialize(factory: EntityMaterializer<TEntity>): this;
+    /** Construct a fresh entity from checked mapped scalars; replaces any prior materializer. */
+    materializeChecked(factory: CheckedEntityMaterializer<TEntity>): this;
     /** Configure one mapped scalar property. */ property<TProperty = TEntity[EntityPropertyKey<TEntity>]>(
         propertyOrSelector:
         EntityPropertyKey<TEntity> | PropertySelector<TEntity, TProperty>,

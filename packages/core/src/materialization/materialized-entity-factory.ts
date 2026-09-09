@@ -1,15 +1,18 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { assertSynchronousCallbackResult } from '../synchronous-callback';
 import { createMaterializerValues } from './materializer-values';
+import { CheckedMaterializationRow } from './checked-materialization-row';
 
 /** Construct an entity without applying database row values to it. */
 export function constructMaterializedEntity<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
     values: Readonly<Record<string, unknown>>,
 ): TEntity {
-    const created: unknown = metadata.materializer
-        ? metadata.materializer(createMaterializerValues(metadata, values))
-        : new (metadata.ctor as unknown as new () => TEntity)();
+    const created: unknown = metadata.checkedMaterializer
+        ? metadata.checkedMaterializer(new CheckedMaterializationRow(metadata, values))
+        : metadata.materializer
+            ? metadata.materializer(createMaterializerValues(metadata, values))
+            : new (metadata.ctor as unknown as new () => TEntity)();
     assertSynchronousCallbackResult(
         created,
         `Entity materializer for '${metadata.entityName}'`,

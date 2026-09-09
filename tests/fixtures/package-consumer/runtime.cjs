@@ -38,7 +38,10 @@ class ConsumerContext extends DbContext {
       entity.hasKey(widget => widget.id);
       entity.property(widget => widget.id).hasColumnType('text').isRequired();
       entity.property(widget => widget.label).hasColumnType('text').isRequired();
-      entity.materialize(values => new Widget(values));
+      entity.materializeChecked(row => new Widget({
+        id: row.required(widget => widget.id),
+        label: row.required(widget => widget.label),
+      }));
     });
   }
 }

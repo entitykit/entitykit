@@ -352,6 +352,10 @@ interface ModelBuilder {
 | `softDelete(...)` | Configures a soft-delete marker |
 | `tenantKey(...)` | Configures the tenant ownership property |
 | `materialize(factory)` | Supplies explicit entity rehydration |
+| `materializeChecked(factory)` | Supplies checked scalar access for constructor-based rehydration |
+
+The [rehydration guide](docs/materialization.md) defines `required()` and
+`nullable()`, supported scalar checks, and guards for converted domain values.
 
 ### Property mapping
 
