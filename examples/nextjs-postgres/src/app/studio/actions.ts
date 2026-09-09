@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { withDbContext } from "@/db/data-source";
 import { demoIdentity } from "@/db/environment";
-import { Post } from "@/db/model/post";
 
 export async function createDraft(formData: FormData): Promise<void> {
   const title = requiredText(formData, "title", 100);
@@ -16,7 +15,7 @@ export async function createDraft(formData: FormData): Promise<void> {
   const slug = `${toSlug(title)}-${randomUUID().slice(0, 6)}`;
 
   await withDbContext(async (db) => {
-    db.posts.add(new Post({
+    db.posts.create({
       id: `post_${randomUUID()}`,
       workspaceId: identity.workspaceId,
       authorId: identity.authorId,
@@ -28,7 +27,7 @@ export async function createDraft(formData: FormData): Promise<void> {
       publishedAt: null,
       createdAt: now,
       updatedAt: now,
-    }));
+    });
     await db.saveChanges();
   });
 

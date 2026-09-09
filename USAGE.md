@@ -85,15 +85,11 @@ export class AppDbContext extends DbContext {
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
       entity.property(user => user.name).hasColumnType("text").isRequired();
-      entity.materialize(values => {
-        const { id, email, name } = values;
-        if (typeof id !== "string" ||
-            typeof email !== "string" ||
-            typeof name !== "string") {
-          throw new Error("Cannot materialize User: required fields are missing or invalid.");
-        }
-        return new User({ id, email, name });
-      });
+      entity.materializeChecked(row => new User({
+        id: row.required(user => user.id),
+        email: row.required(user => user.email),
+        name: row.required(user => user.name),
+      }));
       entity.hasIndex(user => user.email).isUnique();
     });
 
@@ -107,14 +103,12 @@ export class AppDbContext extends DbContext {
         .isRequired();
       entity.property(post => post.title).hasColumnType("text").isRequired();
       entity.property(post => post.status).hasColumnType("text").isRequired();
-      entity.materialize(values => {
-        const { id, authorId, title, status } = values;
-        if (typeof id !== "string" || typeof authorId !== "string" ||
-            typeof title !== "string" || typeof status !== "string") {
-          throw new Error("Cannot materialize Post: required fields are missing or invalid.");
-        }
-        return new Post({ id, authorId, title, status });
-      });
+      entity.materializeChecked(row => new Post({
+        id: row.required(post => post.id),
+        authorId: row.required(post => post.authorId),
+        title: row.required(post => post.title),
+        status: row.required(post => post.status),
+      }));
       entity.hasOne(User, post => post.author)
         .withMany(user => user.posts)
         .hasForeignKey(post => post.authorId)
@@ -123,6 +117,12 @@ export class AppDbContext extends DbContext {
   }
 }
 ```
+
+`materializeChecked()` rehydrates a fresh domain object from mapped scalar
+values. `row.required()` checks presence, nullability, and the mapped scalar
+type, with errors naming the entity and property. For nullable values, custom
+conversions, and the raw materializer escape hatch, see
+[materialization](./docs/materialization.md).
 
 ## Own the data source
 
@@ -529,7 +529,6 @@ lazy loads, and migrations.
 
 ```ts
 protected override configure(options: DbContextOptionsBuilder): void {
-  super.configure(options);
   options.useDiagnostics(event => {
     console.info(event.kind, event.provider, event.durationMs);
   });

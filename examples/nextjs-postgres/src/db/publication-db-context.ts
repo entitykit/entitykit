@@ -15,10 +15,10 @@ import { databaseUrl } from "./environment";
 export type PublicationDataSource = ReturnType<typeof createPostgresDataSource>;
 
 abstract class PublicationDbContext extends DbContext {
-  readonly workspaces = this.set<Workspace, [id: string]>(Workspace);
-  readonly authors = this.set<Author, [id: string]>(Author);
-  readonly posts = this.set<Post, [id: string]>(Post);
-  readonly tags = this.set<Tag, [id: string]>(Tag);
+  readonly workspaces = this.set<typeof Workspace, [id: string]>(Workspace);
+  readonly authors = this.set<typeof Author, [id: string]>(Author);
+  readonly posts = this.set<typeof Post, [id: string]>(Post);
+  readonly tags = this.set<typeof Tag, [id: string]>(Tag);
 
   protected override model(model: ModelBuilder): void {
     model.entity(Workspace, (entity) => {
@@ -123,12 +123,8 @@ abstract class PublicationDbContext extends DbContext {
 }
 
 export class AppDbContext extends PublicationDbContext {
-  constructor(private readonly source: PublicationDataSource) {
-    super();
-  }
-
   protected override configure(options: DbContextOptionsBuilder): void {
-    options.useDataSource(this.source).useAuditing();
+    options.useAuditing();
   }
 }
 

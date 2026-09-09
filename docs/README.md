@@ -33,6 +33,9 @@ only when the application shuts down.
 | Goal | Read next |
 | --- | --- |
 | Build a first EntityKit feature | [Usage](../USAGE.md), then [API](../API.md) |
+| Rehydrate constructor-based entities | [Materialization](materialization.md) |
+| Compose filters and enable predicate linting | [Query predicates](query-predicates.md) |
+| Extract a service without losing creation types | [Creation types](creation-types.md) |
 | Use NestJS 12 | [Frameworks: NestJS](frameworks.md#nestjs-12), then [`@entitykit/nestjs`](../packages/nestjs/) |
 | Use Next.js 16 with Postgres | [Frameworks: Next.js](frameworks.md#nextjs-16-node-runtime), then the [Next.js + Postgres demo](../examples/nextjs-postgres/) |
 | Choose or configure a provider | [Compatibility](compatibility.md#providers), then the SQLite, Postgres, or MySQL package README |

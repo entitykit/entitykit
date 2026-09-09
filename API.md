@@ -93,9 +93,10 @@ abstract class DbContext {
   readonly database: DatabaseFacade;
   readonly changeTracker: ChangeTracker;
 
-  set<TEntity, TKey extends readonly unknown[] = readonly unknown[]>(
-    entityType,
-  ): DbSet<TEntity, TKey>;
+  // Constructor overload; see Creation types for factories and identity-only sets.
+  set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(
+    entityType: TConstructor,
+  ): DbSet<EntityCreationResult<TConstructor>, TKey, EntityCreationArguments<TConstructor>>;
   entry<TEntity>(entity): EntityEntry<TEntity> | undefined;
   entryOrThrow<TEntity>(entity): EntityEntry<TEntity>;
   saveChanges(options?): Promise<number>;

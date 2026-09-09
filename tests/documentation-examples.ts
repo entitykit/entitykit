@@ -10,31 +10,44 @@ import {
     type ModelBuilder,
     type RuntimeDiagnosticEvent,
 } from '@entitykit/core';
-import { sqliteProviderServices } from '@entitykit/sqlite';
+import { createSqliteDataSource, sqliteProviderServices } from '@entitykit/sqlite';
 import { RecordingDatabaseConnection } from '@entitykit/testing';
 
+interface NewUser { id: string; email: string; name: string }
+
 class User {
-    public id = '';
-    public email = '';
-    public name = '';
+    public id: string;
+    public email: string;
+    public name: string;
     public posts: Post[] = [];
+
+    constructor(input: NewUser) {
+        this.id = input.id;
+        this.email = input.email;
+        this.name = input.name;
+    }
 }
 
+interface NewPost { id: string; authorId: string; title: string; status?: string }
+
 class Post {
-    public id = '';
-    public authorId = '';
-    public title = '';
+    public id: string;
+    public authorId: string;
+    public title: string;
     public status = 'draft';
     public author: User | null = null;
+
+    constructor(input: NewPost) {
+        this.id = input.id;
+        this.authorId = input.authorId;
+        this.title = input.title;
+        this.status = input.status ?? 'draft';
+    }
 }
 
 export class AppDbContext extends DbContext {
-    public readonly users = this.set<User, [string]>(User);
-    public readonly posts = this.set<Post, [string]>(Post);
-
-    protected override configure(options: DbContextOptionsBuilder): void {
-        options.useSqlite('./app.db');
-    }
+    public readonly users = this.set(User);
+    public readonly posts = this.set(Post);
 
     protected override model(model: ModelBuilder): void {
         model.entity(User, entity => {
@@ -43,6 +56,11 @@ export class AppDbContext extends DbContext {
             entity.property(user => user.id).hasColumnType('text').isRequired();
             entity.property(user => user.email).hasColumnType('text').isRequired();
             entity.property(user => user.name).hasColumnType('text').isRequired();
+            entity.materializeChecked(row => new User({
+                id: row.required(user => user.id),
+                email: row.required(user => user.email),
+                name: row.required(user => user.name),
+            }));
             entity.hasIndex(user => user.email).isUnique();
         });
 
@@ -56,6 +74,12 @@ export class AppDbContext extends DbContext {
                 .isRequired();
             entity.property(post => post.title).hasColumnType('text').isRequired();
             entity.property(post => post.status).hasColumnType('text').isRequired();
+            entity.materializeChecked(row => new Post({
+                id: row.required(post => post.id),
+                authorId: row.required(post => post.authorId),
+                title: row.required(post => post.title),
+                status: row.required(post => post.status),
+            }));
             entity.hasOne(User, post => post.author)
                 .withMany(user => user.posts)
                 .hasForeignKey(post => post.authorId)
@@ -65,22 +89,24 @@ export class AppDbContext extends DbContext {
 }
 
 export async function readmeExample(): Promise<void> {
-    await using db = AppDbContext.create();
-    await db.database.ensureCreated();
-
-    const user = Object.assign(new User(), {
-        id: 'usr_1',
-        email: 'ada@example.com',
-        name: 'Ada',
-    });
-    db.users.add(user);
-    await db.saveChanges();
-
-    const loaded = await db.users
-        .where(candidate => candidate.email.eq('ada@example.com'))
-        .single();
-    loaded.name = 'Ada Lovelace';
-    await db.saveChanges();
+    const dataSource = createSqliteDataSource('./app.db');
+    try {
+        await using db = dataSource.createContext(AppDbContext);
+        await db.database.ensureCreated();
+        db.users.create({
+            id: 'usr_1',
+            email: 'ada@example.com',
+            name: 'Ada',
+        });
+        await db.saveChanges();
+        const loaded = await db.users
+            .where(candidate => candidate.email.eq('ada@example.com'))
+            .single();
+        loaded.name = 'Ada Lovelace';
+        await db.saveChanges();
+    } finally {
+        await dataSource.dispose();
+    }
 }
 
 export async function queryExamples(db: AppDbContext): Promise<void> {
@@ -114,7 +140,8 @@ export async function queryExamples(db: AppDbContext): Promise<void> {
             .orderByDescending(post => post.id)
             .take(10))
         .single();
-    await db.entry(included)?.collection(candidate => candidate.posts).load();
+    const posts = db.entryOrThrow(included).collection(candidate => candidate.posts);
+    if (!posts.isLoaded) await posts.load();
 
     void page;
     void cards;
@@ -122,12 +149,11 @@ export async function queryExamples(db: AppDbContext): Promise<void> {
 }
 
 export async function trackedWriteExamples(db: AppDbContext): Promise<void> {
-    const created = Object.assign(new User(), {
+    db.users.create({
         id: 'usr_2',
         email: 'grace@example.com',
         name: 'Grace',
     });
-    db.users.add(created);
     await db.saveChanges();
 
     const loaded = await db.users.findOrThrow('usr_2');
@@ -147,7 +173,7 @@ export async function setBasedWriteExamples(db: AppDbContext): Promise<void> {
         .where(post => post.status.eq('archived'))
         .executeDelete();
     await db.posts.executeUpsert(
-        [Object.assign(new Post(), {
+        [new Post({
             id: 'post_2',
             authorId: 'usr_1',
             title: 'A typed unit of work',
@@ -161,12 +187,12 @@ export async function setBasedWriteExamples(db: AppDbContext): Promise<void> {
 
 export async function transactionExample(db: AppDbContext): Promise<void> {
     await db.transaction(async transaction => {
-        transaction.posts.add(Object.assign(new Post(), {
+        transaction.posts.create({
             id: 'post_1',
             authorId: 'usr_1',
             title: 'Hello, EntityKit',
             status: 'published',
-        }));
+        });
         await transaction.saveChanges();
         await transaction.database.execute`
             update users set name = ${'Ada Lovelace'} where id = ${'usr_1'}
@@ -206,7 +232,6 @@ export class DiagnosticDbContext extends AppDbContext {
     public static readonly events: RuntimeDiagnosticEvent[] = [];
 
     protected override configure(options: DbContextOptionsBuilder): void {
-        super.configure(options);
         options.useDiagnostics(event => {
             DiagnosticDbContext.events.push(event);
         });
@@ -248,8 +273,14 @@ export async function errorExample(db: AppDbContext): Promise<void> {
     }
 }
 
+class MigrationDbContext extends AppDbContext {
+    protected override configure(options: DbContextOptionsBuilder): void {
+        options.useSqlite('./app.db');
+    }
+}
+
 export const entityKitConfig = defineEntityKitConfig({
-    context: AppDbContext,
+    context: MigrationDbContext,
     provider: sqliteProviderServices,
     connection: './app.db',
     migrationsDir: 'src/db/migrations',

@@ -20,7 +20,7 @@ export class User {
 }
 
 export class AppDbContext extends DbContext {
-  readonly users = this.set<User, [id: string]>(User);
+  readonly users = this.set(User);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -33,9 +33,9 @@ export class AppDbContext extends DbContext {
 }
 ```
 
-If a subclass overrides `configure()`, call `super.configure(options)` first so
-the constructor-supplied data source is selected before adding diagnostics,
-tenant scope, auditing, or other context options.
+Initialization selects the constructor-supplied source before `configure()`.
+An override can add diagnostics, tenant scope, or auditing directly; no base
+call is needed. Selecting a second provider or source is an error.
 
 > [!IMPORTANT]
 > This guide targets `0.1.0-alpha.2`. Previous `0.1.0-alpha.1` contexts must
@@ -180,7 +180,6 @@ class TenantDbContext extends AppDbContext {
   }
 
   protected override configure(options: DbContextOptionsBuilder): void {
-    super.configure(options);
     options.useTenantScope(() => this.tenantId);
   }
 }

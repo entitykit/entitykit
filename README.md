@@ -120,15 +120,11 @@ class AppDbContext extends DbContext {
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
       entity.property(user => user.name).hasColumnType("text").isRequired();
-      entity.materialize(values => {
-        const { id, email, name } = values;
-        if (typeof id !== "string" ||
-            typeof email !== "string" ||
-            typeof name !== "string") {
-          throw new Error("Cannot materialize User: required fields are missing or invalid.");
-        }
-        return new User({ id, email, name });
-      });
+      entity.materializeChecked(row => new User({
+        id: row.required(user => user.id),
+        email: row.required(user => user.email),
+        name: row.required(user => user.name),
+      }));
       entity.hasIndex(user => user.email).isUnique();
     });
   }
@@ -136,6 +132,11 @@ class AppDbContext extends DbContext {
 
 const dataSource = createSqliteDataSource("./app.db");
 ```
+
+`materializeChecked()` constructs a fresh entity from stored scalar values.
+`row.required()` checks each value against its mapping and reports the entity
+and property when it fails. See [materialization](./docs/materialization.md)
+for nullable fields and custom domain values.
 
 Create a local schema, write a row, query it, and save a tracked change.
 `users.create()` constructs and tracks the entity; it executes no SQL.
