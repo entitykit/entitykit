@@ -326,6 +326,8 @@ try {
   process.stdout.write('PACKAGE_NODE16_TYPES_OK\n');
   typecheck(project, 'tsconfig.nodenext.json');
   process.stdout.write('PACKAGE_NODE_NEXT_TYPES_OK\n');
+  typecheck(project, 'tsconfig.predicates.json');
+  run(process.execPath, [path.join(root, 'scripts', 'check-predicate-lint.mjs'), project]);
 
   run(process.execPath, [path.join(project, 'runtime.cjs')], { cwd: project });
   run(process.execPath, [path.join(project, 'runtime.mjs')], { cwd: project });

@@ -16,7 +16,11 @@ import type { DatabaseOperationOptions, QueryStreamOptions } from '../storage/da
 
 /** Immutable entity query with tracked materialization by default. */
 export interface Queryable<TEntity extends object> {
-    /** Add a typed where predicate. */ where(selector: (entity: QueryProxy<TEntity>) => PredicateExpression): Queryable<TEntity>;
+    /**
+     * Add a SQL predicate; successive calls combine with AND. Executes no SQL.
+     * The callback receives query fields, not entity instances.
+     * Use and()/or() or chained where(); JavaScript &&/|| discard predicates.
+     */ where(selector: (entity: QueryProxy<TEntity>) => PredicateExpression): Queryable<TEntity>;
     /** Add a typed predicate when the condition is true. */ whereIf(condition: boolean, selector: (entity: QueryProxy<TEntity>) => PredicateExpression): Queryable<TEntity>;
     /** Perform the where has operation. */ whereHas<TNavigation>(selector: (
         entity: RelationNavigationProxy<TEntity>,

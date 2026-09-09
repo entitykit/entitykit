@@ -35,7 +35,11 @@ export interface ProjectedQueryable<
     TEntity extends object,
     TProjection extends Record<string, unknown>,
 > extends ProjectedQuery<TProjection> {
-    /** Add a typed where predicate. */ where(
+    /**
+     * Add a SQL predicate; successive calls combine with AND. Executes no SQL.
+     * The callback receives query fields, not entity instances.
+     * Use and()/or() or chained where(); JavaScript &&/|| discard predicates.
+     */ where(
         selector: (entity: QueryProxy<TEntity>) => PredicateExpression,
     ): ProjectedQueryable<TEntity, TProjection>;
     /** Add a typed predicate when the condition is true. */ whereIf(

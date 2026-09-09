@@ -26,7 +26,11 @@ export interface JoinedQueryable<
     TJoined extends Record<string, object>,
     TProjectionJoined extends Record<string, object> = TJoined,
 > {
-    /** Add a typed where predicate. */ where(selector: (
+    /**
+     * Add a SQL predicate; successive calls combine with AND. Executes no SQL.
+     * The callback receives query fields, not entity instances.
+     * Use and()/or() or chained where(); JavaScript &&/|| discard predicates.
+     */ where(selector: (
         sources: JoinedQueryProxy<TRoot, TJoined>,
     ) => PredicateExpression): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
     /** Add a typed predicate when the condition is true. */ whereIf(condition: boolean, selector: (
@@ -70,7 +74,11 @@ export interface JoinedProjectedQueryable<
     TJoined extends Record<string, object>,
     TProjection extends Record<string, unknown>,
 > extends ProjectedQuery<TProjection> {
-    /** Add a typed where predicate. */ where(selector: (sources: JoinedQueryProxy<TRoot, TJoined>) => PredicateExpression): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
+    /**
+     * Add a SQL predicate; successive calls combine with AND. Executes no SQL.
+     * The callback receives query fields, not entity instances.
+     * Use and()/or() or chained where(); JavaScript &&/|| discard predicates.
+     */ where(selector: (sources: JoinedQueryProxy<TRoot, TJoined>) => PredicateExpression): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
     /** Add a typed predicate when the condition is true. */ whereIf(condition: boolean, selector: (sources: JoinedQueryProxy<TRoot, TJoined>) => PredicateExpression): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
     /** Add order by to the query. */ orderBy<TProperty>(selector: (sources: JoinedQueryProxy<TRoot, TJoined>) => QueryField<TProperty> | OrderExpression<Record<string, unknown>>): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
     /** Add order by descending to the query. */ orderByDescending<TProperty>(selector: (sources: JoinedQueryProxy<TRoot, TJoined>) => QueryField<TProperty> | OrderExpression<Record<string, unknown>>): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;

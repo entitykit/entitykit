@@ -216,8 +216,20 @@ const page = await db.users
 ```
 
 Fields expose typed operators including `eq`, `ne`, `in`, comparisons, null
-checks, and string matching. Combine predicates with `and()`, `or()`, and
-`not()`.
+checks, and string matching. Callbacks receive query fields, not entity
+instances. Chain `where()` calls to combine independent conditions with AND,
+or use `and()`, `or()`, and `not()` for grouped predicates.
+
+```ts
+const matchingUsers = await db.users
+  .where(user => user.name.eq(name))
+  .where(user => user.email.eq(email))
+  .toArray();
+```
+
+JavaScript `&&` and `||` discard predicate objects instead of combining them.
+Enable the [supported typed lint rule](docs/query-predicates.md#enable-typed-linting)
+in your application to catch this mistake in the editor and CI.
 
 `find(key)` checks the context identity map before querying. Use
 `findOrThrow(key)` when absence is exceptional.
