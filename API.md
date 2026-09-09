@@ -130,14 +130,15 @@ context are rejected.
 
 ```ts
 class AppDbContext extends DbContext {
-  readonly users = this.set<User, [id: string]>(User);
+  readonly users = this.set<typeof User, [id: string]>(User);
 }
 
 await using db = dataSource.createContext(AppDbContext);
 ```
 
-When a source-backed context overrides `configure()`, it must call
-`super.configure(options)` before adding non-provider options. The direct
+No call to `DbContext.configure()` is required for source selection. Call
+`super.configure(options)` when retaining configuration implemented by an
+intermediate base class, such as auditing, tenant scope, or diagnostics. The direct
 `useSqlite()`, `usePostgres()`, and `useMySql()` methods instead create a
 context-owned connection; they are concise for scripts, migration contexts,
 and isolated tests, but a server should not use them to create a new Postgres

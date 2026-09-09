@@ -90,10 +90,12 @@ try {
 
 `users.create()` constructs and tracks a new entity without executing SQL. Its
 input comes from the `User` constructor; `saveChanges()` writes the row. The
-separate `materializeChecked()` callback reconstructs stored rows when querying.
-`row.required()` validates the mapped scalar and identifies the entity and
-property in failures. Custom conversions and narrower domain types use an
-explicit guard; [materialization](https://github.com/entitykit/entitykit/blob/main/docs/materialization.md)
+separate `materializeChecked()` callback constructs an entity on reads and
+checks only requested scalar values, with errors naming the entity and property.
+EntityKit then assigns the captured mapped values, including configured read
+conversions. Constructor-only transformations can be overwritten; unrequested
+values receive no additional checks. Custom conversions and narrower domain
+types use an explicit guard; [materialization](https://github.com/entitykit/entitykit/blob/main/docs/materialization.md)
 covers nullable fields and the raw `materialize()` escape hatch.
 
 In an application, keep the data source for the application lifetime and make
@@ -101,8 +103,10 @@ the context inside each request, job, or unit of work. Dispose the context
 first, then dispose the source during shutdown. The optional `DbContext`
 constructor selects a supplied data source automatically; an override of
 `configure()` receives options with that source already selected. Add context
-options directly; calling `super.configure(options)` is optional. Selecting a
-second provider, source, or connection is an error.
+options directly; no call to `DbContext.configure()` is required for source
+selection. Call `super.configure(options)` to retain configuration implemented
+by an intermediate base class. Selecting a second provider, source, or
+connection is an error.
 
 ## Includes
 

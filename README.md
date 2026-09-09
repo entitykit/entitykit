@@ -85,6 +85,10 @@ npm install @entitykit/core@alpha @entitykit/mysql@alpha mysql2
 EntityKit requires Node 22.13 or newer. Importing `@entitykit/core` does not
 load a provider or database driver.
 
+Enable [typed predicate linting](./docs/query-predicates.md#enable-typed-linting)
+in your editor and CI before writing queries. It catches JavaScript `&&` and
+`||` on EntityKit predicate objects.
+
 ## Quick start
 
 Define an ordinary class and map it in a `DbContext`:
@@ -133,10 +137,13 @@ class AppDbContext extends DbContext {
 const dataSource = createSqliteDataSource("./app.db");
 ```
 
-`materializeChecked()` constructs a fresh entity from stored scalar values.
-`row.required()` checks each value against its mapping and reports the entity
-and property when it fails. See [materialization](./docs/materialization.md)
-for nullable fields and custom domain values.
+`materializeChecked()` lets the callback construct a fresh entity and check
+the scalar values it requests. Errors identify the entity and property.
+
+EntityKit then assigns the captured mapped values, including configured read
+conversions. Constructor-only transformations can be overwritten; unrequested
+values receive no additional checks. See [materialization](./docs/materialization.md)
+for nullable fields, read conversions, and custom domain values.
 
 Create a local schema, write a row, query it, and save a tracked change.
 `users.create()` constructs and tracks the entity; it executes no SQL.

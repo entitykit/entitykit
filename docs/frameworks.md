@@ -34,8 +34,10 @@ export class AppDbContext extends DbContext {
 ```
 
 Initialization selects the constructor-supplied source before `configure()`.
-An override can add diagnostics, tenant scope, or auditing directly; no base
-call is needed. Selecting a second provider or source is an error.
+No call to `DbContext.configure()` is required for source selection. Call
+`super.configure(options)` when retaining configuration implemented by an
+intermediate base class, such as auditing, tenant scope, or diagnostics.
+Selecting a second provider or source is an error.
 
 > [!IMPORTANT]
 > This guide targets `0.1.0-alpha.2`. Previous `0.1.0-alpha.1` contexts must

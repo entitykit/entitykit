@@ -82,9 +82,11 @@ model with a tenant key is rejected unless the context configures either a
 tenant resolver or an explicit cross-tenant mode.
 
 `DbContext` accepts an optional data source. Initialization selects it before
-invoking the overridable `configure()` hook. The base hook is empty; calling
-`super.configure(options)` is optional. A second provider, source, or connection
-selection fails before acquiring a connection. Provider factories expose
+invoking the overridable `configure()` hook. No call to `DbContext.configure()`
+is required for source selection. Overrides call `super.configure(options)`
+when retaining configuration implemented by an intermediate base class.
+A second provider, source, or connection selection fails before acquiring a
+connection. Provider factories expose
 `dataSource.createContext()` as the application-facing
 entry, which forwards any remaining constructor arguments.
 

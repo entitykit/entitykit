@@ -40,7 +40,11 @@ export abstract class DbContext extends DbContextSets {
         context.initializeContext();
         return context;
     }
-    /** Customize options after selecting a constructor-supplied source. Calling super is optional. */
+    /**
+     * Customize options after selecting a constructor-supplied source.
+     * No call to DbContext.configure() is needed for source selection.
+     * Call super.configure(options) to retain an intermediate base class's configuration.
+     */
     protected configure(options: DbContextOptionsBuilder): unknown {
         void options;
         return undefined;

@@ -24,6 +24,10 @@ npm install -D @entitykit/cli@alpha
 EntityKit requires Node 22.13 or newer. `@entitykit/core` does not load a
 provider or driver until a data source or context selects one.
 
+Enable [typed predicate linting](./docs/query-predicates.md#enable-typed-linting)
+in your editor and CI before writing queries. It catches JavaScript `&&` and
+`||` on EntityKit predicate objects; add the rule to your existing ESLint setup.
+
 > [!IMPORTANT]
 > This guide targets `0.1.0-alpha.2`. With the previous `0.1.0-alpha.1`, store
 > the source on the context and select it with `options.useDataSource(source)`
@@ -118,10 +122,12 @@ export class AppDbContext extends DbContext {
 }
 ```
 
-`materializeChecked()` rehydrates a fresh domain object from mapped scalar
-values. `row.required()` checks presence, nullability, and the mapped scalar
-type, with errors naming the entity and property. For nullable values, custom
-conversions, and the raw materializer escape hatch, see
+`materializeChecked()` lets the callback construct a fresh domain object and
+check the scalar values it requests, with errors naming the entity and property.
+EntityKit then assigns the captured mapped values, including configured read
+conversions. Constructor-only transformations can be overwritten; unrequested
+values receive no additional checks. For nullable values, read conversions,
+and the raw materializer escape hatch, see
 [materialization](./docs/materialization.md).
 
 ## Own the data source
@@ -167,10 +173,12 @@ await dataSource.dispose();
 
 `DbContext` accepts the data source through its optional constructor, and
 `EntityKitDataSource.createContext()` passes it automatically. Initialization
-selects that source before calling `configure()`, so overrides can add
-diagnostics, tenant scope, or auditing without calling `super.configure()`.
-Existing base calls remain harmless. Selecting another provider, source, or
-connection in the hook fails before a connection is acquired.
+selects that source before calling `configure()`. No call to
+`DbContext.configure()` is required for source selection. Call
+`super.configure(options)` when retaining configuration implemented by an
+intermediate base class, such as auditing, tenant scope, or diagnostics.
+Selecting another provider, source, or connection in the hook fails before a
+connection is acquired.
 
 `createContext()` checks the actual context constructor: it must accept the
 data source first, and required, optional, and rest arguments after that source
