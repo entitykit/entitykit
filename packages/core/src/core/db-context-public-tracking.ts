@@ -8,6 +8,7 @@ import {
 } from '../tracking/public-entity-entry';
 import type { DbContextHost } from './db-context-host';
 import { assertNavigationEntryTracked } from './navigation-load-guard';
+import { EntityNotTrackedError } from '../errors/navigation-errors';
 
 /** Keeps internal tracker objects behind the public context facades. */
 export class DbContextPublicTracking {
@@ -36,5 +37,10 @@ export class DbContextPublicTracking {
         const internal = internalEntityEntry(entry);
         assertNavigationEntryTracked(this.host.changeTracker, internal);
         return internal;
+    }
+    public entryOrThrow<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> {
+        const entry = this.entry(entity);
+        if (!entry) throw new EntityNotTrackedError();
+        return entry;
     }
 }

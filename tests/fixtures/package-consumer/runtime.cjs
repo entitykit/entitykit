@@ -78,13 +78,13 @@ async function main() {
     values: [],
   });
   const widget = db.widgets.create({ id: 'one', label: 'First' });
-  if (db.changeTracker.entry(widget).state !== EntityState.Added) {
+  if (db.entryOrThrow(widget).state !== EntityState.Added) {
     throw new Error('Packaged change tracking did not report the added entity.');
   }
   if (await db.saveChanges() !== 1) {
     throw new Error('Packaged SQLite save failed.');
   }
-  db.changeTracker.clear();
+  db.clearTracking();
   const rows = await db.widgets.toArray();
   if (rows.length !== 1 || rows[0].label !== 'First') {
     throw new Error('Packaged SQLite query failed.');

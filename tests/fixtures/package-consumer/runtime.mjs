@@ -118,12 +118,12 @@ db.widgets.create({ id: 'two', label: 'Second' });
 if (await db.saveChanges() !== 1) {
   throw new Error('Packaged SQLite save failed under ESM.');
 }
-db.changeTracker.clear();
+db.clearTracking();
 const rows = await db.widgets.toArray();
 if (rows.length !== 1 || rows[0].label !== 'Second') {
   throw new Error('Packaged SQLite query failed under ESM.');
 }
-if (db.changeTracker.entry(rows[0]).state !== EntityState.Unchanged) {
+if (db.entryOrThrow(rows[0]).state !== EntityState.Unchanged) {
   throw new Error('Packaged materialization did not track the loaded entity.');
 }
 await db.dispose();

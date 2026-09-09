@@ -7,22 +7,20 @@ import type { ModelBuilder } from '../model/model-builder-types';
 import type { DatabaseOperationOptions, TransactionOptions } from '../storage/database-connection';
 import type { ChangeTracker } from '../tracking/change-tracker-types';
 import type { EntityEntry } from '../tracking/entity-entry-types';
-import type { EntityConstructor } from '../types';
-import type { DbSet } from './db-set-types';
-import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFunction, EntityCreationResult, EntityCreationArguments, ValidCreationFactory } from './db-set-creation-types';
-import { dbSetCreationFactory } from './db-set-create';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
 import { DbContextPublicTracking } from './db-context-public-tracking';
+import { DbContextSets } from './db-context-sets';
 import type { DatabaseDataSource } from '../storage/database-data-source';
 export type { RelationshipSavePlanPair, SavePlanEntry } from './save-plan';
 /** A unit of work with explicitly configured providers, entity mapping, and saving. */
-export abstract class DbContext {
+export abstract class DbContext extends DbContextSets {
     private readonly contextHost: DbContextHost;
     private readonly publicTracking: DbContextPublicTracking;
     private databaseFacade?: DatabaseFacade;
     /** Create a context, optionally backed by an application-scoped data source. */
     constructor(private readonly dataSource?: DatabaseDataSource) {
+        super(() => this.contextHost);
         this.contextHost = new DbContextHost(
             options => this.configure(options),
             model => this.model(model),
@@ -61,28 +59,15 @@ export abstract class DbContext {
             createDbContextDatabaseFacade(this.contextHost);
         return this.databaseFacade;
     }
-    /** Bind a creation factory to this gateway; other sets retain their construction policy. */
-    public set<TEntity extends object, TFactory extends EntityCreationFunction<NoInfer<TEntity>>, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: EntityConstructor<TEntity>, options: DbSetCreationOptions<TFactory> & ValidCreationFactory<NoInfer<TEntity>, NoInfer<TFactory>>,
-    ): DbSet<TEntity, TKey, EntityCreationArguments<TFactory>>;
-    /** Infer creation arguments from a public constructor. */
-    public set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: TConstructor,
-    ): DbSet<EntityCreationResult<TConstructor>, TKey, EntityCreationArguments<TConstructor>>;
-    /** Preserve identity-only registration and existing entity/key type arguments. */
-    public set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: EntityConstructor<TEntity>,
-    ): DbSet<TEntity, TKey>;
-    public set<TEntity extends object>(
-        entityType: EntityConstructor<TEntity>, options?: DbSetCreationOptions<EntityCreationFunction<TEntity>>,
-    ): unknown {
-        return this.contextHost.set(entityType, dbSetCreationFactory(options));
-    }
     /** Return the tracked entry for an entity, or `undefined` when it is not tracked. */
     public entry<TEntity extends object>(
         entity: TEntity,
     ): EntityEntry<TEntity> | undefined {
         return this.publicTracking.entry(entity);
+    }
+    /** Return this context's tracked entry, or throw EntityNotTrackedError. Executes no SQL. */
+    public entryOrThrow<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> {
+        return this.publicTracking.entryOrThrow(entity);
     }
     /** Explicitly load one configured navigation for a tracked entity. */
     public async loadNavigation<TEntity extends object>(
@@ -98,9 +83,16 @@ export abstract class DbContext {
     public async saveChanges(options?: DatabaseOperationOptions): Promise<number> {
         return this.contextHost.saveChanges(options);
     }
-    /** Clear every tracked entry without writing changes. */
+    /**
+     * Abandon tracked entities and pending relationship work. Executes no SQL.
+     * Object property values are not reverted. Cannot run during saveChanges().
+     */
+    public clearTracking(): void {
+        this.contextHost.clearTracking();
+    }
+    /** @deprecated Use clearTracking(); clearing tracking does not revert objects. */
     public clearChanges(): void {
-        this.contextHost.clearChanges();
+        this.clearTracking();
     }
     /** Describe the writes the next `saveChanges()` call would attempt. */
     public getSavePlan(): readonly SavePlanEntry[] {

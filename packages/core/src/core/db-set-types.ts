@@ -41,7 +41,15 @@ export interface DbSet<
         strings: TemplateStringsArray,
         ...values: readonly unknown[]
     ): UnsafeRawSqlQueryable<TEntity>;
-    /** Perform the upsert operation. */ upsert(
+    /**
+     * Execute an immediate bulk upsert and return the affected row count.
+     * Inputs must be untracked. Bypasses save interceptors, auditing, concurrency
+     * tokens, and outbox events. Enforces tenant scope and transactional batching.
+     */ executeUpsert(
+        entities: readonly TEntity[],
+        options?: UpsertOptions<TEntity>,
+    ): Promise<number>;
+    /** @deprecated Use executeUpsert(); this operation executes SQL immediately. */ upsert(
         entities: readonly TEntity[],
         options?: UpsertOptions<TEntity>,
     ): Promise<number>;

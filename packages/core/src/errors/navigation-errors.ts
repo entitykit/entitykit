@@ -1,5 +1,14 @@
 import { EntityKitError } from './entity-kit-error';
 
+/** The requested object has no entry in this context's change tracker. */
+export class EntityNotTrackedError extends EntityKitError {
+    constructor() {
+        super('Entity is not tracked by this DbContext. Query, add, or attach it before requesting its entry.', {
+            code: 'ENTITY_NOT_TRACKED',
+        });
+    }
+}
+
 /** Typed error reported when an entry does not belong to the loading context. */
 export class ForeignEntityEntryError extends EntityKitError {
     constructor() {

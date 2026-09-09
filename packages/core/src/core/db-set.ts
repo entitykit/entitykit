@@ -115,9 +115,7 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         return entry ? publicEntityEntry(entry, this.context) : undefined;
     }
 
-    /**
-   * Execute caller-owned SQL as this entity type without ORM query filters.
-   */
+    /** Execute caller-owned SQL as this entity type without ORM query filters. */
     public fromSqlUnsafe(
         strings: TemplateStringsArray,
         ...values: readonly unknown[]
@@ -129,16 +127,17 @@ export class DbSet<TEntity extends object> extends DbSetQueryBuilder<TEntity> {
         );
     }
 
-    /**
-   * Insert entities, overwriting rows that already exist. See
-   * `DbSetBulkWriter.upsert` for the batching and tenant-scope rules.
-   */
-    public async upsert(
+    /** Immediately upsert untracked entities within tenant and batching rules. */
+    public async executeUpsert(
         entities: readonly TEntity[],
         options: UpsertSqlOptions<TEntity> & DatabaseOperationOptions = {},
     ): Promise<number> {
-        this.context.assertStateUsable?.('upsert()');
-        this.metadata.assertWritable('upsert()');
+        this.context.assertStateUsable?.('executeUpsert()');
+        this.metadata.assertWritable('executeUpsert()');
         return this.writer.upsert(entities, options);
+    }
+    /** @deprecated Use executeUpsert(); this operation executes SQL immediately. */
+    public async upsert(entities: readonly TEntity[], options: UpsertSqlOptions<TEntity> & DatabaseOperationOptions = {}): Promise<number> {
+        return this.executeUpsert(entities, options);
     }
 }

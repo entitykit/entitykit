@@ -97,8 +97,10 @@ abstract class DbContext {
     entityType,
   ): DbSet<TEntity, TKey>;
   entry<TEntity>(entity): EntityEntry<TEntity> | undefined;
+  entryOrThrow<TEntity>(entity): EntityEntry<TEntity>;
   saveChanges(options?): Promise<number>;
-  clearChanges(): void;
+  clearTracking(): void;
+  clearChanges(): void; // Deprecated alias for clearTracking().
   getSavePlan(): readonly SavePlanEntry[];
   getSavePlanDebugView(): string;
   transaction<TResult>(work, options?): Promise<TResult>;
@@ -175,7 +177,7 @@ immutable query.
 | `attach(entity)` | Tracks an existing entity without scheduling an insert |
 | `remove(entity)` | Marks a tracked entity for deletion |
 | `detach(entity)` | Removes an entity from the context identity map |
-| `upsert(entities, options?)` | Performs set-based upsert within the provider's conflict-target rules |
+| `executeUpsert(entities, options?)` | Performs set-based upsert within the provider's conflict-target rules |
 | `` fromSqlUnsafe`...${value}...` `` | Materializes caller-owned SQL without automatic query filters |
 
 `set(User)` infers the public constructor's argument tuple for `create()`.
@@ -224,10 +226,13 @@ Creation input typing is not runtime request validation.
 
 Reads use the independent `entity.materialize(factory)` mapping. Supply one
 for classes whose constructor requires input. `saveChanges()` persists created
-entities; use detached constructors or domain factories to prepare `upsert()`
+entities; use detached constructors or domain factories to prepare `executeUpsert()`
 inputs. Existing `add()`, `attach()`, and `remove()` return `EntityEntry`.
 
-`upsert()` accepts `conflictProperties` and `updateProperties`. It bypasses the
+`upsert()` remains a deprecated alias for `executeUpsert()` with the same
+immediate execution behavior.
+
+`executeUpsert()` accepts `conflictProperties` and `updateProperties`. It bypasses the
 change tracker, save interceptors, audit fields, concurrency tokens, and outbox
 events. Postgres and SQLite can target a mapped unique key. MySQL accepts only
 the primary key on models without secondary unique keys because its clause can
@@ -416,8 +421,8 @@ values, modified properties, database values, reload, concurrency resolution,
 and explicit relationship loaders:
 
 ```ts
-await db.entry(post)?.reference(item => item.author).load();
-await db.entry(user)?.collection(item => item.posts).load();
+await db.entryOrThrow(post).reference(item => item.author).load();
+await db.entryOrThrow(user).collection(item => item.posts).load();
 ```
 
 When lazy loading is enabled, `lazy(entity).navigation` returns an awaitable

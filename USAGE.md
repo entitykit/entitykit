@@ -289,11 +289,14 @@ Use `thenInclude()` for a deeper path. Collection includes can also use
 For a relationship needed later, load it through the tracked entry:
 
 ```ts
-const entry = db.entry(user);
-await entry?.collection(candidate => candidate.posts).load();
+const posts = db.entryOrThrow(user).collection(candidate => candidate.posts);
+if (!posts.isLoaded) await posts.load();
 ```
 
-Plain property access never performs hidden I/O.
+`entryOrThrow()` fails when this context does not track the object. An
+initialized empty collection is not necessarily loaded: `isLoaded` records
+whether EntityKit has deliberately loaded the navigation. Plain property
+access never performs hidden I/O.
 
 ## Track and save changes
 
@@ -390,6 +393,10 @@ original values, changed properties, database values, reload, and explicit
 relationship loaders. `changeTracker.debugView()` shows the complete tracked
 state without writing it.
 
+`clearTracking()` abandons all tracked entities and pending relationship work
+without executing SQL or reverting object properties. Changed objects retain
+their current values. `clearChanges()` remains a deprecated alias.
+
 Keep a context short-lived and scoped to one unit of work. Do not start
 overlapping queries or saves on the same context.
 
@@ -411,12 +418,12 @@ Both operations require an explicit `where()` and reject result-shaping clauses
 such as `orderBy()`, `skip()`, and `take()`. They do not refresh entities the
 context already tracks; clear or reload those entries before using them again.
 
-Use detached objects from constructors or domain factories for `upsert()`,
+Use detached objects from constructors or domain factories for `executeUpsert()`,
 which writes immediately and bypasses tracking. The portable shape targets the
 primary key on a model without secondary unique keys:
 
 ```ts
-await db.posts.upsert(
+await db.posts.executeUpsert(
   [new Post({
     id: "post_2",
     authorId: "usr_1",

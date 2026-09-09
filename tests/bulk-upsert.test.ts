@@ -23,16 +23,16 @@ describe('bulk upsert', () => {
     it('inserts rows that do not exist', async () => {
         const db = await open();
 
-        expect(await db.items.upsert([item('a'), item('b')])).toBe(2);
+        expect(await db.items.executeUpsert([item('a'), item('b')])).toBe(2);
         expect((await db.items.orderBy(row => row.id).toArray()).map(row => row.id)).toEqual(['a', 'b']);
         await db.dispose();
     });
 
     it('overwrites rows that do', async () => {
         const db = await open();
-        await db.items.upsert([item('a', { name: 'First', quantity: 1 })]);
+        await db.items.executeUpsert([item('a', { name: 'First', quantity: 1 })]);
 
-        await db.items.upsert([item('a', { name: 'Second', quantity: 9 })]);
+        await db.items.executeUpsert([item('a', { name: 'Second', quantity: 9 })]);
 
         expect(await db.items.find('a')).toMatchObject({ name: 'Second', quantity: 9 });
         await db.dispose();
@@ -40,9 +40,9 @@ describe('bulk upsert', () => {
 
     it('handles a mix of new and existing rows in one call', async () => {
         const db = await open();
-        await db.items.upsert([item('a', { name: 'Old' })]);
+        await db.items.executeUpsert([item('a', { name: 'Old' })]);
 
-        const affected = await db.items.upsert([item('a', { name: 'New' }), item('b')]);
+        const affected = await db.items.executeUpsert([item('a', { name: 'New' }), item('b')]);
 
         expect(affected).toBe(2);
         expect(await db.items.count()).toBe(2);
@@ -52,11 +52,11 @@ describe('bulk upsert', () => {
 
     it('conflicts on a natural key when asked to', async () => {
         const db = await open();
-        await db.items.upsert([item('a', { sku: 'widget', name: 'First' })]);
+        await db.items.executeUpsert([item('a', { sku: 'widget', name: 'First' })]);
 
         // Different primary key, same natural key: the existing row is updated
         // rather than a duplicate inserted.
-        await db.items.upsert([item('b', { sku: 'widget', name: 'Second' })], {
+        await db.items.executeUpsert([item('b', { sku: 'widget', name: 'Second' })], {
             conflictProperties: ['tenantId', 'sku'],
             updateProperties: ['name', 'quantity'],
         });
@@ -69,9 +69,9 @@ describe('bulk upsert', () => {
 
     it('overwrites only the properties it was told to', async () => {
         const db = await open();
-        await db.items.upsert([item('a', { name: 'Keep', quantity: 5 })]);
+        await db.items.executeUpsert([item('a', { name: 'Keep', quantity: 5 })]);
 
-        await db.items.upsert([item('a', { name: 'Ignored', quantity: 99 })], { updateProperties: ['quantity'] });
+        await db.items.executeUpsert([item('a', { name: 'Ignored', quantity: 99 })], { updateProperties: ['quantity'] });
 
         expect(await db.items.find('a')).toMatchObject({ name: 'Keep', quantity: 99 });
         await db.dispose();
@@ -80,7 +80,7 @@ describe('bulk upsert', () => {
     it('does nothing, and issues nothing, for an empty list', async () => {
         const db = await open();
 
-        expect(await db.items.upsert([])).toBe(0);
+        expect(await db.items.executeUpsert([])).toBe(0);
         expect(db.plans).toHaveLength(0);
         await db.dispose();
     });
@@ -91,7 +91,7 @@ describe('bulk upsert', () => {
             // around an isolation boundary the tracked path enforces.
             const db = await open();
 
-            await expect(db.items.upsert([item('a'), item('b', { tenantId: 't2' })]))
+            await expect(db.items.executeUpsert([item('a'), item('b', { tenantId: 't2' })]))
                 .rejects.toThrow(/tenant key 'tenantId' must match the current tenant scope/);
 
             expect(await db.items.count()).toBe(0);
@@ -102,7 +102,7 @@ describe('bulk upsert', () => {
             const db = await open();
             const incoming = new Item({ id: 'a', sku: 's', name: 'N', quantity: 1 });
 
-            await db.items.upsert([incoming]);
+            await db.items.executeUpsert([incoming]);
 
             expect(incoming.tenantId).toBe('t1');
             expect(await db.items.find('a')).toMatchObject({ tenantId: 't1' });
@@ -113,7 +113,7 @@ describe('bulk upsert', () => {
             const db = await open();
             bulkUpsertFixture.useTenant(undefined);
 
-            await expect(db.items.upsert([item('a')]))
+            await expect(db.items.executeUpsert([item('a')]))
                 .rejects.toThrow('Tenant scope is unavailable');
             expect(await db.items.ignoreTenantScope().count()).toBe(0);
             await db.dispose();
@@ -124,7 +124,7 @@ describe('bulk upsert', () => {
             bulkUpsertFixture.useTenant(undefined);
             const db = await open();
 
-            await expect(db.items.upsert([
+            await expect(db.items.executeUpsert([
                 item('a', { tenantId: 't1' }),
                 item('b', { tenantId: 't2' }),
             ])).resolves.toBe(2);
@@ -136,7 +136,7 @@ describe('bulk upsert', () => {
             bulkUpsertFixture.withoutTenantKey();
             const db = await open();
 
-            expect(await db.items.upsert([item('a', { tenantId: 'anything' })])).toBe(1);
+            expect(await db.items.executeUpsert([item('a', { tenantId: 'anything' })])).toBe(1);
             await db.dispose();
         });
 
@@ -148,7 +148,7 @@ describe('bulk upsert', () => {
                 values: ['shared', 't2', 't2-sku', 'Tenant two', 7],
             });
 
-            await expect(db.items.upsert([
+            await expect(db.items.executeUpsert([
                 item('shared', { name: 'Hijacked' }),
             ], { updateProperties: ['name'] }))
                 .rejects.toBeInstanceOf(TenantOwnershipError);
@@ -170,7 +170,7 @@ describe('bulk upsert', () => {
         it('never accepts the tenant key as an upsert update property', async () => {
             const db = await open();
 
-            await expect(db.items.upsert([item('a')], {
+            await expect(db.items.executeUpsert([item('a')], {
                 updateProperties: ['tenantId', 'name'],
             })).rejects.toThrow(
                 'cannot include tenant property \'Item.tenantId\'',
@@ -187,7 +187,7 @@ describe('bulk upsert', () => {
             const db = await open();
             const many = Array.from({ length: 8000 }, (_, index) => item(`r${String(index)}`));
 
-            expect(await db.items.upsert(many)).toBe(8000);
+            expect(await db.items.executeUpsert(many)).toBe(8000);
             expect(await db.items.count()).toBe(8000);
 
             const executed = db.plans.filter(plan => plan.phase === 'execute' && plan.shape.operation === 'upsert');
@@ -202,7 +202,7 @@ describe('bulk upsert', () => {
             const many = Array.from({ length: 8000 }, (_, index) => item(`r${String(index)}`));
             many[7999] = item('r7999', { sku: 'sku-r0' });
 
-            await expect(db.items.upsert(many)).rejects.toThrow(UniqueConstraintError);
+            await expect(db.items.executeUpsert(many)).rejects.toThrow(UniqueConstraintError);
 
             expect(await db.items.count()).toBe(0);
             await db.dispose();
@@ -214,7 +214,7 @@ describe('bulk upsert', () => {
             many[7999] = item('r7999', { sku: 'sku-r0' });
 
             await db.transaction(async tx => {
-                await expect(tx.items.upsert(many))
+                await expect(tx.items.executeUpsert(many))
                     .rejects.toThrow(UniqueConstraintError);
                 expect(await tx.items.count()).toBe(0);
             });
@@ -228,7 +228,7 @@ describe('bulk upsert', () => {
         it('when every property is part of the conflict target', async () => {
             const db = await open();
 
-            await expect(db.items.upsert([item('a')], {
+            await expect(db.items.executeUpsert([item('a')], {
                 conflictProperties: ['id', 'tenantId', 'sku', 'name', 'quantity'],
             })).rejects.toThrow(/has nothing to update.*add\(\.\.\.\) with saveChanges/s);
             await db.dispose();
@@ -237,7 +237,7 @@ describe('bulk upsert', () => {
         it('when an update property is also a conflict property', async () => {
             const db = await open();
 
-            await expect(db.items.upsert([item('a')], {
+            await expect(db.items.executeUpsert([item('a')], {
                 conflictProperties: ['sku'],
                 updateProperties: ['sku', 'name'],
             })).rejects.toThrow(/cannot include conflict property 'Item.sku'/);
