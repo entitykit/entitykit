@@ -54,8 +54,8 @@ export interface ProjectedQueryable<
     ) => QueryField<TProperty> | OrderExpression<TEntity>): ProjectedQueryable<TEntity, TProjection>;
     /** Apply the skip row count. */ skip(count: number): ProjectedQueryable<TEntity, TProjection>;
     /** Apply the take row count. */ take(count: number): ProjectedQueryable<TEntity, TProjection>;
-    /** Perform the ignore query filters operation. */ ignoreQueryFilters(): ProjectedQueryable<TEntity, TProjection>;
-    /** Perform the ignore tenant scope operation. */ ignoreTenantScope(): ProjectedQueryable<TEntity, TProjection>;
+    /** Bypass soft-delete filtering for this query; tenant filtering remains. Executes no SQL. */ ignoreQueryFilters(): ProjectedQueryable<TEntity, TProjection>;
+    /** Bypass tenant filtering for this query; soft-delete filtering remains. Executes no SQL. */ ignoreTenantScope(): ProjectedQueryable<TEntity, TProjection>;
 }
 
 /** Terminal aggregate projection returned by aggregate and grouped queries. */
@@ -68,7 +68,7 @@ export interface GroupedQueryable<
     TEntity extends object,
     TKeySelection extends Record<string, unknown>,
 > {
-    /** Add a typed having predicate. */ having(selector: (
+    /** Add a group predicate using aggregate fields and and()/or(); executes no SQL. */ having(selector: (
         group: GroupedAggregateProxy<TEntity, TKeySelection>,
     ) => HavingPredicateExpression): GroupedQueryable<TEntity, TKeySelection>;
     /** Add order by to the query. */ orderBy<TValue>(selector: (

@@ -485,6 +485,15 @@ connections, data sources, provider services, SQL and migration dialects,
 schema introspection, retry/cancellation/session primitives, value readers, and
 the provider-neutral migration builder.
 
+Use these focused imports for extension and tooling helpers. Their existing
+root exports remain available as deprecated aliases.
+
+| Helper | Recommended entry point |
+| --- | --- |
+| `selectPropertyName` | `@entitykit/core/adapter` |
+| `assertSynchronousCallbackResult` | `@entitykit/core/adapter` |
+| `readSynchronousDate` | `@entitykit/core/tooling` |
+
 `@entitykit/core/experimental` exposes mutable compiler/building internals. It
 has no compatibility guarantee during alpha and should not be used in ordinary
 application code.

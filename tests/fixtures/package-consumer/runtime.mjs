@@ -3,6 +3,9 @@
 // `useProvider` seam here, so the ESM lane covers the path a user wires by
 // hand rather than core's lazy built-in loader.
 import { DbContext, EntityState } from '@entitykit/core';
+import * as legacyHelpers from '@entitykit/core';
+import { assertSynchronousCallbackResult, selectPropertyName } from '@entitykit/core/adapter';
+import { readSynchronousDate } from '@entitykit/core/tooling';
 import {
   EntityKitModule,
   getEntityKitContextRunnerToken,
@@ -15,6 +18,14 @@ class Widget {
   constructor(input) {
     this.id = input.id;
     this.label = input.label;
+  }
+}
+
+for (const [name, helper] of Object.entries({
+  assertSynchronousCallbackResult, selectPropertyName, readSynchronousDate,
+})) {
+  if (typeof helper !== 'function' || helper !== legacyHelpers[name]) {
+    throw new Error(`Packaged helper alias '${name}' is not compatible.`);
   }
 }
 

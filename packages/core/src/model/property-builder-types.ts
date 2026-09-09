@@ -9,20 +9,20 @@ export interface PropertyBuilder<TProperty = unknown> {
     /** Map the property to a nullable column. */ isOptional(): this;
     /** Require values in this column to be unique. */ isUnique(): this;
     /** Set the maximum string or binary length. */ hasMaxLength(length: number): this;
-    /** Configure default value and return this builder. */ hasDefaultValue(value: unknown): this;
-    /** Configure default sql and return this builder. */ hasDefaultSql(sql: string): this;
-    /** Configure computed column sql and return this builder. */ hasComputedColumnSql(sql: string, stored?: boolean): this;
-    /** Configure collation and return this builder. */ useCollation(name: string): this;
-    /** Configure concurrency token and return this builder. */ isConcurrencyToken(): this;
-    /** Configure version and return this builder. */ isVersion(): this;
-    /** Perform the value generated on add operation. */ valueGeneratedOnAdd(): this;
-    /** Perform the value generated on add or update operation. */ valueGeneratedOnAddOrUpdate(): this;
-    /** Perform the value generated never operation. */ valueGeneratedNever(): this;
-    /** Configure identity column and return this builder. */ useIdentityColumn(options?: IdentityColumnOptions): this;
-    /** Configure auto increment and return this builder. */ useAutoIncrement(): this;
-    /** Configure sqlite row id and return this builder. */ useSqliteRowId(options?: RowIdColumnOptions): this;
-    /** Configure sequence and return this builder. */ useSequence(name: string, schemaName?: string): this;
-    /** Configure conversion and return this builder. */ hasConversion<TProvider>(
+    /** Set the mapped column's literal default and return this builder. Does not execute SQL. */ hasDefaultValue(value: unknown): this;
+    /** Declare a database default expression in the mapping. Does not execute SQL. */ hasDefaultSql(sql: string): this;
+    /** Configure a database-computed column and whether it is stored; marks values generated on insert and update. */ hasComputedColumnSql(sql: string, stored?: boolean): this;
+    /** Set the provider-specific column collation. Does not execute SQL. */ useCollation(name: string): this;
+    /** Compare the accepted value during tracked updates and deletes to detect optimistic concurrency conflicts. */ isConcurrencyToken(): this;
+    /** Configure an EntityKit-managed numeric concurrency version. */ isVersion(): this;
+    /** Read a store-generated value after insertion. */ valueGeneratedOnAdd(): this;
+    /** Read store-generated values after insertion and updates. */ valueGeneratedOnAddOrUpdate(): this;
+    /** Persist application-supplied values instead of treating them as store-generated. */ valueGeneratedNever(): this;
+    /** Configure a provider-supported identity column, generated on insertion. */ useIdentityColumn(options?: IdentityColumnOptions): this;
+    /** Configure a provider-supported auto-increment column. */ useAutoIncrement(): this;
+    /** Configure a SQLite integer rowid-backed column. */ useSqliteRowId(options?: RowIdColumnOptions): this;
+    /** Generate inserted values from the named database sequence. */ useSequence(name: string, schemaName?: string): this;
+    /** Convert between model and provider values synchronously during reads and writes. */ hasConversion<TProvider>(
         converter: ValueConverter<TProperty, TProvider>,
     ): this;
     /** The property name. */ readonly propertyName: string;

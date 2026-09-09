@@ -99,14 +99,13 @@ export type {
     RetryPolicyOptions,
 } from './storage/data-source-retry';
 
-// Model and callback primitives that provider packages and configuration files
-// compose against. They are small, stable, and already named in the shapes above
-// (a `PropertySelector` is only useful if its name can be read back), so they
-// belong on the main entry rather than behind an internal relative path.
+/** @deprecated Import selectPropertyName from @entitykit/core/adapter. */
 export { selectPropertyName } from './model/model-property-selector';
 export type { EntityMetadata } from './model/entity-metadata';
 export { createDateBucketGroupKey } from './query/aggregate';
+/** @deprecated Import assertSynchronousCallbackResult from @entitykit/core/adapter. */
 export { assertSynchronousCallbackResult } from './synchronous-callback';
+/** @deprecated Import readSynchronousDate from @entitykit/core/tooling. */
 export { readSynchronousDate } from './synchronous-value';
 
 // The `entitykit.config.ts` definition API. A config file is user runtime code,

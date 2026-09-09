@@ -10,40 +10,40 @@ export interface RelationshipBuilder<
     TEntity extends object,
     TPrincipal extends object,
 > {
-    /** Perform the with many operation. */ withMany<TProperty = unknown>(
+    /** Configure a collection on the other side of this relationship. */ withMany<TProperty = unknown>(
         selector?: PropertySelector<TPrincipal, TProperty>,
     ): this;
-    /** Perform the with one operation. */ withOne<TProperty = unknown>(
+    /** Configure a reference on the other side of this relationship. */ withOne<TProperty = unknown>(
         selector?: PropertySelector<TPrincipal, TProperty>,
     ): this;
-    /** Configure foreign key and return this builder. */ hasForeignKey(
+    /** Select the dependent properties that store the foreign key. */ hasForeignKey(
         propertyOrSelector:
         EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>,
     ): this;
-    /** Configure principal key and return this builder. */ hasPrincipalKey(
+    /** Select the primary or alternate key referenced on the principal. */ hasPrincipalKey(
         propertyOrSelector:
         EntityPropertyKey<TPrincipal> | PropertyListSelector<TPrincipal>,
     ): this;
-    /** Perform the on delete operation. */ onDelete(deleteBehavior: DeleteBehavior): this;
-    /** Configure constraint name and return this builder. */ hasConstraintName(constraintName: string): this;
+    /** Configure relationship deletion behavior in the model. Executes no SQL. */ onDelete(deleteBehavior: DeleteBehavior): this;
+    /** Name the database foreign-key constraint. */ hasConstraintName(constraintName: string): this;
 }
 
 /** Configures the join table used by a many-to-many relationship. */
 export interface ManyToManyJoinTableBuilder {
-    /** Configure schema and return this builder. */ hasSchema(schemaName: string): this;
-    /** Perform the primary key name operation. */ primaryKeyName(name: string): this;
-    /** Perform the source foreign key operation. */ sourceForeignKey(columnNames: string | readonly string[]): this;
-    /** Perform the target foreign key operation. */ targetForeignKey(columnNames: string | readonly string[]): this;
-    /** Perform the source constraint name operation. */ sourceConstraintName(name: string): this;
-    /** Perform the target constraint name operation. */ targetConstraintName(name: string): this;
+    /** Select the database schema for the join table. */ hasSchema(schemaName: string): this;
+    /** Name the join table primary-key constraint. */ primaryKeyName(name: string): this;
+    /** Name the join columns referencing the source key, in key order. */ sourceForeignKey(columnNames: string | readonly string[]): this;
+    /** Name the join columns referencing the target key, in key order. */ targetForeignKey(columnNames: string | readonly string[]): this;
+    /** Name the join table foreign-key constraint referencing the source. */ sourceConstraintName(name: string): this;
+    /** Name the join table foreign-key constraint referencing the target. */ targetConstraintName(name: string): this;
 }
 
 /** Configures a many-to-many relationship between two entity types. */
 export interface ManyToManyRelationshipBuilder<TTarget extends object> {
-    /** Perform the with many operation. */ withMany<TInverse>(selector: PropertySelector<TTarget, TInverse>): this;
-    /** Perform the using join table operation. */ usingJoinTable(
+    /** Configure a collection on the other side of this relationship. */ withMany<TInverse>(selector: PropertySelector<TTarget, TInverse>): this;
+    /** Map the relationship to a join table and optionally configure its columns and constraints. */ usingJoinTable(
         tableName: string,
         configure?: (join: ManyToManyJoinTableBuilder) => void,
     ): this;
-    /** Perform the on delete operation. */ onDelete(deleteBehavior: DeleteBehavior): this;
+    /** Configure relationship deletion behavior in the model. Executes no SQL. */ onDelete(deleteBehavior: DeleteBehavior): this;
 }

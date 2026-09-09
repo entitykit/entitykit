@@ -3,6 +3,9 @@
 // `createRequire` path into `@entitykit/sqlite`, so this also proves core can
 // find its sibling provider from an installed tree.
 const { DbContext, EntityState } = require('@entitykit/core');
+const legacyHelpers = require('@entitykit/core');
+const { assertSynchronousCallbackResult, selectPropertyName } = require('@entitykit/core/adapter');
+const { readSynchronousDate } = require('@entitykit/core/tooling');
 const {
   createMySqlDataSource,
   mySqlProviderServices,
@@ -47,6 +50,13 @@ class ConsumerContext extends DbContext {
 }
 
 async function main() {
+  for (const [name, helper] of Object.entries({
+    assertSynchronousCallbackResult, selectPropertyName, readSynchronousDate,
+  })) {
+    if (typeof helper !== 'function' || helper !== legacyHelpers[name]) {
+      throw new Error(`Packaged helper alias '${name}' is not compatible.`);
+    }
+  }
   if (
     mySqlProviderServices.name !== 'mysql'
     || postgresProviderServices.name !== 'postgres'

@@ -44,8 +44,8 @@ export interface JoinedQueryable<
     ) => QueryField<TProperty> | OrderExpression<Record<string, unknown>>): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
     /** Apply the skip row count. */ skip(count: number): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
     /** Apply the take row count. */ take(count: number): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
-    /** Perform the ignore query filters operation. */ ignoreQueryFilters(): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
-    /** Perform the ignore tenant scope operation. */ ignoreTenantScope(): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
+    /** Bypass soft-delete filtering for this query; tenant filtering remains. Executes no SQL. */ ignoreQueryFilters(): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
+    /** Bypass tenant filtering for this query; soft-delete filtering remains. Executes no SQL. */ ignoreTenantScope(): JoinedQueryable<TRoot, TJoined, TProjectionJoined>;
     /** Return the number of matching rows. */ count(options?: DatabaseOperationOptions): Promise<number>;
     /** Return the number of matching rows without numeric precision loss. */ countBigInt(options?: DatabaseOperationOptions): Promise<bigint>;
     /** Return whether at least one row matches the query. */ exists(options?: DatabaseOperationOptions): Promise<boolean>;
@@ -54,10 +54,10 @@ export interface JoinedQueryable<
         sources: JoinedProjectionProxy<TRoot, TProjectionJoined>,
         project: ProjectionBuilder,
     ) => TSelection): JoinedProjectedQueryable<TRoot, TJoined, ProjectionResult<TSelection>>;
-    /** Perform the aggregate operation. */ aggregate<TSelection extends AggregateSelection>(selector: (
+    /** Build an aggregate projection; SQL executes at a terminal operation. */ aggregate<TSelection extends AggregateSelection>(selector: (
         aggregate: AggregateProxy<TRoot, JoinedQueryProxy<TRoot, TProjectionJoined>>,
     ) => TSelection): AggregateProjectedQueryable<AggregateResult<TSelection>>;
-    /** Perform the group by operation. */ groupBy<TSelection extends GroupKeySelection>(selector: (
+    /** Group by selected query fields; SQL executes at a terminal operation. */ groupBy<TSelection extends GroupKeySelection>(selector: (
         sources: JoinedQueryProxy<TRoot, TProjectionJoined>,
     ) => TSelection): JoinedGroupedQueryable<TRoot, TProjectionJoined, GroupKeyResult<TSelection>>;
     /** Add a typed join source. */ join<TAlias extends string, TEntity extends object>(alias: TAlias, target: JoinTarget<TEntity>, selector: (
@@ -84,13 +84,13 @@ export interface JoinedProjectedQueryable<
     /** Add order by descending to the query. */ orderByDescending<TProperty>(selector: (sources: JoinedQueryProxy<TRoot, TJoined>) => QueryField<TProperty> | OrderExpression<Record<string, unknown>>): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
     /** Apply the skip row count. */ skip(count: number): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
     /** Apply the take row count. */ take(count: number): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
-    /** Perform the ignore query filters operation. */ ignoreQueryFilters(): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
-    /** Perform the ignore tenant scope operation. */ ignoreTenantScope(): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
+    /** Bypass soft-delete filtering for this query; tenant filtering remains. Executes no SQL. */ ignoreQueryFilters(): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
+    /** Bypass tenant filtering for this query; soft-delete filtering remains. Executes no SQL. */ ignoreTenantScope(): JoinedProjectedQueryable<TRoot, TJoined, TProjection>;
 }
 
 /** Grouping stage produced by a joined query. */
 export interface JoinedGroupedQueryable<TRoot extends object, TJoined extends Record<string, object>, TKeySelection extends Record<string, unknown>> {
-    /** Add a typed having predicate. */ having(selector: (group: GroupedAggregateProxy<TRoot, TKeySelection, JoinedQueryProxy<TRoot, TJoined>>) => HavingPredicateExpression): JoinedGroupedQueryable<TRoot, TJoined, TKeySelection>;
+    /** Add a group predicate using aggregate fields and and()/or(); executes no SQL. */ having(selector: (group: GroupedAggregateProxy<TRoot, TKeySelection, JoinedQueryProxy<TRoot, TJoined>>) => HavingPredicateExpression): JoinedGroupedQueryable<TRoot, TJoined, TKeySelection>;
     /** Add order by to the query. */ orderBy<TValue>(selector: (group: GroupedAggregateProxy<TRoot, TKeySelection, JoinedQueryProxy<TRoot, TJoined>>) => AggregateField<TValue> | GroupKeyField<TValue> | AggregateOrderExpression): JoinedGroupedQueryable<TRoot, TJoined, TKeySelection>;
     /** Add order by descending to the query. */ orderByDescending<TValue>(selector: (group: GroupedAggregateProxy<TRoot, TKeySelection, JoinedQueryProxy<TRoot, TJoined>>) => AggregateField<TValue> | GroupKeyField<TValue> | AggregateOrderExpression): JoinedGroupedQueryable<TRoot, TJoined, TKeySelection>;
     /** Apply the skip row count. */ skip(count: number): JoinedGroupedQueryable<TRoot, TJoined, TKeySelection>;

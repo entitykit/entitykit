@@ -1,4 +1,6 @@
 /** Provider-neutral contracts for custom EntityKit adapters. */
+export { selectPropertyName } from '../model/model-property-selector';
+export { assertSynchronousCallbackResult } from '../synchronous-callback';
 export type {
     DatabaseConnection,
     DatabaseOperationOptions,

@@ -24,20 +24,35 @@ export interface DbSet<
         'executeDelete' | 'executeUpdate' | 'toDebugSql' | 'toPlan' | 'toSql'
     > {
     /** The entity type. */ readonly entityType: EntityConstructor<TEntity>;
-    /** Find by key, optionally followed by cancelable operation options. */ find(
+    /** Return a matching tracked entity or query by key; return null if absent. Accepts cancellation options. */ find(
         ...keyValuesAndOptions: [...TKey] | [...TKey, DatabaseOperationOptions]
     ): Promise<TEntity | null>;
-    /** Find by key or throw, optionally followed by cancelable operation options. */ findOrThrow(
+    /** Find a tracked entity or query by key; throw EntityNotFoundError if absent. Accepts cancellation options. */ findOrThrow(
         ...keyValuesAndOptions: [...TKey] | [...TKey, DatabaseOperationOptions]
     ): Promise<TEntity>;
     /** Construct and track one new entity as Added. No SQL is executed. */ create(
         ...arguments_: TCreateArguments
     ): TEntity;
-    /** Perform the add operation. */ add(entity: TEntity): EntityEntry<TEntity>;
-    /** Perform the attach operation. */ attach(entity: TEntity): EntityEntry<TEntity>;
-    /** Perform the remove operation. */ remove(entity: TEntity): EntityEntry<TEntity>;
-    /** Perform the detach operation. */ detach(entity: TEntity): EntityEntry<TEntity> | undefined;
-    /** Execute caller-owned SQL without ORM query filters. */ fromSqlUnsafe(
+    /**
+     * Track an existing entity as Added and return its tracking entry.
+     * Executes no SQL; call saveChanges() to persist it.
+     */ add(entity: TEntity): EntityEntry<TEntity>;
+    /**
+     * Track an existing entity as Unchanged and return its tracking entry.
+     * Executes no SQL; subsequent scalar edits are detected by saveChanges().
+     */ attach(entity: TEntity): EntityEntry<TEntity>;
+    /**
+     * Stage deletion and return the tracking entry; cancel insertion for an Added entity.
+     * Executes no SQL; call saveChanges() to persist a staged deletion.
+     */ remove(entity: TEntity): EntityEntry<TEntity>;
+    /**
+     * Stop tracking this object and return its former entry, or undefined if absent.
+     * Executes no SQL and does not revert property values.
+     */ detach(entity: TEntity): EntityEntry<TEntity> | undefined;
+    /**
+     * Build a caller-owned SQL query; terminal operations execute it.
+     * Bypasses ORM query filters and materializes untracked entities by default.
+     */ fromSqlUnsafe(
         strings: TemplateStringsArray,
         ...values: readonly unknown[]
     ): UnsafeRawSqlQueryable<TEntity>;

@@ -34,21 +34,21 @@ export interface EntityBuilder<TEntity extends object> {
         propertyOrSelector:
         EntityPropertyKey<TEntity> | PropertySelector<TEntity, TProperty>,
     ): PropertyBuilder<TProperty>;
-    /** Perform the complex property operation. */ complexProperty<TComplex extends object | null | undefined>(
+    /** Map a nested value object to scalar columns; optionally configure its leaves. */ complexProperty<TComplex extends object | null | undefined>(
         selector: PropertySelector<TEntity, TComplex>,
         configure?: (
             complex: ComplexPropertyBuilder<TEntity, NonNullable<TComplex>>,
         ) => void,
     ): ComplexPropertyBuilder<TEntity, NonNullable<TComplex>>;
-    /** Perform the complex property operation. */ complexProperty<TComplex extends object | null | undefined>(
+    /** Map a nested value object to scalar columns; optionally configure its leaves. */ complexProperty<TComplex extends object | null | undefined>(
         selector: PropertySelector<TEntity, TComplex>,
         options: ComplexPropertyOptions<NonNullable<TComplex>>,
         configure?: (
             complex: ComplexPropertyBuilder<TEntity, NonNullable<TComplex>>,
         ) => void,
     ): ComplexPropertyBuilder<TEntity, NonNullable<TComplex>>;
-    /** Perform the ignore operation. */ ignore(propertyName: EntityPropertyKey<TEntity>): this;
-    /** Perform the ignore operation. */ ignore<TProperty>(selector: PropertySelector<TEntity, TProperty>): this;
+    /** Exclude this property from the mapped model. */ ignore(propertyName: EntityPropertyKey<TEntity>): this;
+    /** Exclude this property from the mapped model. */ ignore<TProperty>(selector: PropertySelector<TEntity, TProperty>): this;
     /** Configure the primary key. */ hasKey(
         propertyOrSelector:
         EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>,
@@ -64,15 +64,15 @@ export interface EntityBuilder<TEntity extends object> {
     /** Configure an index over provider-specific SQL expressions. */ hasExpressionIndex(
         expressionOrExpressions: string | readonly string[],
     ): IndexBuilder<TEntity>;
-    /** Configure one and return this builder. */ hasOne<TPrincipal extends object, TNavigation>(
+    /** Configure a reference navigation and return its relationship builder. */ hasOne<TPrincipal extends object, TNavigation>(
         principalEntity: EntityConstructor<TPrincipal>,
         navigationSelector: PropertySelector<TEntity, TNavigation>,
     ): RelationshipBuilder<TEntity, TPrincipal>;
-    /** Configure many to many and return this builder. */ hasManyToMany<TTarget extends object, TNavigation>(
+    /** Configure a collection navigation and return its join-table relationship builder. */ hasManyToMany<TTarget extends object, TNavigation>(
         targetEntity: EntityConstructor<TTarget>,
         navigationSelector: PropertySelector<TEntity, TNavigation>,
     ): ManyToManyRelationshipBuilder<TTarget>;
-    /** Perform the audit operation. */ audit(config: EntityAuditConfiguration<TEntity>): this;
+    /** Identify properties populated by the configured audit pipeline during saveChanges(). */ audit(config: EntityAuditConfiguration<TEntity>): this;
     /** Configure an explicitly valued soft-delete marker by property name. */ softDelete<
         TPropertyName extends EntityPropertyKey<TEntity>,
     >(
@@ -86,14 +86,14 @@ export interface EntityBuilder<TEntity extends object> {
         selector: PropertyPathSelector<TEntity, TProperty>,
         deletedValue: NoInfer<NonNullable<TProperty>>,
     ): this;
-    /** Perform the tenant key operation. */ tenantKey(propertyName: EntityPropertyKey<TEntity>): this;
-    /** Perform the tenant key operation. */ tenantKey<TProperty>(selector: PropertyPathSelector<TEntity, TProperty>): this;
+    /** Identify the mapped tenant property used for query filtering and write ownership checks. */ tenantKey(propertyName: EntityPropertyKey<TEntity>): this;
+    /** Identify the mapped tenant property used for query filtering and write ownership checks. */ tenantKey<TProperty>(selector: PropertyPathSelector<TEntity, TProperty>): this;
 }
 
 /** Identifies conventional audit properties for an entity type. */
 export interface EntityAuditConfiguration<TEntity extends object> {
-    /** The created at. */ readonly createdAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
-    /** The updated at. */ readonly updatedAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
-    /** The created by. */ readonly createdBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
-    /** The updated by. */ readonly updatedBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+    /** Property receiving the creation timestamp. */ readonly createdAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+    /** Property receiving the latest modification timestamp. */ readonly updatedAt?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+    /** Property receiving the creating actor identifier. */ readonly createdBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
+    /** Property receiving the modifying actor identifier. */ readonly updatedBy?: EntityPropertyKey<TEntity> | PropertyPathSelector<TEntity>;
 }

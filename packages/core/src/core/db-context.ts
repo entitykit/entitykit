@@ -70,7 +70,7 @@ export abstract class DbContext extends DbContextSets {
     public entryOrThrow<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> {
         return this.publicTracking.entryOrThrow(entity);
     }
-    /** Explicitly load one configured navigation for a tracked entity. */
+    /** Load a configured navigation for a persisted, tracked entity; may execute SQL. */
     public async loadNavigation<TEntity extends object>(
         entry: EntityEntry<TEntity>,
         navigationProperty: string,
@@ -80,7 +80,7 @@ export abstract class DbContext extends DbContextSets {
             navigationProperty,
         );
     }
-    /** Persist tracked changes and return the affected row count. */
+    /** Execute the tracked save pipeline, accept successful changes, and return the affected row count. */
     public async saveChanges(options?: DatabaseOperationOptions): Promise<number> {
         return this.contextHost.saveChanges(options);
     }
@@ -111,7 +111,7 @@ export abstract class DbContext extends DbContextSets {
     ): Promise<TResult> {
         return this.contextHost.transaction(async () => work(this), options);
     }
-    /** Add a link between two tracked entities in a many-to-many relationship. */
+    /** Stage a many-to-many link between tracked entities. Executes no SQL until saveChanges(). */
     public link<TEntity extends object, TTarget extends object>(
         source: TEntity,
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
@@ -119,7 +119,7 @@ export abstract class DbContext extends DbContextSets {
     ): void {
         this.contextHost.link(source, navigationSelector, target);
     }
-    /** Remove a link between two tracked entities in a many-to-many relationship. */
+    /** Stage removal of a many-to-many link. Executes no SQL until saveChanges(). */
     public unlink<TEntity extends object, TTarget extends object>(
         source: TEntity,
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
@@ -127,7 +127,7 @@ export abstract class DbContext extends DbContextSets {
     ): void {
         this.contextHost.unlink(source, navigationSelector, target);
     }
-    /** Release resources owned by this object. */
+    /** Release this context's connection and tracking; does not save pending changes or dispose a shared source. */
     public async dispose(): Promise<void> {
         await this.contextHost.dispose();
     }
