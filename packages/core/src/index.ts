@@ -99,14 +99,10 @@ export type {
     RetryPolicyOptions,
 } from './storage/data-source-retry';
 
-/** @deprecated Import selectPropertyName from @entitykit/core/adapter. */
-export { selectPropertyName } from './model/model-property-selector';
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- Preserve the deprecated root bindings for compatibility.
+export { selectPropertyName, assertSynchronousCallbackResult, readSynchronousDate } from './deprecated-helper-exports';
 export type { EntityMetadata } from './model/entity-metadata';
 export { createDateBucketGroupKey } from './query/aggregate';
-/** @deprecated Import assertSynchronousCallbackResult from @entitykit/core/adapter. */
-export { assertSynchronousCallbackResult } from './synchronous-callback';
-/** @deprecated Import readSynchronousDate from @entitykit/core/tooling. */
-export { readSynchronousDate } from './synchronous-value';
 
 // The `entitykit.config.ts` definition API. A config file is user runtime code,
 // so the module it imports must not drag the command-line tool in with it;

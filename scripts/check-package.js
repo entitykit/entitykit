@@ -326,6 +326,7 @@ try {
   process.stdout.write('PACKAGE_NODE16_TYPES_OK\n');
   typecheck(project, 'tsconfig.nodenext.json');
   process.stdout.write('PACKAGE_NODE_NEXT_TYPES_OK\n');
+  run(process.execPath, [path.join(root, 'scripts', 'check-deprecated-exports.mjs'), project]);
   typecheck(project, 'tsconfig.predicates.json');
   run(process.execPath, [path.join(root, 'scripts', 'check-predicate-lint.mjs'), project]);
 
