@@ -100,8 +100,9 @@ In an application, keep the data source for the application lifetime and make
 the context inside each request, job, or unit of work. Dispose the context
 first, then dispose the source during shutdown. The optional `DbContext`
 constructor selects a supplied data source automatically; an override of
-`configure()` should call `super.configure(options)` before adding other
-context options.
+`configure()` receives options with that source already selected. Add context
+options directly; calling `super.configure(options)` is optional. Selecting a
+second provider, source, or connection is an error.
 
 ## Includes
 

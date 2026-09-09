@@ -19,10 +19,13 @@ export abstract class DbContext extends DbContextSets {
     private readonly publicTracking: DbContextPublicTracking;
     private databaseFacade?: DatabaseFacade;
     /** Create a context, optionally backed by an application-scoped data source. */
-    constructor(private readonly dataSource?: DatabaseDataSource) {
+    constructor(dataSource?: DatabaseDataSource) {
         super(() => this.contextHost);
         this.contextHost = new DbContextHost(
-            options => this.configure(options),
+            options => {
+                if (dataSource !== undefined) options.useDataSource(dataSource);
+                return this.configure(options);
+            },
             model => this.model(model),
         );
         this.publicTracking = new DbContextPublicTracking(this.contextHost);
@@ -37,11 +40,9 @@ export abstract class DbContext extends DbContextSets {
         context.initializeContext();
         return context;
     }
-    /** Configure the database provider and production options for this context. */
+    /** Customize options after selecting a constructor-supplied source. Calling super is optional. */
     protected configure(options: DbContextOptionsBuilder): unknown {
-        if (this.dataSource !== undefined) {
-            options.useDataSource(this.dataSource);
-        }
+        void options;
         return undefined;
     }
     /** Configure mapped entity types for this context. */

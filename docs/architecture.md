@@ -81,10 +81,11 @@ bootstrap and rejects asynchronous `configure()` or `model()` callbacks. A
 model with a tenant key is rejected unless the context configures either a
 tenant resolver or an explicit cross-tenant mode.
 
-`DbContext` accepts an optional data source. Its base `configure()` selects that
-source, so an overriding context calls `super.configure(options)` before adding
-diagnostics, tenant scope, auditing, or other context-level options. Provider
-factories expose the more intention-revealing `dataSource.createContext()`
+`DbContext` accepts an optional data source. Initialization selects it before
+invoking the overridable `configure()` hook. The base hook is empty; calling
+`super.configure(options)` is optional. A second provider, source, or connection
+selection fails before acquiring a connection. Provider factories expose
+`dataSource.createContext()` as the application-facing
 entry, which forwards any remaining constructor arguments.
 
 The public `DbContext` delegates to focused runtime hosts for query filters,

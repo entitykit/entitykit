@@ -166,9 +166,11 @@ await dataSource.dispose();
 ```
 
 `DbContext` accepts the data source through its optional constructor, and
-`EntityKitDataSource.createContext()` passes it automatically. A subclass that
-overrides `configure()` should call `super.configure(options)` before adding
-diagnostics, tenant scope, auditing, or other context options.
+`EntityKitDataSource.createContext()` passes it automatically. Initialization
+selects that source before calling `configure()`, so overrides can add
+diagnostics, tenant scope, or auditing without calling `super.configure()`.
+Existing base calls remain harmless. Selecting another provider, source, or
+connection in the hook fails before a connection is acquired.
 
 `createContext()` checks the actual context constructor: it must accept the
 data source first, and required, optional, and rest arguments after that source
