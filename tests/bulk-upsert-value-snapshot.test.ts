@@ -125,7 +125,7 @@ describe('bulk upsert value snapshots', () => {
             name: 'row',
         });
 
-        await expect(db.rows.upsert([row])).resolves.toBe(1);
+        await expect(db.rows.executeUpsert([row])).resolves.toBe(1);
 
         const stored = await db.database.connection.query<{
             tenant_id: string;
@@ -152,7 +152,7 @@ describe('bulk upsert value snapshots', () => {
             name: 'second-before',
         });
 
-        const pending = db.rows.upsert([first, second]);
+        const pending = db.rows.executeUpsert([first, second]);
         await connection.firstStarted;
         second.tenantId = 'tenant-two';
         second.name = 'second-after';
@@ -177,7 +177,7 @@ describe('bulk upsert value snapshots', () => {
         const updateProperties: Array<keyof BatchSnapshotRow> = ['name'];
         const controller = new AbortController();
 
-        const pending = db.rows.upsert([
+        const pending = db.rows.executeUpsert([
             Object.assign(new BatchSnapshotRow(), { id: 'first', name: 'one' }),
             Object.assign(new BatchSnapshotRow(), { id: 'second', name: 'two' }),
         ], {

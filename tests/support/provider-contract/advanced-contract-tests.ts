@@ -145,11 +145,11 @@ export function defineAdvancedProviderContractTests(context: ProviderContractTes
         const make = (id: string, score: number, label: string): ProviderContractValue =>
             new ProviderContractValue({ id, isActive: true, recordedAt: at, payload, score, label });
 
-        expect(await db.values.upsert([make('u1', 1, 'first'), make('u2', 2, 'second')])).toBe(2);
+        expect(await db.values.executeUpsert([make('u1', 1, 'first'), make('u2', 2, 'second')])).toBe(2);
         db.changeTracker.clear();
 
         // One existing, one new: the existing row is overwritten in place.
-        await db.values.upsert([make('u1', 10, 'updated'), make('u3', 3, 'third')]);
+        await db.values.executeUpsert([make('u1', 10, 'updated'), make('u3', 3, 'third')]);
         db.changeTracker.clear();
 
         const rows = await db.values.orderBy(value => value.id).toArray();

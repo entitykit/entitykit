@@ -109,7 +109,7 @@ describe('bulk upsert provider-value snapshots', () => {
         connection.queueResult({ rowCount: 1 });
         const db = open(connection);
 
-        await expect(db.rows.upsert([row('a'), row('b')], {
+        await expect(db.rows.executeUpsert([row('a'), row('b')], {
             conflictProperties: ['id'],
             updateProperties: ['label'],
         })).resolves.toBe(2);
@@ -127,7 +127,7 @@ describe('bulk upsert provider-value snapshots', () => {
         const db = open(connection);
         flipTenantAfterReturn = true;
 
-        await expect(db.rows.upsert([row('a')])).rejects.toThrow(
+        await expect(db.rows.executeUpsert([row('a')])).rejects.toThrow(
             'tenant key \'tenantId\' must match the current tenant scope',
         );
 
@@ -142,7 +142,7 @@ describe('bulk upsert provider-value snapshots', () => {
         const db = open(connection);
 
         await db.transaction(async tx => {
-            await expect(tx.rows.upsert([row('a'), row('b')]))
+            await expect(tx.rows.executeUpsert([row('a'), row('b')]))
                 .resolves.toBe(2);
         });
 

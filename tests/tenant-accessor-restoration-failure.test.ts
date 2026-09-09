@@ -125,7 +125,7 @@ describe('tenant accessor restoration failure', () => {
         candidate.stampFailure = primary;
         candidate.restorationFailure = restoration;
 
-        expect(await rejected(async () => db.rows.upsert([candidate]))).toBe(primary);
+        expect(await rejected(async () => db.rows.executeUpsert([candidate]))).toBe(primary);
         expect(candidate.tenantId).toBe('tenant-one');
         expect(FragileTenantContext.connection.statements).toEqual([]);
         await expectPoisoned(db, restoration);

@@ -145,7 +145,7 @@ describe('bulk upsert generated-value rollback', () => {
         connection.queueResult(generatedResult());
         connection.queueError(new Error('later batch failed'));
 
-        const pending = db.rows.upsert([first, second], upsertOptions);
+        const pending = db.rows.executeUpsert([first, second], upsertOptions);
         await connection.secondStarted;
         first.id = 999;
         first.generatedAt = new Date('2030-01-01T00:00:00.000Z');
@@ -177,7 +177,7 @@ describe('bulk upsert generated-value rollback', () => {
         connection.queueResult(generatedResult());
         connection.queueError(new Error('later batch failed'));
 
-        const pending = db.rows.upsert([first, row('second')], upsertOptions);
+        const pending = db.rows.executeUpsert([first, row('second')], upsertOptions);
         await connection.secondStarted;
         first.generatedAt = new Date(generatedAt);
         first.generatedBytes = new Uint8Array([1, 2, 3]);
@@ -201,7 +201,7 @@ describe('bulk upsert generated-value rollback', () => {
         const controller = new AbortController();
         connection.queueResult(generatedResult());
 
-        const pending = db.rows.upsert([first, row('second')], {
+        const pending = db.rows.executeUpsert([first, row('second')], {
             ...upsertOptions,
             signal: controller.signal,
         });
@@ -221,7 +221,7 @@ describe('bulk upsert generated-value rollback', () => {
         connection.queueResult(generatedResult());
 
         await expect(db.transaction(async transaction => {
-            await transaction.rows.upsert([first], upsertOptions);
+            await transaction.rows.executeUpsert([first], upsertOptions);
             first.id = 999;
             first.generatedJson = { source: 'caller', values: [9] };
             throw new Error('abort outer transaction');

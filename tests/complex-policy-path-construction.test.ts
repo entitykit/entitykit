@@ -118,7 +118,7 @@ describe('complex policy path construction', () => {
         expect(row.scope?.tenantId).toBe('tenant-1');
 
         const bulk = Object.assign(new TenantRow(), { id: 'row-2', name: 'two' });
-        await db.rows.upsert([bulk]);
+        await db.rows.executeUpsert([bulk]);
         expect(bulk.scope).toBeInstanceOf(TenantStamp);
         expect(bulk.scope?.tenantId).toBe('tenant-1');
         await db.dispose();

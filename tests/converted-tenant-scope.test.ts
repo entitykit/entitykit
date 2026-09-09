@@ -108,7 +108,7 @@ describe('converted tenant scope', () => {
             name: 'row',
         });
 
-        await expect(db.rows.upsert([row])).resolves.toBe(1);
+        await expect(db.rows.executeUpsert([row])).resolves.toBe(1);
         const result = await db.database.connection.query<{
             tenant_id: string;
         }>({
@@ -126,7 +126,7 @@ describe('converted tenant scope', () => {
             name: 'row',
         });
 
-        await expect(db.rows.upsert([row])).resolves.toBe(1);
+        await expect(db.rows.executeUpsert([row])).resolves.toBe(1);
         expect(row.tenantId.value).toBe('acme');
         expect(row.tenantId).not.toBe(lastProvidedTenant);
         const result = await db.database.connection.query<{

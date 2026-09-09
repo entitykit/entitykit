@@ -83,7 +83,7 @@ describe('context transaction state restoration failures', () => {
             label: 'two',
         });
 
-        await expect(db.rows.upsert([first, second], {
+        await expect(db.rows.executeUpsert([first, second], {
             conflictProperties: ['sku'],
             updateProperties: ['label'],
         })).rejects.toBe(providerFailure);
@@ -172,7 +172,7 @@ describe('context transaction state restoration failures', () => {
         const restorationFailure = new Error('generated setter refused rollback');
 
         const pending = db.transaction(async transaction => {
-            await transaction.rows.upsert([row], {
+            await transaction.rows.executeUpsert([row], {
                 conflictProperties: ['sku'],
                 updateProperties: ['label'],
             });

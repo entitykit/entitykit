@@ -122,9 +122,9 @@ maybe('MySQL provider', () => {
     });
 
     it('upserts, inserting what is missing and overwriting what is not', async () => {
-        await db.values.upsert([value('u1', { score: 1 }), value('u2', { score: 2 })]);
+        await db.values.executeUpsert([value('u1', { score: 1 }), value('u2', { score: 2 })]);
         db.changeTracker.clear();
-        const affected = await db.values.upsert([
+        const affected = await db.values.executeUpsert([
             value('u1', { score: 10, label: 'updated' }),
             value('u3', { score: 3 }),
         ]);

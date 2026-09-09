@@ -252,7 +252,7 @@ describe('generated identity invalidation on SQLite', () => {
             const useGeneratedIdentity = async (
                 tx: GeneratedIdentityInvalidationContext,
             ): Promise<void> => {
-                await tx.parents.upsert([parent], upsertOptions);
+                await tx.parents.executeUpsert([parent], upsertOptions);
                 child.parentId = parent.id;
                 tx.children.add(child);
                 throw new Error(`abort ${scope}`);
@@ -269,7 +269,7 @@ describe('generated identity invalidation on SQLite', () => {
             expect(parent.id).toBe(0);
             expect(child.parentId).toBe(3);
             await occupyNextId(db);
-            await db.parents.upsert([parent], upsertOptions);
+            await db.parents.executeUpsert([parent], upsertOptions);
             expect(parent.id).toBe(4);
 
             await expect(db.saveChanges()).rejects.toThrow(
@@ -291,13 +291,13 @@ describe('generated identity invalidation on SQLite', () => {
             sku: 'explicit-upsert', name: 'upsert',
         });
         await expect(db.transaction(async tx => {
-            await tx.parents.upsert([parent], upsertOptions);
+            await tx.parents.executeUpsert([parent], upsertOptions);
             child.parentId = parent.id;
             child.parent = parent;
             throw new Error('abort explicit upsert');
         })).rejects.toThrow('abort explicit upsert');
         await occupyNextId(db);
-        await db.parents.upsert([parent], upsertOptions);
+        await db.parents.executeUpsert([parent], upsertOptions);
 
         await expect(db.saveChanges()).resolves.toBe(1);
         await expect(storedParentId(db, child.id)).resolves.toBe(4);
@@ -317,14 +317,14 @@ describe('generated identity invalidation on SQLite', () => {
         const second = Object.assign(new InvalidationParent(), {
             sku: 'zero', name: 'duplicate unique value',
         });
-        await expect(db.parents.upsert([first, second], {
+        await expect(db.parents.executeUpsert([first, second], {
             conflictProperties: ['name'], updateProperties: ['sku'],
         })).rejects.toThrow();
         expect(first.id).toBe(0);
         expect(child.parentId).toBe(3);
         first.onGenerated = undefined;
         await occupyNextId(db);
-        await db.parents.upsert([first], upsertOptions);
+        await db.parents.executeUpsert([first], upsertOptions);
 
         await expect(db.saveChanges()).rejects.toThrow(
             'retains a rolled-back store-generated FK',

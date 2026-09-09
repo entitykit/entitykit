@@ -146,7 +146,7 @@ export async function setBasedWriteExamples(db: AppDbContext): Promise<void> {
     await db.posts
         .where(post => post.status.eq('archived'))
         .executeDelete();
-    await db.posts.upsert(
+    await db.posts.executeUpsert(
         [Object.assign(new Post(), {
             id: 'post_2',
             authorId: 'usr_1',

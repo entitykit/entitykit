@@ -145,13 +145,13 @@ const postgresEnabled = process.env.RUN_POSTGRES_TESTS === 'true' &&
 
         it('hydrates generated values through natural-key inserts and conflicts', async () => {
             const inserted = row('sku-one', 'before');
-            await expect(db.rows.upsert([inserted], naturalKeyOptions))
+            await expect(db.rows.executeUpsert([inserted], naturalKeyOptions))
                 .resolves.toBe(1);
             expect(inserted.id).toBeGreaterThan(0);
             expect(inserted.createdAt).toBeInstanceOf(Date);
 
             const updated = row('sku-one', 'after');
-            await expect(db.rows.upsert([updated], naturalKeyOptions))
+            await expect(db.rows.executeUpsert([updated], naturalKeyOptions))
                 .resolves.toBe(1);
             expect(updated.id).toBe(inserted.id);
             expect(updated.createdAt).toEqual(inserted.createdAt);
@@ -204,7 +204,7 @@ const mysqlEnabled = process.env.RUN_MYSQL_TESTS === 'true' &&
         it('rejects unresolved generated-key upserts before writing a row', async () => {
             const incoming = row('sku-one', 'one');
 
-            await expect(db.rows.upsert([incoming])).rejects.toThrow(
+            await expect(db.rows.executeUpsert([incoming])).rejects.toThrow(
                 'cannot use unresolved store-generated key \'id\' as its conflict target',
             );
 
@@ -219,7 +219,7 @@ const mysqlEnabled = process.env.RUN_MYSQL_TESTS === 'true' &&
                 label: 'one',
             });
 
-            await expect(db.defaults.upsert([incoming]))
+            await expect(db.defaults.executeUpsert([incoming]))
                 .rejects.toThrow(
                     'The \'mysql\' dialect cannot safely upsert store-generated properties',
                 );

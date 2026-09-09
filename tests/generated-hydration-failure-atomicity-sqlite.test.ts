@@ -240,7 +240,7 @@ describe('generated hydration failure atomicity on SQLite', () => {
         if (!child) throw new Error('Expected the durable child.');
         const parent = parentFor(child, failure);
 
-        await expect(db.parents.upsert([parent], upsertOptions))
+        await expect(db.parents.executeUpsert([parent], upsertOptions))
             .rejects.toThrow(/generated/i);
         expect(parent.id).toBe(0);
         expect(child.parentId).toBe(2);
@@ -248,7 +248,7 @@ describe('generated hydration failure atomicity on SQLite', () => {
         AtomicGeneratedDetails.failure = undefined;
         parent.childToMutate = undefined;
         await occupyRolledBackIdentity(db, `upsert-${failure}`);
-        await expect(db.parents.upsert([parent], upsertOptions))
+        await expect(db.parents.executeUpsert([parent], upsertOptions))
             .resolves.toBe(1);
         expect(parent.id).toBe(3);
 
@@ -276,7 +276,7 @@ describe('generated hydration failure atomicity on SQLite', () => {
 
             const pending = operation === 'tracked save'
                 ? db.saveChanges()
-                : db.parents.upsert([parent], upsertOptions);
+                : db.parents.executeUpsert([parent], upsertOptions);
             await expect(pending).rejects.toThrow('generated converter failed');
             expect(parent.id).toBe(0);
             expect(child.parentId).toBe(1);
@@ -286,7 +286,7 @@ describe('generated hydration failure atomicity on SQLite', () => {
 
             const retry = operation === 'tracked save'
                 ? db.saveChanges()
-                : db.parents.upsert([parent], upsertOptions);
+                : db.parents.executeUpsert([parent], upsertOptions);
             await expect(retry).resolves.toBe(1);
             expect(parent.id).toBe(3);
             await expect(storedParentId(db)).resolves.toBe(1);
@@ -309,7 +309,7 @@ describe('generated hydration failure atomicity on SQLite', () => {
 
             const pending = operation === 'tracked save'
                 ? db.saveChanges()
-                : db.parents.upsert([parent], upsertOptions);
+                : db.parents.executeUpsert([parent], upsertOptions);
             await expect(pending).rejects.toThrow(
                 'generated identity setter failed',
             );

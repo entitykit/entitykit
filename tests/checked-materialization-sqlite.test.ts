@@ -32,7 +32,7 @@ describe('checked reads through SQLite', () => {
             const date = new Date('2026-01-01T00:00:00.000Z');
             db.records.create('one', true, date, new Uint8Array([1, 2, 3]));
             await db.saveChanges();
-            db.clearChanges();
+            db.clearTracking();
             const tracked = await db.records.findOrThrow('one');
             const untracked = await db.records.asNoTracking().first();
             expect(tracked).toBeInstanceOf(Record);

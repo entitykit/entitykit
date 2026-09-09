@@ -42,7 +42,7 @@ describe('tenant-only upsert transaction state', () => {
         });
 
         await expect(db.transaction(async transaction => {
-            await expect(transaction.rows.upsert([incoming])).resolves.toBe(1);
+            await expect(transaction.rows.executeUpsert([incoming])).resolves.toBe(1);
             expect(incoming.tenantId).toBe('tenant-one');
             throw new Error('abort outer transaction');
         })).rejects.toThrow('abort outer transaction');

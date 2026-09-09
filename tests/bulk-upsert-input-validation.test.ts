@@ -65,7 +65,7 @@ describe('bulk upsert input validation', () => {
         const entry = db.rows.add(incoming);
         incoming.tenantId = undefined;
 
-        await expect(db.rows.upsert([incoming], options)).rejects.toThrow(
+        await expect(db.rows.executeUpsert([incoming], options)).rejects.toThrow(
             'Upsert input \'GuardedUpsertRow\' is already tracked. ' +
             'Use saveChanges() for tracked entities or detach it before upsert.',
         );
@@ -81,7 +81,7 @@ describe('bulk upsert input validation', () => {
         const { db, connection } = open();
         const incoming = row();
 
-        await expect(db.rows.upsert([incoming, incoming], options))
+        await expect(db.rows.executeUpsert([incoming, incoming], options))
             .rejects.toThrow(
                 'Upsert input \'GuardedUpsertRow\' appears more than once. ' +
                 'Each input object must be unique.',
@@ -101,7 +101,7 @@ describe('bulk upsert input validation', () => {
         db.rows.attach(tracked);
         connection.queueResult({ rows: [{ id: 42 }], rowCount: 1 });
 
-        await expect(db.rows.upsert([incoming], options)).resolves.toBe(1);
+        await expect(db.rows.executeUpsert([incoming], options)).resolves.toBe(1);
 
         expect(incoming.id).toBe(42);
         expect(db.entry(incoming)).toBeUndefined();

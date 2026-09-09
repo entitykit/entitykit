@@ -34,7 +34,7 @@ class ReentrantContext extends DbContext {
                 savingChanges: () => {
                     if (this.operation === 'plan') this.getSavePlan();
                     if (this.operation === 'debug') this.getSavePlanDebugView();
-                    if (this.operation === 'clear') this.clearChanges();
+                    if (this.operation === 'clear') this.clearTracking();
                 },
             });
     }
