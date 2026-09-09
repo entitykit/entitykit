@@ -213,8 +213,11 @@ overload with a typed closure, such as `(id: string) => makeUser(id)`.
 argument tuples. Their default `never` does not permit calls. Use `satisfies`
 when checking a factory without erasing its inferred inputs, or provide an
 explicit tuple (`[]` for an actual zero-argument factory). Annotating a set as
-`DbSet<User>` also erases creation arguments; prefer inference or retain the
-creation tuple as the third `DbSet` type argument.
+`DbSet<User>` also erases creation arguments. Prefer `AppDbContext["users"]`
+for application-local annotations or `DbSetFor<typeof User, [id: string]>`
+for a constructor-aware reusable type. `DbSetFor<typeof makeUser>` also
+preserves a synchronous factory's arguments. See [creation types](docs/creation-types.md)
+for exact key, receiver, union, overload, and erased-signature contracts.
 
 `create()` runs the constructor or factory once, validates that it returned an
 instance of the mapped class, and delegates enrollment to the ordinary add
