@@ -38,6 +38,7 @@ describe('entitykit init', () => {
         expect(config.provider.name).toBe('sqlite');
         expect(config.connection).toBe(path.join(cwd, 'entitykit.db'));
         const context = config.context.create();
+        expect(context.constructor.name).toBe('MigrationDbContext');
         await context.dispose();
     });
 

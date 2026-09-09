@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runEntityKitCli } from '../packages/cli/src/api';
-import { SqliteDatabaseConnection } from '../packages/sqlite/src';
+import * as core from '../packages/core/src';
+import { loadTypeScriptModule } from '../packages/core/src/tooling';
+import { createSqliteDataSource, SqliteDatabaseConnection } from '../packages/sqlite/src';
 import { migrationHistoryTableName } from '../packages/core/src/migrations/migration-metadata';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
 import { requireDefined } from './support/require-defined';
@@ -17,8 +19,8 @@ import { requireDefined } from './support/require-defined';
  * database, so the advertised sequence cannot drift from the one that works.
  */
 describe('entitykit init journey', () => {
-    it('runs the workflow that init prints, end to end, against SQLite', async () => {
-        const cwd = createProject('entitykit-init-journey-');
+    it.each(['commonjs', 'module'])('runs the printed workflow and application in a %s project', async packageType => {
+        const cwd = createProject('entitykit-init-journey-', packageType);
 
         const init = await runEntityKitCli(['init'], { cwd });
         expect(init.exitCode).toBe(0);
@@ -57,6 +59,7 @@ describe('entitykit init journey', () => {
 
         const status = await runEntityKitCli(['db', 'status', '--check'], { cwd });
         expect(status.exitCode).toBe(0);
+        await expectApplicationContext(contextPath, path.join(cwd, 'entitykit.db'));
     });
 
     it('needs the model step first, which is why init prints it', async () => {
@@ -75,13 +78,36 @@ describe('entitykit init journey', () => {
     });
 });
 
-function createProject(prefix: string): string {
+function createProject(prefix: string, packageType = 'commonjs'): string {
     const cwd = createManagedTempDirectory(prefix);
     fs.writeFileSync(
         path.join(cwd, 'package.json'),
-        `${JSON.stringify({ name: 'app', private: true }, null, 2)}\n`,
+        `${JSON.stringify({ name: 'app', private: true, type: packageType }, null, 2)}\n`,
     );
     return cwd;
+}
+
+async function expectApplicationContext(contextPath: string, databasePath: string): Promise<void> {
+    interface Todo { id: string; title: string }
+    type AppContext = core.DbContext & { readonly todos: core.DbSet<Todo, readonly unknown[], [input: Todo]> };
+    const { AppDbContext } = loadTypeScriptModule(contextPath, {
+        '@entitykit/core': () => core,
+    }) as { AppDbContext: core.EntityKitContextFactory<object, AppContext, []> };
+    const source = createSqliteDataSource(databasePath);
+    try {
+        {
+            await using db = source.createContext(AppDbContext);
+            db.todos.create({ id: 'one', title: 'Created through the application source' });
+            expect(await db.saveChanges()).toBe(1);
+        }
+        await using db = source.createContext(AppDbContext);
+        const todo = await db.todos.findOrThrow('one');
+        expect(todo.title).toBe('Created through the application source');
+        todo.title = 'Updated in a fresh context';
+        expect(await db.saveChanges()).toBe(1);
+    } finally {
+        await source.dispose();
+    }
 }
 
 function advertisedSteps(stdout: string): string[] {
@@ -101,8 +127,12 @@ function addEntityAndMapping(contextPath: string): void {
         )
         .replace('export class AppDbContext extends DbContext {', [
             'export class Todo {',
-            '  id = "";',
-            '  title = "";',
+            '  id: string;',
+            '  title: string;',
+            '  constructor(input: { id: string; title: string }) {',
+            '    this.id = input.id;',
+            '    this.title = input.title;',
+            '  }',
             '}',
             '',
             'export class AppDbContext extends DbContext {',
@@ -114,6 +144,10 @@ function addEntityAndMapping(contextPath: string): void {
             '      entity.hasKey(todo => todo.id);',
             '      entity.property(todo => todo.id).hasColumnType("text").isRequired();',
             '      entity.property(todo => todo.title).hasColumnType("text").isRequired();',
+            '      entity.materializeChecked(row => new Todo({',
+            '        id: row.required(todo => todo.id),',
+            '        title: row.required(todo => todo.title),',
+            '      }));',
             '    });',
             '  }',
         ].join('\n'));

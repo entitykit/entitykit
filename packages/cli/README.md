@@ -34,8 +34,10 @@ npx entitykit db migrate --dry-run
 npx entitykit db migrate
 ```
 
-`init` creates a minimal context and configuration. The generated context is
-empty by design; add the application model before creating the first migration.
+`init` creates an empty `AppDbContext` for application data sources and a
+`MigrationDbContext` that inherits its model and owns the CLI connection. Add
+entities and mappings to `AppDbContext` before creating the first migration.
+At runtime, use `dataSource.createContext(AppDbContext)` for each unit of work.
 
 ## Commands
 
