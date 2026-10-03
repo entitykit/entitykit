@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { openBookshop, type ShopProvider } from './bookshop-store';
 import { qualifyCheckout } from './qualification-checkout';
+import { qualifyRecovery } from './qualification-recovery';
+import { qualifyDelivery } from './qualification-delivery';
 
 async function qualify(): Promise<void> {
     const provider = process.argv[2];
@@ -14,6 +16,8 @@ async function qualify(): Promise<void> {
     const store = openBookshop(provider, target);
     try {
         await qualifyCheckout(store);
+        await qualifyDelivery(store);
+        await qualifyRecovery(store, provider, target);
         console.log(`BOOKSHOP_QUALIFICATION_OK provider=${provider}`);
     } finally {
         await store.dispose();

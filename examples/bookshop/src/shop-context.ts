@@ -1,5 +1,5 @@
 import { DbContext, type DbContextOptionsBuilder, type EntityKitDataSource, type ModelBuilder } from '@entitykit/core';
-import { AuditRecord, CommandReceipt, Inventory, Order, OutboxRecord } from './shop-entities';
+import { AuditRecord, CommandReceipt, DeliveryReceipt, Inventory, Order, OutboxRecord, Shipment } from './shop-entities';
 import { configureShopModel } from './shop-model';
 
 export class ShopContext extends DbContext {
@@ -7,6 +7,8 @@ export class ShopContext extends DbContext {
     public orders = this.set<Order, [tenantId: string, id: string]>(Order);
     public receipts = this.set<CommandReceipt, [tenantId: string, requestId: string]>(CommandReceipt);
     public audit = this.set<AuditRecord, [tenantId: string, id: string]>(AuditRecord);
+    public deliveries = this.set<DeliveryReceipt, [tenantId: string, eventId: string]>(DeliveryReceipt);
+    public shipments = this.set<Shipment, [tenantId: string, orderId: string]>(Shipment);
     // The delivery worker owns this unscoped queue; request handlers use checkout().
     public outbox = this.set<OutboxRecord, [id: number]>(OutboxRecord);
 

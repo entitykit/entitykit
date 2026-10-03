@@ -17,6 +17,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
+const { acceptBookshopPackage } = require('./accept-bookshop-package');
 
 const root = path.resolve(__dirname, '..');
 const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs'];
@@ -330,6 +331,7 @@ try {
   run(process.execPath, [path.join(project, 'runtime.cjs')], { cwd: project });
   run(process.execPath, [path.join(project, 'runtime.mjs')], { cwd: project });
   run(process.execPath, [path.join(project, 'single-core.cjs')], { cwd: project });
+  acceptBookshopPackage(root, project, run);
 
   const version = readManifest(root, 'packages', 'cli', 'package.json').version;
   assertCliVersion(run(process.execPath, [

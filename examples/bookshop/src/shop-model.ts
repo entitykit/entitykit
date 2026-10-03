@@ -1,7 +1,9 @@
 import type { EntityBuilder, EntityPropertyKey, ModelBuilder } from '@entitykit/core';
 import { AuditRecord, CommandReceipt, Inventory, Order, OutboxRecord } from './shop-entities';
+import { configureDeliveryModel } from './delivery-model';
 
 export function configureShopModel(model: ModelBuilder, provider: string): void {
+    configureDeliveryModel(model);
     const timestamp = provider === 'postgres' ? 'timestamptz' : 'datetime(3)';
     model.entity(Inventory, entity => {
         entity.toTable('bookshop_inventory').hasKey(row => [row.tenantId, row.sku]);

@@ -4,6 +4,9 @@ This private example qualifies EntityKit through a bookstore checkout, using
 only public `@entitykit/*` imports. The same application runs on SQLite,
 Postgres, and MySQL. It uses the built packages and their declarations, rather
 than TypeScript aliases pointing into EntityKit internals.
+The package acceptance gate also copies this example into a temporary consumer
+outside the checkout, compiles it against the seven accepted tarballs, and runs
+its SQLite checkout, concurrent delivery, and process recovery qualification.
 
 `checkout(store, tenantId, actorId, command)` creates a short-lived context and
 atomically reserves inventory, increments its optimistic version, creates a
@@ -28,11 +31,36 @@ outcome propagates. The caller can explicitly replay the same command to
 resolve its durable receipt. Delivery and external side effects belong after
 commit.
 
+`dispatchPending(store, send, limit)` reads one bounded batch (32 by default,
+at most 256), calls the receiver, and acknowledges each event only after the
+receiver succeeds. It provides at-least-once delivery, including when the
+publisher crashes after sending. `fulfillOrder()` represents a bookstore
+fulfillment receiver: its shipment request and delivery receipt commit together.
+The receipt binds a stable event ID to the complete canonical payload. Parallel
+receivers and restarted publishers can replay an event without creating a
+second shipment. Each tenant's shipments and delivery receipts remain scoped.
+
+The demonstration receiver shares the example database. A remote service must
+own the same durable deduplication contract in its database, authenticate its
+publisher, and commit its receipt with its business effect. Network delivery,
+physical shipping, email, and other external side effects need the receiving
+system's own idempotency mechanism.
+
 The checkout qualification proves committed state, tenant isolation, invalid
 input rejection, command/actor mismatch rejection, rollback after all writes,
 stale version rejection, concurrent duplicate requests, and two buyers racing
 for the final copy. These assertions execute against real databases with
 Node's strict unhandled rejection handling.
+
+Recovery qualification starts separate Node processes and deliberately exits
+them after saving inside an open transaction, after checkout commits, and after
+fulfillment commits before the publisher acknowledges. Fresh processes replay
+the command, and a fresh data source completes delivery. It verifies rollback
+of uncommitted state, survival of committed receipts, one fulfillment effect,
+and eventual outbox acknowledgment on all three providers. It also exercises
+bounded batches, concurrent receivers, and conflicting/forged delivery payloads.
+These are application process crashes; database server and storage failure
+qualification is a separate operational gate.
 
 From the repository root:
 

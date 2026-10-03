@@ -1,7 +1,8 @@
 import type { BookshopStore } from './bookshop-store';
 import { Inventory } from './shop-entities';
 
-const tables = ['bookshop_outbox', 'bookshop_audit', 'bookshop_receipts', 'bookshop_orders', 'bookshop_inventory'];
+const tables = ['bookshop_delivery_receipts', 'bookshop_shipments', 'bookshop_outbox',
+    'bookshop_audit', 'bookshop_receipts', 'bookshop_orders', 'bookshop_inventory'];
 
 /** Destructive setup is restricted to the example's test tables in qualify.ts. */
 export async function resetShop(store: BookshopStore, available = 5): Promise<void> {

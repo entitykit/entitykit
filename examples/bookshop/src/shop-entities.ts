@@ -45,3 +45,17 @@ export class OutboxRecord {
     public occurredAt = new Date();
     public delivered = 0;
 }
+
+export class DeliveryReceipt {
+    public tenantId = '';
+    public eventId = '';
+    public fingerprint = '';
+}
+
+export class Shipment {
+    public tenantId = '';
+    public orderId = '';
+    public sku = '';
+    public quantity = 0;
+    public status = 'requested';
+}
