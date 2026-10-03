@@ -37,6 +37,9 @@ export class ExclusiveOperationGuard {
         } finally {
             if (this.activeToken === operationScope.token) {
                 this.activeToken = undefined;
+                // Node 22 retains enabled scopes in its global async hook list.
+                // An idle guard owns no async chain; run() re-enables it later.
+                this.scope.disable();
             }
         }
     }
