@@ -11,6 +11,7 @@ function run(
     acceptanceDryRun = false,
 ): ReturnType<typeof spawnSync> {
     const env = { ...process.env };
+    delete env.ENTITYKIT_RELEASE_DRY_RUN;
     if (tag === undefined) delete env.npm_config_tag;
     else env.npm_config_tag = tag;
     if (acceptanceDryRun) {
@@ -29,7 +30,7 @@ function packageDirectory(publishConfig: unknown): string {
     const directory = createManagedTempDirectory('entitykit-guard-');
     fs.writeFileSync(
         path.join(directory, 'package.json'),
-        JSON.stringify({ name: '@entitykit/probe', publishConfig }),
+        JSON.stringify({ name: '@entitykit/probe', version: '0.1.0-alpha.2', publishConfig }),
     );
     return directory;
 }
