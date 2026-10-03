@@ -4,6 +4,13 @@ module.exports = {
   ...base,
   testMatch: [
     '<rootDir>/tests/mysql-value-reader.test.ts',
+    '<rootDir>/tests/postgres-client-lease.test.ts',
+    '<rootDir>/tests/operation-cancellation-promise.test.ts',
+    '<rootDir>/tests/resource-acquisition-cancellation.test.ts',
+    '<rootDir>/tests/pooled-acquisition-cancellation.test.ts',
+    '<rootDir>/tests/exclusive-operation-lifetime.test.ts',
+    '<rootDir>/tests/context-concurrency.test.ts',
+    '<rootDir>/tests/query-streaming.test.ts',
     '<rootDir>/tests/cli-rename-hints.test.ts',
     '<rootDir>/tests/snapshot-value-equality.test.ts',
     '<rootDir>/tests/model-diff-operation-description.test.ts',

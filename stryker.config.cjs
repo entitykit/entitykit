@@ -4,6 +4,10 @@
 module.exports = {
   mutate: [
     'packages/mysql/src/mysql-value-reader.ts',
+    'packages/postgres/src/postgres-client-lease.ts',
+    'packages/core/src/storage/operation-cancellation.ts',
+    'packages/core/src/storage/resource-acquisition-cancellation.ts',
+    'packages/core/src/storage/exclusive-operation-guard.ts',
     'packages/cli/src/cli-rename-hints.ts',
     'packages/core/src/tracking/snapshot-value-equality.ts',
     'packages/core/src/migrations/model-diff-operation-description.ts',
@@ -71,7 +75,7 @@ module.exports = {
   // The sandbox only ever runs the mutation suite, which resolves
   // `@entitykit/*` to package SOURCES. Copying the compiled output and the
   // coverage reports hauls thousands of files per run for nothing.
-  ignorePatterns: ['packages/*/dist', 'coverage'],
+  ignorePatterns: ['packages/*/dist', 'coverage', 'temp/playwright-browsers'],
   testRunner: 'jest',
   jest: {
     projectType: 'custom',
