@@ -13,7 +13,7 @@ checkout and fulfillment application using public packages.
 | --- | --- | --- |
 | Operation cancellation | Rejected promises stay observed; queued pool acquisition cancels promptly and releases late resources for queries, streams, transactions, and sessions | Real pool pressure, client disconnects, and strict-process resource checks |
 | Dependencies | Compatible security fixes; runtime scopes have zero known advisories; unreviewed tooling findings fail | Re-review the expiring `braces` tooling exception when patched |
-| Public contracts | Existing strict type and packaged CommonJS/ESM consumer checks; versioned signature and package-export reports with negative compatibility tests | Historical migration/checksum upgrade fixtures |
+| Public contracts | Versioned signatures and package exports; negative compatibility tests; published alpha.1 checksum/SQL/snapshot fixtures and actual persisted-data upgrade/rollback on all three providers | Final candidate qualification |
 | Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
 | Operational recovery | Canonical Postgres and MySQL integration suites; Bookshop process crash drills | Lost commit acknowledgment, deadlock/disconnect recovery, provider-specific migration crash/repair drills |
 | Performance/resources | Benchmark evidence validation | Executable representative workloads, direct-driver comparison, latency/query-count/memory/stream/pool budgets |
@@ -35,6 +35,13 @@ recovery scenarios there.
 
 The API contract slice passed the full gate with 488 suites / 2,977 tests,
 all ten public signature reports, and the seven-package export contract.
+
+The historical migration slice passed the same full gate. A separately
+installed published `alpha.1` consumer seeded real databases on all three
+providers. The candidate preserved its checksum, SQL, snapshot format and
+history row; read and versioned existing application data; applied and rolled
+back a new migration; and refused an altered historical migration body.
+The fixture records the integrity of each historical package artifact.
 
 Live qualification uses isolated SQLite files, Postgres 18.4 on a private
 loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote

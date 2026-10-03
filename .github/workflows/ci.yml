@@ -97,6 +97,10 @@ jobs:
         run: npm run check:bookshop:postgres
         env:
           BOOKSHOP_DATABASE_URL: ${{ env.DATABASE_URL }}
+      - name: Qualify the published migration upgrade on Postgres
+        run: npm run check:migration-compatibility:postgres
+        env:
+          ENTITYKIT_COMPAT_DATABASE_URL: ${{ env.DATABASE_URL }}
 
   mysql:
     name: Live MySQL
@@ -131,6 +135,10 @@ jobs:
         run: npm run check:bookshop:mysql
         env:
           BOOKSHOP_DATABASE_URL: ${{ env.MYSQL_URL }}
+      - name: Qualify the published migration upgrade on MySQL
+        run: npm run check:migration-compatibility:mysql
+        env:
+          ENTITYKIT_COMPAT_DATABASE_URL: ${{ env.MYSQL_URL }}
 
   nextjs:
     name: Next.js 16 + Postgres demo
