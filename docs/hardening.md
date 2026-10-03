@@ -92,6 +92,13 @@ unchanged public API reports and package acceptance; both live suites passed
 again (Postgres 129 tests, MySQL 94 tests). The focused history/lock mutation
 campaign passed at 95.77%, with no untested mutants and unchanged thresholds.
 
+The repaired SDK passed the complete canonical gate on Node 22.13 and Node 24
+with 498 suites / 3,097 tests. The complete V8 coverage gate passed across 757
+runtime source files: 95.02% statements/lines, 90.43% branches and 94.81%
+functions. Two workers recycle between suites at 512 MiB instead of retaining
+every test's debugger state in one process; the canonical campaign completed
+in 156 seconds with its source inventory and thresholds unchanged.
+
 The server campaign restarts only a verified isolated database instance while
 Bookshop has one committed checkout and a second checkout persisted inside an
 uncommitted transaction. PostgreSQL immediate shutdown and MySQL SIGKILL both
