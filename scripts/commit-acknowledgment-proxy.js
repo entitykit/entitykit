@@ -58,6 +58,7 @@ async function commitAcknowledgmentProxy(provider, target) {
   return {
     target: proxied.toString(), state,
     arm() { state.armed = true; },
+    disconnect() { for (const connection of connections) connection.destroy(); },
     async close() {
       if (closing) return closing;
       for (const connection of connections) connection.destroy();

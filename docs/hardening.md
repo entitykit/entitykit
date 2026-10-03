@@ -15,7 +15,7 @@ checkout and fulfillment application using public packages.
 | Dependencies | Compatible security fixes; runtime scopes have zero known advisories; unreviewed tooling findings fail | Re-review the expiring `braces` tooling exception when patched |
 | Public contracts | Versioned signatures and package exports; negative compatibility tests; published alpha.1 checksum/SQL/snapshot fixtures and actual persisted-data upgrade/rollback on all three providers | Final candidate qualification |
 | Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
-| Operational recovery | Canonical Postgres and MySQL integration suites; Bookshop process crash drills; actual successful commit responses dropped over TCP on both remote providers, unknown outcomes refuse retries and durable receipts replay | Deadlock/disconnect recovery, provider-specific migration crash/repair drills |
+| Operational recovery | Canonical integration suites; real TCP commit-response loss and pre-commit disconnect recovery; deadlock victims retry whole atomic operations; migration processes killed after DDL, provider-specific rollback/partial repair and lock/history recovery pass | Database server restart campaign |
 | Performance/resources | Benchmark evidence validation | Executable representative workloads, direct-driver comparison, latency/query-count/memory/stream/pool budgets |
 | Release preparation | Seven-package tarball integrity and provenance workflow; alpha publication guards | Stable candidate/latest mechanics, stable support and upgrade policy, complete final qualification |
 
@@ -64,6 +64,20 @@ through the committed Bookshop receipt proves one complete atomic checkout.
 This repair passed the complete gate with 490 suites / 2,990 tests, unchanged
 public API reports, package acceptance, and both canonical live suites again
 (Postgres 125 tests, MySQL 94 tests).
+
+Both remote providers pass a real two-transaction deadlock: one victim retries
+the complete operation, three attempts produce two committed operations, and
+both rows contain the expected values. A socket cut after an uncommitted write
+rolls it back, discards the failed physical client, and permits a healthy new
+operation through the same logical lease.
+
+Migration drills SIGKILL a separate process after real table DDL completes but
+before data and history writes. SQLite and Postgres roll back the uncommitted
+table. MySQL preserves its nontransactional DDL with no history row; the drill
+inspects the known empty partial object before explicitly dropping it. A fresh
+runner then reacquires the migration lock, applies exactly once, and rolls back
+cleanly on every provider. This is a migration repair qualification, not an
+automatic destructive repair policy for application databases.
 
 Live qualification uses isolated SQLite files, Postgres 18.4 on a private
 loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote

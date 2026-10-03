@@ -53,7 +53,9 @@ async function main() {
     await within(source.dispose(), 2_000, 'data source shutdown');
     if (provider !== 'sqlite') {
       await require('./qualify-lost-commit-acknowledgment').qualifyLostCommitAcknowledgment(provider, target);
+      await require('./qualify-deadlock-and-disconnect').qualifyDeadlockAndDisconnect(provider, target);
     }
+    await require('./qualify-migration-crash').qualifyMigrationCrash(provider, target);
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(warnings, []);
     console.log(`PROVIDER_RESOURCE_SHUTDOWN_OK ${provider}`);

@@ -30,8 +30,7 @@ The script fails if late resource cleanup emits its failure warning.
 These deadlines are generous correctness limits for isolated qualification,
 not production latency targets. SQLite runs synchronously and checks abort
 signals between native steps; it cannot preempt a running native statement.
-Database server crashes, storage durability, and migration repair have
-separate failure scenarios.
+Database server crashes and storage durability have separate failure scenarios.
 
 The remote commands also run the Bookshop checkout through a transparent
 unencrypted loopback TCP proxy. The proxy observes the server's successful
@@ -48,3 +47,20 @@ This proxy supports the plain PostgreSQL protocol and MySQL COM_QUERY with
 zero query attributes. It requires loopback targets without TLS options. It
 qualifies an actual lost network acknowledgment; it does not simulate disk or
 server failure.
+
+Two transactions next lock the same two rows in opposite order. The native
+server deadlock victim must carry `40P01` (Postgres) or `ER_LOCK_DEADLOCK`
+(MySQL), and the data source retries its complete transaction. Three total
+attempts must produce exactly two atomic committed updates. A separate socket
+cut after an uncommitted insert must roll back that write, discard its physical
+connection, and permit a healthy replacement on the logical lease.
+
+Every provider also runs a migration in a separate process and SIGKILLs it
+after table DDL completes, before application data or migration history is
+written. SQLite and Postgres must remove the uncommitted table. MySQL must
+retain the DDL with an empty table and no history entry. The drill inspects that
+specific empty partial table and drops it deliberately before reapplying; it
+never treats that procedure as a general repair algorithm. A fresh runner must
+recover the migration lock, apply once, repeat without work, and roll back.
+These checks also reset `__entitykit_migrations`, `entitykit_crash_probe`, and
+`entitykit_deadlock_probe` in the isolated database.
