@@ -1,0 +1,50 @@
+# Published-release migration compatibility
+
+The compatibility gate installs the actual published `0.1.0-alpha.1` core,
+SQLite, Postgres and MySQL packages into a separate consumer. Their registry
+SHA-512 integrities are pinned in
+[the historical fixture](../tests/fixtures/migration-compatibility/alpha-1.json).
+The old SDK creates a real application schema, applies its migration and
+persists data before the candidate opens that database.
+
+The candidate must:
+
+- preserve the old migration body's checksum, generated SQL, model snapshot
+  format and recorded history;
+- read existing data and persist an optimistic version update;
+- apply one new migration, preserve application data and roll the new
+  migration back;
+- reject a changed historical migration body.
+
+These are executable database upgrades using a published predecessor. They
+qualify the fixture's persistence contract on all three providers. An
+application's own schema, hand-authored SQL and rollback still need rehearsal
+with its real data, as described in [the upgrade procedure](upgrading.md).
+
+## Run the campaign
+
+```sh
+npm run check:migration-compatibility
+ENTITYKIT_COMPAT_DATABASE_URL=postgres://.../entitykit_test \
+  npm run check:migration-compatibility:postgres
+ENTITYKIT_COMPAT_DATABASE_URL=mysql://.../entitykit_test \
+  npm run check:migration-compatibility:mysql
+```
+
+Use isolated databases: the campaign owns and resets its fixture objects.
+Remote database names must identify a test, qualification or hardening target.
+SQLite uses a disposable file. Keep temporary consumers outside the checkout;
+the default operating-system temporary directory satisfies that boundary.
+
+The default run installs a fresh legacy consumer from the pinned registry
+artifacts. For repeated local campaigns, `ENTITYKIT_LEGACY_CONSUMER` can point
+to a previously installed consumer; its exact package versions and lockfile
+integrities are checked against the fixture before use. That optimization
+does not replace preserving the historical artifact identities in release
+evidence.
+
+All three required CI provider lanes run this campaign. Preserve the candidate
+SHA, historical fixture, provider/runtime versions and successful campaign
+output with the release qualification. For a future predecessor or persisted
+format, add an independently captured fixture and upgrade path; changing the
+baseline alone does not demonstrate compatibility.

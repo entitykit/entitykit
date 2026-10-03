@@ -23,14 +23,18 @@ reasonable remediation and coordinated-disclosure window.
 
 ## Supported versions
 
-EntityKit is pre-release software. Until the first alpha is published,
-security fixes are made on `main`. After publication, fixes target the newest
-published alpha and `main`; older alphas do not receive backports.
+EntityKit is currently pre-release software. Security fixes target `main` and
+the newest published alpha; older alphas do not receive backports. After the
+first stable publication, fixes target the newest stable compatibility line
+and any actively maintained alpha. Older stable lines require an explicit
+maintenance announcement before they can be treated as supported.
 
 | Version | Supported |
 | --- | --- |
 | `main` | Best effort; security fixes are developed here |
-| Latest published `0.1.0-alpha.x` | Yes, after publication |
+| Latest published alpha | Yes, while the alpha line is actively maintained |
+| Newest published stable compatibility line | Yes, after the first stable publication; upgrade to its newest patch |
+| Older stable compatibility lines | Only with an explicit maintenance announcement |
 | Older alpha releases | No |
 | Unreleased forks and modified tarballs | No |
 
@@ -124,12 +128,14 @@ implicitly and may leave a partially applied migration after failure.
 
 ## Release integrity
 
-Alpha publication is manual from `main`. The release workflow runs the complete
+Alpha and stable publication are manual from `main`. The release workflow runs the complete
 CI matrix, packs seven tarballs once, accepts those exact files as an external
 consumer, publishes absent versions with npm provenance under a candidate tag,
 accepts same-integrity existing versions on retry, compares all seven registry
-integrities, and only then moves the `alpha` tags. A version already present
-with different bytes stops the release.
+integrities, rechecks forward movement, and only then moves `alpha` or `latest`
+tags. Stable candidates must have no prerelease suffix. A version already
+present with different bytes stops the release. Interrupted tag promotion is
+recovered by rerunning the same accepted bytes. See [the release guide](docs/releasing.md).
 
 ## Dependency qualification
 

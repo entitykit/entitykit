@@ -1,294 +1,198 @@
 # Releasing
 
-EntityKit releases seven public packages as one versioned family:
+EntityKit releases core, SQLite, Postgres, MySQL, NestJS, testing and CLI as one
+exact versioned family. One source revision produces seven accepted tarballs.
+Publication stages those files under a candidate tag; promotion verifies every
+registry integrity before moving the public tags.
 
-```text
-@entitykit/core
-@entitykit/sqlite
-@entitykit/postgres
-@entitykit/mysql
-@entitykit/nestjs
-@entitykit/testing
-@entitykit/cli
-```
+The supported path is the manual **Release** workflow in
+[`.github/workflows/release.yml`](../.github/workflows/release.yml).
+Every real working-copy publish is refused by `prepublishOnly`.
+`npm run check:publish` performs marked dry runs; the historical
+`check:publish-alpha` alias runs the same channel-aware check.
 
-An alpha is not seven independent publishes. It is one accepted set of tarballs,
-built from one commit, proven by the complete CI matrix, published under a
-candidate tag when absent or accepted by exact integrity on retry, and promoted
-only after the registry holds all seven exact files.
+| Dispatch channel | Required version | Candidate tag | Public tag | Confirmation |
+| --- | --- | --- | --- | --- |
+| `alpha` | Canonical `X.Y.Z-alpha.N` | `alpha-candidate` | `alpha` | `publish-alpha` |
+| `stable` | Canonical `X.Y.Z` | `stable-candidate` | `latest` | `publish-stable` |
 
-The supported publication path is the manual **Release alpha** GitHub Actions
-workflow in [`.github/workflows/release.yml`](../.github/workflows/release.yml).
-`npm run release:alpha` deliberately exits, and a plain working-copy
-`npm publish` is guarded. The repository's acceptance script carries a private
-marker for explicit `--dry-run --tag alpha` checks; every real working-copy
-publish is refused. Do not bypass the workflow.
+Package versions currently remain `0.1.0-alpha.2`. Stable mechanics are tested
+with synthetic versions, including real npm dry runs. A stable dispatch of
+these prerelease tarballs fails preflight. Selecting and applying the first
+stable version remains a separate release decision.
 
-This guide describes the evidence a release must produce. It does not assert
-that the current branch, hosted CI, npm credential, or registry state is ready;
-verify each one again in the release window.
+## Prepare the family
 
-## Prepare the release
+Choose one version for the root and all seven publishable packages. Update the
+exact core peers, the CLI's development core pin, and every EntityKit dependency
+in both private examples. Preserve the examples' own private package versions.
+Regenerate the lockfile and keep
+`packages/core/src/migrations/migration-metadata.ts`'s
+`entityKitMigrationVersion` equal to core's version.
 
-### 1. Move the family together
+For a stable family, every published package's `publishConfig.tag` must be
+`latest`; alpha families retain `alpha`. Keep access public and the repository
+root private. The manifest, peer and package acceptance gates enforce this.
 
-Choose one prerelease version, such as `0.1.0-alpha.2`, and apply it to every
-publishable package. The six sibling packages must peer on
-`@entitykit/core` at that exact version; the CLI's development link to core is
-exact as well. Keep `entityKitMigrationVersion` in
-`packages/core/src/migrations/migration-metadata.ts` equal to the package
-version because every applied migration records it.
+The API report contains the migration-version constant as a literal. A version
+change therefore needs a reviewed `npm run update:api` as well as manifest and
+lock changes. Review the full report diff: a metadata update does not authorize
+an unrelated public signature or export change. Preserve historical migration
+bodies, checksums, SQL, history rows and model snapshot formats; do not rewrite
+an already-applied migration to reflect the SDK's new version.
 
-Keep the private Next.js demo's core, Postgres, and CLI pins on that same family
-version so CI exercises the release candidate rather than the previous alpha.
-Its exact `pg` version must also match the root development version used by the
-workspace provider.
+Prepare user-facing notes describing the compatibility line, provider support,
+upgrade procedure and any intentional breaking changes. Follow
+[the compatibility policy](compatibility.md#stable-compatibility-policy) and
+[the migration upgrade guide](upgrading.md).
 
-The repository tests enforce this family invariant. Do not loosen the peers to
-a range to make a skewed release install.
+## Qualify the candidate
 
-### 2. Qualify the source and package boundary
+Run `npm ci` and `npm run verify`. The canonical gate covers lint, scoped
+security audits, types and unit tests; the Next.js production build; Bookshop's
+SQLite checkout and process recovery; public API and export snapshots;
+published-release migration compatibility; live SQLite operational recovery;
+performance and resource budgets; seven packed consumers; and publication dry
+runs.
 
-Run the repository gate before pushing:
+The exact candidate on `main` must also pass the complete reusable CI matrix:
 
-```sh
-npm ci
-npm run verify
-```
+- the canonical gate on Node 22.13.0 and Node 24;
+- runtime coverage and the critical-path mutation score;
+- Postgres 18 and MySQL 8.4 integration, Bookshop, published-release migration
+  upgrades, cancellation, deadlocks, commit-response loss, process crashes,
+  database server recovery, and performance budgets;
+- Next.js 16 production browser flows against Postgres 18.
 
-`verify` covers lint, types, tests, the offline Next.js production build, all
-seven packed-package acceptance paths, and alpha-publish guards. The package
-check builds and packs once, then proves
-the same seven files through a fresh unassisted install, Node16 and NodeNext type
-consumers, CommonJS and ESM runtimes against SQLite, the installed CLI, one
-shared core instance, and peer-skew rejection.
+The release workflow invokes that matrix for its own dispatch SHA and waits
+for every lane before packing. Older green runs do not qualify a later commit.
+The security tooling review must still be valid in the release window.
 
-This local result is necessary but not the release verdict. The exact commit on
-`main` must pass the complete reusable CI workflow:
+Ensure the `NPM_TOKEN` Actions secret is authorized for all seven identities.
+Only the publish job receives OIDC write permission for npm provenance; tag
+promotion holds no OIDC identity. Check npm organization policy and credentials
+before the release window. Do not add credentials to the repository.
 
-- `npm run verify` on Node 22.13.0 and Node 24;
-- runtime coverage;
-- the critical-path mutation score;
-- live Postgres 18 integration; and
-- live MySQL 8.4 integration; and
-- the Next.js 16 production demo against Postgres 18 through Playwright.
+## Dispatch
 
-The release workflow invokes that complete matrix for its own ref and will not
-pack until every lane is green. Never substitute an older green run or a
-partial local test for this gate.
-
-### 3. Set the publication credential
-
-The workflow must be able to resolve an Actions secret named `NPM_TOKEN`, made
-available at the repository or organization level. It must be valid for
-`registry.npmjs.org` and authorized to publish every package in the `@entitykit`
-scope. The publish job exposes it only as `NODE_AUTH_TOKEN`; its separate OIDC
-permission supplies npm provenance.
-
-Prove the credential and organization policy before the release window. A
-missing, expired, under-scoped, or policy-incompatible token stops publication.
-Do not add a fallback token to the repository or publish a missing member by
-hand.
-
-### 4. Freeze the release commit
-
-Merge the release-ready state to `main` and record its full SHA. Keep `main`
-unchanged until candidate publication and promotion finish. The workflow
-refuses branches and tags: it publishes only `refs/heads/main`, and every
-tarball is packed from the dispatch SHA.
-
-## Dispatch the alpha
-
-In GitHub Actions, open **Release alpha**, select `main`, choose **Run
-workflow**, and enter the confirmation phrase exactly:
-
-```text
-publish-alpha
-```
-
-The equivalent GitHub CLI dispatch is:
+Select `main`, choose `alpha` or `stable`, and type the matching confirmation.
+The equivalent commands, to be used only for an authorized release, are:
 
 ```sh
-gh workflow run release.yml --ref main -f confirm=publish-alpha
+gh workflow run release.yml --ref main -f channel=alpha -f confirm=publish-alpha
+# After a stable version is selected, applied and qualified:
+gh workflow run release.yml --ref main -f channel=stable -f confirm=publish-stable
 ```
 
-Watch the complete run and preserve its run id, commit SHA, logs, and
-`release-tarballs` artifact as release evidence.
+Both channels share one concurrency group. The workflow rejects branches and
+tags; it publishes only from `refs/heads/main`. Keep the release revision and
+registry tags under one operator's control while the run completes.
 
-## What the workflow guarantees
+## Accepted bytes and retry behavior
 
-The workflow advances through five barriers:
+`check:package` builds and packs once into a retained directory, then accepts
+those exact files as an external consumer. It proves Node16 and NodeNext types,
+CommonJS and ESM entry points, real SQLite use, one shared core instance, the
+installed CLI, peer-skew refusal, and a standalone Bookshop consumer. The
+artifact contains the seven `.tgz` files plus the release policy from that same
+qualified source. Publish and promotion download it without checking out,
+compiling or repacking.
 
-| Barrier | Guarantee |
-| --- | --- |
-| Confirm and guard | A human typed the phrase and the ref is `main` |
-| Complete CI | Every release lane passed on the dispatch SHA |
-| Evidence | Exactly seven tarballs were packed once and accepted as consumer artifacts |
-| Candidate or retry acceptance | Absent versions were published with provenance under `alpha-candidate`; existing versions were accepted only when integrity matched |
-| Promotion | Registry integrity matched all seven accepted files before any `alpha` tag moved |
+Preflight requires exactly the seven package identities, one version, the
+selected channel and every manifest's public tag. It compares every current
+public tag with the proposed version. A same-version retry is allowed;
+backward movement, malformed versions, empty successful responses, network
+errors and authentication failures stop the release. Only a clean E404 permits
+an absent tag. Stable `latest` tags may be bootstrapped; a new alpha sibling may
+be bootstrapped after the existing core alpha anchor has been checked.
 
-### Accepted tarballs are immutable
+Publication follows dependency order: core, SQLite, Postgres, MySQL, NestJS,
+testing, then CLI. For each package:
 
-The evidence job runs `check:package` with a retained output directory and
-uploads those already-accepted `.tgz` files. Publish and promotion jobs download
-that artifact; they do not check out source, rebuild, or repack.
+- a clean E404 for the version allows publication with provenance under the
+  candidate tag;
+- an existing version whose SHA-512 integrity equals the accepted tarball is
+  skipped on retry;
+- an existing version with different bytes stops the release.
 
-Before publishing, the workflow reads each packed manifest and requires the
-literal seven-package roster and one distinct version. For each package it then
-computes the tarball's SHA-512 SRI and asks npm what, if anything, already
-exists:
+Before the first public tag moves, promotion verifies all seven registry
+integrities and rechecks forward tag movement. Each tag update has three
+bounded attempts, followed by verification of the complete public family.
+There is no atomic operation across seven npm packages: a failed tag update
+can leave a mixed family. Rerunning the same accepted release converges it;
+the executed workflow tests qualify this recovery path. Candidate existence
+alone is never sufficient for promotion.
 
-- an absent version is published with `--provenance --tag alpha-candidate`;
-- the same version with the same integrity is an accepted partial-run retry and
-  is skipped; and
-- the same version with different integrity stops the release.
+## Verify publication
 
-npm versions are immutable. A conflicting published version is never repaired
-or overwritten; bump the entire family and produce a new release.
-
-### Candidate first, alpha second
-
-Candidate publication happens in dependency order: core, SQLite, Postgres,
-MySQL, NestJS, testing, then CLI. The public `alpha` tag is untouched while packages
-are still being uploaded.
-
-Promotion first compares all seven registry integrities with the accepted
-tarballs. Only after the whole set matches does it move each package's `alpha`
-dist-tag to the new version. Each tag update gets three bounded attempts, and a
-final registry pass proves all seven tags resolve to the family version before
-the workflow succeeds. npm has no atomic multi-package tag operation, so a
-failed promotion may still be briefly mixed; keep the release window closed to
-installs and rerun the same accepted release until the final proof passes.
-
-## Verify the public release
-
-A green workflow is the beginning of release verification, not the end. Verify
-the registry from outside the workflow using the retained artifact.
-
-Set the version and run id, then download the exact accepted files:
+Preserve the run URL, full dispatch SHA, logs and `release-tarballs` artifact.
+Set the chosen version and public tag (`alpha` or `latest`), then download the
+accepted files and compare the registry:
 
 ```sh
-export ENTITYKIT_REPO="$(git rev-parse --show-toplevel)"
-export ENTITYKIT_RELEASE_VERSION=0.1.0-alpha.2
+export ENTITYKIT_RELEASE_VERSION=<chosen-version>
+export ENTITYKIT_RELEASE_TAG=<alpha-or-latest>
 export ENTITYKIT_RELEASE_RUN=<github-run-id>
 export ENTITYKIT_ARTIFACT_DIR="$(mktemp -d)"
-
-gh run download "$ENTITYKIT_RELEASE_RUN" \
-  --name release-tarballs \
+gh run download "$ENTITYKIT_RELEASE_RUN" --name release-tarballs \
   --dir "$ENTITYKIT_ARTIFACT_DIR"
-```
 
-Compare each accepted file with npm and prove the `alpha` tag resolves to the
-same family version:
-
-```sh
 set -euo pipefail
-
 for name in core sqlite postgres mysql nestjs testing cli; do
   tarball="$ENTITYKIT_ARTIFACT_DIR/entitykit-$name-$ENTITYKIT_RELEASE_VERSION.tgz"
   accepted="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d '\n')"
   published="$(npm view "@entitykit/$name@$ENTITYKIT_RELEASE_VERSION" dist.integrity | tr -d '[:space:]')"
-  tagged="$(npm view "@entitykit/$name@alpha" version | tr -d '[:space:]')"
-
+  tagged="$(npm view "@entitykit/$name@$ENTITYKIT_RELEASE_TAG" version)"
   test "$published" = "$accepted"
   test "$tagged" = "$ENTITYKIT_RELEASE_VERSION"
   echo "verified @entitykit/$name@$ENTITYKIT_RELEASE_VERSION $accepted"
 done
 ```
 
-Then install through the public `alpha` tags in a clean consumer directory:
+Install all seven through the selected public tag in a fresh consumer, without
+`--force`, `--legacy-peer-deps` or overrides. Supply NestJS 12, `reflect-metadata`,
+`rxjs`, `pg` and `mysql2` for their integrations. Check the installed CLI version,
+load every declared entry point, run an application smoke test and inspect
+`npm ls @entitykit/core --all` for one compatible core. Confirm each version's
+npm provenance. Archive the accepted and registry integrities, dist-tag results
+and clean-install output with the exact source SHA.
+
+## Signed Git tag and GitHub Release
+
+The workflow has `contents: read` and finishes after npm promotion. A Git tag
+and GitHub Release are separate operator actions after public registry and
+consumer verification. Use the configured zsumz PGP identity, the exact dispatch
+SHA, reviewed notes and the downloaded accepted assets:
 
 ```sh
-export ENTITYKIT_INSTALL_DIR="$(mktemp -d)"
-cd "$ENTITYKIT_INSTALL_DIR"
-npm init --yes
-npm install \
-  @entitykit/core@alpha \
-  @entitykit/sqlite@alpha \
-  @entitykit/postgres@alpha \
-  @entitykit/mysql@alpha \
-  @entitykit/nestjs@alpha \
-  @entitykit/testing@alpha \
-  @entitykit/cli@alpha \
-  @nestjs/common@^12 @nestjs/core@^12 reflect-metadata rxjs \
-  pg mysql2
-
-./node_modules/.bin/entitykit --version
-node -e "require('@entitykit/core'); require('@entitykit/sqlite'); require('@entitykit/postgres'); require('@entitykit/mysql'); require('@entitykit/testing')"
-node --input-type=module -e "await import('@entitykit/nestjs')"
-npm ls @entitykit/core --all
-```
-
-The CLI version must equal `ENTITYKIT_RELEASE_VERSION`, every import must load,
-and `npm ls` must show one compatible core rather than a nested split. Also
-confirm the provenance attestation is visible for each version on npm.
-
-Archive the run URL, dispatch SHA, seven package identities, version, accepted
-integrities, registry integrities, dist-tag results, and clean-install output.
-These are the evidence that the published release is the release CI accepted.
-
-## Create the Git tag and GitHub Release
-
-The current release workflow has `contents: read` and stops after npm dist-tag
-promotion. It does **not** create or push a Git tag, and it does **not** create a
-GitHub Release. A green npm release must not be described as having either one.
-
-Complete that metadata manually after public registry and install verification.
-Use the configured zsumz signing identity, tag the exact dispatch SHA, and reuse
-the downloaded accepted tarballs—never repack assets from a working tree:
-
-```sh
+export ENTITYKIT_REPO="$(git rev-parse --show-toplevel)"
 export ENTITYKIT_RELEASE_SHA=<full-dispatch-sha>
+export ENTITYKIT_RELEASE_PRERELEASE=<true-for-alpha-or-false-for-stable>
 export ENTITYKIT_RELEASE_NOTES="$ENTITYKIT_REPO/docs/releases/$ENTITYKIT_RELEASE_VERSION.md"
 
 git -C "$ENTITYKIT_REPO" fetch origin main
 git -C "$ENTITYKIT_REPO" tag --sign --message "v$ENTITYKIT_RELEASE_VERSION" \
-  "v$ENTITYKIT_RELEASE_VERSION" \
-  "$ENTITYKIT_RELEASE_SHA"
+  "v$ENTITYKIT_RELEASE_VERSION" "$ENTITYKIT_RELEASE_SHA"
 git -C "$ENTITYKIT_REPO" push origin "v$ENTITYKIT_RELEASE_VERSION"
-
-gh release create \
-  "v$ENTITYKIT_RELEASE_VERSION" \
-  "$ENTITYKIT_ARTIFACT_DIR"/*.tgz \
-  --repo entitykit/entitykit \
-  --verify-tag \
-  --prerelease \
-  --title "EntityKit $ENTITYKIT_RELEASE_VERSION" \
-  --notes-file "$ENTITYKIT_RELEASE_NOTES"
+gh release create "v$ENTITYKIT_RELEASE_VERSION" "$ENTITYKIT_ARTIFACT_DIR"/*.tgz \
+  --repo entitykit/entitykit --verify-tag \
+  --prerelease="$ENTITYKIT_RELEASE_PRERELEASE" \
+  --title "EntityKit $ENTITYKIT_RELEASE_VERSION" --notes-file "$ENTITYKIT_RELEASE_NOTES"
 ```
 
-Review the release notes against the accepted artifact and exact compatibility
-boundary before creating the release. Do not substitute an unreviewed generated
-commit list for user-facing notes.
+Verify the tag signature and target SHA, then inspect the release assets.
+Preserve the accepted files before the Actions artifact's seven-day retention
+expires. Release notes and support claims must match the accepted family.
 
-Verify the signed tag resolves to the dispatch SHA and inspect the GitHub
-Release assets after upload. A pushed tag and a GitHub Release are distinct
-objects; check both. The workflow artifact is retained for seven days, so
-finish this step—or preserve the accepted files in controlled release
-evidence—before it expires.
+## Recover an interrupted run
 
-This is an operator step today, not hidden automation. If it is later moved
-into Actions, the workflow and this guide must change together.
+Before any publication, fix the failed gate or credential and qualify the new
+source revision. Once a candidate version has published, keep the original
+revision and accepted bytes for a retry. Matching versions are skipped;
+missing candidates continue. If the bytes must change, choose a new exact
+family version and qualify it again. Published versions are immutable.
 
-## Recover from an interrupted release
-
-- **Before candidate publication:** fix the source, credential, or CI failure;
-  bump the version if release bytes changed; then dispatch from the new green
-  `main`.
-- **After some candidates published:** keep `main` at the original release
-  commit and re-dispatch the same version. Matching registry bytes are skipped
-  and missing packages continue. If regenerated evidence differs, stop and
-  bump the family.
-- **After all candidates but before promotion:** re-dispatch from the same
-  commit. Promotion will not begin until all seven integrities match.
-- **During dist-tag movement:** the workflow retries each move three times and
-  verifies the complete public family. If it still stops, rerun the same
-  release; the integrity barrier remains valid and tag additions are repeatable.
-- **After npm succeeds but tag or GitHub Release creation fails:** retry only
-  the manual metadata step against the same SHA and accepted assets. Do not
-  republish npm packages.
-
-Never unpublish and reuse a version, overwrite a Git tag, promote only part of
-the family by hand, or turn a partial candidate set into the public alpha. When
-the accepted bytes must change, the only safe repair is a new exact family
-version.
+After an interrupted promotion, rerun the accepted release to converge all
+public tags. After npm succeeds, retry only missing Git or GitHub metadata
+against the same SHA and assets. Do not unpublish and reuse versions, overwrite
+signed tags, or promote individual family members by hand.

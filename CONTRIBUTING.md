@@ -13,8 +13,10 @@ npm ci
 npm run verify
 ```
 
-`npm run verify` runs lint, strict typechecking, the non-server Jest suite, the
-six-package tarball acceptance test, and the alpha-publish guards. The package
+`npm run verify` runs lint, scoped dependency audits, strict types, the
+non-server Jest suite, Next.js and Bookshop checks, public contract and historical
+migration checks, SQLite operational and performance qualification, the
+seven-package tarball acceptance test, and channel-aware publish dry runs. The package
 test builds the workspaces, installs the tarballs into a clean consumer, checks
 Node16 and NodeNext types, exercises CommonJS and ESM runtimes against SQLite,
 runs the installed CLI, and verifies the single-core package invariant.
@@ -27,7 +29,7 @@ npm run test:mutation
 ```
 
 The mutation lane is intentionally focused on release-critical restoration,
-migration, CLI, and provider-value seams. Run the relevant expensive gate
+migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate
 locally when changing the behavior it protects.
 
 Live provider work needs the matching database lane:
@@ -52,7 +54,7 @@ packages or layers. In particular:
 - no relative import may escape its package;
 - model and migration layers keep their tested inward dependency direction;
 - compatibility facades are re-export-only and are not internal shortcuts;
-- the six-package runtime graph remains acyclic;
+- the seven-package runtime graph remains acyclic;
 - source modules use focused kebab-case names and stay within the executable
   size budgets.
 
@@ -109,7 +111,7 @@ A pull request should state:
 4. any compatibility, migration, provider, or security effect.
 
 Keep generated output and dependency changes in the patch that requires them.
-Do not publish packages or move npm tags from a pull request; alpha publication
+Do not publish packages or move npm tags from a pull request; publication
 is a manual, protected workflow from `main`.
 
 Commit subjects use a one-line [Conventional Commit](https://www.conventionalcommits.org/)

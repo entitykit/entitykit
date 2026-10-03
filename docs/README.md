@@ -37,6 +37,8 @@ only when the application shuts down.
 | Use Next.js 16 with Postgres | [Frameworks: Next.js](frameworks.md#nextjs-16-node-runtime), then the [Next.js + Postgres demo](../examples/nextjs-postgres/) |
 | Choose or configure a provider | [Compatibility](compatibility.md#providers), then the SQLite, Postgres, or MySQL package README |
 | Design and review migrations | [Migrations](migrations.md) |
+| Upgrade an application | [Upgrade procedure](upgrading.md), then [published-release compatibility](migration-compatibility.md) |
+| Qualify a complete domain workflow | [Bookshop](../examples/bookshop/README.md), [operational recovery](provider-qualification.md), [performance budgets](../benchmarks/README.md) |
 | Extend a provider or understand internals | [Architecture](architecture.md), then [Contributing](../CONTRIBUTING.md) |
 | Prepare a coordinated release | [Release runbook](releasing.md) |
 | Report a problem or vulnerability | [Issue tracker](https://github.com/entitykit/entitykit/issues) or [Security](../SECURITY.md) |

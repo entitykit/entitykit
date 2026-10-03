@@ -1,6 +1,6 @@
 # Compatibility
 
-EntityKit's alpha contract is intentionally narrow. Package engine ranges say
+EntityKit is currently an alpha. Package engine ranges say
 what npm may install; the matrices below say what the release gate actually
 proves. Rows marked qualified describe required release lanes, not the live
 status of an arbitrary commit; a release is publishable only after every lane
@@ -12,7 +12,8 @@ passes on its exact source revision.
 | --- | --- | --- |
 | Node.js 22.13.0 | Qualified baseline | Runs the complete verify gate, builds release artifacts, and drives the coverage, mutation, Postgres, and MySQL lanes. This is the minimum supported version. |
 | Node.js 24 | Qualified | Runs the complete `npm run verify` gate. |
-| Other Node.js versions from 22.13 onward | Expected to work | Allowed by the package manifests, but not every minor or patch is a separate CI lane. |
+| Other patches/minors of Node.js 22 and 24 from 22.13 onward | Expected to work | Allowed by the package manifests, but not every minor or patch is a separate CI lane. |
+| Other Node.js majors | Unqualified | An engine range permits installation; a new major needs its own release campaign before support is claimed. |
 | Node.js before 22.13 | Unsupported | Outside `engines`; the SQLite provider also depends on the built-in `node:sqlite` module available at the supported baseline. |
 | Browsers, edge workers, Deno, and Bun | Unsupported | EntityKit is a Node.js library and uses Node database drivers, filesystem APIs, and module loading. |
 
@@ -140,3 +141,45 @@ The executable sources for these claims are the [CI matrix](../.github/workflows
 [package acceptance test](../scripts/check-package.js), and
 [architecture tests](../tests/architecture/). Security-sensitive boundaries are
 documented in the [security policy](../SECURITY.md).
+
+## Stable compatibility policy
+
+This policy applies when the first stable family is published. Current
+versions remain `0.1.0-alpha.2`; preparing a stable workflow does not convert an
+alpha into a stable release. The first stable version has not been selected.
+
+A stable compatibility line is one major version for `1.x` and later, or one
+minor version for `0.x`. Within that line, preserve public exports, declaration
+signatures and documented runtime behavior. Compatible additions and fixes
+require reviewed API reports and consumer acceptance. A breaking change needs
+a new compatibility line and explicit upgrade notes. The experimental entry
+remains outside this guarantee; internal files and undeclared deep imports
+remain private.
+
+The versioned [API reports](api/README.md) cover ten public entry points and
+all seven export maps. `check:api` refuses changes without explicit review.
+The migration-version constant changes with release metadata and is reviewed
+separately from signature changes. Every package in a release peers on the
+same exact core; applications must upgrade the family together.
+
+Persisted migration contracts include applied checksums, historical SQL,
+history rows and versioned model snapshot formats. Changing the SDK version
+must not rewrite an applied migration or silently reinterpret its snapshot.
+The [published-release upgrade campaign](migration-compatibility.md) installs
+the actual previous SDK, seeds databases and checks forward migration,
+rollback, existing data and checksum-drift refusal on all three providers.
+A future persisted-format change needs an explicit versioned transition and
+new compatibility evidence.
+
+The first stable family retains the declared Node, provider and module
+qualification matrix above. Stable publication does not broaden support to a
+different Node major, database major, operating system or bundler. Server
+patches exercised locally are recorded in [the hardening evidence](hardening.md);
+required CI lanes use Postgres 18 and MySQL 8.4. Custom providers own their
+qualification. Operational and performance budgets are documented in
+[provider qualification](provider-qualification.md) and
+[the benchmark guide](../benchmarks/README.md).
+
+Security maintenance follows [the support policy](../SECURITY.md#supported-versions).
+Use [the upgrade procedure](upgrading.md) for application deployment and
+[the release guide](releasing.md) for exact-source and accepted-artifact proof.

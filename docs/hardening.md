@@ -17,7 +17,7 @@ checkout and fulfillment application using public packages.
 | Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
 | Operational recovery | Canonical integration suites; real TCP commit-response loss and pre-commit disconnect recovery; atomic deadlock retries; killed migration process repair; abrupt Postgres and MySQL server restart durability, rollback and receipt replay | Final candidate qualification; storage hardware qualification belongs to deployment |
 | Performance/resources | Thirteen executable workloads per provider; direct-driver read comparisons, latency percentiles, constant query/parameter budgets, no-tracking stream bounds, disposed-context heap retention, pool pressure, atomic checkout and durable delivery | Final declared Node matrix and candidate qualification |
-| Release preparation | Seven-package tarball integrity and provenance workflow; alpha publication guards | Stable candidate/latest mechanics, stable support and upgrade policy, complete final qualification |
+| Release preparation | Alpha/stable channel policy and marked dry-run guards; executed workflow shell qualifies stable candidate/latest promotion, exact bytes, forward movement and interrupted-family convergence; stable support and upgrade policy | Complete final qualification; later authorized version selection and publication |
 
 ## Local evidence
 
@@ -102,6 +102,22 @@ without disabling nested or application authority scopes. The original
 The scope repair and performance gate passed the full canonical gate with
 492 suites / 2,999 tests and unchanged API contracts. Both remote operational
 campaigns passed again after the repair.
+
+Stable preparation passed the alpha publication acceptance for all seven
+unchanged packages and a real npm dry run of a synthetic stable package against
+a local registry that receives no writes. Executed release workflow shell
+tests qualify both channels: exact family preflight, clean-404 bootstrap,
+network/authentication refusal, backward-movement refusal for any sibling,
+candidate-only staging, same-integrity retry, conflicting-byte refusal,
+all-byte verification before promotion, renewed forward checks, bounded tag
+retries and convergence after a mixed partial family. These are local synthetic
+release-mechanics tests; no package, tag or release was published.
+
+The patched Next.js 16.3.8 demo passed both Chromium browser scenarios on
+Node 22.13 against a separate isolated Postgres database. Its migration check,
+dry run, application and status checks also passed. This qualifies the
+repository example's production paths; arbitrary Next.js apps and bundlers
+remain outside the declared matrix.
 
 Live qualification uses isolated SQLite files, Postgres 18.4 on a private
 loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote

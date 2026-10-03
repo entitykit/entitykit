@@ -219,7 +219,7 @@ manual dispatch from main + publish-alpha confirmation
   -> complete CI matrix
   -> build and pack exactly seven workspaces once
   -> install and accept those exact tarballs as an external consumer
-  -> publish absent versions under alpha-candidate with npm provenance
+  -> publish absent versions under the selected candidate tag with npm provenance
      or accept an existing version only when its integrity matches
   -> compare all seven registry integrities with the accepted tarballs
   -> move all seven alpha dist-tags
