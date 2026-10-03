@@ -42,7 +42,7 @@
     "prepack": "npm run build",
     "prepublishOnly": "node scripts/guard-alpha-publish.js",
     "release:alpha": "node -e \"console.error('Local publishing is not supported: dispatch the Release alpha workflow (.github/workflows/release.yml).'); process.exit(1)\"",
-    "verify": "npm run lint && npm run check:security && npm run typecheck && npm test && npm run check:nextjs && npm run check:bookshop && npm run check:api && npm run check:migration-compatibility && npm run check:package && npm run check:publish-alpha",
+    "verify": "npm run lint && npm run check:security && npm run typecheck && npm test && npm run check:nextjs && npm run check:bookshop && npm run check:api && npm run check:migration-compatibility && npm run check:operations && npm run check:package && npm run check:publish-alpha",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
     "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration",
     "check:security": "node scripts/check-dependency-audit.js",
@@ -53,7 +53,10 @@
     "update:api": "npm run build && node scripts/check-api.js --accept",
     "check:migration-compatibility": "npm run build && node scripts/check-migration-compatibility.js sqlite",
     "check:migration-compatibility:postgres": "npm run build && node scripts/check-migration-compatibility.js postgres",
-    "check:migration-compatibility:mysql": "npm run build && node scripts/check-migration-compatibility.js mysql"
+    "check:migration-compatibility:mysql": "npm run build && node scripts/check-migration-compatibility.js mysql",
+    "check:operations": "npm run build && node scripts/check-provider-operations.js sqlite",
+    "check:operations:postgres": "npm run build && node scripts/check-provider-operations.js postgres",
+    "check:operations:mysql": "npm run build && node scripts/check-provider-operations.js mysql"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",

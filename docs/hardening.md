@@ -11,7 +11,7 @@ checkout and fulfillment application using public packages.
 
 | Workstream | Current evidence | Remaining qualification |
 | --- | --- | --- |
-| Operation cancellation | Rejected promises stay observed; queued pool acquisition cancels promptly and releases late resources for queries, streams, transactions, and sessions | Real pool pressure, client disconnects, and strict-process resource checks |
+| Operation cancellation | Rejected promises stay observed; real single-connection pools reclaim 96 canceled queued operations per remote provider; active query cancellation, preaborted operations, stream exit and bounded strict-process shutdown pass on all three providers | Client disconnect and lost acknowledgment campaigns |
 | Dependencies | Compatible security fixes; runtime scopes have zero known advisories; unreviewed tooling findings fail | Re-review the expiring `braces` tooling exception when patched |
 | Public contracts | Versioned signatures and package exports; negative compatibility tests; published alpha.1 checksum/SQL/snapshot fixtures and actual persisted-data upgrade/rollback on all three providers | Final candidate qualification |
 | Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
@@ -42,6 +42,17 @@ providers. The candidate preserved its checksum, SQL, snapshot format and
 history row; read and versioned existing application data; applied and rolled
 back a new migration; and refused an altered historical migration body.
 The fixture records the integrity of each historical package artifact.
+
+The operational cancellation gate runs the built public packages in a separate
+Node process with strict unhandled rejections and a 30-second exit deadline.
+Postgres and MySQL each pass three rounds of 32 queued queries, streams,
+transactions and sessions behind a held single-connection pool, without
+executing canceled SQL or callbacks. Four canceled server sleep queries each
+permit an immediate healthy query. Every provider passes preaborted operations
+and 20 stream cancellation/early-return cycles with seven-row batches, followed
+by a healthy query and bounded source shutdown. SQLite checks cancellation
+between synchronous native steps; it does not promise interruption of a
+currently executing native statement.
 
 Live qualification uses isolated SQLite files, Postgres 18.4 on a private
 loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote
