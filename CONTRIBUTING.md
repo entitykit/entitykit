@@ -31,6 +31,9 @@ npm run test:mutation
 The mutation lane is intentionally focused on release-critical restoration,
 migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate
 locally when changing the behavior it protects.
+`test:mutation` includes a separate history-initialization and migration-lock
+campaign with the same score thresholds; run `npm run test:mutation:migrations`
+for that focused ownership check.
 
 Live provider work needs the matching database lane:
 

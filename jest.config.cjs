@@ -6,7 +6,7 @@ module.exports = {
   testMatch: ["**/tests/**/*.test.ts"],
   // Mutation runs create complete copies of the project. Ordinary Jest runs
   // must keep those copies out of test discovery and workspace resolution.
-  modulePathIgnorePatterns: ["<rootDir>/temp/stryker/"],
+  modulePathIgnorePatterns: ["<rootDir>/temp/stryker"],
   // Workspace package names resolve to package SOURCES so the suite exercises
   // the same files the mutation and coverage gates measure, with no build step.
   moduleNameMapper: {

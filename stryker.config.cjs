@@ -75,7 +75,7 @@ module.exports = {
   // The sandbox only ever runs the mutation suite, which resolves
   // `@entitykit/*` to package SOURCES. Copying the compiled output and the
   // coverage reports hauls thousands of files per run for nothing.
-  ignorePatterns: ['packages/*/dist', 'coverage', 'temp/playwright-browsers'],
+  ignorePatterns: ['packages/*/dist', 'coverage', 'temp/playwright-browsers', 'temp/stryker*'],
   testRunner: 'jest',
   jest: {
     projectType: 'custom',
