@@ -69,7 +69,7 @@ describe('package manifest', () => {
             prepack: 'npm run build',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
             verify: 'npm run lint && npm run check:security && npm run typecheck && npm test'
-                + ' && npm run check:nextjs && npm run check:package'
+                + ' && npm run check:nextjs && npm run check:bookshop && npm run check:package'
                 + ' && npm run check:publish-alpha',
         });
         // The P4 placeholder is gone: verify runs the packaging gates for real.

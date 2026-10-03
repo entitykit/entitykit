@@ -42,10 +42,13 @@
     "prepack": "npm run build",
     "prepublishOnly": "node scripts/guard-alpha-publish.js",
     "release:alpha": "node -e \"console.error('Local publishing is not supported: dispatch the Release alpha workflow (.github/workflows/release.yml).'); process.exit(1)\"",
-    "verify": "npm run lint && npm run check:security && npm run typecheck && npm test && npm run check:nextjs && npm run check:package && npm run check:publish-alpha",
+    "verify": "npm run lint && npm run check:security && npm run typecheck && npm test && npm run check:nextjs && npm run check:bookshop && npm run check:package && npm run check:publish-alpha",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
     "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration",
-    "check:security": "node scripts/check-dependency-audit.js"
+    "check:security": "node scripts/check-dependency-audit.js",
+    "check:bookshop": "npm run build && npm run verify --workspace @entitykit/example-bookshop",
+    "check:bookshop:postgres": "npm run build && npm run build --workspace @entitykit/example-bookshop && npm run qualify:postgres --workspace @entitykit/example-bookshop",
+    "check:bookshop:mysql": "npm run build && npm run build --workspace @entitykit/example-bookshop && npm run qualify:mysql --workspace @entitykit/example-bookshop"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",

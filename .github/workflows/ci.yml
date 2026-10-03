@@ -93,6 +93,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:integration
+      - name: Qualify the bookstore on Postgres
+        run: npm run check:bookshop:postgres
+        env:
+          BOOKSHOP_DATABASE_URL: ${{ env.DATABASE_URL }}
 
   mysql:
     name: Live MySQL
@@ -123,6 +127,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:integration:mysql
+      - name: Qualify the bookstore on MySQL
+        run: npm run check:bookshop:mysql
+        env:
+          BOOKSHOP_DATABASE_URL: ${{ env.MYSQL_URL }}
 
   nextjs:
     name: Next.js 16 + Postgres demo
