@@ -105,6 +105,11 @@ jobs:
         run: npm run check:operations:postgres
         env:
           ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.DATABASE_URL }}
+      - name: Qualify an abrupt Postgres server restart
+        run: npm run check:server-recovery:postgres
+        env:
+          ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.DATABASE_URL }}
+          ENTITYKIT_CRASH_CONTAINER: ${{ job.services.postgres.id }}
 
   mysql:
     name: Live MySQL
@@ -147,6 +152,11 @@ jobs:
         run: npm run check:operations:mysql
         env:
           ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.MYSQL_URL }}
+      - name: Qualify an abrupt MySQL server restart
+        run: npm run check:server-recovery:mysql
+        env:
+          ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.MYSQL_URL }}
+          ENTITYKIT_CRASH_CONTAINER: ${{ job.services.mysql.id }}
 
   nextjs:
     name: Next.js 16 + Postgres demo

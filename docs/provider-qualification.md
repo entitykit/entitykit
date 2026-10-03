@@ -64,3 +64,27 @@ never treats that procedure as a general repair algorithm. A fresh runner must
 recover the migration lock, apply once, repeat without work, and roll back.
 These checks also reset `__entitykit_migrations`, `entitykit_crash_probe`, and
 `entitykit_deadlock_probe` in the isolated database.
+
+## Database server recovery
+
+`check:server-recovery:postgres` and `check:server-recovery:mysql` add an abrupt
+server restart with a committed checkout and another checkout uncommitted.
+They reset the Bookshop tables in the isolated database. Set
+`ENTITYKIT_OPERATION_DATABASE_URL` and `ENTITYKIT_CRASH_CONTAINER` to the
+dedicated service's container name or ID. The controller inspects its image,
+database name and bound port before SIGKILL and restart. CI passes each job's
+own database service ID; it does not restart Docker itself.
+
+Local native Postgres can instead set `ENTITYKIT_CRASH_POSTGRES_DATA` and
+`ENTITYKIT_CRASH_POSTGRES_CTL`. This path is restricted to a temporary cluster
+under `/tmp/entitykit-hardening-postgres.*`, with its data directory and bound
+port verified against `postmaster.pid`. It uses immediate shutdown and restores
+the loopback port and Unix socket when starting the server again.
+
+The controller must complete successfully. A fresh application source must
+observe the committed transaction unchanged, replay its receipt, find none of
+the interrupted transaction's changes, and accept that command anew. All
+processes run with strict promise rejection handling. SQLite is embedded, so
+the Bookshop application SIGKILL/exit drills qualify its process recovery.
+Storage hardware, filesystem, power-loss and backup recovery are deployment
+qualifications beyond this process-restart campaign.

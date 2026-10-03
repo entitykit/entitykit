@@ -15,7 +15,7 @@ checkout and fulfillment application using public packages.
 | Dependencies | Compatible security fixes; runtime scopes have zero known advisories; unreviewed tooling findings fail | Re-review the expiring `braces` tooling exception when patched |
 | Public contracts | Versioned signatures and package exports; negative compatibility tests; published alpha.1 checksum/SQL/snapshot fixtures and actual persisted-data upgrade/rollback on all three providers | Final candidate qualification |
 | Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
-| Operational recovery | Canonical integration suites; real TCP commit-response loss and pre-commit disconnect recovery; deadlock victims retry whole atomic operations; migration processes killed after DDL, provider-specific rollback/partial repair and lock/history recovery pass | Database server restart campaign |
+| Operational recovery | Canonical integration suites; real TCP commit-response loss and pre-commit disconnect recovery; atomic deadlock retries; killed migration process repair; abrupt Postgres and MySQL server restart durability, rollback and receipt replay | Final candidate qualification; storage hardware qualification belongs to deployment |
 | Performance/resources | Benchmark evidence validation | Executable representative workloads, direct-driver comparison, latency/query-count/memory/stream/pool budgets |
 | Release preparation | Seven-package tarball integrity and provenance workflow; alpha publication guards | Stable candidate/latest mechanics, stable support and upgrade policy, complete final qualification |
 
@@ -78,6 +78,15 @@ inspects the known empty partial object before explicitly dropping it. A fresh
 runner then reacquires the migration lock, applies exactly once, and rolls back
 cleanly on every provider. This is a migration repair qualification, not an
 automatic destructive repair policy for application databases.
+
+The server campaign restarts only a verified isolated database instance while
+Bookshop has one committed checkout and a second checkout persisted inside an
+uncommitted transaction. PostgreSQL immediate shutdown and MySQL SIGKILL both
+recover the committed inventory/version/order/audit/outbox/receipt, discard
+all uncommitted state, replay the original receipt, and accept a fresh command.
+SQLite's embedded engine is covered by the application process crash campaign.
+These are database process recovery results; filesystem, storage hardware,
+backup restoration and host power loss must be qualified by the deployment.
 
 Live qualification uses isolated SQLite files, Postgres 18.4 on a private
 loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote

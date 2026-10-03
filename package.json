@@ -56,7 +56,9 @@
     "check:migration-compatibility:mysql": "npm run build && node scripts/check-migration-compatibility.js mysql",
     "check:operations": "npm run build && node scripts/check-provider-operations.js sqlite",
     "check:operations:postgres": "npm run build && npm run build --workspace @entitykit/example-bookshop && node scripts/check-provider-operations.js postgres",
-    "check:operations:mysql": "npm run build && npm run build --workspace @entitykit/example-bookshop && node scripts/check-provider-operations.js mysql"
+    "check:operations:mysql": "npm run build && npm run build --workspace @entitykit/example-bookshop && node scripts/check-provider-operations.js mysql",
+    "check:server-recovery:postgres": "npm run build && npm run build --workspace @entitykit/example-bookshop && node scripts/check-server-recovery.js postgres",
+    "check:server-recovery:mysql": "npm run build && npm run build --workspace @entitykit/example-bookshop && node scripts/check-server-recovery.js mysql"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",
