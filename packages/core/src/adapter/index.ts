@@ -109,6 +109,7 @@ export {
     isOperationAborted,
     throwIfOperationAborted,
 } from '../storage/operation-cancellation';
+export { acquireWithOperationCancellation } from '../storage/resource-acquisition-cancellation';
 export { withOperationSignal } from '../storage/with-operation-signal';
 export {
     isQueryAborted,

@@ -76,6 +76,12 @@ never retries an unknown transaction outcome. A data source rejects new work
 after disposal and rejects disposal while connection leases or retry operations
 are active.
 
+Operation options accept an `AbortSignal`. Postgres and MySQL cancel queued pool
+acquisition promptly, including queries, streams, transactions, and pinned
+sessions. A connection that arrives after cancellation is released without
+running the canceled work. Cancellation inside an already active transaction
+remains cooperative so its connection can still roll back safely.
+
 ## `DbContext`
 
 Derive one context class for a unit of work. Declare sets as fields and map
