@@ -11,11 +11,11 @@ checkout and fulfillment application using public packages.
 
 | Workstream | Current evidence | Remaining qualification |
 | --- | --- | --- |
-| Operation cancellation | Rejected promises stay observed; real single-connection pools reclaim 96 canceled queued operations per remote provider; active query cancellation, preaborted operations, stream exit and bounded strict-process shutdown pass on all three providers | Client disconnect and lost acknowledgment campaigns |
+| Operation cancellation | Rejected promises stay observed; real single-connection pools reclaim 96 canceled queued operations per remote provider; active query cancellation, preaborted operations, stream exit and bounded strict-process shutdown pass; checked-out Postgres clients own asynchronous driver errors | Final candidate qualification |
 | Dependencies | Compatible security fixes; runtime scopes have zero known advisories; unreviewed tooling findings fail | Re-review the expiring `braces` tooling exception when patched |
 | Public contracts | Versioned signatures and package exports; negative compatibility tests; published alpha.1 checksum/SQL/snapshot fixtures and actual persisted-data upgrade/rollback on all three providers | Final candidate qualification |
 | Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
-| Operational recovery | Canonical Postgres and MySQL integration suites; Bookshop process crash drills | Lost commit acknowledgment, deadlock/disconnect recovery, provider-specific migration crash/repair drills |
+| Operational recovery | Canonical Postgres and MySQL integration suites; Bookshop process crash drills; actual successful commit responses dropped over TCP on both remote providers, unknown outcomes refuse retries and durable receipts replay | Deadlock/disconnect recovery, provider-specific migration crash/repair drills |
 | Performance/resources | Benchmark evidence validation | Executable representative workloads, direct-driver comparison, latency/query-count/memory/stream/pool budgets |
 | Release preparation | Seven-package tarball integrity and provenance workflow; alpha publication guards | Stable candidate/latest mechanics, stable support and upgrade policy, complete final qualification |
 
@@ -53,6 +53,17 @@ and 20 stream cancellation/early-return cycles with seven-row batches, followed
 by a healthy query and bounded source shutdown. SQLite checks cancellation
 between synchronous native steps; it does not promise interruption of a
 currently executing native statement.
+
+The lost acknowledgment campaign exposed a fatal asynchronous `pg` client
+error after socket loss while checked out. A scoped client lease now owns
+driver errors, refuses further SQL on failed clients, removes them from the
+pool, and hands event ownership back on release without accumulating listeners.
+The real TCP fault now returns an unknown transaction outcome on both remote
+providers. A deliberately permissive retry policy is never consulted; replay
+through the committed Bookshop receipt proves one complete atomic checkout.
+This repair passed the complete gate with 490 suites / 2,990 tests, unchanged
+public API reports, package acceptance, and both canonical live suites again
+(Postgres 125 tests, MySQL 94 tests).
 
 Live qualification uses isolated SQLite files, Postgres 18.4 on a private
 loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote

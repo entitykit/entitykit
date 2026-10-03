@@ -64,6 +64,7 @@ describe('provider seam architecture: registration', () => {
             'packages/postgres/src/index.ts',
             'packages/postgres/src/pg-database-connection.ts',
             'packages/postgres/src/postgres-buffered-query.ts',
+            'packages/postgres/src/postgres-client-lease.ts',
             'packages/postgres/src/postgres-column-generation.ts',
             'packages/postgres/src/postgres-commit-outcome.ts',
             'packages/postgres/src/postgres-connection-acquisition.ts',

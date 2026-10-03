@@ -51,6 +51,9 @@ async function main() {
     console.log(`PROVIDER_STREAM_EARLY_EXIT_RECOVERY_OK ${provider} rounds=20 batch=7`);
     await withConnection(source, connection => connection.query(statement('drop table entitykit_operation_probe')));
     await within(source.dispose(), 2_000, 'data source shutdown');
+    if (provider !== 'sqlite') {
+      await require('./qualify-lost-commit-acknowledgment').qualifyLostCommitAcknowledgment(provider, target);
+    }
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(warnings, []);
     console.log(`PROVIDER_RESOURCE_SHUTDOWN_OK ${provider}`);
