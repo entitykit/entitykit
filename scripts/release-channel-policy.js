@@ -42,10 +42,10 @@ function compareVersions(left, right) {
   return left.prerelease > right.prerelease ? 1 : -1;
 }
 
-function requireForwardRelease(version, channel, current) {
+function requireForwardRelease(version, channel, current, allowNewPackage = false) {
   const next = requireReleaseVersion(version, channel);
   if (current === undefined || current === '') {
-    if (channel !== 'stable') throw new Error('The current alpha tag must resolve.');
+    if (channel !== 'stable' && !allowNewPackage) throw new Error('The current alpha tag must resolve.');
     return 'bootstrap';
   }
   const previous = releasePolicy(current);
@@ -61,10 +61,13 @@ module.exports = { releasePolicy, requireReleaseVersion, requireForwardRelease }
 
 if (require.main === module) {
   try {
-    const [action, version, channel, current] = process.argv.slice(2);
+    const [action, version, channel, current, allowance] = process.argv.slice(2);
+    if (allowance !== undefined && allowance !== '' && allowance !== '--allow-new-package') {
+      throw new Error(`Unsupported release policy allowance: ${allowance}.`);
+    }
     const policy = requireReleaseVersion(version, channel);
     if (action === 'candidate') console.log(`${policy.targetTag} ${policy.candidateTag}`);
-    else if (action === 'current') console.log(requireForwardRelease(version, channel, current));
+    else if (action === 'current') console.log(requireForwardRelease(version, channel, current, allowance === '--allow-new-package'));
     else throw new Error(`Unsupported release policy action: ${String(action)}.`);
   } catch (error) {
     console.error(error.message);

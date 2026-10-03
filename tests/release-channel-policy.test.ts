@@ -56,4 +56,9 @@ describe('release channel policy', () => {
         expect(() => requireForwardRelease('0.1.0-alpha.2', 'alpha', '0.1.0')).toThrow('not an alpha');
         expect(() => requireForwardRelease('1.0.0', 'stable', '1.0.0-beta.1')).toThrow('Unsupported');
     });
+
+    it('permits an explicitly absent new alpha sibling after the core anchor is checked', () => {
+        expect(requireForwardRelease('0.1.0-alpha.2', 'alpha', '', true)).toBe('bootstrap');
+        expect(() => requireForwardRelease('0.1.0-alpha.2', 'alpha', 'garbage', true)).toThrow('Unsupported');
+    });
 });

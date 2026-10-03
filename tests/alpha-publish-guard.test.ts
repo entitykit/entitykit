@@ -16,7 +16,8 @@ function run(
     else env.npm_config_tag = tag;
     if (acceptanceDryRun) {
         env.npm_config_dry_run = 'true';
-        env.ENTITYKIT_ALPHA_DRY_RUN = 'accept';
+        if (tag === 'latest') env.ENTITYKIT_RELEASE_DRY_RUN = 'accept';
+        else env.ENTITYKIT_ALPHA_DRY_RUN = 'accept';
     } else {
         delete env.npm_config_dry_run;
         delete env.ENTITYKIT_ALPHA_DRY_RUN;
@@ -39,14 +40,14 @@ describe('alpha publish guard', () => {
     it.each([undefined, 'latest', 'beta'])(
         'rejects non-alpha tag %s',
         tag => {
-            const result = run(tag, process.cwd(), true);
+            const result = run(tag, packageDirectory(undefined), true);
             expect(result.status).toBe(1);
             expect(result.stderr).toContain('Refusing prerelease publication');
         },
     );
 
     it('accepts the alpha tag only for the repository dry-run gate', () => {
-        const result = run('alpha', process.cwd(), true);
+        const result = run('alpha', packageDirectory(undefined), true);
         expect(result.status).toBe(0);
         expect(result.stderr).toBe('');
     });
@@ -63,12 +64,14 @@ describe('alpha publish guard', () => {
         name => {
             // npm runs prepublishOnly with the cwd set to the package directory.
             const directory = path.join(process.cwd(), 'packages', name);
-
-            expect(run('alpha', directory, true).status).toBe(0);
-            const refused = run('latest', directory, true);
+            const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8')) as { version: string };
+            const tag = manifest.version.includes('-alpha.') ? 'alpha' : 'latest';
+            const wrongTag = tag === 'alpha' ? 'latest' : 'alpha';
+            expect(run(tag, directory, true).status).toBe(0);
+            const refused = run(wrongTag, directory, true);
             expect(refused.status).toBe(1);
             expect(refused.stderr).toContain(`@entitykit/${name}`);
-            expect(refused.stderr).toContain('dist-tag \'latest\'');
+            expect(refused.stderr).toContain(`dist-tag '${wrongTag}'`);
         },
     );
 

@@ -9,5 +9,5 @@ export interface ReleasePolicy {
 export function releasePolicy(version: unknown): ReleasePolicy;
 export function requireReleaseVersion(version: unknown, channel: unknown): ReleasePolicy;
 export function requireForwardRelease(
-    version: unknown, channel: unknown, current?: string,
+    version: unknown, channel: unknown, current?: string, allowNewPackage?: boolean,
 ): 'bootstrap' | 'retry' | 'forward';
