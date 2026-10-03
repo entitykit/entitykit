@@ -39,7 +39,7 @@ The exact runtime and provider qualification is in
 
 ## Scope
 
-This policy covers vulnerabilities in the six `@entitykit/*` packages, their
+This policy covers vulnerabilities in the seven `@entitykit/*` packages, their
 owned build and release process, and the way EntityKit integrates with its
 first-party providers.
 
@@ -125,8 +125,26 @@ implicitly and may leave a partially applied migration after failure.
 ## Release integrity
 
 Alpha publication is manual from `main`. The release workflow runs the complete
-CI matrix, packs six tarballs once, accepts those exact files as an external
+CI matrix, packs seven tarballs once, accepts those exact files as an external
 consumer, publishes absent versions with npm provenance under a candidate tag,
-accepts same-integrity existing versions on retry, compares all six registry
+accepts same-integrity existing versions on retry, compares all seven registry
 integrities, and only then moves the `alpha` tags. A version already present
 with different bytes stops the release.
+
+## Dependency qualification
+
+`npm run check:security` audits the seven publishable packages and every example
+with development dependencies excluded; any known runtime advisory fails. A
+separate whole-workspace audit rejects unreviewed advisories, dependency paths,
+versions, and runtime reachability. Registry failures also fail the gate.
+
+The sole tooling exception is
+[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
+which has no patched `braces` release as of October 3, 2026. Repository-owned
+Jest, mutation, and Next ESLint glob patterns reach these development tools.
+Application requests and the published dependency graph do not. Tools must
+never process untrusted glob patterns. The exact reviewed paths and versions
+are in [security-tooling-review.json](docs/security-tooling-review.json). The
+exception expires on November 2, 2026, and must be removed when a compatible
+patch is available or explicitly reviewed again. This is a scoped risk
+disposition, not a claim that the whole toolchain has zero advisories.

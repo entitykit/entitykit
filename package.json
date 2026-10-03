@@ -42,9 +42,10 @@
     "prepack": "npm run build",
     "prepublishOnly": "node scripts/guard-alpha-publish.js",
     "release:alpha": "node -e \"console.error('Local publishing is not supported: dispatch the Release alpha workflow (.github/workflows/release.yml).'); process.exit(1)\"",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run check:nextjs && npm run check:package && npm run check:publish-alpha",
+    "verify": "npm run lint && npm run check:security && npm run typecheck && npm test && npm run check:nextjs && npm run check:package && npm run check:publish-alpha",
     "test:integration": "node scripts/require-postgres-url.js && node scripts/wait-for-postgres.js && RUN_POSTGRES_TESTS=true jest --runInBand tests/integration",
-    "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration"
+    "test:integration:mysql": "node scripts/require-mysql-url.js && node scripts/wait-for-mysql.js && RUN_MYSQL_TESTS=true jest --runInBand tests/integration",
+    "check:security": "node scripts/check-dependency-audit.js"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",
@@ -70,10 +71,10 @@
     "node": ">=22.13"
   },
   "overrides": {
-    "brace-expansion": "5.0.8",
+    "brace-expansion": "5.0.12",
     "glob": "13.0.6",
     "minimatch": "10.2.6",
-    "qs": "6.15.3"
+    "qs": "6.16.0"
   },
   "sideEffects": false
 }

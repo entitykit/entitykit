@@ -68,7 +68,7 @@ describe('package manifest', () => {
             typecheck: 'tsc -p tsconfig.json --noEmit',
             prepack: 'npm run build',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
-            verify: 'npm run lint && npm run typecheck && npm test'
+            verify: 'npm run lint && npm run check:security && npm run typecheck && npm test'
                 + ' && npm run check:nextjs && npm run check:package'
                 + ' && npm run check:publish-alpha',
         });
