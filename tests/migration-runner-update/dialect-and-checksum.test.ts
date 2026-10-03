@@ -16,7 +16,6 @@ import { CreateUsers, migrationDiagnostics, migrationEvents, noLockMigrationDial
 describe('migration update dialect and checksums', () => {
     it('uses the configured migration dialect for history SQL and optional locking', async () => {
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult(); // ensure history table before optional lock
         connection.queueResult(); // ensure history table in getAppliedMigrations
         connection.queueResult({ rows: [] }); // history rows
         connection.queueResult(); // create users inside transaction
@@ -31,13 +30,12 @@ describe('migration update dialect and checksums', () => {
         expect(connection.transactionEvents).toEqual(['begin', 'commit']);
         expect(connection.statements.map(statement => statement.text)).toEqual([
             'create table if not exists [migrations] ([id] text primary key, [name] text not null, [checksum] text not null, [entitykit_version] text not null)',
-            'create table if not exists [migrations] ([id] text primary key, [name] text not null, [checksum] text not null, [entitykit_version] text not null)',
             'select [id], [name], [checksum], [entitykit_version] from [migrations] order by [id]',
             'create table if not exists [users] ([id] uuid primary key)',
             'insert into [migrations] ([id], [name], [checksum], [entitykit_version]) values (?, ?, ?, ?)',
         ]);
         expect(connection.statements.map(statement => statement.text)).not.toContain('select pg_advisory_lock(hashtext($1))');
-        expect(connection.statements[4]?.values.slice(0, 2)).toEqual([new CreateUsers().id, new CreateUsers().name]);
+        expect(connection.statements[3]?.values.slice(0, 2)).toEqual([new CreateUsers().id, new CreateUsers().name]);
     });
 
     it('uses the configured migration dialect when generating scripts', () => {
@@ -53,7 +51,6 @@ describe('migration update dialect and checksums', () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult();
         connection.queueResult();
-        connection.queueResult();
         connection.queueResult({ rows: [{ id: '20260601120000_CreateUsers', name: 'CreateUsers', checksum: 'bad' }] });
         connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
 
@@ -67,7 +64,6 @@ describe('migration update dialect and checksums', () => {
     it('emits migration diagnostics for checksum mismatches', async () => {
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [{ id: '20260601120000_CreateUsers', name: 'CreateUsers', checksum: 'bad' }] });
@@ -125,7 +121,6 @@ describe('migration update dialect and checksums', () => {
         expect(upStatements.at(-1)?.values[2]).toBe(expectedChecksum);
 
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({

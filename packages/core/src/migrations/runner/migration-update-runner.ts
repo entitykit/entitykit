@@ -53,7 +53,6 @@ export class MigrationUpdateRunner {
         });
 
         const createHistory = createMigrationHistoryTableStatement(this.dialect);
-        await this.database.query(createHistory, options);
         const lock = new MigrationUpdateLock(
             this.database,
             this.dialect,

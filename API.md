@@ -467,6 +467,11 @@ Import migration authoring and execution APIs from
 | Integrity | `migrationChecksum`, migration metadata constants, typed migration errors |
 
 Applied migrations record their id, name, checksum, and EntityKit version.
+`update()` and the default `getAppliedMigrations()` initialize history while
+holding the provider migration lock on one session. Initialization runs outside
+caller transactions. Use `getAppliedMigrations({ initializeHistory: false })`
+for a read-only check, including inside a caller transaction; an absent history
+table returns an empty list without creating schema or acquiring a lock.
 Generated migration files and scripts must be reviewed before deployment.
 
 ## Tooling and adapters

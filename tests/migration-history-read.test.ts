@@ -40,6 +40,19 @@ describe('read-only migration history', () => {
             !statement.text.startsWith('create table'))).toBe(true);
     });
 
+    it('refuses a read-only check when the adapter cannot inspect table existence', async () => {
+        const connection = new RecordingDatabaseConnection();
+        const dialect = { ...postgresMigrationDialect };
+        delete dialect.migrationHistoryTableExistsStatement;
+
+        await expect(new MigrationRunner(connection, dialect)
+            .getAppliedMigrations({ initializeHistory: false })).rejects.toThrow(
+            'Migration dialect \'postgres\' cannot inspect migration history without changing the database.',
+        );
+        expect(connection.statements).toEqual([]);
+        expect(connection.sessionEvents).toEqual([]);
+    });
+
     it.each([
         ['postgres', postgresMigrationDialect],
         ['sqlite', sqliteMigrationDialect],

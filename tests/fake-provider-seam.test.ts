@@ -100,7 +100,6 @@ describe('fake provider seam fixture', () => {
         expect(connection.transactionEvents).toEqual(['begin', 'commit']);
         expect(connection.statements.map(statement => statement.text)).toEqual([
             'create table if not exists `entitykit_migrations` (`id` text primary key, `name` text not null, `checksum` text not null, `entitykit_version` text not null)',
-            'create table if not exists `entitykit_migrations` (`id` text primary key, `name` text not null, `checksum` text not null, `entitykit_version` text not null)',
             'select `id`, `name`, `checksum`, `entitykit_version` from `entitykit_migrations` order by `id`',
             'create table if not exists `fake_users` (`id` text primary key, `email` text not null)',
             'insert into `entitykit_migrations` (`id`, `name`, `checksum`, `entitykit_version`) values (?, ?, ?, ?)',

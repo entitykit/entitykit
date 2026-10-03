@@ -24,7 +24,6 @@ describe('MySQL migration locks', () => {
 
     it('holds the lock around migration discovery on one session', async () => {
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult();
         connection.queueResult({ rows: [{ acquired: 1 }] });
         connection.queueResult();
         connection.queueResult({ rows: [] });
@@ -42,11 +41,6 @@ describe('MySQL migration locks', () => {
         });
         expect(connection.sessionEvents).toEqual(['start', 'end']);
         expect(connection.statements).toEqual([
-            containing({
-                text: stringContaining(
-                    'create table if not exists `__entitykit_migrations`',
-                ),
-            }),
             {
                 text: `select get_lock(${lockName}, -1) as acquired`,
                 values: [migrationLockKey],
@@ -73,7 +67,6 @@ describe('MySQL migration locks', () => {
         ['an unexpected zero', 0],
     ])('fails safely when GET_LOCK returns %s', async (_label, acquired) => {
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult();
         connection.queueResult({ rows: [{ acquired }] });
 
         await expect(new MigrationRunner(
@@ -88,13 +81,12 @@ describe('MySQL migration locks', () => {
             }),
         });
 
-        expect(connection.statements).toHaveLength(2);
+        expect(connection.statements).toHaveLength(1);
         expect(connection.sessionEvents).toEqual(['start', 'end']);
     });
 
     it('fails cleanup when RELEASE_LOCK reports a different owner', async () => {
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult();
         connection.queueResult({ rows: [{ acquired: 1 }] });
         connection.queueResult();
         connection.queueResult({ rows: [] });

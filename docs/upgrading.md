@@ -30,6 +30,12 @@ their recorded EntityKit versions. Use new migrations for new schema changes.
 Do not regenerate old SQL or update history rows to match the new SDK version.
 Review the checked-in model snapshot and any explicit format transition.
 
+Migration history initialization uses the provider migration lock and runs
+outside caller transactions, including the default `getAppliedMigrations()`
+call. For a read-only history check inside a caller transaction, pass
+`{ initializeHistory: false }`; this mode does not create an absent history table
+or acquire a migration lock.
+
 Use the installed CLI to inspect status and render the plan:
 
 ```sh

@@ -8,7 +8,7 @@ import { MigrationSqlGenerator } from './migration-sql-generator';
 import { postgresMigrationDialect, type MigrationSqlDialect } from './migration-sql-dialect';
 import { MigrationDiagnostics } from './runner/migration-diagnostics';
 import { MigrationExecutor } from './runner/migration-executor';
-import { MigrationUpdateLock } from './runner/migration-update-lock';
+import { runMigrationLockOperation } from './runner/migration-lock-operation';
 import type {
     MigrationRunnerDiagnosticsOptions,
     MigrationHistoryOptions,
@@ -95,11 +95,13 @@ export type {
     /** Return applied migrations. */ public async getAppliedMigrations(
         options: MigrationHistoryOptions = {},
     ): Promise<MigrationHistoryRow[]> {
-        return readMigrationHistory(
-            this.database,
-            this.dialect,
+        if (options.initializeHistory === false) {
+            return readMigrationHistory(this.database, this.dialect, options, 'check');
+        }
+        this.assertOutsideTransaction('history initialization');
+        return this.runWithMigrationLock(
+            async () => readMigrationHistory(this.database, this.dialect, options),
             options,
-            options.initializeHistory === false ? 'check' : 'initialize',
         );
     }
 
@@ -126,24 +128,8 @@ export type {
         work: () => TResult | Promise<TResult>,
         options: MigrationOperationOptions,
     ): Promise<TResult> {
-        const runInSession = this.database.session?.bind(this.database)
-      ?? (async <T>(sessionWork: () => Promise<T>) => sessionWork());
-        return runInSession(async () => {
-            const lock = new MigrationUpdateLock(
-                this.database,
-                this.dialect,
-                this.diagnostics,
-            );
-            let primaryError: unknown;
-            try {
-                await lock.acquire(options);
-                return await work();
-            } catch (error) {
-                primaryError = error;
-                throw error;
-            } finally {
-                await lock.release(primaryError);
-            }
-        }, options);
+        return runMigrationLockOperation(
+            this.database, this.dialect, this.diagnostics, work, options,
+        );
     }
 }

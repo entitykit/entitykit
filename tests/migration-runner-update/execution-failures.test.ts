@@ -13,7 +13,6 @@ describe('migration update execution failures', () => {
         const failure = new Error('statement failed');
         connection.queueResult();
         connection.queueResult();
-        connection.queueResult();
         connection.queueResult({ rows: [] });
         connection.queueResult();
         connection.queueError(failure);
@@ -37,7 +36,6 @@ describe('migration update execution failures', () => {
 
         expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(connection.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select pg_advisory_lock(hashtext($1))',
             'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select "id", "name", "checksum", "entitykit_version", "applied_at" from "__entitykit_migrations" order by "id"',
@@ -66,7 +64,6 @@ describe('migration update execution failures', () => {
     it('preserves the provider failure when diagnostics also fail', async () => {
         const connection = new RecordingDatabaseConnection();
         const providerFailure = new Error('statement failed');
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [] });
@@ -99,7 +96,6 @@ describe('migration update execution failures', () => {
         const failure = new Error('history insert failed');
         connection.queueResult();
         connection.queueResult();
-        connection.queueResult();
         connection.queueResult({ rows: [] });
         connection.queueResult();
         connection.queueError(failure);
@@ -123,7 +119,6 @@ describe('migration update execution failures', () => {
 
         expect(connection.transactionEvents).toEqual(['begin', 'rollback']);
         expect(connection.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select pg_advisory_lock(hashtext($1))',
             'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select "id", "name", "checksum", "entitykit_version", "applied_at" from "__entitykit_migrations" order by "id"',
@@ -136,7 +131,6 @@ describe('migration update execution failures', () => {
     it('wraps failures after transaction-suppressed statements with partial-recovery guidance', async () => {
         const connection = new RecordingDatabaseConnection();
         const failure = new Error('post-suppressed statement failed');
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [] });
@@ -162,7 +156,6 @@ describe('migration update execution failures', () => {
 
         expect(connection.transactionEvents).toEqual(['begin', 'commit', 'begin', 'rollback']);
         expect(connection.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select pg_advisory_lock(hashtext($1))',
             'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select "id", "name", "checksum", "entitykit_version", "applied_at" from "__entitykit_migrations" order by "id"',

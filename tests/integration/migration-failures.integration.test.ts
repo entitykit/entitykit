@@ -138,23 +138,52 @@ maybe('migration failure paths', () => {
         expect(await tables()).toEqual(['mig_first']);
     });
 
-    it('applies each migration exactly once when two runners race', async () => {
+    it.each([1, 2, 3, 4])('applies each migration exactly once when two runners race on fresh bootstrap %i', async () => {
         const { PostgresDatabaseConnection } = await import('../../packages/postgres/src/pg-database-connection');
         const second = new PostgresDatabaseConnection(requireDefined(process.env.DATABASE_URL));
 
-        const results = await Promise.allSettled([
-            runner(connection).update([new CreateFirst(), new CreateThird()]),
-            runner(second).update([new CreateFirst(), new CreateThird()]),
-        ]);
+        try {
+            const results = await Promise.allSettled([
+                runner(connection).update([new CreateFirst(), new CreateThird()]),
+                runner(second).update([new CreateFirst(), new CreateThird()]),
+            ]);
 
-        // The advisory lock serializes them: one does the work, the other finds
-        // nothing left to do. Neither fails, and neither applies twice.
-        expect(results.every(result => result.status === 'fulfilled')).toBe(true);
-        const applied = results.map(result => result.status === 'fulfilled' ? result.value.appliedMigrations.length : -1);
-        expect(applied.reduce((total, count) => total + count, 0)).toBe(2);
+            // The advisory lock serializes them: one does the work, the other finds
+            // nothing left to do. Neither fails, and neither applies twice.
+            expect(results).toEqual([
+                expect.objectContaining({ status: 'fulfilled' }),
+                expect.objectContaining({ status: 'fulfilled' }),
+            ]);
+            const applied = results.map(result => result.status === 'fulfilled' ? result.value.appliedMigrations.length : -1);
+            expect(applied.reduce((total, count) => total + count, 0)).toBe(2);
 
-        expect(await appliedIds()).toEqual(['CreateFirst', 'CreateFourth']);
-        await second.dispose();
+            expect(await appliedIds()).toEqual(['CreateFirst', 'CreateFourth']);
+        } finally {
+            await second.dispose();
+        }
+    });
+
+    it('serializes history initialization with an update on a fresh database', async () => {
+        const { PostgresDatabaseConnection } = await import('../../packages/postgres/src/pg-database-connection');
+        const readers = [
+            new PostgresDatabaseConnection(requireDefined(process.env.DATABASE_URL)),
+            new PostgresDatabaseConnection(requireDefined(process.env.DATABASE_URL)),
+        ];
+        try {
+            const results = await Promise.allSettled([
+                runner(connection).update([new CreateFirst(), new CreateThird()]),
+                ...readers.map(async reader => runner(reader).getAppliedMigrations()),
+            ]);
+            expect(results.every(result => result.status === 'fulfilled')).toBe(true);
+            for (const result of results.slice(1)) {
+                if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+                    expect([0, 2]).toContain(result.value.length);
+                }
+            }
+            expect(await appliedIds()).toEqual(['CreateFirst', 'CreateFourth']);
+        } finally {
+            await Promise.all(readers.map(async reader => reader.dispose()));
+        }
     });
 
     it('rolls back to zero cleanly', async () => {

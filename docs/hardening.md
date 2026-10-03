@@ -79,6 +79,19 @@ runner then reacquires the migration lock, applies exactly once, and rolls back
 cleanly on every provider. This is a migration repair qualification, not an
 automatic destructive repair policy for application databases.
 
+The final native Postgres campaign exposed a fresh-database race: concurrent
+runners created the history table before acquiring the advisory lock and one
+failed with catalog uniqueness error `23505`. History initialization now happens
+once under the provider lock. Default history readers use that same lock and
+session, while explicitly read-only checks remain noninitializing. Repeated real
+Postgres runner races and simultaneous history-reader/update races pass after
+the repair. Default initialization also rejects a caller transaction before SQL
+to avoid implicit MySQL DDL commits and invalid lock cleanup.
+The repair passed the complete canonical gate with 497 suites / 3,095 tests,
+unchanged public API reports and package acceptance; both live suites passed
+again (Postgres 129 tests, MySQL 94 tests). The focused history/lock mutation
+campaign passed at 95.77%, with no untested mutants and unchanged thresholds.
+
 The server campaign restarts only a verified isolated database instance while
 Bookshop has one committed checkout and a second checkout persisted inside an
 uncommitted transaction. PostgreSQL immediate shutdown and MySQL SIGKILL both

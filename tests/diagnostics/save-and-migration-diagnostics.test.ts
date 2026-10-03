@@ -206,7 +206,6 @@ describe('save and migration diagnostics', () => {
         const db =  DiagnosticsContext.create();
         DiagnosticsContext.connection.queueResult();
         DiagnosticsContext.connection.queueResult();
-        DiagnosticsContext.connection.queueResult();
         DiagnosticsContext.connection.queueResult({ rows: [] });
         DiagnosticsContext.connection.queueResult();
         DiagnosticsContext.connection.queueResult({ rowCount: 1 });
