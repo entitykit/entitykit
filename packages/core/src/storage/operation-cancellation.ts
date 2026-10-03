@@ -17,7 +17,6 @@ export async function awaitWithOperationCancellation<TResult>(
     operation: Promise<TResult>,
     signal?: AbortSignal,
 ): Promise<TResult> {
-    throwIfOperationAborted(signal);
     if (!signal) {
         return operation;
     }
@@ -30,7 +29,8 @@ export async function awaitWithOperationCancellation<TResult>(
         const cleanup = (): void => {
             signal.removeEventListener('abort', abort);
         };
-        signal.addEventListener('abort', abort, { once: true });
+        // Observe already-started work even when cancellation won before this
+        // helper was called. Otherwise its rejection escapes the caller's catch.
         operation.then(
             result => {
                 cleanup();
@@ -43,5 +43,10 @@ export async function awaitWithOperationCancellation<TResult>(
                     : new Error('The database operation failed.', { cause: error }));
             },
         );
+        if (signal.aborted) {
+            abort();
+        } else {
+            signal.addEventListener('abort', abort, { once: true });
+        }
     });
 }
