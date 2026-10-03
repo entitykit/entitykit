@@ -3,7 +3,7 @@ import { ExclusiveOperationGuard } from '../packages/core/src/storage/exclusive-
 
 describe('exclusive operation scope lifetime', () => {
     afterEach(() => {
-        jest.restoreAllMocks(); 
+        jest.restoreAllMocks();
     });
 
     it('unregisters an idle guard after success and can run another operation', async () => {
@@ -33,12 +33,12 @@ describe('exclusive operation scope lifetime', () => {
         const guard = new ExclusiveOperationGuard();
         await guard.run('transaction', async () => {
             await guard.runQuery('nested query', async () => {
-                await Promise.resolve(); 
+                await Promise.resolve();
             });
             expect(disable).not.toHaveBeenCalled();
             expect(guard.isOperationInProgress).toBe(true);
             await guard.runQuery('another nested query', async () => {
-                await Promise.resolve(); 
+                await Promise.resolve();
             });
         });
         expect(disable).toHaveBeenCalledTimes(1);
@@ -56,7 +56,7 @@ describe('exclusive operation scope lifetime', () => {
                 expect(application.getStore()).toBe('request authority');
             });
         } finally {
-            application.disable(); 
+            application.disable();
         }
     });
 
@@ -64,7 +64,7 @@ describe('exclusive operation scope lifetime', () => {
         const disable = jest.spyOn(AsyncLocalStorage.prototype, 'disable');
         for (let index = 0; index < 256; index += 1) {
             await new ExclusiveOperationGuard().runQuery('request', async () => {
-                await Promise.resolve(); 
+                await Promise.resolve();
             });
         }
         expect(disable).toHaveBeenCalledTimes(256);

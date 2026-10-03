@@ -32,6 +32,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-sqlite-node-${{ matrix.node }}
+          path: coverage/performance/sqlite.json
+          if-no-files-found: error
 
   coverage:
     name: Runtime coverage
@@ -110,6 +115,15 @@ jobs:
         env:
           ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.DATABASE_URL }}
           ENTITYKIT_CRASH_CONTAINER: ${{ job.services.postgres.id }}
+      - name: Qualify Postgres performance and resource budgets
+        run: npm run check:performance:postgres
+        env:
+          ENTITYKIT_BENCHMARK_DATABASE_URL: ${{ env.DATABASE_URL }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-postgres
+          path: coverage/performance/postgres.json
+          if-no-files-found: error
 
   mysql:
     name: Live MySQL
@@ -157,6 +171,15 @@ jobs:
         env:
           ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.MYSQL_URL }}
           ENTITYKIT_CRASH_CONTAINER: ${{ job.services.mysql.id }}
+      - name: Qualify MySQL performance and resource budgets
+        run: npm run check:performance:mysql
+        env:
+          ENTITYKIT_BENCHMARK_DATABASE_URL: ${{ env.MYSQL_URL }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-mysql
+          path: coverage/performance/mysql.json
+          if-no-files-found: error
 
   nextjs:
     name: Next.js 16 + Postgres demo

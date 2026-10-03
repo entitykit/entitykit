@@ -16,7 +16,7 @@ checkout and fulfillment application using public packages.
 | Public contracts | Versioned signatures and package exports; negative compatibility tests; published alpha.1 checksum/SQL/snapshot fixtures and actual persisted-data upgrade/rollback on all three providers | Final candidate qualification |
 | Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
 | Operational recovery | Canonical integration suites; real TCP commit-response loss and pre-commit disconnect recovery; atomic deadlock retries; killed migration process repair; abrupt Postgres and MySQL server restart durability, rollback and receipt replay | Final candidate qualification; storage hardware qualification belongs to deployment |
-| Performance/resources | Benchmark evidence validation | Executable representative workloads, direct-driver comparison, latency/query-count/memory/stream/pool budgets |
+| Performance/resources | Thirteen executable workloads per provider; direct-driver read comparisons, latency percentiles, constant query/parameter budgets, no-tracking stream bounds, disposed-context heap retention, pool pressure, atomic checkout and durable delivery | Final declared Node matrix and candidate qualification |
 | Release preparation | Seven-package tarball integrity and provenance workflow; alpha publication guards | Stable candidate/latest mechanics, stable support and upgrade policy, complete final qualification |
 
 ## Local evidence
@@ -87,6 +87,21 @@ all uncommitted state, replay the original receipt, and accept a fresh command.
 SQLite's embedded engine is covered by the application process crash campaign.
 These are database process recovery results; filesystem, storage hardware,
 backup restoration and host power loss must be qualified by the deployment.
+
+The executable performance campaign passes thirteen workloads per provider on
+Node 22.13 and Node 24. Single-row reads and 64-row saves/upserts each use one
+application statement; split includes use two, checkout seven and durable
+delivery six. Streams retain no tracked entities. Reports record latency
+percentiles, parameter counts, heap/RSS growth, event-loop delay, source SHA and
+dirty state with explicit budgets in [the benchmark guide](../benchmarks/README.md).
+
+Profiling the minimum Node runtime found operation guards retaining enabled
+async scopes after their work ended. Guards now release their own idle scope
+without disabling nested or application authority scopes. The original
+250-ms pool-pressure budget passes after this repair; it was not relaxed.
+The scope repair and performance gate passed the full canonical gate with
+492 suites / 2,999 tests and unchanged API contracts. Both remote operational
+campaigns passed again after the repair.
 
 Live qualification uses isolated SQLite files, Postgres 18.4 on a private
 loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote
