@@ -36,7 +36,7 @@ The mutation lane is intentionally focused on release-critical restoration,
 migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate
 locally when changing the behavior it protects.
 `test:mutation` includes separate history-initialization/migration-lock,
-provider-validation, SQLite DDL, migration checksum, and property metadata
+provider-validation, SQLite DDL, migration checksum, property metadata, and snapshot rename
 campaigns with the same score thresholds. Run
 `npm run test:mutation:migrations` for the focused ownership check or
 `npm run test:mutation:provider-validation` for configuration validation before
@@ -46,6 +46,8 @@ across SQL quoting, comments, column facets, checks, and index predicates. Run
 types, structured values, unsupported or cyclic input, and static format constants.
 Run `npm run test:mutation:property-metadata` for column facets and invalid
 combinations of defaults, computed expressions, store generation, and versions.
+Run `npm run test:mutation:snapshot-rename` for mapped-property references in
+keys, indexes, relationships, and policy roles, including older snapshot formats.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 

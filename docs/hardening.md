@@ -10,6 +10,23 @@ The Pagerbase adoption step is replaced by the repository-owned
 tenant-scoped checkout and fulfillment application through public packages.
 Pagerbase itself has not been modified.
 
+## Open migration qualification
+
+Related-table SQLite rebuilds remain a release blocker. Native regressions
+reproduce a foreign-key failure at commit after rebuilding both ends of a
+relationship, even when `foreign_key_check` finds no violations. A parent
+rebuild with `ON DELETE CASCADE` can also delete its existing child rows.
+Deferring constraint checks does not prevent those cascading deletes. The
+repair must suspend foreign-key enforcement before the owned transaction,
+validate the resulting schema and rows before commit, and restore the original
+connection setting on success, failure and cancellation, following
+[SQLite's rebuild procedure](https://www.sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes).
+
+The property-rename repair and its independent mutation campaign qualify
+metadata references, real dependent-only SQLite renames, and live Postgres/MySQL
+renames and rollback. They leave the cross-table rebuild failure open for the
+next slice.
+
 ## Qualification
 
 The current coverage and Node 24 canonical checkpoint is
