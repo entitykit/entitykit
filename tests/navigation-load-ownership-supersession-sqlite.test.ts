@@ -8,18 +8,24 @@
  * standing under the entity now, and what a detach would take away with it.
  */
 import { EntityState } from '../packages/core/src';
+import type { ModelBuilder } from '../packages/core/src';
 import { rejection } from './support/accessor-refusal-support';
 import { refusal } from './support/link-refusal-support';
 import {
     expectDetachPoison,
+    expectPoison,
     failPausedLoad,
+    ownershipRefusal,
     pauseWithOwnedTag,
+    restorationCauses,
     storedTagNames,
 } from './support/navigation-load-ownership-support';
 import {
+    RaceTag,
+    RaceContext,
+    RacePost,
     storedRaceJoinRows,
 } from './support/navigation-supersession-support';
-import type { RaceTag } from './support/navigation-supersession-support';
 import { requireDefined } from './support/require-defined';
 
 describe('a failed load unwinding tracking it no longer owns', () => {
@@ -88,6 +94,49 @@ describe('a failed load unwinding tracking it no longer owns', () => {
         // there either way, but now the context says so.
         expect(await storedRaceJoinRows(db)).toEqual(['post_1->tag_1']);
         expectDetachPoison(db);
+        await db.dispose();
+    });
+
+    it('keeps source-side queued work after the application restores the visible collection', async () => {
+        const db = await openOwnedPostGraph();
+        const headline = requireDefined(await db.headlines.find('headline_1'));
+        const tag = requireDefined(await db.tags.find('tag_1'));
+        const reached = db.connection.pauseOn('race_post_tags');
+        const loading = db.headlines.include(row => row.post).thenInclude(row => row.tags).toArray();
+        await reached;
+        const post = requireDefined(headline.post);
+        db.link(post, row => row.tags, tag);
+        post.tags = [];
+        expect(db.getSavePlanDebugView()).toContain('post_1->tag_1');
+
+        const primary = new Error('nested join failed');
+        db.connection.failPaused(primary);
+        expect(await rejection(async () => loading)).toBe(primary);
+
+        expect(db.changeTracker.entry(post)).toBeDefined();
+        expect(post.tags).toEqual([]);
+        const poison = expectPoison(refusal(() => {
+            db.getSavePlan();
+        }));
+        expect(restorationCauses(poison)).toEqual([ownershipRefusal('RacePost')]);
+        expect(await storedRaceJoinRows(db)).toEqual([]);
+        await db.dispose();
+    });
+
+    it('rolls back its own entity while preserving a queued link between other entities', async () => {
+        const run = await pauseWithOwnedTag();
+        const { db, post, tag } = run;
+        const unrelated = Object.assign(new RaceTag(), { id: 'tag_2', name: 'Postgres' });
+        db.tags.attach(unrelated);
+        db.link(post, row => row.tags, unrelated);
+
+        await failPausedLoad(run);
+
+        expect(db.changeTracker.entry(tag)).toBeUndefined();
+        expect(db.changeTracker.entry(unrelated)).toBeDefined();
+        expect(post.tags).toEqual([unrelated]);
+        await expect(db.saveChanges()).resolves.toBe(0);
+        expect(await storedRaceJoinRows(db)).toEqual(['post_1->tag_2']);
         await db.dispose();
     });
 
@@ -204,3 +253,35 @@ describe('a failed load unwinding tracking it no longer owns', () => {
         await db.dispose();
     });
 });
+
+class Headline {
+    public id = '';
+    public postId = '';
+    public post: RacePost | null = null;
+}
+
+class OwnedPostContext extends RaceContext {
+    public headlines = this.set(Headline);
+
+    protected override model(model: ModelBuilder): void {
+        super.model(model);
+        model.entity(Headline, entity => {
+            entity.toTable('headlines');
+            entity.hasKey(row => row.id);
+            entity.property(row => row.id).hasColumnType('text').isRequired();
+            entity.property(row => row.postId).hasColumnName('post_id').hasColumnType('text').isRequired();
+            entity.hasOne(RacePost, row => row.post).withMany().hasForeignKey(row => row.postId);
+        });
+    }
+}
+
+async function openOwnedPostGraph(): Promise<OwnedPostContext> {
+    const db = OwnedPostContext.create();
+    for (const statement of [
+        { text: db.database.createScript(), values: [] },
+        { text: 'insert into race_posts (id, title) values (?, ?)', values: ['post_1', 'Book'] },
+        { text: 'insert into race_tags (id, name) values (?, ?)', values: ['tag_1', 'Fiction'] },
+        { text: 'insert into headlines (id, post_id) values (?, ?)', values: ['headline_1', 'post_1'] },
+    ]) await db.connection.query(statement);
+    return db;
+}

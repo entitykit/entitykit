@@ -2,7 +2,7 @@ import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src
 import { DbContext, EntityState } from '../packages/core/src';
 import { sqliteProviderServices } from '../packages/sqlite/src';
 import { requireDefined } from './support/require-defined';
-import { refusalMessage, rejection } from './support/accessor-refusal-support';
+import { refusalMessage } from './support/accessor-refusal-support';
 
 class ProvenanceAuthor {
     public id = '';
@@ -122,10 +122,11 @@ describe('navigation load tracking provenance', () => {
         await dropAuthorsTable(db);
 
         const loading = entry.reference(row => row.author).load();
+        const failed = loading.then(() => undefined, (error: unknown): unknown => error);
         const added = new ProvenanceTag();
         added.id = 't3';
         db.tags.add(added);
-        const failure = await rejection(async () => loading);
+        const failure = await failed;
 
         expect(refusalMessage(failure)).toContain('no such table');
         // The add() reported success before the load failed; an unrelated query
@@ -147,11 +148,12 @@ describe('navigation load tracking provenance', () => {
         await dropAuthorsTable(db);
 
         const loading = entry.reference(row => row.author).load();
+        const failed = loading.then(() => undefined, (error: unknown): unknown => error);
         const attached = new ProvenanceTag();
         attached.id = 't2';
         db.tags.attach(attached);
         db.link(post, row => row.tags, attached);
-        await rejection(async () => loading);
+        expect(refusalMessage(await failed)).toContain('no such table');
 
         expect(db.entry(attached)).toBeDefined();
         expect(requireDefined(db.entry(attached)).state)
