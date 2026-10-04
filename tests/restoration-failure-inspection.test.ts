@@ -86,7 +86,7 @@ function aggregatedErrors(failure: unknown): unknown[] {
 }
 
 function opaqueWrapper(value: unknown): Error {
-    expect(value).toBeInstanceOf(Error);
+    expect(value instanceof Error).toBe(true);
     const wrapper = value as Error;
     expect(wrapper.message).toBe(uninspectable);
     return wrapper;
@@ -133,7 +133,7 @@ describe('hostile restoration failure inspection', () => {
             expect(marked).toHaveLength(1);
             const errors = aggregatedErrors(marked[0]);
             expect(errors).toHaveLength(2);
-            expect(opaqueWrapper(errors[0]).cause).toBe(hostile);
+            expect(opaqueWrapper(errors[0]).cause === hostile).toBe(true);
             expect(errors[1]).toBe(cleanup);
             expect(() => {
                 scope.throwIfFailed();
@@ -159,8 +159,9 @@ describe('hostile restoration failure inspection', () => {
                 thrown = error;
             }
             expect(marked).toHaveLength(1);
-            expect(thrown).toBe(marked[0]);
-            expect(opaqueWrapper(thrown).cause).toBe(hostile);
+            // Report identity mismatches without formatting the hostile cause.
+            expect(thrown === marked[0]).toBe(true);
+            expect(opaqueWrapper(thrown).cause === hostile).toBe(true);
         },
     );
 
@@ -176,7 +177,7 @@ describe('hostile restoration failure inspection', () => {
 
         expect(failures).toHaveLength(3);
         expect(failures[0]).toBe(first);
-        expect(opaqueWrapper(failures[1]).cause).toBe(hostile);
+        expect(opaqueWrapper(failures[1]).cause === hostile).toBe(true);
         expect(failures[2]).toBe(second);
     });
 
@@ -206,7 +207,7 @@ describe('hostile restoration failure inspection', () => {
     it('wraps a failure whose Error classification throws', () => {
         const hostile = prototypeTrapProxy();
 
-        expect(opaqueWrapper(restorationErrorFrom(hostile)).cause).toBe(hostile);
+        expect(opaqueWrapper(restorationErrorFrom(hostile)).cause === hostile).toBe(true);
     });
 
     it('runs every restoration action after a hostile failure', () => {
@@ -236,7 +237,7 @@ describe('hostile restoration failure inspection', () => {
         expect(attempted).toEqual([1, 2, 3]);
         const errors = aggregatedErrors(thrown);
         expect(errors).toHaveLength(2);
-        expect(opaqueWrapper(errors[0]).cause).toBe(hostile);
+        expect(opaqueWrapper(errors[0]).cause === hostile).toBe(true);
         expect(errors[1]).toBe(later);
     });
 
