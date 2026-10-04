@@ -35,7 +35,7 @@ export function snapshotValuesEqual(
         return Array.isArray(left)
       && Array.isArray(right)
       && left.length === right.length
-      && left.every((item, index) =>
+      && Array.from(left).every((item, index) =>
           snapshotValuesEqual(item, right[index], seen),
       );
     }

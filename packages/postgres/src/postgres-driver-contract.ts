@@ -11,6 +11,8 @@ export interface PoolClient {
         values?: readonly unknown[],
     ): Promise<PostgresQueryResult<TRow>>;
     release(error?: boolean | Error): void;
+    on?(event: 'error', listener: (error: Error) => void): unknown;
+    removeListener?(event: 'error', listener: (error: Error) => void): unknown;
 }
 
 export interface Pool extends PoolClient {

@@ -1,5 +1,6 @@
 import type { EntityPropertyKey } from '../../types';
 import type { IndexBuilder, AlternateKeyBuilder } from '../index-builder-types';
+import type { IndexKeyPart } from '../index-metadata';
 import type { PropertyListSelector } from '../model-property-selector';
 import { EntityPropertyConfiguration } from './property-configuration';
 
@@ -19,7 +20,7 @@ export class EntityKeyConfiguration<TEntity extends object>
     }
 
     public hasIndex(
-        propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>,
+        propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity> | ReadonlyArray<IndexKeyPart<TEntity>>,
     ): IndexBuilder<TEntity> {
         return this.keysFacet.index(propertyOrSelector);
     }

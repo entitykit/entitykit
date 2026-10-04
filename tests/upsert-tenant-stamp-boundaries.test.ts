@@ -163,7 +163,7 @@ describe('upsert tenant stamp failure boundaries', () => {
             name: 'row',
         });
 
-        await expect(db.normalizingRows.upsert([row])).rejects.toThrow(
+        await expect(db.normalizingRows.executeUpsert([row])).rejects.toThrow(
             'Property \'NormalizingTenantRow.tenantId\' refused its assigned value.',
         );
 
@@ -178,7 +178,7 @@ describe('upsert tenant stamp failure boundaries', () => {
         const beginDb = FlatUpsertContext.create();
         const beginRow = flatRow();
 
-        await expect(beginDb.rows.upsert([beginRow])).rejects.toThrow(
+        await expect(beginDb.rows.executeUpsert([beginRow])).rejects.toThrow(
             'begin failed',
         );
         expect(beginRow.tenantId).toBeUndefined();
@@ -190,7 +190,7 @@ describe('upsert tenant stamp failure boundaries', () => {
         const commitDb = FlatUpsertContext.create();
         const commitRow = flatRow();
 
-        await expect(commitDb.rows.upsert([commitRow])).rejects.toThrow(
+        await expect(commitDb.rows.executeUpsert([commitRow])).rejects.toThrow(
             'commit failed',
         );
         expect(commitRow.tenantId).toBeUndefined();
@@ -202,7 +202,7 @@ describe('upsert tenant stamp failure boundaries', () => {
         const db = FlatUpsertContext.create();
         const row = flatRow();
 
-        const pending = db.rows.upsert([row]);
+        const pending = db.rows.executeUpsert([row]);
         await connection.started;
         expect(row.tenantId).toBe('tenant-one');
         row.tenantId = 'caller-replacement';
@@ -227,7 +227,7 @@ describe('upsert tenant stamp failure boundaries', () => {
             }),
         });
 
-        await expect(db.rows.upsert([first, second])).rejects.toThrow(
+        await expect(db.rows.executeUpsert([first, second])).rejects.toThrow(
             /tenant key 'scope.tenantId' must match/,
         );
 
@@ -245,7 +245,7 @@ describe('upsert tenant stamp SQLite rollback', () => {
         const db = await openBulkUpsertDb();
         const first = unstampedItem('a');
 
-        await expect(db.items.upsert([
+        await expect(db.items.executeUpsert([
             first,
             unstampedItem('b', { tenantId: 'tenant-two' }),
         ])).rejects.toThrow(/tenant key 'tenantId' must match/);
@@ -258,7 +258,7 @@ describe('upsert tenant stamp SQLite rollback', () => {
     it('restores stamps after compilation and cancellation', async () => {
         const db = await openBulkUpsertDb();
         const compileRow = unstampedItem('compile');
-        await expect(db.items.upsert([compileRow], {
+        await expect(db.items.executeUpsert([compileRow], {
             updateProperties: ['tenantId', 'name'],
         })).rejects.toThrow('cannot include tenant property');
         expect(compileRow.tenantId).toBeUndefined();
@@ -266,7 +266,7 @@ describe('upsert tenant stamp SQLite rollback', () => {
         const canceledRow = unstampedItem('canceled');
         const controller = new AbortController();
         controller.abort('stop');
-        await expect(db.items.upsert([canceledRow], {
+        await expect(db.items.executeUpsert([canceledRow], {
             signal: controller.signal,
         })).rejects.toBeInstanceOf(OperationCanceledError);
         expect(canceledRow.tenantId).toBeUndefined();
@@ -278,7 +278,7 @@ describe('upsert tenant stamp SQLite rollback', () => {
         const first = unstampedItem('a', { sku: 'duplicate' });
         const second = unstampedItem('b', { sku: 'duplicate' });
 
-        await expect(db.items.upsert([first, second]))
+        await expect(db.items.executeUpsert([first, second]))
             .rejects.toBeInstanceOf(UniqueConstraintError);
 
         expect(first.tenantId).toBeUndefined();

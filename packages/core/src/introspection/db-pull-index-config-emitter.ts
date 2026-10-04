@@ -47,10 +47,14 @@ export function renderIndexConfigurations(
                 continue;
             }
         }
-        const prefix = hasExpression
-            ? `      entity.hasExpressionIndex(${JSON.stringify(parts.map(part =>
-                part.kind === 'column' ? part.name : part.expression))}).hasDatabaseName(${JSON.stringify(index.name)})`
-            : `      entity.hasIndex(${selector}).hasDatabaseName(${JSON.stringify(index.name)})`;
+        const prefix = hasExpression && columnParts.length > 0
+            ? `      entity.hasIndex(${JSON.stringify(parts.map(part => part.kind === 'column'
+                ? { kind: 'property', propertyName: entity.propertiesByColumn.get(part.name) }
+                : { kind: 'expression', expression: part.expression }))}).hasDatabaseName(${JSON.stringify(index.name)})`
+            : hasExpression
+                ? `      entity.hasExpressionIndex(${JSON.stringify(parts.map(part =>
+                    part.kind === 'column' ? part.name : part.expression))}).hasDatabaseName(${JSON.stringify(index.name)})`
+                : `      entity.hasIndex(${selector}).hasDatabaseName(${JSON.stringify(index.name)})`;
         lines.push(
             `${prefix}${index.isUnique ? '.isUnique()' : ''}` +
             (included.length > 0 ? `.includeProperties(row => ${renderProperties(included)})` : '') +

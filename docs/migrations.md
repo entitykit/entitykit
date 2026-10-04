@@ -101,6 +101,44 @@ npx entitykit db status --check
 snapshot. Capture model changes in a migration first; do not let runtime model
 state get ahead of migration history.
 
+### Keep index names distinct
+
+Different index definitions on one entity must have distinct effective database
+names. EntityKit checks both configured names and defaults derived from the table
+and physical column names. Model validation, schema generation and snapshot
+comparison reject conflicting definitions before generating or executing
+migration SQL. Equivalent declarations of the same physical index remain valid.
+
+Names must be distinct under the selected provider's identifier rules, too.
+SQLite treats ASCII case-only variants such as `UX_PROFILES_USERID` and
+`ux_profiles_userId` as one identifier, even when quoted. MySQL also rejects
+ASCII case-equivalent index names. PostgreSQL keeps distinct quoted names
+case-sensitive. Equivalent definitions with identical spelling remain supported;
+case-only aliases are rejected on SQLite and MySQL because migration snapshots
+must agree with the database about how many indexes exist.
+
+Snapshot diffs are provider-neutral. Runtime and generated migrations retain
+both snapshots, and EntityKit checks them against the executing provider before
+SQL generation, checksum calculation, application or rollback. Context model
+validation runs before acquiring a connection lease; migration execution checks
+before starting a session, acquiring locks or initializing history.
+
+A one-to-one relationship needs unconditional uniqueness on its complete
+foreign-key tuple. An additional filtered or mixed index does not replace that
+enforcement index. For example, give a filtered unique index its own name:
+
+```ts
+entity.hasIndex(row => row.userId)
+  .isUnique()
+  .hasFilter("label <> 'hidden'")
+  .hasDatabaseName("ux_profiles_visible_user");
+```
+
+Existing default names remain unchanged. If a saved snapshot contains colliding
+definitions, review the actual database indexes and correct the model and
+snapshot before planning further changes. Preserve applied migration bodies and
+checksums using [the upgrade procedure](upgrading.md).
+
 ### Preserve renames
 
 A name change can look like a drop followed by an add. Tell the differ when the
@@ -128,6 +166,57 @@ Both options are repeatable. Table hints accept `old_table=new_table` or
 `table.old_column=new_column` or
 `schema.table.old_column=new_column`. Review the generated operation—rename
 hints are explicit intent, not a fuzzy matching system.
+
+Generated migrations create referenced tables before their dependents and remove
+dependents first, regardless of model registration order. PostgreSQL and MySQL
+add foreign keys after table creation, so cyclic relationships can reference
+tables created by the same migration. SQLite keeps foreign keys inline. Its
+populated `restrict` cycles require explicit data cleanup before table removal.
+Review previously generated alpha migrations for this ordering; regenerate an
+unapplied migration or keep the reviewed parent-first DDL. Applied migration
+history and checksums must retain their original artifacts.
+
+Required SQLite text primary keys include an explicit `NOT NULL` constraint in
+model scripts, migration definitions, generated migrations and table rebuilds.
+New migration-history tables also require their ID. SQLite integer rowid keys
+retain automatic generation and configured rowid non-reuse.
+Updating EntityKit does not retrofit an existing table's constraints. Review and
+repair legacy null keys before rebuilding those tables; preserve applied
+migration artifacts and recorded checksums.
+
+The stronger SQLite DDL changes the SQL and checksum of an older callback that
+recreates a required primary key. Before upgrading an application with such an
+applied migration, pin its reviewed original SQL with `builder.sql(...)`, keeping
+the original ID, name, parameters and transaction options. Verify its checksum
+against the applied history before deployment, then use a new migration to repair
+the table. EntityKit refuses a changed callback rather than rewriting history.
+The published alpha.1 qualification retains its original source and fixture and
+uses [reviewed original SQL](../scripts/preserve-historical-migration-sql.js) to
+exercise that upgrade procedure on all three providers.
+
+SQLite principal-key renames preserve retained many-to-many associations,
+including composite keys and named join constraints. The generated migration
+rebuilds the affected join tables and restores their original references on
+rollback. An explicit join replacement still discards that join's associations;
+review the destructive warnings before approving it.
+
+Composite migration keys follow the order in `hasKey`, independently of property
+declaration order. For a hand-written `createTable`, `primaryKeyOrdinal` may give
+each key column a unique position from zero. Specify it on every key column or
+omit it everywhere to retain legacy column order. Rebuild definitions may retain
+a named primary key through `primaryKeyName`.
+
+Reordering the same primary-key columns on an existing table requires reviewed
+provider SQL. Snapshot diffing and scaffolding refuse that change with a
+`MigrationError` containing the table and both physical column orders. An empty
+scaffold does not bypass the refusal. Review the key constraint and every
+dependent foreign key when writing the forward and rollback SQL.
+
+Generated migrations retain a frozen `destructiveWarnings` list from the
+reviewed operations. Database updates use that list so explicit renames remain
+safe and table, column, and join removals require `allowDataLoss` or the CLI's
+`--allow-data-loss` flag. Older migrations without the list retain snapshot
+comparison. Malformed declarations are refused even when data loss is approved.
 
 ### Inspect and remove local artifacts
 
@@ -289,6 +378,10 @@ introspection remain provider-owned behavior.
 ### SQLite
 
 - The provider uses Node's built-in `node:sqlite` driver.
+- Models may map to the implicit `main` schema, including its uppercase spelling.
+  Schema creation, initial migrations, foreign keys, indexes and rebuilds use
+  SQLite's DDL grammar. Other schema namespaces and schema removal are refused.
+  Normal query aliases retain their qualification.
 - SQLite has one implicit `main` schema for EntityKit introspection; attached
   databases are out of scope. `--schema main` is accepted, but other names
   produce an empty pull.
@@ -296,6 +389,17 @@ introspection remain provider-owned behavior.
   scaffolds table rebuilds for affected model changes and copies mapped columns
   into the rebuilt table. Review copy columns, constraints, indexes, both
   directions, free disk space, and a file backup.
+- `db migrate` and `MigrationRunner` suspend enabled foreign-key enforcement
+  before a rebuild transaction, check every foreign key before committing, and
+  restore enforcement afterward. This preserves dependent rows during parent
+  rebuilds, including cascading and `SET NULL` relationships. A failed check
+  rolls back the schema, copied data, and migration history. Cancellation still
+  restores enforcement; a connection that cannot restore it is disposed.
+- The checksum serialization format is unchanged; DDL policy changes can change
+  an older callback's rendered SQL and digest as described above. Use
+  the runner for SQLite rebuild deployment. Executing a raw script requires
+  the same connection and transaction procedure described by
+  [SQLite](https://www.sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes).
 - SQLite exposes no provider migration lock. Avoid concurrent deployers even
   though ordinary database locking still exists.
 

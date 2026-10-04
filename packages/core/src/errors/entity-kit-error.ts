@@ -4,6 +4,7 @@ import { sanitizeErrorDetails } from './error-detail-sanitizer';
     | 'MODEL_VALIDATION'
     | 'QUERY_COMPILATION'
     | 'ENTITY_NOT_FOUND'
+    | 'ENTITY_NOT_TRACKED'
     | 'MULTIPLE_ENTITIES_FOUND'
     | 'CONTEXT_NOT_INITIALIZED'
     | 'CONTEXT_DISPOSED'
@@ -88,6 +89,7 @@ export function isEntityKitError(error: unknown): error is EntityKitError {
 
 const entityKitErrorCodes: ReadonlySet<string> = new Set<EntityKitErrorCode>([
     'MODEL_VALIDATION', 'QUERY_COMPILATION', 'ENTITY_NOT_FOUND',
+    'ENTITY_NOT_TRACKED',
     'MULTIPLE_ENTITIES_FOUND', 'CONTEXT_NOT_INITIALIZED', 'CONTEXT_DISPOSED',
     'CONTEXT_CONCURRENT_OPERATION', 'CONTEXT_STATE_RESTORATION_FAILED',
     'OPERATION_CANCELED',

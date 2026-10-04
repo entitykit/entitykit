@@ -7,24 +7,26 @@ import type { ModelBuilder } from '../model/model-builder-types';
 import type { DatabaseOperationOptions, TransactionOptions } from '../storage/database-connection';
 import type { ChangeTracker } from '../tracking/change-tracker-types';
 import type { EntityEntry } from '../tracking/entity-entry-types';
-import type { EntityConstructor } from '../types';
-import type { DbSet } from './db-set-types';
-import type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFunction, EntityCreationResult, EntityCreationArguments, ValidCreationFactory } from './db-set-creation-types';
-import { dbSetCreationFactory } from './db-set-create';
 import type { SavePlanEntry } from './save-plan';
 import { registerContextMigrationHost } from '../migrations/context-migration-registry';
 import { DbContextPublicTracking } from './db-context-public-tracking';
+import { DbContextSets } from './db-context-sets';
 import type { DatabaseDataSource } from '../storage/database-data-source';
 export type { RelationshipSavePlanPair, SavePlanEntry } from './save-plan';
 /** A unit of work with explicitly configured providers, entity mapping, and saving. */
-export abstract class DbContext {
+export abstract class DbContext extends DbContextSets {
     private readonly contextHost: DbContextHost;
     private readonly publicTracking: DbContextPublicTracking;
     private databaseFacade?: DatabaseFacade;
     /** Create a context, optionally backed by an application-scoped data source. */
-    constructor(private readonly dataSource?: DatabaseDataSource) {
+    constructor(dataSource?: DatabaseDataSource) {
+        super((entityType, creationFactory) =>
+            this.contextHost.set(entityType, creationFactory));
         this.contextHost = new DbContextHost(
-            options => this.configure(options),
+            options => {
+                if (dataSource !== undefined) options.useDataSource(dataSource);
+                return this.configure(options);
+            },
             model => this.model(model),
         );
         this.publicTracking = new DbContextPublicTracking(this.contextHost);
@@ -39,11 +41,13 @@ export abstract class DbContext {
         context.initializeContext();
         return context;
     }
-    /** Configure the database provider and production options for this context. */
+    /**
+     * Customize options after selecting a constructor-supplied source.
+     * No call to DbContext.configure() is needed for source selection.
+     * Call super.configure(options) to retain an intermediate base class's configuration.
+     */
     protected configure(options: DbContextOptionsBuilder): unknown {
-        if (this.dataSource !== undefined) {
-            options.useDataSource(this.dataSource);
-        }
+        void options;
         return undefined;
     }
     /** Configure mapped entity types for this context. */
@@ -61,30 +65,17 @@ export abstract class DbContext {
             createDbContextDatabaseFacade(this.contextHost);
         return this.databaseFacade;
     }
-    /** Bind a creation factory to this gateway; other sets retain their construction policy. */
-    public set<TEntity extends object, TFactory extends EntityCreationFunction<NoInfer<TEntity>>, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: EntityConstructor<TEntity>, options: DbSetCreationOptions<TFactory> & ValidCreationFactory<NoInfer<TEntity>, NoInfer<TFactory>>,
-    ): DbSet<TEntity, TKey, EntityCreationArguments<TFactory>>;
-    /** Infer creation arguments from a public constructor. */
-    public set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: TConstructor,
-    ): DbSet<EntityCreationResult<TConstructor>, TKey, EntityCreationArguments<TConstructor>>;
-    /** Preserve identity-only registration and existing entity/key type arguments. */
-    public set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(
-        entityType: EntityConstructor<TEntity>,
-    ): DbSet<TEntity, TKey>;
-    public set<TEntity extends object>(
-        entityType: EntityConstructor<TEntity>, options?: DbSetCreationOptions<EntityCreationFunction<TEntity>>,
-    ): unknown {
-        return this.contextHost.set(entityType, dbSetCreationFactory(options));
-    }
     /** Return the tracked entry for an entity, or `undefined` when it is not tracked. */
     public entry<TEntity extends object>(
         entity: TEntity,
     ): EntityEntry<TEntity> | undefined {
         return this.publicTracking.entry(entity);
     }
-    /** Explicitly load one configured navigation for a tracked entity. */
+    /** Return this context's tracked entry, or throw EntityNotTrackedError. Executes no SQL. */
+    public entryOrThrow<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> {
+        return this.publicTracking.entryOrThrow(entity);
+    }
+    /** Load a configured navigation for a persisted, tracked entity; may execute SQL. */
     public async loadNavigation<TEntity extends object>(
         entry: EntityEntry<TEntity>,
         navigationProperty: string,
@@ -94,13 +85,20 @@ export abstract class DbContext {
             navigationProperty,
         );
     }
-    /** Persist tracked changes and return the affected row count. */
+    /** Execute the tracked save pipeline, accept successful changes, and return the affected row count. */
     public async saveChanges(options?: DatabaseOperationOptions): Promise<number> {
         return this.contextHost.saveChanges(options);
     }
-    /** Clear every tracked entry without writing changes. */
+    /**
+     * Abandon tracked entities and pending relationship work. Executes no SQL.
+     * Object property values are not reverted. Cannot run during saveChanges().
+     */
+    public clearTracking(): void {
+        this.contextHost.clearTracking();
+    }
+    /** @deprecated Use clearTracking(); clearing tracking does not revert objects. */
     public clearChanges(): void {
-        this.contextHost.clearChanges();
+        this.clearTracking();
     }
     /** Describe the writes the next `saveChanges()` call would attempt. */
     public getSavePlan(): readonly SavePlanEntry[] {
@@ -118,7 +116,7 @@ export abstract class DbContext {
     ): Promise<TResult> {
         return this.contextHost.transaction(async () => work(this), options);
     }
-    /** Add a link between two tracked entities in a many-to-many relationship. */
+    /** Stage a many-to-many link between tracked entities. Executes no SQL until saveChanges(). */
     public link<TEntity extends object, TTarget extends object>(
         source: TEntity,
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
@@ -126,7 +124,7 @@ export abstract class DbContext {
     ): void {
         this.contextHost.link(source, navigationSelector, target);
     }
-    /** Remove a link between two tracked entities in a many-to-many relationship. */
+    /** Stage removal of a many-to-many link. Executes no SQL until saveChanges(). */
     public unlink<TEntity extends object, TTarget extends object>(
         source: TEntity,
         navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>,
@@ -134,7 +132,7 @@ export abstract class DbContext {
     ): void {
         this.contextHost.unlink(source, navigationSelector, target);
     }
-    /** Release resources owned by this object. */
+    /** Release this context's connection and tracking; does not save pending changes or dispose a shared source. */
     public async dispose(): Promise<void> {
         await this.contextHost.dispose();
     }

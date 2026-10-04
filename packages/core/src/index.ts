@@ -1,4 +1,4 @@
-export { ContextConcurrentOperationError, ContextDisposedError, ContextNotInitializedError, ContextStateRestorationError, DbValidationError, EntityKitError, ForeignEntityEntryError, ModelValidationError, NavigationLoadUnavailableError, OperationCanceledError, ProviderCapabilityError, QueryCompilationError, EntityNotFoundError, MultipleEntitiesFoundError, DbUpdateError, ForeignKeyConstraintError, NotNullConstraintError, TenantIdentityAmbiguityError, TenantOwnershipError, TenantScopeUnavailableError, UniqueConstraintError, isEntityKitError } from './errors';
+export { ContextConcurrentOperationError, ContextDisposedError, ContextNotInitializedError, ContextStateRestorationError, DbValidationError, EntityKitError, ForeignEntityEntryError, ModelValidationError, NavigationLoadUnavailableError, OperationCanceledError, ProviderCapabilityError, QueryCompilationError, EntityNotFoundError, EntityNotTrackedError, MultipleEntitiesFoundError, DbUpdateError, ForeignKeyConstraintError, NotNullConstraintError, TenantIdentityAmbiguityError, TenantOwnershipError, TenantScopeUnavailableError, UniqueConstraintError, isEntityKitError } from './errors';
 export type { DbUpdateErrorOptions, EntityKitErrorCode, EntityKitErrorJson, EntityKitErrorOptions, TenantOwnershipFailure } from './errors';
 export type {
     EntityConstructor,
@@ -10,6 +10,7 @@ export type {
 } from './types';
 export type { JsonPrimitive, JsonValue } from './json-value';
 export type { EntityAuditConfiguration, EntityBuilder } from './model/entity-builder-types';
+export type { CheckedEntityMaterializer, EntityMaterializationRow, MaterializationGuard, MaterializationScalar } from './model/checked-materialization-types';
 export { BaseEntityConfiguration } from './model/entity-type-configuration';
 export type { EntityTypeConfiguration } from './model/entity-type-configuration';
 export type { ModelBuilder } from './model/model-builder-types';
@@ -19,6 +20,7 @@ export type {
     ComplexPropertyOptions,
 } from './model/complex-property-builder-types';
 export type { AlternateKeyBuilder, IndexBuilder } from './model/index-builder-types';
+export type { IndexKeyPart } from './model/index-metadata';
 export type { SequenceDataType } from './model/sequence-metadata';
 export type { SequenceBuilder } from './model/sequence-builder-types';
 export {
@@ -58,6 +60,7 @@ export type { DatabaseFacade } from './core/database-facade-types';
 export { DbUpdateConcurrencyError } from './core/db-update-concurrency-error';
 export type { RelationshipSavePlanPair, SavePlanEntry } from './core/db-context';
 export type { DbSet, UpsertOptions } from './core/db-set-types';
+export type { DbSetFor } from './core/db-set-for';
 export type { DbSetCreationOptions, EntityCreationConstructor, EntityCreationFactory, EntityCreationResult, EntityCreationArguments } from './core/db-set-creation-types';
 export type { ChangeTracker } from './tracking/change-tracker-types';
 export type { EntityEntry } from './tracking/entity-entry-types';
@@ -97,15 +100,10 @@ export type {
     RetryPolicyOptions,
 } from './storage/data-source-retry';
 
-// Model and callback primitives that provider packages and configuration files
-// compose against. They are small, stable, and already named in the shapes above
-// (a `PropertySelector` is only useful if its name can be read back), so they
-// belong on the main entry rather than behind an internal relative path.
-export { selectPropertyName } from './model/model-property-selector';
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- Preserve the deprecated root bindings for compatibility.
+export { selectPropertyName, assertSynchronousCallbackResult, readSynchronousDate } from './deprecated-helper-exports';
 export type { EntityMetadata } from './model/entity-metadata';
 export { createDateBucketGroupKey } from './query/aggregate';
-export { assertSynchronousCallbackResult } from './synchronous-callback';
-export { readSynchronousDate } from './synchronous-value';
 
 // The `entitykit.config.ts` definition API. A config file is user runtime code,
 // so the module it imports must not drag the command-line tool in with it;

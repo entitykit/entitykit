@@ -1,5 +1,6 @@
 import type { EntityPropertyKey } from '../types';
 
+/** One mapped property or provider-specific SQL expression in an ordered index. */
 export type IndexKeyPart<TEntity extends object = object> =
     | { readonly kind: 'property'; readonly propertyName: EntityPropertyKey<TEntity> }
     | { readonly kind: 'expression'; readonly expression: string };

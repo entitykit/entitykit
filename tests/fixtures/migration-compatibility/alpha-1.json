@@ -1,0 +1,298 @@
+{
+  "formatVersion": 1,
+  "releasedVersion": "0.1.0-alpha.1",
+  "packages": {
+    "@entitykit/core": {
+      "version": "0.1.0-alpha.1",
+      "integrity": "sha512-6eVWhujU/Sc1UO0Kp34pjJsmP+IoiDtSXPkU1KmKguxeWc4g3SXDglNSlGj+gxWiR0COOf+ZCpiF1Cccs4NiJg=="
+    },
+    "@entitykit/sqlite": {
+      "version": "0.1.0-alpha.1",
+      "integrity": "sha512-5D72iEidpkAgP2KUF8uNnl205lbF6/pyRQoq231gQlsy0KHL0rr+tgX9Bih8XkVcPVIo7Hcj5QluxDhU7Jv8eg=="
+    },
+    "@entitykit/postgres": {
+      "version": "0.1.0-alpha.1",
+      "integrity": "sha512-sZk6jDXTXxHdhA9yWm16PqyVZFdvHQbd4ZQh4sJvAvBC8M6jaCH6b0BuWPWgBO9FGZyfgNt1X8iDiobgDvsSXQ=="
+    },
+    "@entitykit/mysql": {
+      "version": "0.1.0-alpha.1",
+      "integrity": "sha512-fiLdNtqfJDIYNZmNO7hgGQDEciBBWP7Alq4IwbwQ0AtLyOKHcCkFplyFZVjut5AzUc4eLxKIdfiW85c1/GrI2A=="
+    }
+  },
+  "providers": {
+    "sqlite": {
+      "id": "20260801000000_HistoricalBooks",
+      "name": "HistoricalBooks",
+      "checksum": "8a35c9cbecba1b585073b45032ae79e7bc5f391aea32b92ec20b5fc0c61110e7",
+      "up": [
+        {
+          "text": "create table if not exists \"__entitykit_migrations\" (\"id\" text primary key, \"name\" text not null, \"checksum\" text not null, \"entitykit_version\" text not null)",
+          "values": []
+        },
+        {
+          "text": "create table if not exists \"entitykit_historical_books\" (\"id\" varchar(64) primary key, \"title\" varchar(120) not null, \"version\" integer not null default 1)",
+          "values": [],
+          "suppressTransaction": false
+        },
+        {
+          "text": "insert into \"__entitykit_migrations\" (\"id\", \"name\", \"checksum\", \"entitykit_version\") values (?, ?, ?, ?)",
+          "values": [
+            "20260801000000_HistoricalBooks",
+            "HistoricalBooks",
+            "8a35c9cbecba1b585073b45032ae79e7bc5f391aea32b92ec20b5fc0c61110e7",
+            "0.1.0-alpha.1"
+          ]
+        }
+      ],
+      "down": [
+        {
+          "text": "drop table if exists \"entitykit_historical_books\"",
+          "values": [],
+          "suppressTransaction": false
+        },
+        {
+          "text": "delete from \"__entitykit_migrations\" where \"id\" = ?",
+          "values": [
+            "20260801000000_HistoricalBooks"
+          ]
+        }
+      ],
+      "snapshot": {
+        "formatVersion": 1,
+        "entities": [
+          {
+            "entityName": "HistoricalBook",
+            "tableName": "entitykit_historical_books",
+            "keyProperty": "id",
+            "keyProperties": [
+              "id"
+            ],
+            "properties": [
+              {
+                "propertyName": "id",
+                "columnName": "id",
+                "columnType": "varchar(64)",
+                "isRequired": true,
+                "isPrimaryKey": true,
+                "isUnique": false,
+                "hasConverter": false,
+                "isConcurrencyToken": false,
+                "isVersion": false
+              },
+              {
+                "propertyName": "title",
+                "columnName": "title",
+                "columnType": "varchar(120)",
+                "isRequired": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "hasConverter": false,
+                "isConcurrencyToken": false,
+                "isVersion": false
+              },
+              {
+                "propertyName": "version",
+                "columnName": "version",
+                "columnType": "integer",
+                "isRequired": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "defaultValue": 1,
+                "hasConverter": false,
+                "isConcurrencyToken": true,
+                "isVersion": true
+              }
+            ],
+            "ignoredProperties": [],
+            "indexes": [],
+            "relationships": [],
+            "manyToManyRelationships": []
+          }
+        ]
+      }
+    },
+    "postgres": {
+      "id": "20260801000000_HistoricalBooks",
+      "name": "HistoricalBooks",
+      "checksum": "8a35c9cbecba1b585073b45032ae79e7bc5f391aea32b92ec20b5fc0c61110e7",
+      "up": [
+        {
+          "text": "create table if not exists \"__entitykit_migrations\" (\"id\" text primary key, \"name\" text not null, \"checksum\" text not null, \"entitykit_version\" text not null, \"applied_at\" timestamptz not null default now())",
+          "values": []
+        },
+        {
+          "text": "create table if not exists \"entitykit_historical_books\" (\"id\" varchar(64) primary key, \"title\" varchar(120) not null, \"version\" integer not null default 1)",
+          "values": [],
+          "suppressTransaction": false
+        },
+        {
+          "text": "insert into \"__entitykit_migrations\" (\"id\", \"name\", \"checksum\", \"entitykit_version\") values ($1, $2, $3, $4)",
+          "values": [
+            "20260801000000_HistoricalBooks",
+            "HistoricalBooks",
+            "8a35c9cbecba1b585073b45032ae79e7bc5f391aea32b92ec20b5fc0c61110e7",
+            "0.1.0-alpha.1"
+          ]
+        }
+      ],
+      "down": [
+        {
+          "text": "drop table if exists \"entitykit_historical_books\"",
+          "values": [],
+          "suppressTransaction": false
+        },
+        {
+          "text": "delete from \"__entitykit_migrations\" where \"id\" = $1",
+          "values": [
+            "20260801000000_HistoricalBooks"
+          ]
+        }
+      ],
+      "snapshot": {
+        "formatVersion": 1,
+        "entities": [
+          {
+            "entityName": "HistoricalBook",
+            "tableName": "entitykit_historical_books",
+            "keyProperty": "id",
+            "keyProperties": [
+              "id"
+            ],
+            "properties": [
+              {
+                "propertyName": "id",
+                "columnName": "id",
+                "columnType": "varchar(64)",
+                "isRequired": true,
+                "isPrimaryKey": true,
+                "isUnique": false,
+                "hasConverter": false,
+                "isConcurrencyToken": false,
+                "isVersion": false
+              },
+              {
+                "propertyName": "title",
+                "columnName": "title",
+                "columnType": "varchar(120)",
+                "isRequired": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "hasConverter": false,
+                "isConcurrencyToken": false,
+                "isVersion": false
+              },
+              {
+                "propertyName": "version",
+                "columnName": "version",
+                "columnType": "integer",
+                "isRequired": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "defaultValue": 1,
+                "hasConverter": false,
+                "isConcurrencyToken": true,
+                "isVersion": true
+              }
+            ],
+            "ignoredProperties": [],
+            "indexes": [],
+            "relationships": [],
+            "manyToManyRelationships": []
+          }
+        ]
+      }
+    },
+    "mysql": {
+      "id": "20260801000000_HistoricalBooks",
+      "name": "HistoricalBooks",
+      "checksum": "1a420c77612984e957debccbe6692e0507d618f02e7c739840b637631bedbcd7",
+      "up": [
+        {
+          "text": "create table if not exists `__entitykit_migrations` (`id` varchar(255) primary key, `name` varchar(255) not null, `checksum` varchar(255) not null, `entitykit_version` varchar(255) not null)",
+          "values": [],
+          "suppressTransaction": true
+        },
+        {
+          "text": "create table if not exists `entitykit_historical_books` (`id` varchar(64) collate utf8mb4_bin primary key, `title` varchar(120) collate utf8mb4_bin not null, `version` int not null default 1)",
+          "values": [],
+          "suppressTransaction": true
+        },
+        {
+          "text": "insert into `__entitykit_migrations` (`id`, `name`, `checksum`, `entitykit_version`) values (?, ?, ?, ?)",
+          "values": [
+            "20260801000000_HistoricalBooks",
+            "HistoricalBooks",
+            "1a420c77612984e957debccbe6692e0507d618f02e7c739840b637631bedbcd7",
+            "0.1.0-alpha.1"
+          ]
+        }
+      ],
+      "down": [
+        {
+          "text": "drop table if exists `entitykit_historical_books`",
+          "values": [],
+          "suppressTransaction": true
+        },
+        {
+          "text": "delete from `__entitykit_migrations` where `id` = ?",
+          "values": [
+            "20260801000000_HistoricalBooks"
+          ]
+        }
+      ],
+      "snapshot": {
+        "formatVersion": 1,
+        "entities": [
+          {
+            "entityName": "HistoricalBook",
+            "tableName": "entitykit_historical_books",
+            "keyProperty": "id",
+            "keyProperties": [
+              "id"
+            ],
+            "properties": [
+              {
+                "propertyName": "id",
+                "columnName": "id",
+                "columnType": "varchar(64)",
+                "isRequired": true,
+                "isPrimaryKey": true,
+                "isUnique": false,
+                "hasConverter": false,
+                "isConcurrencyToken": false,
+                "isVersion": false
+              },
+              {
+                "propertyName": "title",
+                "columnName": "title",
+                "columnType": "varchar(120)",
+                "isRequired": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "hasConverter": false,
+                "isConcurrencyToken": false,
+                "isVersion": false
+              },
+              {
+                "propertyName": "version",
+                "columnName": "version",
+                "columnType": "integer",
+                "isRequired": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "defaultValue": 1,
+                "hasConverter": false,
+                "isConcurrencyToken": true,
+                "isVersion": true
+              }
+            ],
+            "ignoredProperties": [],
+            "indexes": [],
+            "relationships": [],
+            "manyToManyRelationships": []
+          }
+        ]
+      }
+    }
+  }
+}

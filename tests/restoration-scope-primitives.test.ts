@@ -184,7 +184,7 @@ describe('operation-scoped primitive restoration failures', () => {
             generatedRestorationFailure: restoration,
         });
 
-        expect(await rejection(async () => db.rows.upsert([row], {
+        expect(await rejection(async () => db.rows.executeUpsert([row], {
             conflictProperties: ['sku'],
             updateProperties: ['label'],
         }))).toBe(primary);

@@ -131,7 +131,7 @@ describe('generated upsert relationship invalidation shapes', () => {
                 id: `added-${path}`,
             });
             await expect(db.transaction(async tx => {
-                await tx.parents.upsert([parent], upsertOptions);
+                await tx.parents.executeUpsert([parent], upsertOptions);
                 child.parentToken = parent.token;
                 tx.children.add(child);
                 throw new Error('abort generated alternate');
@@ -139,7 +139,7 @@ describe('generated upsert relationship invalidation shapes', () => {
             const rolledBackToken = child.parentToken;
             expect(parent.token).toBeUndefined();
             await occupyToken(db, rolledBackToken);
-            await db.parents.upsert([parent], upsertOptions);
+            await db.parents.executeUpsert([parent], upsertOptions);
             expect(parent.token).not.toBe(rolledBackToken);
 
             if (path === 'detectChanges()') {
@@ -182,14 +182,14 @@ describe('generated upsert relationship invalidation shapes', () => {
         });
         await db.transaction(async outer => {
             await expect(outer.transaction(async nested => {
-                await nested.parents.upsert([parent], upsertOptions);
+                await nested.parents.executeUpsert([parent], upsertOptions);
                 child.parentToken = parent.token;
                 throw new Error('abort nested alternate');
             })).rejects.toThrow('abort nested alternate');
         });
         const rolledBackToken = child.parentToken;
         await occupyToken(db, rolledBackToken);
-        await db.parents.upsert([parent], upsertOptions);
+        await db.parents.executeUpsert([parent], upsertOptions);
 
         await expect(db.saveChanges()).rejects.toThrow(
             'retains a rolled-back store-generated FK',

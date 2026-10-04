@@ -6,12 +6,26 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-  # Release alpha calls this workflow for the ref it is publishing, so the
+    inputs:
+      full-mutation:
+        description: Run every mutation campaign with fresh results
+        type: boolean
+        default: false
+  # Release calls this workflow for the ref it is publishing, so the
   # release gate is this gate rather than a hand-copied subset of it.
   workflow_call:
+    inputs:
+      full-mutation:
+        description: Require complete fresh mutation qualification
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -32,6 +46,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-sqlite-node-${{ matrix.node }}
+          path: coverage/performance/sqlite.json
+          if-no-files-found: error
 
   coverage:
     name: Runtime coverage
@@ -47,26 +66,43 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:coverage
+      - name: Retain runtime coverage reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-coverage
+          path: |
+            coverage/runtime-summary.json
+            coverage/coverage-summary.json
+            coverage/lcov.info
+          if-no-files-found: warn
+
+  mutation-campaigns:
+    name: Mutation campaigns
+    uses: ./.github/workflows/mutation.yml
+    with:
+      full: ${{ inputs.full-mutation || false }}
 
   mutation:
     name: Critical-path mutation score
+    needs: [mutation-campaigns]
+    if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22.13.0
-          cache: npm
-      - run: npm ci
-      - run: npm run test:mutation
+      - name: Require mutation qualification
+        env:
+          RESULT: ${{ needs.mutation-campaigns.result }}
+        run: test "$RESULT" = success
 
   postgres:
-    name: Live Postgres
+    name: Live Postgres on Node ${{ matrix.node }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22.13.0, 24]
     services:
       postgres:
         image: postgres:18
@@ -89,15 +125,45 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22.13.0
+          node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
       - run: npm run test:integration
+      - name: Qualify the bookstore on Postgres
+        run: npm run check:bookshop:postgres
+        env:
+          BOOKSHOP_DATABASE_URL: ${{ env.DATABASE_URL }}
+      - name: Qualify the published migration upgrade on Postgres
+        run: npm run check:migration-compatibility:postgres
+        env:
+          ENTITYKIT_COMPAT_DATABASE_URL: ${{ env.DATABASE_URL }}
+      - name: Qualify Postgres cancellation and resource recovery
+        run: npm run check:operations:postgres
+        env:
+          ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.DATABASE_URL }}
+      - name: Qualify an abrupt Postgres server restart
+        run: npm run check:server-recovery:postgres
+        env:
+          ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.DATABASE_URL }}
+          ENTITYKIT_CRASH_CONTAINER: ${{ job.services.postgres.id }}
+      - name: Qualify Postgres performance and resource budgets
+        run: npm run check:performance:postgres
+        env:
+          ENTITYKIT_BENCHMARK_DATABASE_URL: ${{ env.DATABASE_URL }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-postgres-node-${{ matrix.node }}
+          path: coverage/performance/postgres.json
+          if-no-files-found: error
 
   mysql:
-    name: Live MySQL
+    name: Live MySQL on Node ${{ matrix.node }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22.13.0, 24]
     services:
       mysql:
         image: mysql:8.4
@@ -119,10 +185,36 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22.13.0
+          node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
       - run: npm run test:integration:mysql
+      - name: Qualify the bookstore on MySQL
+        run: npm run check:bookshop:mysql
+        env:
+          BOOKSHOP_DATABASE_URL: ${{ env.MYSQL_URL }}
+      - name: Qualify the published migration upgrade on MySQL
+        run: npm run check:migration-compatibility:mysql
+        env:
+          ENTITYKIT_COMPAT_DATABASE_URL: ${{ env.MYSQL_URL }}
+      - name: Qualify MySQL cancellation and resource recovery
+        run: npm run check:operations:mysql
+        env:
+          ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.MYSQL_URL }}
+      - name: Qualify an abrupt MySQL server restart
+        run: npm run check:server-recovery:mysql
+        env:
+          ENTITYKIT_OPERATION_DATABASE_URL: ${{ env.MYSQL_URL }}
+          ENTITYKIT_CRASH_CONTAINER: ${{ job.services.mysql.id }}
+      - name: Qualify MySQL performance and resource budgets
+        run: npm run check:performance:mysql
+        env:
+          ENTITYKIT_BENCHMARK_DATABASE_URL: ${{ env.MYSQL_URL }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: performance-mysql-node-${{ matrix.node }}
+          path: coverage/performance/mysql.json
+          if-no-files-found: error
 
   nextjs:
     name: Next.js 16 + Postgres demo

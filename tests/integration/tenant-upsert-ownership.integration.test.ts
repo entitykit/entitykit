@@ -92,7 +92,7 @@ function defineOwnershipTest(runtime: ProviderRuntime): void {
             id: 'shared',
             name: 'hijacked',
         });
-        const write = db.items.upsert([incoming], {
+        const write = db.items.executeUpsert([incoming], {
             updateProperties: ['name'],
         });
 

@@ -1,13 +1,16 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { IndexMetadata } from '../model/index-metadata';
 import { isAlternateKeyBackingIndex } from '../model/alternate-key-indexes';
+import { validateIndexDatabaseNames } from '../model/index-name-validation';
 import { defaultIndexName } from '../sql/identifiers';
 import type { SqlDialect } from '../sql/sql-dialect';
+import { ddlTableReference } from '../sql/ddl-table-reference';
 
 export function buildIndexes(
     entity: EntityMetadata,
     dialect: SqlDialect,
 ): string[] {
+    validateIndexDatabaseNames(entity, dialect.name);
     return entity.indexes
         .filter(index => !entity.alternateKeys.some(key =>
             isAlternateKeyBackingIndex(index, key.propertyNames)))
@@ -53,7 +56,7 @@ function buildIndex(
 
     return `create ${unique}index ${existenceGuard}${dialect.quoteIdentifier(
         indexName,
-    )} on ${dialect.quoteQualifiedIdentifier(
+    )} on ${ddlTableReference(dialect,
         entity.schemaName, entity.tableName,
     )} (${columns})${includeClause}${filterClause};`;
 }

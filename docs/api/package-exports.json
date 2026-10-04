@@ -1,0 +1,96 @@
+{
+  "@entitykit/cli": {
+    "bin": {
+      "entitykit": "dist/index.js"
+    },
+    "exports": {
+      ".": {
+        "default": "./dist/api.js",
+        "require": "./dist/api.js",
+        "types": "./dist/api.d.ts"
+      }
+    },
+    "type": "commonjs"
+  },
+  "@entitykit/core": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js",
+        "require": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      },
+      "./adapter": {
+        "default": "./dist/adapter/index.js",
+        "require": "./dist/adapter/index.js",
+        "types": "./dist/adapter/index.d.ts"
+      },
+      "./experimental": {
+        "default": "./dist/experimental/index.js",
+        "require": "./dist/experimental/index.js",
+        "types": "./dist/experimental/index.d.ts"
+      },
+      "./migrations": {
+        "default": "./dist/migrations/api.js",
+        "require": "./dist/migrations/api.js",
+        "types": "./dist/migrations/api.d.ts"
+      },
+      "./package.json": "./package.json",
+      "./tooling": {
+        "default": "./dist/tooling/index.js",
+        "require": "./dist/tooling/index.js",
+        "types": "./dist/tooling/index.d.ts"
+      }
+    },
+    "type": "commonjs"
+  },
+  "@entitykit/mysql": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js",
+        "require": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
+    },
+    "type": "commonjs"
+  },
+  "@entitykit/nestjs": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js",
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
+    },
+    "type": "module"
+  },
+  "@entitykit/postgres": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js",
+        "require": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
+    },
+    "type": "commonjs"
+  },
+  "@entitykit/sqlite": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js",
+        "require": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
+    },
+    "type": "commonjs"
+  },
+  "@entitykit/testing": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.js",
+        "require": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
+    },
+    "type": "commonjs"
+  }
+}

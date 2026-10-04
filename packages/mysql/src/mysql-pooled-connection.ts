@@ -3,7 +3,7 @@ import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult,
 import { EnclosingTransactionState } from '@entitykit/core/adapter';
 import { validateTransactionOptions } from '@entitykit/core/adapter';
 import type { MySqlConnection, MySqlPool } from './mysql-driver';
-import { createMysqlProviderError } from './mysql-provider-error';
+import { acquireMysqlConnection } from './mysql-connection-acquisition';
 import { runMysqlTransaction } from './mysql-transaction';
 import { streamMysqlConnectionRows } from './mysql-stream-lease';
 import { executeMysqlBufferedQuery } from './mysql-buffered-query';
@@ -34,7 +34,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
         return executeMysqlBufferedQuery(
             this.pool,
             this.activeConnection,
-            async () => await this.connect(),
+            async () => await this.connect(options.signal),
             statement,
             this.commandTimeoutMs,
             options,
@@ -53,7 +53,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
                 this.usability.assertUsable();
                 return this.activeConnection;
             },
-            async () => await this.connect(),
+            async () => await this.connect(options.signal),
             this.commandTimeoutMs,
         );
     }
@@ -71,7 +71,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
             return this.nestedTransaction(work, options);
         }
         const ownsConnection = this.activeConnection === undefined;
-        const connection = this.activeConnection ?? await this.connect();
+        const connection = this.activeConnection ?? await this.connect(options?.signal);
         this.activeConnection = connection;
         this.transactionDepth = 1;
         this.transactionState.reset();
@@ -103,7 +103,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
         if (this.activeConnection) {
             return work();
         }
-        const connection = await this.connect();
+        const connection = await this.connect(options?.signal);
         this.activeConnection = connection;
         let completed = false;
         try {
@@ -137,11 +137,7 @@ export class MySqlPooledConnection implements DatabaseConnection {
             this.transactionDepth -= 1;
         }
     }
-    private async connect(): Promise<MySqlConnection> {
-        try {
-            return await this.pool.getConnection();
-        } catch (error) {
-            throw createMysqlProviderError('connect', error);
-        }
+    private async connect(signal?: AbortSignal): Promise<MySqlConnection> {
+        return acquireMysqlConnection(this.pool, signal);
     }
 }

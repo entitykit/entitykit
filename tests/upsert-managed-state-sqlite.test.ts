@@ -102,7 +102,7 @@ describe('SQLite default upsert managed state', () => {
             ],
         });
 
-        await expect(db.rows.upsert([incoming({})], {
+        await expect(db.rows.executeUpsert([incoming({})], {
             conflictProperties: ['sku'],
         })).resolves.toBe(1);
 
@@ -136,7 +136,7 @@ describe('SQLite default upsert managed state', () => {
             deletedAt: 'caller-deleted-at',
         });
 
-        await expect(db.rows.upsert([inserted], {
+        await expect(db.rows.executeUpsert([inserted], {
             conflictProperties: ['sku'],
         })).resolves.toBe(1);
 

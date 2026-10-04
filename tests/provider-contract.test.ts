@@ -78,13 +78,11 @@ defineProviderContractTests('fake', (): ProviderContractRuntime => {
         },
         beforeMigrationUpdate() {
             connection.queueResult();
-            connection.queueResult();
             connection.queueResult({ rows: [] });
             connection.queueResult();
             connection.queueResult({ rowCount: 1 });
         },
         beforeSecondMigrationUpdate(_db, migration) {
-            connection.queueResult();
             connection.queueResult();
             connection.queueResult({ rows: [contractMigrationHistoryRow(migration, provider)] });
         },
@@ -93,11 +91,9 @@ defineProviderContractTests('fake', (): ProviderContractRuntime => {
         },
         beforeMigrationRollback(_db, migration) {
             connection.queueResult();
-            connection.queueResult();
             connection.queueResult({ rows: [] });
             connection.queueResult();
             connection.queueResult({ rowCount: 1 });
-            connection.queueResult();
             connection.queueResult();
             connection.queueResult({ rows: [contractMigrationHistoryRow(migration, provider)] });
             connection.queueResult();

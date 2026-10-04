@@ -1,6 +1,6 @@
 import type { EntityMetadata } from '@entitykit/core';
 import type { PropertySelector } from '@entitykit/core';
-import { selectPropertyName } from '@entitykit/core';
+import { selectPropertyName } from '@entitykit/core/adapter';
 import { createDateBucketGroupKey, type DateBucketGroupKey, type DateBucketPrecision } from '@entitykit/core';
 import type { PredicateExpression } from '@entitykit/core';
 import { PredicateExpression as PredicateExpressionValue } from '@entitykit/core/experimental';

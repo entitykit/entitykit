@@ -1,5 +1,6 @@
 import type { MigrationBuilderCore } from './migration-builder-core';
 import type { MigrationDropIndexOptions, MigrationIndexDefinition } from './migration-builder-types';
+import { ddlTableReference } from '../sql/ddl-table-reference';
 
 /**
  * WHY: DDL for indexes — create, drop, and rename. Kept separate from the
@@ -53,7 +54,7 @@ export function createIndex(core: MigrationBuilderCore, index: MigrationIndexDef
         'Remove the filter or use reviewed provider-specific SQL.',
     );
     core.emitDdl(
-        `create ${unique}index${concurrently} ${existenceGuard}${core.dialect.quoteIdentifier(index.name)} on ${core.dialect.quoteQualifiedIdentifier(index.schemaName, index.tableName)} (${columns})${String(includeClause)}${String(filterClause)}`,
+        `create ${unique}index${concurrently} ${existenceGuard}${core.dialect.quoteIdentifier(index.name)} on ${ddlTableReference(core.dialect, index.schemaName, index.tableName)} (${columns})${String(includeClause)}${String(filterClause)}`,
         { suppressTransaction: index.concurrently },
     );
 }

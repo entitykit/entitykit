@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "releasedPackage": "@entitykit/core",
+  "releasedVersion": "0.1.0-alpha.1",
+  "integrity": "sha512-6eVWhujU/Sc1UO0Kp34pjJsmP+IoiDtSXPkU1KmKguxeWc4g3SXDglNSlGj+gxWiR0COOf+ZCpiF1Cccs4NiJg==",
+  "upSql": "select $1",
+  "downSql": "select $1",
+  "checksums": [
+    {
+      "name": "null",
+      "checksum": "57c227e3af73bb0d4a41bf2877ab0d1de71fc87966d651fad810e1b6a1bff7b1"
+    },
+    {
+      "name": "undefined",
+      "checksum": "e804ed4ae3a959bda3bb5883cc6e073e4fa986c02fc5ecba4e1f71bf0a7f08db"
+    },
+    {
+      "name": "false",
+      "checksum": "44fca22f240bb8c26e9a217e50f0280f37ed97de5be0c71fbf219ad9ad44ae2e"
+    },
+    {
+      "name": "empty string",
+      "checksum": "4430f87a251b195d20dc9439f7727b0cc9b17b3ae877dd71b52cefdeea89997b"
+    },
+    {
+      "name": "finite number",
+      "checksum": "4663cb377a722aaecb2ba6a5bd8d80f9633541b3c0f1be481e7a7c5baf5fe649"
+    },
+    {
+      "name": "negative zero",
+      "checksum": "ea1f4735f25e02d3ce176b39f1a560d8cfe92a8566c2a5eb06fedac864ed8278"
+    },
+    {
+      "name": "NaN",
+      "checksum": "1c2f311a099e1b9eeb73b909ade40b6e55147ac55b3eddeea012ec597861b2d5"
+    },
+    {
+      "name": "positive infinity",
+      "checksum": "3112b6a34f542a1092de632c6dabf737ef3854bb06608262af513d584dee028c"
+    },
+    {
+      "name": "negative infinity",
+      "checksum": "3b4cc19b292578adbc9637bfd3cc3204ee5ef0628dcfdc89a9e54f7567782f02"
+    },
+    {
+      "name": "bigint",
+      "checksum": "7f9ebed4d8db3130c47a6be32038562754e8aa7964892df7e4d950fbf5301bf3"
+    },
+    {
+      "name": "date",
+      "checksum": "8b2b1eb13fe90479fe1db3c81cfe8f673e8b7a1462448d79f85f951b6e23223a"
+    },
+    {
+      "name": "bytes",
+      "checksum": "59ec15eb505cb73378598803b43e4c9ed3ffe5e2a818d24f51d0bcba5c5c167d"
+    },
+    {
+      "name": "nested array",
+      "checksum": "4a097d7d2eaecdae90d4fd75818705fae6e695bd74f40699340b7d4018cdc1a5"
+    },
+    {
+      "name": "ordered object",
+      "checksum": "4525f44eba3f384bc6d318f124b7b8c78e8aa6ac5c919dc14d750c0d01f382ea"
+    }
+  ]
+}

@@ -7,9 +7,8 @@
  */
 import type { Migration } from '../migration';
 import type { MigrationHistoryRow } from '../migration-history';
-import { collectDestructiveWarnings } from '../migration-scaffolder';
-import { diffModelSnapshots } from '../model-differ';
 import { MigrationChecksumError, MigrationError } from '../../errors/migration-errors';
+export { destructiveWarningsForMigration } from '../migration-destructive-warnings';
 
 export function migrationIdFromError(error: unknown): string | undefined {
     if (!error || typeof error !== 'object') {
@@ -84,12 +83,4 @@ function validateAppliedHistoryShape(applied: readonly MigrationHistoryRow[]): v
         seen.add(row.id);
         previousId = row.id;
     }
-}
-
-export function destructiveWarningsForMigration(migration: Migration): readonly string[] {
-    if (!migration.previousSnapshot || !migration.targetSnapshot) {
-        return [];
-    }
-
-    return collectDestructiveWarnings(diffModelSnapshots(migration.previousSnapshot, migration.targetSnapshot).operations);
 }

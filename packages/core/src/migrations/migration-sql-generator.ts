@@ -15,6 +15,7 @@ import {
 import { postgresMigrationDialect, type MigrationSqlDialect } from './migration-sql-dialect';
 import type { SqlStatement } from '../sql/sql-statement';
 import { collectMigrationOperation } from './migration-operation-collector';
+import { validateMigrationIndexNames } from './migration-index-validation';
 
 export { selectMigrationRange } from './migration-range';
 export { renderScript } from './migration-script-renderer';
@@ -41,6 +42,7 @@ export { renderScript } from './migration-script-renderer';
     }
 
     /** Perform the build up statements operation. */ public buildUpStatements(migration: Migration): readonly SqlStatement[] {
+        validateMigrationIndexNames(migration, this.dialect.sql.name);
         const upBuilder = collectMigrationOperation(
             migration,
             'up',
@@ -66,6 +68,7 @@ export { renderScript } from './migration-script-renderer';
     }
 
     /** Perform the build down statements operation. */ public buildDownStatements(migration: Migration): readonly SqlStatement[] {
+        validateMigrationIndexNames(migration, this.dialect.sql.name);
         const builder = collectMigrationOperation(
             migration,
             'down',

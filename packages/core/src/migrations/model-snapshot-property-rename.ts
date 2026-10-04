@@ -25,7 +25,7 @@ export function renameSnapshotProperty(
             relationships: candidate.relationships.map(relationship =>
                 renameRelationshipReferences(
                     relationship,
-                    candidate === entity ? from : undefined,
+                    candidate === entity ? to : undefined,
                     relationship.principalEntityName === entity.entityName
                         ? to
                         : undefined,

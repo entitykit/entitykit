@@ -44,3 +44,5 @@ export type { IdentityGenerationMode, StoreGenerationStrategy } from '../model/s
 export { safeGeneratedPath, writeFilesAtomically } from './atomic-file-writer';
 export type { AtomicFileWrite } from './atomic-file-writer';
 export { loadTypeScriptModule } from './typescript-module-loader';
+/** Validate a synchronous clock callback used by configuration tooling. */
+export { readSynchronousDate } from '../synchronous-value';

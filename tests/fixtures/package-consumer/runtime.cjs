@@ -3,6 +3,9 @@
 // `createRequire` path into `@entitykit/sqlite`, so this also proves core can
 // find its sibling provider from an installed tree.
 const { DbContext, EntityState } = require('@entitykit/core');
+const legacyHelpers = require('@entitykit/core');
+const { assertSynchronousCallbackResult, selectPropertyName } = require('@entitykit/core/adapter');
+const { readSynchronousDate } = require('@entitykit/core/tooling');
 const {
   createMySqlDataSource,
   mySqlProviderServices,
@@ -38,12 +41,22 @@ class ConsumerContext extends DbContext {
       entity.hasKey(widget => widget.id);
       entity.property(widget => widget.id).hasColumnType('text').isRequired();
       entity.property(widget => widget.label).hasColumnType('text').isRequired();
-      entity.materialize(values => new Widget(values));
+      entity.materializeChecked(row => new Widget({
+        id: row.required(widget => widget.id),
+        label: row.required(widget => widget.label),
+      }));
     });
   }
 }
 
 async function main() {
+  for (const [name, helper] of Object.entries({
+    assertSynchronousCallbackResult, selectPropertyName, readSynchronousDate,
+  })) {
+    if (typeof helper !== 'function' || helper !== legacyHelpers[name]) {
+      throw new Error(`Packaged helper alias '${name}' is not compatible.`);
+    }
+  }
   if (
     mySqlProviderServices.name !== 'mysql'
     || postgresProviderServices.name !== 'postgres'
@@ -75,13 +88,13 @@ async function main() {
     values: [],
   });
   const widget = db.widgets.create({ id: 'one', label: 'First' });
-  if (db.changeTracker.entry(widget).state !== EntityState.Added) {
+  if (db.entryOrThrow(widget).state !== EntityState.Added) {
     throw new Error('Packaged change tracking did not report the added entity.');
   }
   if (await db.saveChanges() !== 1) {
     throw new Error('Packaged SQLite save failed.');
   }
-  db.changeTracker.clear();
+  db.clearTracking();
   const rows = await db.widgets.toArray();
   if (rows.length !== 1 || rows[0].label !== 'First') {
     throw new Error('Packaged SQLite query failed.');

@@ -1,22 +1,20 @@
 import { EntityMetadata } from './entity-metadata';
-import { EntityRelationshipConfiguration } from './entity-builder/relationship-configuration';
+import { EntityMaterializationConfiguration } from './entity-builder/materialization-configuration';
 import { validateEntityStoreGeneration } from './entity-store-generation-validation';
 import {
     validateComplexPropertyRequiredness,
 } from './complex-property-validation';
 import type { EntityBuilder } from './entity-builder-types';
-import type { EntityMaterializer } from '../types';
 import { finalizeEntitySaas } from './entity-saas-finalization';
 
 export class EntityBuilderImplementation<TEntity extends object>
-    extends EntityRelationshipConfiguration<TEntity>
+    extends EntityMaterializationConfiguration<TEntity>
     implements EntityBuilder<TEntity> {
     private tableName?: string;
     private schemaName?: string;
     private keyless = false;
     private explicitlyKeyless = false;
     private view = false;
-    private materializer?: EntityMaterializer<TEntity>;
 
     public toTable(tableName: string, schemaName?: string): this {
         this.view = false;
@@ -54,12 +52,6 @@ export class EntityBuilderImplementation<TEntity extends object>
     /** Configure a named table check constraint. */
     public hasCheckConstraint(name: string, sql: string): this {
         this.schemaFacet.checkConstraint(name, sql);
-        return this;
-    }
-
-    /** Configure explicit construction for entities with required arguments. */
-    public materialize(factory: EntityMaterializer<TEntity>): this {
-        this.materializer = factory;
         return this;
     }
 
@@ -124,6 +116,7 @@ export class EntityBuilderImplementation<TEntity extends object>
         return new EntityMetadata<TEntity>({
             ctor: this.ctor,
             materializer: this.materializer,
+            checkedMaterializer: this.checkedMaterializer,
             tableName: this.tableName,
             schemaName: this.schemaName,
             isKeyless: this.keyless,

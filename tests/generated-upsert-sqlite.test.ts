@@ -61,7 +61,7 @@ describe('SQLite generated-value upsert', () => {
         const db = await open();
         const incoming = row('sku-one', 'one');
 
-        await expect(db.rows.upsert([incoming])).rejects.toThrow(
+        await expect(db.rows.executeUpsert([incoming])).rejects.toThrow(
             'cannot use unresolved store-generated key \'id\' as its conflict target',
         );
 
@@ -76,7 +76,7 @@ describe('SQLite generated-value upsert', () => {
         const first = row('sku-one', 'one');
         const second = row('sku-two', 'two');
 
-        await expect(db.rows.upsert(
+        await expect(db.rows.executeUpsert(
             [first, second],
             naturalKeyOptions,
         )).resolves.toBe(2);
@@ -94,10 +94,10 @@ describe('SQLite generated-value upsert', () => {
     it('hydrates the stored generated values after a natural-key conflict', async () => {
         const db = await open();
         const stored = row('sku-one', 'before');
-        await db.rows.upsert([stored], naturalKeyOptions);
+        await db.rows.executeUpsert([stored], naturalKeyOptions);
         const incoming = row('sku-one', 'after');
 
-        await expect(db.rows.upsert([incoming], naturalKeyOptions))
+        await expect(db.rows.executeUpsert([incoming], naturalKeyOptions))
             .resolves.toBe(1);
 
         expect(incoming.id).toBe(stored.id);
@@ -116,7 +116,7 @@ describe('SQLite generated-value upsert', () => {
     it('rejects explicit updates to store-generated properties', async () => {
         const db = await open();
 
-        await expect(db.rows.upsert([row('sku-one', 'one')], {
+        await expect(db.rows.executeUpsert([row('sku-one', 'one')], {
             conflictProperties: ['sku'],
             updateProperties: ['label', 'createdAt'],
         })).rejects.toThrow(
@@ -132,7 +132,7 @@ describe('SQLite generated-value upsert', () => {
         const first = row('sku-one', 'duplicate-label');
         const second = row('sku-two', 'duplicate-label');
 
-        await expect(db.rows.upsert(
+        await expect(db.rows.executeUpsert(
             [first, second],
             naturalKeyOptions,
         )).rejects.toBeInstanceOf(UniqueConstraintError);

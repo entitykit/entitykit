@@ -81,10 +81,13 @@ bootstrap and rejects asynchronous `configure()` or `model()` callbacks. A
 model with a tenant key is rejected unless the context configures either a
 tenant resolver or an explicit cross-tenant mode.
 
-`DbContext` accepts an optional data source. Its base `configure()` selects that
-source, so an overriding context calls `super.configure(options)` before adding
-diagnostics, tenant scope, auditing, or other context-level options. Provider
-factories expose the more intention-revealing `dataSource.createContext()`
+`DbContext` accepts an optional data source. Initialization selects it before
+invoking the overridable `configure()` hook. No call to `DbContext.configure()`
+is required for source selection. Overrides call `super.configure(options)`
+when retaining configuration implemented by an intermediate base class.
+A second provider, source, or connection selection fails before acquiring a
+connection. Provider factories expose
+`dataSource.createContext()` as the application-facing
 entry, which forwards any remaining constructor arguments.
 
 The public `DbContext` delegates to focused runtime hosts for query filters,
@@ -208,6 +211,14 @@ SQLite reports that no provider lock was used. Generated migration and `db
 pull` output is review material, not a substitute for reviewing the target
 database.
 
+Migration dialects may implement `runMigrationTransaction` to execute one
+ordered transactional batch with provider-specific constraint handling. Core
+keeps transaction-suppressed statements outside those batches and defaults to
+the connection's transaction method. SQLite uses this hook to suspend enabled
+foreign keys before a table rebuild, validate them inside the transaction,
+and restore the connection setting afterward. Generated statements and
+checksum serialization remain independent of this execution scope.
+
 ## Release flow
 
 The current `main` release pipeline applies this shape to the seven-package
@@ -219,7 +230,7 @@ manual dispatch from main + publish-alpha confirmation
   -> complete CI matrix
   -> build and pack exactly seven workspaces once
   -> install and accept those exact tarballs as an external consumer
-  -> publish absent versions under alpha-candidate with npm provenance
+  -> publish absent versions under the selected candidate tag with npm provenance
      or accept an existing version only when its integrity matches
   -> compare all seven registry integrities with the accepted tarballs
   -> move all seven alpha dist-tags

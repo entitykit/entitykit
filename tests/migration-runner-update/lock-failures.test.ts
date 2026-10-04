@@ -12,7 +12,6 @@ describe('migration update lock failures', () => {
         const failure = new Error('diagnostic failed');
         connection.queueResult();
         connection.queueResult();
-        connection.queueResult();
         connection.queueResult({ rows: [] });
         connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
 
@@ -34,7 +33,6 @@ describe('migration update lock failures', () => {
         ).update([])).resolves.toMatchObject({ appliedMigrations: [] });
 
         expect(connection.statements.map(statement => statement.text)).toEqual([
-            stringContaining('create table if not exists'),
             'select pg_advisory_lock(hashtext($1))',
             stringContaining('create table if not exists'),
             stringContaining('select "id", "name", "checksum"'),
@@ -46,7 +44,6 @@ describe('migration update lock failures', () => {
     it('detaches asynchronous diagnostic rejection from the lock lifecycle', async () => {
         const connection = new RecordingDatabaseConnection();
         const observedPhases: string[] = [];
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [] });
@@ -78,7 +75,6 @@ describe('migration update lock failures', () => {
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
         const failure = new Error('lock failed');
-        connection.queueResult();
         connection.queueError(failure);
 
         await expect(new MigrationRunner(connection, postgresMigrationDialect, undefined, diagnostics.options).update([new CreateUsers()]))
@@ -94,7 +90,6 @@ describe('migration update lock failures', () => {
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
         const failure = new Error('unlock failed');
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [] });
@@ -126,7 +121,6 @@ describe('migration update lock failures', () => {
         const diagnostics = migrationDiagnostics();
         const migrationFailure = new Error('create table failed');
         const releaseFailure = new Error('unlock failed');
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [] });

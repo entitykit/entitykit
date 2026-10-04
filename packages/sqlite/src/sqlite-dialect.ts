@@ -6,6 +6,8 @@ import type { SqlDialect } from '@entitykit/core/adapter';
 import type { SqlStatement } from '@entitykit/core/adapter';
 import { sqliteStoreGenerationClause } from './sqlite-store-generation';
 import { excludedColumnMatchClause } from '@entitykit/core/adapter';
+import { runSqliteMigrationTransaction } from './sqlite-migration-transaction';
+import { sqliteCreateSchemaStatements, sqliteDdlTableReference, sqliteDropSchemaStatement } from './sqlite-schema-ddl';
 
 function quoteIdentifier(identifier: string): string {
     if (!identifier || identifier.trim().length === 0) {
@@ -30,6 +32,9 @@ function quoteQualifiedIdentifier(...identifiers: ReadonlyArray<string | undefin
  */
 export const sqliteDialect: SqlDialect = Object.freeze({
     name: 'sqlite',
+    createSchemaStatements: sqliteCreateSchemaStatements,
+    dropSchemaStatement: sqliteDropSchemaStatement,
+    ddlTableReference: sqliteDdlTableReference,
     maxStatementParameters(): number {
     // SQLITE_MAX_VARIABLE_NUMBER, whose compiled-in default has been 32766
     // since 3.32. Builds may lower it; a build that does will reject a
@@ -99,9 +104,10 @@ export const sqliteDialect: SqlDialect = Object.freeze({
 export const sqliteMigrationDialect: MigrationSqlDialect = Object.freeze({
     name: 'sqlite',
     sql: sqliteDialect,
+    runMigrationTransaction: runSqliteMigrationTransaction,
     createMigrationHistoryTableStatement(): SqlStatement {
         return {
-            text: `create table if not exists ${quoteIdentifier(migrationHistoryTableName)} (${quoteIdentifier('id')} text primary key, ${quoteIdentifier('name')} text not null, ${quoteIdentifier('checksum')} text not null, ${quoteIdentifier('entitykit_version')} text not null)`,
+            text: `create table if not exists ${quoteIdentifier(migrationHistoryTableName)} (${quoteIdentifier('id')} text not null primary key, ${quoteIdentifier('name')} text not null, ${quoteIdentifier('checksum')} text not null, ${quoteIdentifier('entitykit_version')} text not null)`,
             values: [],
         };
     },

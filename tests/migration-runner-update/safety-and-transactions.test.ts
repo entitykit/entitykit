@@ -33,7 +33,6 @@ describe('migration update safety and transaction boundaries', () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult();
         connection.queueResult();
-        connection.queueResult();
         connection.queueResult({ rows: [] });
         connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
 
@@ -44,7 +43,6 @@ describe('migration update safety and transaction boundaries', () => {
     it('keeps normal statements transactional around transaction-suppressed operations', async () => {
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [] });
@@ -62,7 +60,6 @@ describe('migration update safety and transaction boundaries', () => {
         expect(result.transactionSuppressedStatements).toBe(1);
         expect(connection.transactionEvents).toEqual(['begin', 'commit', 'begin', 'commit']);
         expect(connection.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select pg_advisory_lock(hashtext($1))',
             'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select "id", "name", "checksum", "entitykit_version", "applied_at" from "__entitykit_migrations" order by "id"',

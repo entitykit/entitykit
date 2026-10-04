@@ -29,6 +29,7 @@ export function renderMigrationSource(options: {
         `  readonly name = ${JSON.stringify(options.className)};`,
         `  override readonly previousSnapshot = ${stringifyModelSnapshot(options.previousSnapshot)} satisfies ModelSnapshot;`,
         `  override readonly targetSnapshot = ${stringifyModelSnapshot(options.targetSnapshot)} satisfies ModelSnapshot;`,
+        `  override readonly destructiveWarnings = Object.freeze(${JSON.stringify(options.warnings)});`,
         '',
         '  override up(builder: MigrationBuilder): void {',
         ...renderWarningComments(options.warnings),

@@ -15,6 +15,12 @@ import type { StoreGenerationStrategy } from '../model/store-generation';
 
 /** Optional DDL capabilities layered onto the core query dialect. */
 export interface SchemaSqlDialect {
+    /** Render schema creation; an empty list represents an implicit existing schema. */
+    createSchemaStatements?(schemaName: string): readonly string[];
+    /** Render schema removal, or refuse namespaces the provider cannot remove. */
+    dropSchemaStatement?(schemaName: string): string;
+    /** Quote an index target or foreign-key principal using the provider's DDL grammar. */
+    ddlTableReference?(schemaName: string | undefined, tableName: string): string;
     /** Create index existence guard. */ createIndexExistenceGuard?(): string;
     /** Perform the generated column clause operation. */ generatedColumnClause?(expression: string, stored: boolean): string;
     /** Perform the store generation clause operation. */ storeGenerationClause?(

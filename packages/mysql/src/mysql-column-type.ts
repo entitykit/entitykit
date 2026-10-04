@@ -64,6 +64,7 @@ export function mapMysqlColumnType(
             // No native UUID; store as fixed-width text so it can be a key.
             return `char(36)${caseSensitive}`;
         default:
-            return normalized;
+            // ENUM and SET arguments contain data, whose spelling must survive.
+            return type.trim();
     }
 }

@@ -52,7 +52,7 @@ export async function introspectSqliteColumns(
           ? row.type.toLowerCase()
           : 'text',
             isNullable: row.notnull === 0 && row.pk === 0,
-            defaultSql: readDefaultSql(row.dflt_value),
+            defaultSql: ddl?.defaultSql ?? readDefaultSql(row.dflt_value),
             isStoreGenerated: row.name === rowIdColumn,
             storeGeneration: row.name === rowIdColumn
                 ? {

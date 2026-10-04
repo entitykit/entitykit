@@ -71,10 +71,16 @@ export function consumeThenable(
 }
 
 export function jsonObjectTypeName(prototype: object | null): string {
-    const constructor = prototype === null
-        ? undefined
-        : Object.getOwnPropertyDescriptor(prototype, 'constructor')?.value as unknown;
-    return typeof constructor === 'function' && constructor.name
-        ? constructor.name
-        : 'object';
+    try {
+        const constructor = prototype === null
+            ? undefined
+            : Object.getOwnPropertyDescriptor(prototype, 'constructor')?.value as unknown;
+        const name: unknown = typeof constructor === 'function'
+            ? Object.getOwnPropertyDescriptor(constructor, 'name')?.value as unknown
+            : undefined;
+        return typeof name === 'string' && name ? name : 'object';
+    } catch {
+        // Diagnostic metadata must not interrupt draining inspected values.
+        return 'object';
+    }
 }

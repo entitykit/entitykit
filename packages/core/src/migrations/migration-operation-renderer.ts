@@ -11,12 +11,32 @@ import {
     reverseRebuild,
 } from './model-diff-sqlite-rebuild';
 import { isOperationAbsorbedByRebuild } from './model-diff-rebuild-group';
+import { orderMigrationTables } from './migration-table-order';
+import type { InlinedForeignKeys } from './model-diff-foreign-key-inlining';
 
 export function renderOperations(
     operations: readonly ModelDiffOperation[],
     direction: 'up' | 'down',
 ): string[] {
-    const inlined = planForeignKeyInlining(operations, direction);
+    const ordered = orderMigrationTables(operations, direction);
+    const inlined = planForeignKeyInlining(ordered, direction);
+    const inlineLines = renderOperationBody(ordered, direction, inlined);
+    if (inlined.absorbed.size === 0) return inlineLines;
+    const separateLines = renderOperationBody(ordered, direction, { byTable: new Map(), absorbed: new Set() });
+    return [
+        '    if (builder.canAlterTableConstraints) {',
+        ...separateLines.map(line => indent(line, 4)),
+        '    } else {',
+        ...inlineLines.map(line => indent(line, 4)),
+        '    }',
+    ];
+}
+
+function renderOperationBody(
+    operations: readonly ModelDiffOperation[],
+    direction: 'up' | 'down',
+    inlined: InlinedForeignKeys,
+): string[] {
     const rebuildKeys = new Set(operations
         .filter(operation => operation.kind === 'rebuildTable')
         .map(operationKey));

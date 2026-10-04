@@ -7,7 +7,7 @@ import { runPostgresTransaction } from './postgres-transaction';
 import { streamPostgresConnectionRows } from './postgres-stream-lease';
 import { executePostgresBufferedQuery } from './postgres-buffered-query';
 import { throwIfOperationAborted } from '@entitykit/core/adapter';
-import { createPostgresProviderError } from './postgres-provider-error';
+import { acquirePostgresConnection } from './postgres-connection-acquisition';
 import { runPostgresPooledSavepoint } from './postgres-pooled-savepoint';
 import { TransactionUsability } from '@entitykit/core/adapter';
 export class PostgresPooledConnection implements DatabaseConnection {
@@ -30,7 +30,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
         return executePostgresBufferedQuery(
             this.pool,
             this.activeClient,
-            async () => await this.connect(),
+            async () => await this.connect(options.signal),
             statement,
             options,
         );
@@ -48,7 +48,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
                 this.usability.assertUsable();
                 return this.activeClient;
             },
-            async () => await this.connect(),
+            async () => await this.connect(options.signal),
             () => this.isInTransaction,
         );
     }
@@ -66,7 +66,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
             return this.nestedTransaction(work, options);
         }
         const ownsClient = this.activeClient === undefined;
-        const client = this.activeClient ?? await this.connect();
+        const client = this.activeClient ?? await this.connect(options?.signal);
         this.activeClient = client;
         this.transactionDepth += 1;
         this.transactionState.reset();
@@ -99,7 +99,7 @@ export class PostgresPooledConnection implements DatabaseConnection {
         if (this.activeClient) {
             return work();
         }
-        const client = await this.connect();
+        const client = await this.connect(options?.signal);
         this.activeClient = client;
         let completed = false;
         try {
@@ -135,12 +135,8 @@ export class PostgresPooledConnection implements DatabaseConnection {
         }
     }
 
-    private async connect(): Promise<PoolClient> {
-        try {
-            return await this.pool.connect();
-        } catch (error) {
-            throw createPostgresProviderError('connect', error);
-        }
+    private async connect(signal?: AbortSignal): Promise<PoolClient> {
+        return acquirePostgresConnection(this.pool, signal);
     }
 
 }

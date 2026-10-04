@@ -65,7 +65,7 @@ describe('SQLite database-generated values', () => {
     it('uses AUTOINCREMENT only when rowid reuse prevention is requested', async () => {
         const db = SqliteGeneratedContext.create();
         expect(db.database.createScript()).toContain(
-            '"id" integer primary key autoincrement',
+            '"id" integer not null primary key autoincrement',
         );
         await db.database.connection.query({ text: db.database.createScript(), values: [] });
         await db.database.connection.query({

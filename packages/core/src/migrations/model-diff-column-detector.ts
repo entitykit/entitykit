@@ -2,6 +2,7 @@ import type { EntitySnapshot } from '../model/model-snapshot-types';
 import type { MigrationColumnDefinition } from './migration-builder';
 import type { ModelDiffOperation } from './model-diff-operations';
 import { toColumnDefinition } from './model-diff-helpers';
+import { assertSupportedPrimaryKeyOrder } from './model-diff-primary-key-order';
 
 /**
  * Column detection: add, alter, and drop operations for the columns of an
@@ -13,6 +14,7 @@ import { toColumnDefinition } from './model-diff-helpers';
  * index, foreign-key, and join-table facets and would otherwise crowd them.
  */
 export function diffColumns(from: EntitySnapshot, to: EntitySnapshot): ModelDiffOperation[] {
+    assertSupportedPrimaryKeyOrder(from, to);
     const operations: ModelDiffOperation[] = [];
     const fromColumns = new Map(from.properties.map(property => [property.columnName, property]));
     const toColumns = new Map(to.properties.map(property => [property.columnName, property]));

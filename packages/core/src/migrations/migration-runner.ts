@@ -8,7 +8,7 @@ import { MigrationSqlGenerator } from './migration-sql-generator';
 import { postgresMigrationDialect, type MigrationSqlDialect } from './migration-sql-dialect';
 import { MigrationDiagnostics } from './runner/migration-diagnostics';
 import { MigrationExecutor } from './runner/migration-executor';
-import { MigrationUpdateLock } from './runner/migration-update-lock';
+import { runMigrationLockOperation } from './runner/migration-lock-operation';
 import type {
     MigrationRunnerDiagnosticsOptions,
     MigrationHistoryOptions,
@@ -18,6 +18,7 @@ import type {
 } from './runner/migration-runner-options';
 import { MigrationUpdateRunner } from './runner/migration-update-runner';
 import { readMigrationHistory } from './runner/read-migration-history';
+import { validateMigrationIndexNames } from './migration-index-validation';
 
 export type {
     MigrationDiagnosticsHandler,
@@ -45,7 +46,7 @@ export type {
         );
         this.generator = new MigrationSqlGenerator(dialect, builderFactory);
         this.diagnostics = new MigrationDiagnostics(dialect, diagnosticsOptions);
-        this.executor = new MigrationExecutor(database, this.diagnostics);
+        this.executor = new MigrationExecutor(database, this.diagnostics, dialect);
         this.updater = new MigrationUpdateRunner(
             database,
             dialect,
@@ -65,6 +66,7 @@ export type {
         options: MigrationOperationOptions = {},
     ): Promise<void> {
         this.assertOutsideTransaction('apply');
+        validateMigrationIndexNames(migration, this.dialect.sql.name);
         await this.runWithMigrationLock(
             async () => this.executor.runMigration(
                 migration,
@@ -81,6 +83,7 @@ export type {
         options: MigrationOperationOptions = {},
     ): Promise<void> {
         this.assertOutsideTransaction('revert');
+        validateMigrationIndexNames(migration, this.dialect.sql.name);
         await this.runWithMigrationLock(
             async () => this.executor.runMigration(
                 migration,
@@ -95,11 +98,13 @@ export type {
     /** Return applied migrations. */ public async getAppliedMigrations(
         options: MigrationHistoryOptions = {},
     ): Promise<MigrationHistoryRow[]> {
-        return readMigrationHistory(
-            this.database,
-            this.dialect,
+        if (options.initializeHistory === false) {
+            return readMigrationHistory(this.database, this.dialect, options, 'check');
+        }
+        this.assertOutsideTransaction('history initialization');
+        return this.runWithMigrationLock(
+            async () => readMigrationHistory(this.database, this.dialect, options),
             options,
-            options.initializeHistory === false ? 'check' : 'initialize',
         );
     }
 
@@ -108,6 +113,7 @@ export type {
         options: MigrationUpdateOptions = {},
     ): Promise<MigrationUpdateResult> {
         this.assertOutsideTransaction('update');
+        for (const migration of migrations) validateMigrationIndexNames(migration, this.dialect.sql.name);
         return this.updater.update(migrations, options);
     }
 
@@ -126,24 +132,8 @@ export type {
         work: () => TResult | Promise<TResult>,
         options: MigrationOperationOptions,
     ): Promise<TResult> {
-        const runInSession = this.database.session?.bind(this.database)
-      ?? (async <T>(sessionWork: () => Promise<T>) => sessionWork());
-        return runInSession(async () => {
-            const lock = new MigrationUpdateLock(
-                this.database,
-                this.dialect,
-                this.diagnostics,
-            );
-            let primaryError: unknown;
-            try {
-                await lock.acquire(options);
-                return await work();
-            } catch (error) {
-                primaryError = error;
-                throw error;
-            } finally {
-                await lock.release(primaryError);
-            }
-        }, options);
+        return runMigrationLockOperation(
+            this.database, this.dialect, this.diagnostics, work, options,
+        );
     }
 }

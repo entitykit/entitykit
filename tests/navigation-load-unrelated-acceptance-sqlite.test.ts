@@ -1,6 +1,6 @@
 import { EntityState } from '../packages/core/src';
 import { requireDefined } from './support/require-defined';
-import { refusalMessage, rejection } from './support/accessor-refusal-support';
+import { refusalMessage } from './support/accessor-refusal-support';
 import type {
     LateAttachContext,
     LateBadge,
@@ -31,7 +31,7 @@ interface AcceptedMove {
     readonly previous: LateHolder;
     readonly next: LateHolder;
     /** The unrelated collection load, in flight across the whole move. */
-    readonly loading: Promise<unknown>;
+    readonly failure: Promise<unknown>;
 }
 
 /**
@@ -57,12 +57,13 @@ async function acceptMoveWhileLoadPending(): Promise<AcceptedMove> {
 
     const loading = requireDefined(db.entry(principal))
         .collection(row => row.dependents).load();
+    const failure = loading.then(() => undefined, (error: unknown): unknown => error);
     badge.holder = next;
     previous.badge = null;
     next.badge = badge;
     db.changeTracker.detectChanges();
     db.changeTracker.acceptAllChanges();
-    return { db, badge, previous, next, loading };
+    return { db, badge, previous, next, failure };
 }
 
 /** Replace one property with an observer that reports every write it is asked for. */
@@ -133,7 +134,7 @@ describe('navigation load rollback of unrelated accepted work', () => {
         const run = await acceptMoveWhileLoadPending();
         const writes = countForeignKeyWrites(run.badge);
 
-        const failure = await rejection(async () => run.loading);
+        const failure = await run.failure;
 
         expect(refusalMessage(failure)).toContain('no such table');
         run.db.changeTracker.detectChanges();
@@ -152,7 +153,7 @@ describe('navigation load rollback of unrelated accepted work', () => {
             throw new Error('accepted relationship was replayed');
         });
 
-        const failure = await rejection(async () => run.loading);
+        const failure = await run.failure;
 
         expect(refusalMessage(failure)).toContain('no such table');
         // A setter that refuses a second write is the honest observer: whether

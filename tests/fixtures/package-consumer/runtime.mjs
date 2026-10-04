@@ -3,6 +3,9 @@
 // `useProvider` seam here, so the ESM lane covers the path a user wires by
 // hand rather than core's lazy built-in loader.
 import { DbContext, EntityState } from '@entitykit/core';
+import * as legacyHelpers from '@entitykit/core';
+import { assertSynchronousCallbackResult, selectPropertyName } from '@entitykit/core/adapter';
+import { readSynchronousDate } from '@entitykit/core/tooling';
 import {
   EntityKitModule,
   getEntityKitContextRunnerToken,
@@ -15,6 +18,14 @@ class Widget {
   constructor(input) {
     this.id = input.id;
     this.label = input.label;
+  }
+}
+
+for (const [name, helper] of Object.entries({
+  assertSynchronousCallbackResult, selectPropertyName, readSynchronousDate,
+})) {
+  if (typeof helper !== 'function' || helper !== legacyHelpers[name]) {
+    throw new Error(`Packaged helper alias '${name}' is not compatible.`);
   }
 }
 
@@ -34,7 +45,10 @@ class ConsumerContext extends DbContext {
       entity.hasKey(widget => widget.id);
       entity.property(widget => widget.id).hasColumnType('text').isRequired();
       entity.property(widget => widget.label).hasColumnType('text').isRequired();
-      entity.materialize(values => new Widget(values));
+      entity.materializeChecked(row => new Widget({
+        id: row.required(widget => widget.id),
+        label: row.required(widget => widget.label),
+      }));
     });
   }
 }
@@ -115,12 +129,12 @@ db.widgets.create({ id: 'two', label: 'Second' });
 if (await db.saveChanges() !== 1) {
   throw new Error('Packaged SQLite save failed under ESM.');
 }
-db.changeTracker.clear();
+db.clearTracking();
 const rows = await db.widgets.toArray();
 if (rows.length !== 1 || rows[0].label !== 'Second') {
   throw new Error('Packaged SQLite query failed under ESM.');
 }
-if (db.changeTracker.entry(rows[0]).state !== EntityState.Unchanged) {
+if (db.entryOrThrow(rows[0]).state !== EntityState.Unchanged) {
   throw new Error('Packaged materialization did not track the loaded entity.');
 }
 await db.dispose();

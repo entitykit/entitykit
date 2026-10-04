@@ -7,6 +7,7 @@ import { createForeignKeyOperation } from './model-diff-foreign-key-detector';
 import { operationKey } from './model-diff-operation-key';
 import { entityKey, toColumnDefinition } from './model-diff-helpers';
 import { createIndexOperation } from './model-diff-index-detector';
+import { withSnapshotPrimaryKeyOrder } from './migration-primary-key-order';
 import {
     indexDefinition,
     tableForeignKeyDefinition,
@@ -33,7 +34,12 @@ export function addSqliteRebuildOperations(
     const rebuilds: RebuildTableOperation[] = [];
     for (const [key, entity] of current) {
         const old = previous.get(key);
-        if (!old || old.isView || entity.isView || !needsRebuild(operations, key)) {
+        if (!old || old.isView || entity.isView) {
+            continue;
+        }
+        const previousShape = tableShape(old, previousByName);
+        const currentShape = tableShape(entity, currentByName);
+        if (!needsRebuild(operations, key) && foreignKeySignature(previousShape) === foreignKeySignature(currentShape)) {
             continue;
         }
         rebuilds.push({
@@ -42,10 +48,10 @@ export function addSqliteRebuildOperations(
             tableName: entity.tableName,
             schemaName: entity.schemaName,
             definition: {
-                previous: tableShape(old, previousByName),
-                current: tableShape(entity, currentByName),
-                copyColumns: rebuildCopyColumns(old, entity, operations, key),
-                reverseCopyColumns: rebuildCopyColumns(entity, old, operations, key),
+                previous: previousShape,
+                current: currentShape,
+                copyColumns: rebuildCopyColumns(old, entity, operations, key, 'forward'),
+                reverseCopyColumns: rebuildCopyColumns(entity, old, operations, key, 'reverse'),
             },
         });
     }
@@ -92,6 +98,10 @@ function needsRebuild(
                     operation.column.primaryKey)));
 }
 
+function foreignKeySignature(table: MigrationTableShape): string {
+    return JSON.stringify(table.foreignKeys.map(key => JSON.stringify(key)).sort());
+}
+
 function tableShape(
     entity: EntitySnapshot,
     entitiesByName: ReadonlyMap<string, EntitySnapshot>,
@@ -99,7 +109,7 @@ function tableShape(
     return {
         tableName: entity.tableName,
         schemaName: entity.schemaName,
-        columns: entity.properties.map(toColumnDefinition),
+        columns: withSnapshotPrimaryKeyOrder(entity, entity.properties.map(toColumnDefinition)),
         foreignKeys: entity.relationships.map(relationship =>
             tableForeignKeyDefinition(
                 createForeignKeyOperation(entity, relationship, entitiesByName),

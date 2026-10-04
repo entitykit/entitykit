@@ -9,7 +9,7 @@ import {
 // SQLite generates the same migration operation SQL as Postgres here: both use
 // standard double-quoted identifiers and the shared migration builder.
 const MIGRATION_OPERATION_FRAGMENTS = [
-    'create table if not exists "provider_contract_operations" ("id" text primary key, "email" text)',
+    'create table if not exists "provider_contract_operations" ("id" text not null primary key, "email" text)',
     'alter table "provider_contract_operations" add column "display_name" text',
     'create unique index if not exists "ix_provider_contract_operations_email" on "provider_contract_operations" ("email")',
     'alter table "provider_contract_operations" rename column "display_name" to "name"',

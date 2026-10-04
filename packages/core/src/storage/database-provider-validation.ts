@@ -60,14 +60,7 @@ export function validateProviderServices<TConfig extends object>(
             `Database provider '${providerName}' createSchemaIntrospector must be a function.`,
         );
     }
-    if (
-        services.valueReader !== undefined
-        && typeof services.valueReader.readValue !== 'function'
-    ) {
-        throw new Error(
-            `Database provider '${providerName}' valueReader must supply readValue().`,
-        );
-    }
+    validateValueReader(services.valueReader, `Database provider '${providerName}'`);
 }
 
 export function validateDatabaseDataSource(dataSource: DatabaseDataSource): void {
@@ -102,5 +95,17 @@ export function validateDatabaseDataSource(dataSource: DatabaseDataSource): void
         throw new Error(
             `Database data source '${source.providerName}' must supply a connection factory.`,
         );
+    }
+    validateValueReader(source.valueReader, `Database data source '${source.providerName}'`);
+}
+
+function validateValueReader(valueReader: unknown, owner: string): void {
+    if (valueReader === undefined) {
+        return;
+    }
+    if (valueReader === null ||
+        typeof valueReader !== 'object' && typeof valueReader !== 'function' ||
+        !('readValue' in valueReader) || typeof valueReader.readValue !== 'function') {
+        throw new Error(`${owner} valueReader must supply readValue().`);
     }
 }

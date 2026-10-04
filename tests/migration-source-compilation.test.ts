@@ -8,6 +8,7 @@ import {
     scaffoldMigration,
 } from '../packages/core/src/migrations/api';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
+import { planningSnapshot } from './support/sqlite-planning-support';
 
 class Account {
     public id!: string;
@@ -61,6 +62,31 @@ function createSnapshot(collation: string): ModelSnapshot {
 }
 
 describe('generated migration source', () => {
+    it.each(['table', 'sequence'] as const)('places a rebuild before a removed %s in compilable provider-portable source', kind => {
+        const directory = tempDir();
+        const snapshotPath = path.join(directory, 'EntityKitModelSnapshot.ts');
+        const base = planningSnapshot();
+        const previous: ModelSnapshot = kind === 'table'
+            ? { ...base, entities: [...base.entities, { ...base.entities[0], entityName: 'ArchivedRecord', tableName: 'archived_records' }] }
+            : { ...base, sequences: [{ name: 'retired_numbers', isCyclic: false }] };
+        const current = planningSnapshot({ optionalLabel: true });
+        fs.writeFileSync(snapshotPath, renderSnapshotSource(previous), 'utf8');
+        const source = scaffoldMigration({ createModelSnapshot: () => current }, {
+            name: 'Change Planning Record', migrationsDir: directory, snapshotPath, now: new Date('2026-10-04T00:01:01Z'),
+        }).migrationSource;
+        const up = source.slice(source.indexOf('override up('), source.indexOf('override down('));
+        const down = source.slice(source.indexOf('override down('));
+        const drop = kind === 'table' ? 'builder.dropTable(' : 'builder.dropSequence(';
+        const create = kind === 'table' ? 'builder.createTable(' : 'builder.createSequence(';
+
+        expect(up).toContain(drop);
+        expect(up).toContain('builder.rebuildTable(');
+        expect(up.indexOf('builder.rebuildTable(')).toBeLessThan(up.indexOf(drop));
+        expect(down).toContain(create);
+        expect(down.indexOf(create)).toBeLessThan(down.indexOf('builder.rebuildTable('));
+        expect(compileMigrationSource(source)).toEqual([]);
+    });
+
     it('type-checks rich initial migrations without leaking diff-only fields', () => {
         const dir = tempDir();
         const snapshot = createSnapshot('C');

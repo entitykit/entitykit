@@ -40,8 +40,14 @@ export function isAlternateKeyBackingIndex<TEntity extends object>(
     index: IndexMetadata<TEntity>,
     properties: readonly PropertyKey[],
 ): boolean {
+    return isUnconditionalPropertyUniqueIndex(index) &&
+        orderedEqual(index.propertyNames, properties);
+}
+
+export function isUnconditionalPropertyUniqueIndex<TEntity extends object>(
+    index: IndexMetadata<TEntity>,
+): boolean {
     return index.isUnique &&
         index.filter === undefined &&
-        !index.keyParts?.some(part => part.kind === 'expression') &&
-        orderedEqual(index.propertyNames, properties);
+        !index.keyParts?.some(part => part.kind === 'expression');
 }

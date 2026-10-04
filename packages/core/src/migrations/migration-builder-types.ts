@@ -25,6 +25,7 @@ export interface MigrationStatement extends SqlStatement {
     /** The type. */ readonly type: string;
     /** The nullable. */ readonly nullable?: boolean;
     /** The primary key. */ readonly primaryKey?: boolean;
+    /** Zero-based key position when primary-key order differs from column order. */ readonly primaryKeyOrdinal?: number;
     /** The default sql. */ readonly defaultSql?: string;
     /** The computed sql. */ readonly computedSql?: string;
     /** The computed stored. */ readonly computedStored?: boolean;

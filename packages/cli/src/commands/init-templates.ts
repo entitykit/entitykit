@@ -21,10 +21,10 @@ export function renderInitConfig(
         ...sqlitePathImport(provider, moduleStyle),
         'import { defineEntityKitConfig } from "@entitykit/core";',
         `import { ${symbol} } from "@entitykit/${provider}";`,
-        `import { AppDbContext } from "./src/db/app-db-context${moduleStyle === 'esm' ? '.js' : ''}";`,
+        `import { MigrationDbContext } from "./src/db/app-db-context${moduleStyle === 'esm' ? '.js' : ''}";`,
         '',
         'export default defineEntityKitConfig({',
-        '  context: AppDbContext,',
+        '  context: MigrationDbContext,',
         `  provider: ${symbol},`,
         `  connection: ${connection},`,
         '  migrationsDir: "src/db/migrations",',
@@ -33,7 +33,7 @@ export function renderInitConfig(
     ].join('\n');
 }
 
-/** Render the minimal application DbContext for one built-in provider. */
+/** Render a source-backed application context and its connection-owning CLI subclass. */
 export function renderInitContext(
     provider: BuiltInProvider,
     moduleStyle: ProjectModuleStyle,
@@ -50,6 +50,11 @@ export function renderInitContext(
         'import { DbContext, type DbContextOptionsBuilder } from "@entitykit/core";',
         '',
         'export class AppDbContext extends DbContext {',
+        '  // Declare sets and map entities here. Use dataSource.createContext(AppDbContext) at runtime.',
+        '}',
+        '',
+        '// The CLI constructs this context without application arguments.',
+        'export class MigrationDbContext extends AppDbContext {',
         '  protected override configure(options: DbContextOptionsBuilder): void {',
         `    ${configure}`,
         '  }',

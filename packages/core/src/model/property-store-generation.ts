@@ -39,12 +39,14 @@ export function configureSequence(
     name: string,
     schemaName: string | undefined,
 ): void {
+    requireNonEmpty(name, 'sequence name');
+    if (schemaName !== undefined) {
+        requireNonEmpty(schemaName, 'sequence schema');
+    }
     configure(property, {
         kind: 'sequence',
-        name: requireNonEmpty(name, 'sequence name'),
-        schemaName: schemaName === undefined
-            ? undefined
-            : requireNonEmpty(schemaName, 'sequence schema'),
+        name,
+        schemaName,
     });
 }
 

@@ -63,14 +63,16 @@ describe('package manifest', () => {
             build: 'node scripts/build-package.js',
             'check:package': 'node scripts/check-package.js',
             'check:publish-alpha': 'node scripts/check-alpha-publish.js',
+            'check:publish': 'node scripts/check-alpha-publish.js',
             'check:nextjs': 'npm run build && npm run verify'
                 + ' --workspace @entitykit/example-nextjs-postgres',
             typecheck: 'tsc -p tsconfig.json --noEmit',
             prepack: 'npm run build',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
-            verify: 'npm run lint && npm run typecheck && npm test'
-                + ' && npm run check:nextjs && npm run check:package'
-                + ' && npm run check:publish-alpha',
+            verify: 'npm run lint && npm run check:security && npm run typecheck && npm test'
+                + ' && npm run check:nextjs && npm run check:bookshop && npm run check:api && npm run check:migration-compatibility'
+                + ' && npm run check:operations && npm run check:performance && npm run check:package'
+                + ' && npm run check:publish',
         });
         // The P4 placeholder is gone: verify runs the packaging gates for real.
         expect(manifest.scripts?.['//verify']).toBeUndefined();
@@ -81,11 +83,11 @@ describe('package manifest', () => {
 
         // release:alpha used to run `npm publish --workspaces --tag alpha`,
         // which publishes packages one at a time from whatever a working
-        // copy happens to contain. Releases run in the Release alpha workflow
+        // copy happens to contain. Releases run in the Release workflow
         // now, so the script survives only to say so.
         expect(manifest.scripts?.['release:alpha'])
             .toBe('node -e "console.error(\'Local publishing is not supported:'
-                + ' dispatch the Release alpha workflow'
+                + ' dispatch the Release workflow'
                 + ' (.github/workflows/release.yml).\'); process.exit(1)"');
         for (const [name, script] of Object.entries(manifest.scripts ?? {})) {
             expect(`${name}:${String(script.includes('npm publish'))}`)
@@ -130,7 +132,7 @@ describe('package manifest', () => {
             expect(manifest.publishConfig).toEqual({
                 access: 'public',
                 registry: 'https://registry.npmjs.org/',
-                tag: 'alpha',
+                tag: manifest.version?.includes('-alpha.') ? 'alpha' : 'latest',
             });
             // npm sets the cwd to the package during publish, so the guard runs
             // from packages/<name> and reaches the shared script by relative path.

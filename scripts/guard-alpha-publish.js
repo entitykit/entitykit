@@ -4,6 +4,7 @@
 // own publishConfig, not the repository root's.
 const fs = require('node:fs');
 const path = require('node:path');
+const { releasePolicy } = require('./release-channel-policy');
 
 const manifestPath = path.join(process.cwd(), 'package.json');
 const manifest = fs.existsSync(manifestPath)
@@ -14,27 +15,36 @@ const declaredTag = manifest.publishConfig?.tag;
 // `npm publish` leaves this undefined even for an alpha-pinned package.
 const invokedTag = process.env.npm_config_tag;
 const isDryRun = process.env.npm_config_dry_run === 'true';
-const isAcceptanceRun = process.env.ENTITYKIT_ALPHA_DRY_RUN === 'accept';
+let policy;
 
 function refuse(reason) {
   console.error(
-    `Refusing prerelease publication of ${manifest.name ?? 'this package'}: `
-    + `${reason} EntityKit publishes from the Release alpha workflow `
+    `Refusing ${policy?.channel === 'stable' ? 'stable' : 'prerelease'} publication of ${manifest.name ?? 'this package'}: `
+    + `${reason} EntityKit publishes from the Release workflow `
     + '(.github/workflows/release.yml), which packs the seven tarballs once and '
-    + 'moves the alpha dist-tag only after all seven are on the registry. '
+    + 'moves the public dist-tag only after all seven are on the registry. '
     + 'Publishing from a working copy is not a supported path.',
   );
   process.exit(1);
 }
 
-if (declaredTag !== undefined && declaredTag !== 'alpha') {
+try {
+  policy = releasePolicy(manifest.version);
+} catch (error) {
+  refuse(error.message);
+}
+
+const isAcceptanceRun = process.env.ENTITYKIT_RELEASE_DRY_RUN === 'accept'
+  || (policy.channel === 'alpha' && process.env.ENTITYKIT_ALPHA_DRY_RUN === 'accept');
+
+if (declaredTag !== undefined && declaredTag !== policy.targetTag) {
   refuse(`its publishConfig pins dist-tag '${declaredTag}'.`);
 }
 
 if (!isDryRun || !isAcceptanceRun) {
-  refuse('working-copy publication is disabled, including explicit alpha-tag publishes.');
+  refuse('working-copy publication is disabled, including explicit tagged publishes.');
 }
 
-if (invokedTag !== 'alpha') {
+if (invokedTag !== policy.targetTag) {
   refuse(`the invocation carries dist-tag '${invokedTag ?? 'latest'}'.`);
 }

@@ -13,22 +13,113 @@ npm ci
 npm run verify
 ```
 
-`npm run verify` runs lint, strict typechecking, the non-server Jest suite, the
-six-package tarball acceptance test, and the alpha-publish guards. The package
+`npm run verify` runs lint, scoped dependency audits, strict types, the
+non-server Jest suite, Next.js and Bookshop checks, public contract and historical
+migration checks, SQLite operational and performance qualification, the
+seven-package tarball acceptance test, and channel-aware publish dry runs. The package
 test builds the workspaces, installs the tarballs into a clean consumer, checks
 Node16 and NodeNext types, exercises CommonJS and ESM runtimes against SQLite,
 runs the installed CLI, and verifies the single-core package invariant.
 
-CI also runs:
+PR CI also runs runtime coverage:
 
 ```console
 npm run test:coverage
+```
+
+Coverage uses two workers that recycle between suites at 512 MiB to bound V8
+debugger state on the minimum Node runtime. The full runtime inventory and
+coverage floors remain defined in `config/coverage.json`.
+The coverage command gives Jest's coordinator a 6 GiB heap budget to combine
+the complete inventory without changing worker recycling or coverage floors.
+
+Mutation qualification has a separate cadence. PRs run affected scoped campaigns
+in parallel. SDK, shared fixture, configuration and dependency changes conservatively
+select all 25 scoped campaigns; direct test changes select their campaigns and
+docs-only changes skip mutation execution. The broad core campaign runs in eight
+file-based shards during nightly qualification and every release. Every original
+mutation pattern remains in exactly one shard; the combined original campaign
+score must meet its unchanged floor. An omitted or failed shard fails qualification.
+
+The nightly workflow runs at 05:31 UTC and can also be dispatched manually.
+The release workflow explicitly requires all 26 campaigns on its exact source
+revision, forcing fresh results. PR incremental reports are reusable only when
+SDK, tests, fixtures, dependencies and configuration match; PR jobs cannot save
+caches. Core mutation qualification is deferred on ordinary PRs, so a green PR
+is not complete release qualification. Local full qualification remains:
+
+```console
 npm run test:mutation
 ```
 
 The mutation lane is intentionally focused on release-critical restoration,
-migration, CLI, and provider-value seams. Run the relevant expensive gate
+migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate
 locally when changing the behavior it protects.
+All Stryker campaign definitions live in `config/stryker/`; the npm commands
+select their configuration explicitly from the repository root.
+All Jest configurations live in `config/jest/`, including the base, coverage
+and mutation test selections. npm and Stryker select their paths explicitly;
+the base config anchors `rootDir` at the repository root. For a direct Jest
+command, pass `--config config/jest/jest.config.cjs`.
+`npm run test:mutation:relationship-index` qualifies complete index finalization
+and alternate-key backing indexes plus physical index-name validation, including
+one-to-one enforcement with mixed or filtered indexes, covering columns,
+composite-key reuse and rejection of colliding generated or configured names.
+It also covers provider-specific index identity, migration snapshot validation
+in both directions and refusal before connection leases or database writes.
+`npm run test:mutation:checked-scalar` qualifies the complete checked scalar
+validator, including timestamp precision and refusal of incompatible values.
+`test:mutation` includes separate history-initialization/migration-lock,
+provider-validation, SQLite DDL, migration checksum, property metadata, snapshot rename,
+SQLite rebuild, SQLite rebuild planning, schema DDL, join-table planning, primary-key order, migration warnings, and existing-key changes
+campaigns with the same score thresholds. Run
+`npm run test:mutation:migrations` for the focused ownership check or
+`npm run test:mutation:provider-validation` for configuration validation before
+resource allocation, or `npm run test:mutation:sqlite-ddl` for schema extraction
+across SQL quoting, comments, column facets, checks, and index predicates. Run
+`npm run test:mutation:checksum` for stable migration identity across SQL binding
+types, structured values, unsupported or cyclic input, and static format constants.
+Run `npm run test:mutation:property-metadata` for column facets and invalid
+combinations of defaults, computed expressions, store generation, and versions.
+Run `npm run test:mutation:snapshot-rename` for mapped-property references in
+keys, indexes, relationships, and policy roles, including older snapshot formats.
+Run `npm run test:mutation:sqlite-rebuild` for transactional migration execution,
+foreign-key preservation, cancellation, and constraint-setting cleanup.
+Run `npm run test:mutation:sqlite-planning` for dependent rebuild detection,
+physical column copying, and grouping of constraints and indexes during schema changes.
+Run `npm run test:mutation:schema-ddl` for schema namespaces, provider rendering
+callbacks, and SQLite's implicit `main` schema.
+Run `npm run test:mutation:sqlite-joins` for retained associations, explicit join
+replacement, principal renames, and restoration of original references.
+Run `npm run test:mutation:primary-key-order` for declared tuple order,
+legacy metadata, and invalid primary-key ordinals.
+Run `npm run test:mutation:migration-warnings` for reviewed warning metadata,
+explicit rename intent, malformed declarations, and legacy snapshot fallback.
+Run `npm run test:mutation:primary-key-change` for existing-key order refusal,
+physical tuple identity, legacy metadata, and retained SQLite key transitions.
+Run `npm run test:mutation:postgres-generation` for identity options, exact
+sequence identifiers and catalog default-expression boundaries.
+Run `npm run test:mutation:store-generation` for identity policy, safe integers,
+cache sizes, sequence references, numeric bounds and property generation state.
+Run `npm run test:mutation:mysql-types` for exact ENUM and SET literals,
+provider type translation and deterministic schema-introspection metadata.
+Run `npm run test:mutation:operation-signal` for capability and receiver
+preservation, forwarded options, combined cancellation and transaction state.
+Run `npm run test:mutation:json-validation` for synchronous JSON normalization,
+descriptor inspection, exact diagnostic paths and rejected-promise ownership.
+Run `npm run test:mutation:postgres-schema-values` for numeric precision and signed
+scale, array aliases, catalog booleans, index keys and sequence facets.
+Run `npm run test:mutation:mixed-index` for ordered property/expression keys,
+builder validation and faithful index generation, including alternate keys,
+included properties and skipped metadata diagnostics.
+Run `npm run test:mutation:query-plan` for the versioned query-plan contract,
+legacy defaults, zero paging, join identity, scope flags and private values.
+Run `npm run test:mutation:migration-table-order` for parent-first creation,
+dependent-first removal, provider-specific constraints and physical table identity.
+Run `npm run test:mutation:required-primary-key` for required SQLite keys,
+integer generation, column facets and migration-history creation.
+Their separate scores preserve the original critical
+campaign's scope and comparison.
 
 Live provider work needs the matching database lane:
 
@@ -52,7 +143,7 @@ packages or layers. In particular:
 - no relative import may escape its package;
 - model and migration layers keep their tested inward dependency direction;
 - compatibility facades are re-export-only and are not internal shortcuts;
-- the six-package runtime graph remains acyclic;
+- the seven-package runtime graph remains acyclic;
 - source modules use focused kebab-case names and stay within the executable
   size budgets.
 
@@ -109,7 +200,7 @@ A pull request should state:
 4. any compatibility, migration, provider, or security effect.
 
 Keep generated output and dependency changes in the patch that requires them.
-Do not publish packages or move npm tags from a pull request; alpha publication
+Do not publish packages or move npm tags from a pull request; publication
 is a manual, protected workflow from `main`.
 
 Commit subjects use a one-line [Conventional Commit](https://www.conventionalcommits.org/)

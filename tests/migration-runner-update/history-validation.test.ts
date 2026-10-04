@@ -11,7 +11,6 @@ describe('migration history validation', () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult();
         connection.queueResult();
-        connection.queueResult();
         connection.queueResult({ rows: [{ id: '20260601110000_Missing', name: 'Missing', checksum: 'abc' }] });
         connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
 
@@ -25,7 +24,6 @@ describe('migration history validation', () => {
     it('emits migration diagnostics when database history references a missing local migration', async () => {
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [{ id: '20260601110000_Missing', name: 'Missing', checksum: 'abc' }] });
@@ -55,7 +53,6 @@ describe('migration history validation', () => {
         const createUsers = new CreateUsers();
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({
@@ -97,7 +94,6 @@ describe('migration history validation', () => {
         const createUsers = new CreateUsers();
         const addPosts = new AddPosts();
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({

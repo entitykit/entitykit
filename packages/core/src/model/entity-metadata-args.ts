@@ -11,10 +11,12 @@ import type { ManyToManyMetadata } from './many-to-many-metadata';
 import type { PropertyMetadata } from './property-metadata';
 import type { RelationshipMetadata } from './relationship-metadata';
 import type { AuditMetadata, SoftDeleteMetadata } from './saas-metadata';
+import type { CheckedEntityMaterializer } from './checked-materialization-types';
 
 export interface EntityMetadataArgs<TEntity extends object> {
     ctor: EntityConstructor<TEntity>;
     materializer?: EntityMaterializer<TEntity>;
+    checkedMaterializer?: CheckedEntityMaterializer<TEntity>;
     tableName: string;
     schemaName?: string;
     /** Keyless mappings are query-only and never participate in tracking. */

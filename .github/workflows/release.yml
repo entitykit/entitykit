@@ -1,4 +1,4 @@
-name: Release alpha
+name: Release
 
 # Manual dispatch only. There is no push, tag, schedule or pull_request
 # trigger: nothing publishes EntityKit except a human typing the confirmation
@@ -7,8 +7,14 @@ name: Release alpha
 on:
   workflow_dispatch:
     inputs:
+      channel:
+        description: Select alpha or a stable release promoted to latest.
+        required: true
+        type: choice
+        default: alpha
+        options: [alpha, stable]
       confirm:
-        description: Type publish-alpha to publish every workspace under the alpha dist-tag.
+        description: Type publish-alpha or publish-stable to match the selected channel.
         required: true
         type: string
 
@@ -16,22 +22,37 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-alpha
+  group: release-entitykit
   cancel-in-progress: false
 
 jobs:
   confirm:
-    name: Confirm the alpha publication
+    name: Confirm the publication channel
     runs-on: ubuntu-latest
+    outputs:
+      channel: ${{ steps.confirm.outputs.channel }}
+      target-tag: ${{ steps.confirm.outputs.target-tag }}
+      candidate-tag: ${{ steps.confirm.outputs.candidate-tag }}
     steps:
-      - name: Require the publish-alpha confirmation phrase
+      - name: Require the channel confirmation phrase
+        id: confirm
         env:
           CONFIRM: ${{ inputs.confirm }}
+          CHANNEL: ${{ inputs.channel }}
         run: |
-          if [ "$CONFIRM" != "publish-alpha" ]; then
-            echo "Refusing to publish: confirm must be exactly 'publish-alpha'." >&2
+          set -euo pipefail
+          case "$CHANNEL" in
+            alpha) target=alpha ;;
+            stable) target=latest ;;
+            *) echo "Refusing unknown release channel $CHANNEL." >&2; exit 1 ;;
+          esac
+          if [ "$CONFIRM" != "publish-$CHANNEL" ]; then
+            echo "Refusing to publish: confirm must be exactly 'publish-$CHANNEL'." >&2
             exit 1
           fi
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "target-tag=$target" >> "$GITHUB_OUTPUT"
+          echo "candidate-tag=$CHANNEL-candidate" >> "$GITHUB_OUTPUT"
 
   guard:
     name: Guard the release ref
@@ -56,11 +77,15 @@ jobs:
     needs: [confirm, guard]
     # Every lane CI runs, invoked for this dispatch's ref: verify on Node
     # 22.13 and Node 24, runtime coverage, the critical-path mutation score,
-    # live Postgres, live MySQL, and the Next.js/Postgres browser flow. Calling
+    # live Postgres, live MySQL, and the Next.js/Postgres browser flow. The full
+    # mutation input forces every campaign, including all broad-core shards,
+    # on this exact release revision without reusing incremental results. Calling
     # the workflow instead of restating
     # a subset of it is what keeps the release gate from drifting behind the
     # branch gate.
     uses: ./.github/workflows/ci.yml
+    with:
+      full-mutation: true
 
   evidence:
     name: Pack the release tarballs
@@ -85,17 +110,19 @@ jobs:
       # SHA-512 SRIs the publish and promote jobs check the registry against.
       - name: Build, pack and accept the seven workspaces
         run: ENTITYKIT_PACKAGE_OUTPUT_DIR="$PWD/tarballs" npm run check:package
+      - name: Include the release policy from the qualified source
+        run: cp scripts/release-channel-policy.js tarballs/release-channel-policy.js
       # These seven files are the release. Everything downstream downloads and
       # publishes them byte for byte; no job after this one compiles anything.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-tarballs
-          path: tarballs/*.tgz
+          path: tarballs/*
           if-no-files-found: error
           retention-days: 7
 
   publish:
-    name: Publish the alpha candidates
+    name: Publish the channel candidates
     needs: [confirm, guard, ci, evidence]
     runs-on: ubuntu-latest
     permissions:
@@ -104,6 +131,9 @@ jobs:
       id-token: write
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      CHANNEL: ${{ needs.confirm.outputs.channel }}
+      TARGET_TAG: ${{ needs.confirm.outputs.target-tag }}
+      CANDIDATE_TAG: ${{ needs.confirm.outputs.candidate-tag }}
     outputs:
       version: ${{ steps.preflight.outputs.version }}
     steps:
@@ -135,6 +165,11 @@ jobs:
             manifest=$(tar -xzOf "$tarball" package/package.json)
             name=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
             version=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+            tag=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).publishConfig?.tag")
+            if [ "$tag" != "$TARGET_TAG" ]; then
+              echo "Refusing to publish: $name declares tag $tag, expected $TARGET_TAG." >&2
+              exit 1
+            fi
             echo "$name@$version <- $tarball"
             names+=("$name")
             versions+=("$version")
@@ -151,44 +186,35 @@ jobs:
             echo "Refusing to publish: the tarballs carry versions ${versions[*]}." >&2
             exit 1
           fi
-          if [[ ! "$distinct" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
-            echo "Refusing to publish: $distinct is not an -alpha.N prerelease version." >&2
+          tags=$(node tarballs/release-channel-policy.js candidate "$distinct" "$CHANNEL")
+          if [ "$tags" != "$TARGET_TAG $CANDIDATE_TAG" ]; then
+            echo "Refusing inconsistent release channel tags: $tags." >&2
             exit 1
           fi
-          if ! current=$(npm view "@entitykit/core@alpha" version 2>view.err); then
-            echo "Refusing to publish: could not resolve the current @entitykit/core alpha version." >&2
-            cat view.err >&2
-            exit 1
-          fi
-          current=$(printf '%s' "$current" | tr -d '[:space:]')
-          if [[ ! "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
-            echo "Refusing to publish: current alpha version $current is not comparable." >&2
-            exit 1
-          fi
-          if ! node -e '
-            const parts = value => value.match(/\d+/gu).map(Number);
-            const next = parts(process.argv[1]);
-            const current = parts(process.argv[2]);
-            for (let index = 0; index < next.length; index += 1) {
-              if (next[index] === current[index]) continue;
-              process.exit(next[index] > current[index] ? 0 : 1);
-            }
-          ' "$distinct" "$current"; then
-            echo "Refusing to publish: $distinct is older than current alpha $current." >&2
-            exit 1
-          fi
-          if [ "$distinct" = "$current" ]; then
-            echo "Accepting same-version retry for $distinct; registry integrity still decides each package."
-          else
-            echo "Accepting forward alpha movement from $current to $distinct."
-          fi
+          for name in core sqlite postgres mysql nestjs testing cli; do
+            allowance=""
+            if current=$(npm view "@entitykit/$name@$TARGET_TAG" version 2>view.err); then
+              if [ -z "$current" ]; then
+                echo "Refusing an empty registry version for @entitykit/$name@$TARGET_TAG." >&2
+                exit 1
+              fi
+            elif grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
+              current=""
+              if [ "$name" != "core" ]; then allowance=--allow-new-package; fi
+            else
+              echo "Refusing to resolve @entitykit/$name@$TARGET_TAG: registry lookup failed." >&2
+              cat view.err >&2
+              exit 1
+            fi
+            movement=$(node tarballs/release-channel-policy.js current "$distinct" "$CHANNEL" "$current" "$allowance")
+            echo "Accepted $movement movement for @entitykit/$name@$TARGET_TAG: ${current:-absent} -> $distinct."
+          done
           echo "version=$distinct" >> "$GITHUB_OUTPUT"
 
       # Stage A. Publishing a tarball does not run prepublishOnly, so
-      # scripts/guard-alpha-publish.js — which refuses any publish whose
-      # dist-tag is not alpha — never fires in this job. What stands in its
-      # place: every publish below names --tag alpha-candidate explicitly, so
-      # nothing reaches the alpha tag here at all; the alpha tag only moves in
+      # scripts/guard-alpha-publish.js, which refuses working-copy publication,
+      # never fires here. Every publish names the validated candidate tag, so
+      # the selected public tag stays untouched; it only moves in
       # the promote job, after all seven candidates exist; and this workflow runs
       # by hand, from main, behind the confirmation phrase.
       #
@@ -225,12 +251,12 @@ jobs:
             echo "Skipping @entitykit/core@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          if ! grep -q E404 view.err; then
+          if ! grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
             echo "Refusing to publish: npm view @entitykit/core@$VERSION failed for some reason other than an absent version." >&2
             cat view.err >&2
             exit 1
           fi
-          npm publish "$tarball" --provenance --tag alpha-candidate
+          npm publish "$tarball" --provenance --tag "$CANDIDATE_TAG"
 
       - name: Publish @entitykit/sqlite
         env:
@@ -251,12 +277,12 @@ jobs:
             echo "Skipping @entitykit/sqlite@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          if ! grep -q E404 view.err; then
+          if ! grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
             echo "Refusing to publish: npm view @entitykit/sqlite@$VERSION failed for some reason other than an absent version." >&2
             cat view.err >&2
             exit 1
           fi
-          npm publish "$tarball" --provenance --tag alpha-candidate
+          npm publish "$tarball" --provenance --tag "$CANDIDATE_TAG"
 
       - name: Publish @entitykit/postgres
         env:
@@ -277,12 +303,12 @@ jobs:
             echo "Skipping @entitykit/postgres@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          if ! grep -q E404 view.err; then
+          if ! grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
             echo "Refusing to publish: npm view @entitykit/postgres@$VERSION failed for some reason other than an absent version." >&2
             cat view.err >&2
             exit 1
           fi
-          npm publish "$tarball" --provenance --tag alpha-candidate
+          npm publish "$tarball" --provenance --tag "$CANDIDATE_TAG"
 
       - name: Publish @entitykit/mysql
         env:
@@ -303,12 +329,12 @@ jobs:
             echo "Skipping @entitykit/mysql@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          if ! grep -q E404 view.err; then
+          if ! grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
             echo "Refusing to publish: npm view @entitykit/mysql@$VERSION failed for some reason other than an absent version." >&2
             cat view.err >&2
             exit 1
           fi
-          npm publish "$tarball" --provenance --tag alpha-candidate
+          npm publish "$tarball" --provenance --tag "$CANDIDATE_TAG"
 
       - name: Publish @entitykit/nestjs
         env:
@@ -329,12 +355,12 @@ jobs:
             echo "Skipping @entitykit/nestjs@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          if ! grep -q E404 view.err; then
+          if ! grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
             echo "Refusing to publish: npm view @entitykit/nestjs@$VERSION failed for some reason other than an absent version." >&2
             cat view.err >&2
             exit 1
           fi
-          npm publish "$tarball" --provenance --tag alpha-candidate
+          npm publish "$tarball" --provenance --tag "$CANDIDATE_TAG"
 
       - name: Publish @entitykit/testing
         env:
@@ -355,12 +381,12 @@ jobs:
             echo "Skipping @entitykit/testing@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          if ! grep -q E404 view.err; then
+          if ! grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
             echo "Refusing to publish: npm view @entitykit/testing@$VERSION failed for some reason other than an absent version." >&2
             cat view.err >&2
             exit 1
           fi
-          npm publish "$tarball" --provenance --tag alpha-candidate
+          npm publish "$tarball" --provenance --tag "$CANDIDATE_TAG"
 
       - name: Publish @entitykit/cli
         env:
@@ -381,15 +407,15 @@ jobs:
             echo "Skipping @entitykit/cli@$VERSION: already on the registry with the packed bytes, $packed."
             exit 0
           fi
-          if ! grep -q E404 view.err; then
+          if ! grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
             echo "Refusing to publish: npm view @entitykit/cli@$VERSION failed for some reason other than an absent version." >&2
             cat view.err >&2
             exit 1
           fi
-          npm publish "$tarball" --provenance --tag alpha-candidate
+          npm publish "$tarball" --provenance --tag "$CANDIDATE_TAG"
 
   promote:
-    name: Promote the alpha dist-tag
+    name: Promote the public dist-tag
     needs: [confirm, guard, ci, evidence, publish]
     runs-on: ubuntu-latest
     # Moving a dist-tag signs nothing, so this job holds no OIDC identity.
@@ -398,6 +424,8 @@ jobs:
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       VERSION: ${{ needs.publish.outputs.version }}
+      CHANNEL: ${{ needs.confirm.outputs.channel }}
+      TARGET_TAG: ${{ needs.confirm.outputs.target-tag }}
     steps:
       # The same artifact the publish job worked from, so the tags can be
       # checked against the accepted bytes rather than against a name.
@@ -410,7 +438,7 @@ jobs:
           node-version: 22.13.0
           registry-url: https://registry.npmjs.org
 
-      # The alpha tag is what users resolve, so it may only ever land on the
+      # The public tag is what users resolve, so it may only ever land on the
       # exact bytes this release accepted. Existence is not enough: a version
       # the registry holds from an earlier partial run carries the same name
       # and number as the one in hand and different bytes. All seven are checked
@@ -441,34 +469,59 @@ jobs:
             echo "Verified @entitykit/$name@$VERSION $packed"
           done
 
+      - name: Require forward public tag movement
+        run: |
+          set -euo pipefail
+          tags=$(node tarballs/release-channel-policy.js candidate "$VERSION" "$CHANNEL")
+          if [ "$tags" != "$TARGET_TAG $CHANNEL-candidate" ]; then
+            echo "Refusing inconsistent promotion channel tags: $tags." >&2
+            exit 1
+          fi
+          for name in core sqlite postgres mysql nestjs testing cli; do
+            allowance=""
+            if current=$(npm view "@entitykit/$name@$TARGET_TAG" version 2>view.err); then
+              if [ -z "$current" ]; then
+                echo "Refusing an empty registry version for @entitykit/$name@$TARGET_TAG." >&2
+                exit 1
+              fi
+            elif grep -Eq '^(npm (error|ERR!) )?code E404$' view.err; then
+              current=""
+              if [ "$name" != "core" ]; then allowance=--allow-new-package; fi
+            else
+              cat view.err >&2
+              exit 1
+            fi
+            node tarballs/release-channel-policy.js current "$VERSION" "$CHANNEL" "$current" "$allowance"
+          done
+
       # Stage B. Seven dist-tag moves against packages that already exist. Each
       # move gets bounded retries, then a final loop proves the public family is
       # coherent before the workflow can finish green.
-      - name: Move the alpha dist-tag onto the published version
+      - name: Move the public dist-tag onto the published version
         run: |
           set -euo pipefail
           for name in core sqlite postgres mysql nestjs testing cli; do
             moved=false
             for attempt in 1 2 3; do
-              if npm dist-tag add "@entitykit/$name@$VERSION" alpha; then
+              if npm dist-tag add "@entitykit/$name@$VERSION" "$TARGET_TAG"; then
                 moved=true
                 break
               fi
               if [ "$attempt" != "3" ]; then
-                echo "Retrying @entitykit/$name alpha tag after attempt $attempt." >&2
+                echo "Retrying @entitykit/$name $TARGET_TAG tag after attempt $attempt." >&2
                 sleep "$((attempt * 2))"
               fi
             done
             if [ "$moved" != "true" ]; then
-              echo "Alpha promotion stopped at @entitykit/$name after three attempts; rerun this release to converge the family." >&2
+              echo "$TARGET_TAG promotion stopped at @entitykit/$name after three attempts; rerun this release to converge the family." >&2
               exit 1
             fi
           done
           for name in core sqlite postgres mysql nestjs testing cli; do
-            tagged=$(npm view "@entitykit/$name@alpha" version | tr -d '[:space:]')
+            tagged=$(npm view "@entitykit/$name@$TARGET_TAG" version)
             if [ "$tagged" != "$VERSION" ]; then
-              echo "Alpha promotion verification failed: @entitykit/$name resolves to $tagged, expected $VERSION." >&2
+              echo "$TARGET_TAG promotion verification failed: @entitykit/$name resolves to $tagged, expected $VERSION." >&2
               exit 1
             fi
-            echo "Verified @entitykit/$name@alpha -> $VERSION"
+            echo "Verified @entitykit/$name@$TARGET_TAG -> $VERSION"
           done

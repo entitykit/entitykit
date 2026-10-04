@@ -44,18 +44,18 @@ const packageNames = [
  */
 const packedIntegrity =
     'packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d \'\\n\')"';
-/** The lanes a release must clear, all of them owned by ci.yml. */
+/** The ordinary evidence lanes owned by ci.yml. */
 const evidenceCommands = [
-    'npm run verify', 'npm run test:coverage', 'npm run test:mutation',
+    'npm run verify', 'npm run test:coverage',
     'npm run test:integration', 'npm run test:integration:mysql',
 ] as const;
 
-describe('public alpha CI workflow', () => {
+describe('public CI workflow', () => {
     const workflow = readWorkflow('ci.yml');
 
     it('owns exactly the evidence and release workflows', () => {
         expect(fs.readdirSync(workflowDirectory).sort())
-            .toEqual(['ci.yml', 'release.yml']);
+            .toEqual(['ci.yml', 'mutation.yml', 'release.yml']);
     });
 
     it('runs every alpha release evidence lane', () => {
@@ -80,10 +80,8 @@ describe('public alpha CI workflow', () => {
             workflow.indexOf('\npermissions:'),
         );
 
-        // Release alpha calls this file, so the release gate cannot drift into
-        // a hand-copied subset of the branch gate.
+        // Release calls the same gate with full mutation qualification.
         expect(triggers).toContain('workflow_call:');
-        // ...without giving up the triggers that gate main in the first place.
         expect(triggers).toContain('push:');
         expect(triggers).toContain('pull_request:');
         expect(triggers).toContain('workflow_dispatch:');
@@ -92,19 +90,21 @@ describe('public alpha CI workflow', () => {
     it('pins actions immutably and does not persist push credentials', () => {
         const uses = pinnedActions(workflow);
         expect(uses.length).toBeGreaterThan(0);
-        expect(uses.every(value => /@[0-9a-f]{40}$/u.test(value)))
+        expect(uses.filter(value => !value.startsWith('./')).every(value => /@[0-9a-f]{40}$/u.test(value)))
             .toBe(true);
+        expect(uses.filter(value => value.startsWith('./'))).toEqual(['./.github/workflows/mutation.yml']);
         expect(workflow.match(/persist-credentials: false/gu)?.length)
-            .toBe(6);
+            .toBe(5);
         expect(workflow).toContain('permissions:\n  contents: read');
     });
 
     it('never publishes from the evidence workflow', () => {
         expect(workflow).not.toContain('npm publish');
     });
+
 });
 
-describe('alpha release workflow', () => {
+describe('coordinated release workflow', () => {
     const workflow = readWorkflow('release.yml');
     const ci = readWorkflow('ci.yml');
     const triggers = workflow.slice(
@@ -125,14 +125,15 @@ describe('alpha release workflow', () => {
                 .toBe(`${trigger}:false`);
         }
         expect(workflow)
-            .toContain('concurrency:\n  group: release-alpha\n  cancel-in-progress: false');
+            .toContain('concurrency:\n  group: release-entitykit\n  cancel-in-progress: false');
     });
 
-    it('requires the publish-alpha confirmation phrase before any job runs', () => {
+    it('requires the matching channel confirmation before working jobs run', () => {
         expect(triggers).toContain('confirm:');
         expect(triggers).toContain('required: true');
         expect(workflow).toContain('CONFIRM: ${{ inputs.confirm }}');
-        expect(workflow).toMatch(/if \[ "\$CONFIRM" != "publish-alpha" \]/u);
+        expect(workflow).toMatch(/if \[ "\$CONFIRM" != "publish-\$CHANNEL" \]/u);
+        expect(triggers).toContain('options: [alpha, stable]');
     });
 
     it('refuses to release from any ref but main', () => {
@@ -157,11 +158,11 @@ describe('alpha release workflow', () => {
     });
 
     it('runs the complete CI matrix on the ref it is releasing', () => {
-        // The release matrix IS the CI matrix: both Node versions, runtime
-        // coverage, the mutation score, and both live databases, invoked as a
-        // reusable workflow so the caller cannot silently keep a subset.
+        // A release calls the complete reusable matrix with fresh mutations.
         expect(jobBlock(workflow, 'ci'))
             .toContain('uses: ./.github/workflows/ci.yml');
+        expect(jobBlock(workflow, 'ci')).toContain('full-mutation: true');
+        expect(jobBlock(ci, 'mutation-campaigns')).toContain('uses: ./.github/workflows/mutation.yml');
         expect(ci).toContain('workflow_call:');
         expect(ci).toContain('node: [22.13.0, 24]');
         for (const command of evidenceCommands) {
@@ -181,8 +182,7 @@ describe('alpha release workflow', () => {
         expect(evidence).toContain(
             'ENTITYKIT_PACKAGE_OUTPUT_DIR="$PWD/tarballs" npm run check:package',
         );
-        // A second build or pack anywhere in this workflow would put untested
-        // bytes on the registry, so neither appears in the file at all.
+        // Every later job uses these accepted bytes.
         for (const absent of ['npm run build', 'npm pack']) {
             expect(`${absent} in release.yml:${String(workflow.includes(absent))}`)
                 .toBe(`${absent} in release.yml:false`);
@@ -190,7 +190,8 @@ describe('alpha release workflow', () => {
         expect(evidence.indexOf('uses: actions/upload-artifact@'))
             .toBeGreaterThan(evidence.indexOf('ENTITYKIT_PACKAGE_OUTPUT_DIR'));
         expect(evidence).toContain('name: release-tarballs');
-        expect(evidence).toContain('path: tarballs/*.tgz');
+        expect(evidence).toContain('path: tarballs/*');
+        expect(evidence).toContain('cp scripts/release-channel-policy.js');
         expect(evidence).toContain('if-no-files-found: error');
 
         expect(publish).toContain('uses: actions/download-artifact@');
@@ -219,20 +220,19 @@ describe('alpha release workflow', () => {
         expect(preflight)
             .toContain('Refusing to publish: expected exactly the seven @entitykit packages');
         expect(preflight).toContain('Refusing to publish: the tarballs carry versions');
-        expect(preflight).toContain('is not an -alpha.N prerelease version');
-        expect(preflight).toContain('npm view "@entitykit/core@alpha" version');
-        expect(preflight).toContain('is older than current alpha');
-        expect(preflight).toContain('Accepting same-version retry');
-        expect(preflight).toContain('Accepting forward alpha movement');
+        expect(preflight).toContain('release-channel-policy.js candidate "$distinct" "$CHANNEL"');
+        expect(preflight).toContain('npm view "@entitykit/$name@$TARGET_TAG" version');
+        expect(preflight).toContain('release-channel-policy.js current "$distinct" "$CHANNEL"');
+        expect(preflight).toContain('declares tag $tag, expected $TARGET_TAG');
         expect(preflight).toContain('echo "version=$distinct" >> "$GITHUB_OUTPUT"');
     });
-    it('publishes seven candidates in dependency order, never the alpha tag', () => {
+    it('publishes seven candidates in dependency order', () => {
         const publishes = [...publish.matchAll(/npm publish[^\n]*/gu)]
             .map(match => match[0]);
         expect(publishes).toHaveLength(packageNames.length);
         expect(publishes.every(command =>
             command.includes('--provenance')
-            && command.endsWith('--tag alpha-candidate')))
+            && command.endsWith('--tag "$CANDIDATE_TAG"')))
             .toBe(true);
 
         // Each step names its own tarball out of the downloaded artifact, and
@@ -279,7 +279,7 @@ describe('alpha release workflow', () => {
             expect(step).toContain('Bump the version and dispatch again.');
             // Outcome three: only a clean E404 means absent. A network or auth
             // failure must never be read as an empty version slot.
-            expect(step).toContain('if ! grep -q E404 view.err; then');
+            expect(step).toContain('if ! grep -Eq \'^(npm (error|ERR!) )?code E404$\' view.err; then');
             expect(step).toContain(
                 `Refusing to publish: npm view ${spec} failed for some reason other than`,
             );
@@ -295,7 +295,7 @@ describe('alpha release workflow', () => {
         expect(publish).not.toContain('node ../../scripts/guard-alpha-publish.js');
     });
 
-    it('moves the alpha dist-tag only onto the bytes it accepted', () => {
+    it('moves the public dist-tag only onto the bytes it accepted', () => {
         const verify = stepBlock(promote, 'Require the registry to hold the accepted bytes');
         expect(declaredNeeds(promote)).toContain('publish');
         // The tag users resolve may only land on the accepted tarballs, so
@@ -315,12 +315,12 @@ describe('alpha release workflow', () => {
         // verification is never half-promoted.
         expect(promote.indexOf('npm dist-tag add'))
             .toBeGreaterThan(promote.lastIndexOf('is not the accepted tarball'));
-        expect(promote).toContain('npm dist-tag add "@entitykit/$name@$VERSION" alpha');
+        expect(promote).toContain('npm dist-tag add "@entitykit/$name@$VERSION" "$TARGET_TAG"');
         expect(promote).toContain('for attempt in 1 2 3');
         expect(promote).toContain('after three attempts; rerun this release');
-        expect(promote).toContain('npm view "@entitykit/$name@alpha" version');
-        expect(promote).toContain('Alpha promotion verification failed:');
-        expect(promote).toContain('Verified @entitykit/$name@alpha -> $VERSION');
+        expect(promote).toContain('npm view "@entitykit/$name@$TARGET_TAG" version');
+        expect(promote).toContain('$TARGET_TAG promotion verification failed:');
+        expect(promote).toContain('Verified @entitykit/$name@$TARGET_TAG -> $VERSION');
         expect(promote).not.toContain('npm publish');
         // Stage B strictly follows stage A: the inconsistent window is seven tag
         // flips, not seven publishes.

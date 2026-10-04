@@ -18,6 +18,7 @@ import { nextMigrationTimestamp, toPascalIdentifier } from './migration-scaffold
 import { renderMigrationSource } from './migration-scaffold-render';
 import type { MigrationScaffoldOptions, MigrationScaffoldResult } from './migration-scaffold-types';
 import { addSqliteRebuildOperations } from './model-diff-sqlite-rebuild';
+import { addSqliteJoinRebuildOperations } from './model-diff-sqlite-join-rebuild';
 
 export type { MigrationScaffoldOptions, MigrationScaffoldResult } from './migration-scaffold-types';
 export { readModelSnapshot, renderSnapshotSource } from './migration-scaffold-snapshot';
@@ -46,8 +47,8 @@ export { writeMigrationScaffold } from './migration-scaffold-write';
     const id = `${timestamp}_${className}`;
     const migrationPath = path.join(options.migrationsDir, `${id}.ts`);
     const warnings = collectDestructiveWarnings(diff.operations);
-    const migrationOperations = addSqliteRebuildOperations(
-        diff.operations,
+    const migrationOperations = addSqliteJoinRebuildOperations(
+        addSqliteRebuildOperations(diff.operations, previousSnapshot, targetSnapshot),
         previousSnapshot,
         targetSnapshot,
     );

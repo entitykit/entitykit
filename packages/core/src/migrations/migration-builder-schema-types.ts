@@ -30,6 +30,7 @@ import type {
     /** The table name. */ readonly tableName: string;
     /** The schema name. */ readonly schemaName?: string;
     /** The columns. */ readonly columns: readonly MigrationColumnDefinition[];
+    /** Optional database name retained when rebuilding a named primary key. */ readonly primaryKeyName?: string;
     /** The foreign keys. */ readonly foreignKeys: readonly MigrationTableForeignKey[];
     /** The check constraints. */ readonly checkConstraints: readonly MigrationCheckConstraint[];
     /** The indexes. */ readonly indexes: readonly MigrationIndexDefinition[];

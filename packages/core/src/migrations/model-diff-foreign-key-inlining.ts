@@ -79,7 +79,11 @@ export function planForeignKeyInlining(
 export function operationTableKey(operation: ModelDiffOperation): string {
     const tableName = (operation as { tableName?: string }).tableName ?? '';
     const schemaName = (operation as { schemaName?: string }).schemaName ?? '';
-    return `${schemaName}.${tableName}`;
+    return physicalTableKey(tableName, schemaName);
+}
+
+export function physicalTableKey(tableName: string, schemaName?: string): string {
+    return JSON.stringify([schemaName ?? '', tableName]);
 }
 
 function tableKeys(

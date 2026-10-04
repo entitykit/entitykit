@@ -126,7 +126,7 @@ describe('bulk upsert transaction state', () => {
         const incoming = row('outer-rollback');
 
         await expect(db.transaction(async transaction => {
-            await expect(transaction.rows.upsert([incoming], upsertOptions))
+            await expect(transaction.rows.executeUpsert([incoming], upsertOptions))
                 .resolves.toBe(1);
             expect(incoming.id).toBeGreaterThan(0);
             expect(incoming.tenantId).toBe('tenant-one');
@@ -146,7 +146,7 @@ describe('bulk upsert transaction state', () => {
         const incoming = row('outer-commit');
 
         await db.transaction(async transaction => {
-            await transaction.rows.upsert([incoming], upsertOptions);
+            await transaction.rows.executeUpsert([incoming], upsertOptions);
         });
 
         expect(incoming.id).toBeGreaterThan(0);
@@ -162,7 +162,7 @@ describe('bulk upsert transaction state', () => {
 
         await db.transaction(async outer => {
             await expect(outer.transaction(async nested => {
-                await nested.rows.upsert([incoming], upsertOptions);
+                await nested.rows.executeUpsert([incoming], upsertOptions);
                 throw new Error('abort nested transaction');
             })).rejects.toThrow('abort nested transaction');
 
@@ -183,8 +183,8 @@ describe('bulk upsert transaction state', () => {
         const second = row('second', restorations);
 
         await expect(db.transaction(async transaction => {
-            await transaction.rows.upsert([first], upsertOptions);
-            await transaction.rows.upsert([second], upsertOptions);
+            await transaction.rows.executeUpsert([first], upsertOptions);
+            await transaction.rows.executeUpsert([second], upsertOptions);
             throw new Error('abort both upserts');
         })).rejects.toThrow('abort both upserts');
 
@@ -213,7 +213,7 @@ describe('bulk upsert transaction state', () => {
         connection.failNextTransactionCommit(new Error('commit failed'));
 
         await expect(db.transaction(async transaction => {
-            await transaction.rows.upsert([incoming], upsertOptions);
+            await transaction.rows.executeUpsert([incoming], upsertOptions);
         })).rejects.toThrow('commit failed');
 
         expect(incoming.id).toBe(0);

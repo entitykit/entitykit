@@ -1,0 +1,14 @@
+{
+  "package": "braces",
+  "advisory": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+  "reviewed": "2026-10-03",
+  "expires": "2026-11-02T00:00:00Z",
+  "reason": "No patched release exists. These development dependencies process repository-owned Jest, mutation, and Next ESLint glob patterns. They are excluded from published and example production runtime dependencies. Never pass untrusted patterns to these tools. Re-review when a patch is available or before expiry.",
+  "nodes": {
+    "node_modules/braces": "3.0.3",
+    "node_modules/micromatch": "4.0.8",
+    "node_modules/fast-glob": "3.3.1",
+    "node_modules/@next/eslint-plugin-next": "16.3.8",
+    "node_modules/eslint-config-next": "16.3.8"
+  }
+}

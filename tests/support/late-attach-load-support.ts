@@ -170,6 +170,7 @@ export async function loadDependentsWithLateAttach(
         options.refuseReadWith ?? new Error(postStitchRefusal),
     );
     const loading = entry.collection(row => row.dependents).load();
+    const settledLoad = settled(loading);
     const attached = new LateDependent();
     attached.id = 'd1';
     attached.principalId = 'p1';
@@ -179,7 +180,7 @@ export async function loadDependentsWithLateAttach(
             attached, 'principal', options.refuseRestoration,
         );
     }
-    const failure = await settled(loading);
+    const failure = await settledLoad;
     return { db, owner, attached, reads: reads(), failure };
 }
 
@@ -194,10 +195,11 @@ export async function loadHolderWithLateAttach(
         owner, 'holder', refuseReadAt, new Error(postStitchRefusal),
     );
     const loading = entry.reference(row => row.holder).load();
+    const settledLoad = settled(loading);
     const attached = new LateHolder();
     attached.id = 'h1';
     db.holders.attach(attached);
-    const failure = await settled(loading);
+    const failure = await settledLoad;
     return { db, owner, attached, reads: reads(), failure };
 }
 

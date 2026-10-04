@@ -4,6 +4,7 @@ import { postgresDialect } from '../packages/postgres/src';
 import { sqliteDialect } from '../packages/sqlite/src';
 import type { SqlDialect } from '../packages/core/src/sql/sql-dialect';
 import { RecordingDatabaseConnection } from '../packages/testing/src';
+import { observedJsonRejection } from './support/observed-json-rejection';
 import {
     createOutboxUser,
     type DomainEvent,
@@ -108,12 +109,14 @@ describe('outbox JSON contract', () => {
         process.on('unhandledRejection', observeUnhandled);
         try {
             const connection = new RecordingDatabaseConnection();
-            const event = invalidEvent(Promise.reject(new Error('payload failed')));
+            const rejected = observedJsonRejection(new Error('payload failed'));
+            const event = invalidEvent(rejected.promise);
             const user = createOutboxUser([event]);
             const db = OutboxContext.createWith(connection);
             db.users.add(user);
 
             await expect(db.saveChanges()).rejects.toThrow('Promise or thenable');
+            expect(rejected.observed()).toBe(true);
             await new Promise<void>(resolve => setImmediate(resolve));
             expect(unhandled).toEqual([]);
             expect(connection.statements).toEqual([]);

@@ -9,6 +9,7 @@ import type { SqlDialect } from '../sql/sql-dialect';
 import { relationshipPrincipalKeyMetadata } from '../model/relationship-key';
 import { isAlternateKeyBackingIndex } from '../model/alternate-key-indexes';
 import { buildTableColumns } from './table-column-statement';
+import { ddlTableReference } from '../sql/ddl-table-reference';
 
 export function buildCreateTable(
     entity: EntityMetadata,
@@ -104,7 +105,7 @@ function buildRelationshipConstraint(
         `foreign key (${foreignKeyProperties
             .map(property => dialect.quoteIdentifier(property.columnName))
             .join(', ')})`,
-        `references ${dialect.quoteQualifiedIdentifier(
+        `references ${ddlTableReference(dialect,
             principal.schemaName, principal.tableName,
         )} (${principalKeys
             .map(property => dialect.quoteIdentifier(property.columnName))

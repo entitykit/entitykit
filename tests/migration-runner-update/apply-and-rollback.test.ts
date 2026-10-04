@@ -10,7 +10,8 @@ describe('migration update apply and rollback', () => {
     it('maps database history columns to camel-cased SDK fields', async () => {
         const connection = new RecordingDatabaseConnection();
         const appliedAt = new Date('2026-06-01T00:00:00.000Z');
-        connection.queueResult();
+        connection.queueResult(); // acquire history initialization lock
+        connection.queueResult(); // initialize history
         connection.queueResult({
             rows: [{
                 id: '20260601120000_CreateUsers',
@@ -20,6 +21,8 @@ describe('migration update apply and rollback', () => {
                 applied_at: appliedAt,
             }],
         });
+
+        connection.queueResult({ rows: [{ pg_advisory_unlock: true }] });
 
         await expect(new MigrationRunner(connection).getAppliedMigrations())
             .resolves.toEqual([{
@@ -33,7 +36,6 @@ describe('migration update apply and rollback', () => {
 
     it('acquires an advisory lock and applies unapplied migrations', async () => {
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult(); // ensure history table before lock
         connection.queueResult(); // acquire lock
         connection.queueResult(); // ensure history table in getAppliedMigrations
         connection.queueResult({ rows: [] }); // history rows
@@ -55,7 +57,6 @@ describe('migration update apply and rollback', () => {
     it('does not open a transaction when all local migrations are already applied', async () => {
         const createUsers = new CreateUsers();
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult(); // ensure history table before lock
         connection.queueResult(); // acquire lock
         connection.queueResult(); // ensure history table in getAppliedMigrations
         connection.queueResult({
@@ -70,7 +71,6 @@ describe('migration update apply and rollback', () => {
         expect(result.transactionSuppressedStatements).toBe(0);
         expect(connection.transactionEvents).toEqual([]);
         expect(connection.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select pg_advisory_lock(hashtext($1))',
             'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select "id", "name", "checksum", "entitykit_version", "applied_at" from "__entitykit_migrations" order by "id"',
@@ -81,7 +81,6 @@ describe('migration update apply and rollback', () => {
     it('emits migration diagnostics while applying pending migrations', async () => {
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({ rows: [] });
@@ -124,7 +123,6 @@ describe('migration update apply and rollback', () => {
         const connection = new RecordingDatabaseConnection();
         connection.queueResult();
         connection.queueResult();
-        connection.queueResult();
         connection.queueResult({ rows: [] });
         connection.queueResult();
         connection.queueResult({ rowCount: 1 });
@@ -150,7 +148,6 @@ describe('migration update apply and rollback', () => {
         const createUsers = new CreateUsers();
         const addPosts = new AddPosts();
         const connection = new RecordingDatabaseConnection();
-        connection.queueResult(); // ensure history table before lock
         connection.queueResult(); // acquire lock
         connection.queueResult(); // ensure history table in getAppliedMigrations
         connection.queueResult({
@@ -168,7 +165,6 @@ describe('migration update apply and rollback', () => {
         expect(result.appliedMigrations).toEqual(['down:20260601130000_AddPosts']);
         expect(connection.transactionEvents).toEqual(['begin', 'commit']);
         expect(connection.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select pg_advisory_lock(hashtext($1))',
             'create table if not exists "__entitykit_migrations" ("id" text primary key, "name" text not null, "checksum" text not null, "entitykit_version" text not null, "applied_at" timestamptz not null default now())',
             'select "id", "name", "checksum", "entitykit_version", "applied_at" from "__entitykit_migrations" order by "id"',
@@ -176,7 +172,7 @@ describe('migration update apply and rollback', () => {
             'delete from "__entitykit_migrations" where "id" = $1',
             'select pg_advisory_unlock(hashtext($1))',
         ]);
-        expect(connection.statements[5]?.values).toEqual([addPosts.id]);
+        expect(connection.statements[4]?.values).toEqual([addPosts.id]);
     });
 
     it('emits migration diagnostics while rolling back migrations', async () => {
@@ -184,7 +180,6 @@ describe('migration update apply and rollback', () => {
         const addPosts = new AddPosts();
         const connection = new RecordingDatabaseConnection();
         const diagnostics = migrationDiagnostics();
-        connection.queueResult();
         connection.queueResult();
         connection.queueResult();
         connection.queueResult({

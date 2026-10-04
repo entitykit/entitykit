@@ -8,6 +8,9 @@ import {
 import type { ModelDiffOperation } from './model-diff-operations';
 import { operationKey } from './model-diff-sqlite-rebuild';
 import { isOperationAbsorbedByRebuild } from './model-diff-rebuild-group';
+import { collectDestructiveWarnings } from './migration-scaffold-warnings';
+import { orderMigrationTables } from './migration-table-order';
+import type { ModelSnapshot } from '../model/model-snapshot-types';
 
 /**
  * Running a computed diff as a migration — the execution side, kept apart from
@@ -20,12 +23,17 @@ import { isOperationAbsorbedByRebuild } from './model-diff-rebuild-group';
  * not belong beside `diffModelSnapshots`.
  */
 export class SnapshotDiffMigration extends Migration {
+    public override readonly destructiveWarnings: readonly string[];
+
     constructor(
         public readonly id: string,
         public readonly name: string,
         private readonly operations: readonly ModelDiffOperation[],
+        public override readonly previousSnapshot: ModelSnapshot,
+        public override readonly targetSnapshot: ModelSnapshot,
     ) {
         super();
+        this.destructiveWarnings = Object.freeze(collectDestructiveWarnings(operations));
     }
 
     public override up(builder: MigrationBuilder): void {
@@ -38,12 +46,15 @@ export class SnapshotDiffMigration extends Migration {
 }
 
 export class ModelDiffMigration extends Migration {
+    public override readonly destructiveWarnings: readonly string[];
+
     constructor(
         public readonly id: string,
         public readonly name: string,
         public readonly operations: readonly ModelDiffOperation[],
     ) {
         super();
+        this.destructiveWarnings = Object.freeze(collectDestructiveWarnings(operations));
     }
 
     public override up(builder: MigrationBuilder): void {
@@ -64,7 +75,7 @@ function applyOperations(
     // a second constraint operation would fail on providers without alter-table support.
     const inlined = inlineForeignKeys(builder, operations, direction);
     const rebuilt = rebuiltTableKeys(builder, operations);
-    const ordered = direction === 'up' ? operations : [...operations].reverse();
+    const ordered = orderMigrationTables(direction === 'up' ? operations : [...operations].reverse(), direction);
     const applyOperation = direction === 'up' ? applyUp : applyDown;
     for (const operation of ordered) {
         if (

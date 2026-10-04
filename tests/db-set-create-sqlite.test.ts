@@ -17,7 +17,7 @@ describe('creation and explicit materialization', () => {
         expect(created).toBeInstanceOf(SpecialUser);
         expect(created.identity()).toBe('special');
         await expect(db.saveChanges()).resolves.toBe(1);
-        db.clearChanges();
+        db.clearTracking();
         const loaded = await users.findOrThrow('special');
         expect(loaded).toBeInstanceOf(CreationUser);
         expect(loaded).not.toBeInstanceOf(SpecialUser);

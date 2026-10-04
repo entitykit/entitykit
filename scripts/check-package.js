@@ -17,6 +17,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
+const { acceptBookshopPackage } = require('./accept-bookshop-package');
+const { releasePolicy } = require('./release-channel-policy');
 
 const root = path.resolve(__dirname, '..');
 const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs'];
@@ -97,6 +99,7 @@ function exportedFiles(exportsMap) {
 }
 
 function assertManifest(name, manifest) {
+  const policy = releasePolicy(manifest.version);
   assert(manifest.name === `@entitykit/${name}`, `${name} is misnamed.`);
   assert(manifest.license === 'MIT', `${name} does not declare the MIT license.`);
   assert(
@@ -109,8 +112,8 @@ function assertManifest(name, manifest) {
   );
   assert(
     manifest.publishConfig?.access === 'public'
-      && manifest.publishConfig.tag === 'alpha',
-    `${name} must publish publicly under the alpha dist-tag.`,
+      && manifest.publishConfig.tag === policy.targetTag,
+    `${name} must publish publicly under the ${policy.targetTag} dist-tag.`,
   );
   assert(
     typeof manifest.repository?.url === 'string'
@@ -326,10 +329,14 @@ try {
   process.stdout.write('PACKAGE_NODE16_TYPES_OK\n');
   typecheck(project, 'tsconfig.nodenext.json');
   process.stdout.write('PACKAGE_NODE_NEXT_TYPES_OK\n');
+  run(process.execPath, [path.join(root, 'scripts', 'check-deprecated-exports.mjs'), project]);
+  typecheck(project, 'tsconfig.predicates.json');
+  run(process.execPath, [path.join(root, 'scripts', 'check-predicate-lint.mjs'), project]);
 
   run(process.execPath, [path.join(project, 'runtime.cjs')], { cwd: project });
   run(process.execPath, [path.join(project, 'runtime.mjs')], { cwd: project });
   run(process.execPath, [path.join(project, 'single-core.cjs')], { cwd: project });
+  acceptBookshopPackage(root, project, run);
 
   const version = readManifest(root, 'packages', 'cli', 'package.json').version;
   assertCliVersion(run(process.execPath, [
