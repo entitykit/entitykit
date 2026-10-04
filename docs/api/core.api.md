@@ -93,8 +93,13 @@ interface AlternateKeyMetadata<TEntity extends object = object> {
     readonly propertyNames: ReadonlyArray<EntityPropertyKey<TEntity>>;
 }
 
+// Warning: (ae-forgotten-export) The symbol "assertSynchronousCallbackResult_2" needs to be exported by the entry point index.d.ts
+//
+// @public @deprecated (undocumented)
+export const assertSynchronousCallbackResult: typeof assertSynchronousCallbackResult_2;
+
 // @public (undocumented)
-export function assertSynchronousCallbackResult(result: unknown, operation: string, createError: (message: string) => Error): void;
+function assertSynchronousCallbackResult_2(result: unknown, operation: string, createError: (message: string) => Error): void;
 
 // @public (undocumented)
 interface AuditMetadata<TEntity extends object = object> {
@@ -147,6 +152,9 @@ interface CheckConstraintMetadata {
     // (undocumented)
     readonly sql: string;
 }
+
+// @public
+export type CheckedEntityMaterializer<TEntity extends object> = (row: EntityMaterializationRow<TEntity>) => TEntity;
 
 // @public
 export interface CollectionNavigationEntry<TElement> {
@@ -498,28 +506,29 @@ export function dateOnlyAsString(): ValueConverter<string>;
 // @public
 export function dateOnlyAsUtcDate(): ValueConverter<Date>;
 
+// Warning: (ae-forgotten-export) The symbol "DbContextSets" needs to be exported by the entry point index.d.ts
+//
 // @public
-export abstract class DbContext {
+export abstract class DbContext extends DbContextSets {
     [Symbol.asyncDispose](): Promise<void>;
     // Warning: (ae-forgotten-export) The symbol "DatabaseDataSource" needs to be exported by the entry point index.d.ts
-    constructor(dataSource?: DatabaseDataSource | undefined);
+    constructor(dataSource?: DatabaseDataSource);
     get changeTracker(): ChangeTracker;
+    // @deprecated (undocumented)
     clearChanges(): void;
+    clearTracking(): void;
     protected configure(options: DbContextOptionsBuilder): unknown;
     static create<TContext extends DbContext, TArguments extends unknown[]>(this: new (...arguments_: TArguments) => TContext, ...arguments_: TArguments): TContext;
     get database(): DatabaseFacade;
     dispose(): Promise<void>;
     entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined;
+    entryOrThrow<TEntity extends object>(entity: TEntity): EntityEntry<TEntity>;
     getSavePlan(): readonly SavePlanEntry[];
     getSavePlanDebugView(): string;
     link<TEntity extends object, TTarget extends object>(source: TEntity, navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>, target: TTarget): void;
     loadNavigation<TEntity extends object>(entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
     protected model(model: ModelBuilder): unknown;
     saveChanges(options?: DatabaseOperationOptions): Promise<number>;
-    // Warning: (ae-forgotten-export) The symbol "ValidCreationFactory" needs to be exported by the entry point index.d.ts
-    set<TEntity extends object, TFactory extends EntityCreationFunction<NoInfer<TEntity>>, TKey extends readonly unknown[] = readonly unknown[]>(entityType: EntityConstructor<TEntity>, options: DbSetCreationOptions<TFactory> & ValidCreationFactory<NoInfer<TEntity>, NoInfer<TFactory>>): DbSet<TEntity, TKey, EntityCreationArguments<TFactory>>;
-    set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(entityType: TConstructor): DbSet<EntityCreationResult<TConstructor>, TKey, EntityCreationArguments<TConstructor>>;
-    set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(entityType: EntityConstructor<TEntity>): DbSet<TEntity, TKey>;
     transaction<TResult>(work: (context: this) => TResult | Promise<TResult>, options?: TransactionOptions): Promise<TResult>;
     unlink<TEntity extends object, TTarget extends object>(source: TEntity, navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>, target: TTarget): void;
 }
@@ -548,16 +557,27 @@ export interface DbContextOptionsBuilder {
 }
 
 // @public
+abstract class DbContextSets {
+    protected constructor(registerSet: <TEntity extends object>(entityType: EntityConstructor<TEntity>, creationFactory: EntityCreationFunction<TEntity> | undefined) => unknown);
+    // Warning: (ae-forgotten-export) The symbol "ValidCreationFactory" needs to be exported by the entry point index.d.ts
+    set<TEntity extends object, TFactory extends EntityCreationFunction<NoInfer<TEntity>>, TKey extends readonly unknown[] = readonly unknown[]>(entityType: EntityConstructor<TEntity>, options: DbSetCreationOptions<TFactory> & ValidCreationFactory<NoInfer<TEntity>, NoInfer<TFactory>>): DbSet<TEntity, TKey, EntityCreationArguments<TFactory>>;
+    set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(entityType: TConstructor): DbSet<EntityCreationResult<TConstructor>, TKey, EntityCreationArguments<TConstructor>>;
+    set<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[]>(entityType: EntityConstructor<TEntity>): DbSet<TEntity, TKey>;
+}
+
+// @public
 export interface DbSet<TEntity extends object, TKey extends readonly unknown[] = readonly unknown[], TCreateArguments extends unknown[] = never> extends Omit<Queryable<TEntity>, 'executeDelete' | 'executeUpdate' | 'toDebugSql' | 'toPlan' | 'toSql'> {
     add(entity: TEntity): EntityEntry<TEntity>;
     attach(entity: TEntity): EntityEntry<TEntity>;
     create(...arguments_: TCreateArguments): TEntity;
     detach(entity: TEntity): EntityEntry<TEntity> | undefined;
     readonly entityType: EntityConstructor<TEntity>;
+    executeUpsert(entities: readonly TEntity[], options?: UpsertOptions<TEntity>): Promise<number>;
     find(...keyValuesAndOptions: [...TKey] | [...TKey, DatabaseOperationOptions]): Promise<TEntity | null>;
     findOrThrow(...keyValuesAndOptions: [...TKey] | [...TKey, DatabaseOperationOptions]): Promise<TEntity>;
     fromSqlUnsafe(strings: TemplateStringsArray, ...values: readonly unknown[]): UnsafeRawSqlQueryable<TEntity>;
     remove(entity: TEntity): EntityEntry<TEntity>;
+    // @deprecated (undocumented)
     upsert(entities: readonly TEntity[], options?: UpsertOptions<TEntity>): Promise<number>;
 }
 
@@ -565,6 +585,9 @@ export interface DbSet<TEntity extends object, TKey extends readonly unknown[] =
 export interface DbSetCreationOptions<TFactory extends EntityCreationFunction> {
     readonly create: TFactory;
 }
+
+// @public
+export type DbSetFor<TCreation extends EntityCreationConstructor | EntityCreationFunction, TKey extends readonly unknown[] = readonly unknown[]> = [Extract<EntityCreationResult<TCreation>, PromiseLike<unknown>>] extends [never] ? DbSet<EntityCreationResult<TCreation>, TKey, EntityCreationArguments<TCreation>> : never;
 
 // @public
 export class DbUpdateConcurrencyError extends DbUpdateError {
@@ -643,6 +666,7 @@ export interface EntityBuilder<TEntity extends object> {
     ignore(propertyName: EntityPropertyKey<TEntity>): this;
     ignore<TProperty>(selector: PropertySelector<TEntity, TProperty>): this;
     materialize(factory: EntityMaterializer<TEntity>): this;
+    materializeChecked(factory: CheckedEntityMaterializer<TEntity>): this;
     property<TProperty = TEntity[EntityPropertyKey<TEntity>]>(propertyOrSelector: EntityPropertyKey<TEntity> | PropertySelector<TEntity, TProperty>): PropertyBuilder<TProperty>;
     softDelete<TPropertyName extends EntityPropertyKey<TEntity>>(propertyName: TPropertyName, deletedValue: NonNullable<TEntity[TPropertyName]>): this;
     softDelete(selector: PropertyPathSelector<TEntity, Date | null | undefined>): this;
@@ -756,7 +780,7 @@ export class EntityKitError extends Error {
 }
 
 // @public
-export type EntityKitErrorCode = 'MODEL_VALIDATION' | 'QUERY_COMPILATION' | 'ENTITY_NOT_FOUND' | 'MULTIPLE_ENTITIES_FOUND' | 'CONTEXT_NOT_INITIALIZED' | 'CONTEXT_DISPOSED' | 'CONTEXT_CONCURRENT_OPERATION' | 'CONTEXT_STATE_RESTORATION_FAILED' | 'OPERATION_CANCELED' | 'FOREIGN_ENTITY_ENTRY' | 'NAVIGATION_LOAD_UNAVAILABLE' | 'PROVIDER_CAPABILITY_UNSUPPORTED' | 'TENANT_SCOPE_UNAVAILABLE' | 'TENANT_OWNERSHIP_VIOLATION' | 'TENANT_IDENTITY_AMBIGUOUS' | 'DB_VALIDATION' | 'DB_UPDATE_ERROR' | 'DB_CONCURRENCY_CONFLICT' | 'DB_UNIQUE_CONSTRAINT' | 'DB_FOREIGN_KEY_CONSTRAINT' | 'DB_NOT_NULL_CONSTRAINT' | 'MIGRATION_ERROR' | 'MIGRATION_CHECKSUM_MISMATCH' | 'MIGRATION_DATA_LOSS' | 'MIGRATION_EXECUTION' | 'MIGRATION_LOCK_RELEASE' | 'MIGRATION_PENDING_MODEL_CHANGES';
+export type EntityKitErrorCode = 'MODEL_VALIDATION' | 'QUERY_COMPILATION' | 'ENTITY_NOT_FOUND' | 'ENTITY_NOT_TRACKED' | 'MULTIPLE_ENTITIES_FOUND' | 'CONTEXT_NOT_INITIALIZED' | 'CONTEXT_DISPOSED' | 'CONTEXT_CONCURRENT_OPERATION' | 'CONTEXT_STATE_RESTORATION_FAILED' | 'OPERATION_CANCELED' | 'FOREIGN_ENTITY_ENTRY' | 'NAVIGATION_LOAD_UNAVAILABLE' | 'PROVIDER_CAPABILITY_UNSUPPORTED' | 'TENANT_SCOPE_UNAVAILABLE' | 'TENANT_OWNERSHIP_VIOLATION' | 'TENANT_IDENTITY_AMBIGUOUS' | 'DB_VALIDATION' | 'DB_UPDATE_ERROR' | 'DB_CONCURRENCY_CONFLICT' | 'DB_UNIQUE_CONSTRAINT' | 'DB_FOREIGN_KEY_CONSTRAINT' | 'DB_NOT_NULL_CONSTRAINT' | 'MIGRATION_ERROR' | 'MIGRATION_CHECKSUM_MISMATCH' | 'MIGRATION_DATA_LOSS' | 'MIGRATION_EXECUTION' | 'MIGRATION_LOCK_RELEASE' | 'MIGRATION_PENDING_MODEL_CHANGES';
 
 // @public
 export interface EntityKitErrorJson {
@@ -772,6 +796,14 @@ export interface EntityKitErrorOptions {
     readonly cause?: unknown;
     readonly code: EntityKitErrorCode;
     readonly details?: Readonly<Record<string, unknown>>;
+}
+
+// @public
+export interface EntityMaterializationRow<TEntity extends object> {
+    nullable<TValue>(selector: PropertyPathSelector<TEntity, TValue>): MaterializationScalar<NonNullable<TValue>> | null;
+    nullable<TValue>(selector: PropertyPathSelector<TEntity, TValue>, guard: MaterializationGuard<NoInfer<NonNullable<TValue>>>): NonNullable<TValue> | null;
+    required<TValue>(selector: PropertyPathSelector<TEntity, TValue>): MaterializationScalar<NonNullable<TValue>>;
+    required<TValue>(selector: PropertyPathSelector<TEntity, TValue>, guard: MaterializationGuard<NoInfer<NonNullable<TValue>>>): NonNullable<TValue>;
 }
 
 // @public
@@ -800,6 +832,8 @@ export class EntityMetadata<TEntity extends object = object> {
     //
     // (undocumented)
     readonly checkConstraints: readonly CheckConstraintMetadata[];
+    // (undocumented)
+    readonly checkedMaterializer?: CheckedEntityMaterializer<TEntity>;
     // Warning: (ae-forgotten-export) The symbol "ComplexPropertyMetadata" needs to be exported by the entry point index.d.ts
     //
     // (undocumented)
@@ -885,6 +919,8 @@ interface EntityMetadataArgs<TEntity extends object> {
     // (undocumented)
     checkConstraints?: readonly CheckConstraintMetadata[];
     // (undocumented)
+    checkedMaterializer?: CheckedEntityMaterializer<TEntity>;
+    // (undocumented)
     complexProperties?: readonly ComplexPropertyMetadata[];
     // (undocumented)
     ctor: EntityConstructor<TEntity>;
@@ -919,6 +955,11 @@ interface EntityMetadataArgs<TEntity extends object> {
 // @public
 export class EntityNotFoundError extends EntityKitError {
     constructor(entityName: string, operation?: string);
+}
+
+// @public
+export class EntityNotTrackedError extends EntityKitError {
+    constructor();
 }
 
 // @public
@@ -1273,6 +1314,12 @@ export interface ManyToManyRelationshipBuilder<TTarget extends object> {
     usingJoinTable(tableName: string, configure?: (join: ManyToManyJoinTableBuilder) => void): this;
     withMany<TInverse>(selector: PropertySelector<TTarget, TInverse>): this;
 }
+
+// @public
+export type MaterializationGuard<TValue> = (value: unknown) => value is TValue;
+
+// @public
+export type MaterializationScalar<TValue> = TValue extends string ? string : TValue extends number ? number : TValue extends boolean ? boolean : TValue extends bigint ? bigint : TValue extends Date ? Date : TValue extends Uint8Array ? Uint8Array : unknown;
 
 // Warning: (ae-forgotten-export) The symbol "MigrationColumnDefinition" needs to be exported by the entry point index.d.ts
 //
@@ -2067,8 +2114,13 @@ export interface QueryStreamOptions extends DatabaseOperationOptions {
     readonly batchSize?: number;
 }
 
+// Warning: (ae-forgotten-export) The symbol "readSynchronousDate_2" needs to be exported by the entry point index.d.ts
+//
+// @public @deprecated (undocumented)
+export const readSynchronousDate: typeof readSynchronousDate_2;
+
 // @public (undocumented)
-export function readSynchronousDate(provider: (() => Date) | undefined, operation: string): Date | undefined;
+function readSynchronousDate_2(provider: (() => Date) | undefined, operation: string): Date | undefined;
 
 // @public
 export interface ReferenceNavigationEntry<TNavigation> {
@@ -2262,8 +2314,13 @@ interface SchemaSqlDialect {
     }): string;
 }
 
+// Warning: (ae-forgotten-export) The symbol "selectPropertyName_2" needs to be exported by the entry point index.d.ts
+//
+// @public @deprecated (undocumented)
+export const selectPropertyName: typeof selectPropertyName_2;
+
 // @public (undocumented)
-export function selectPropertyName<TEntity extends object, TProperty = unknown>(selector: PropertySelector<TEntity, TProperty>): EntityPropertyKey<TEntity>;
+function selectPropertyName_2<TEntity extends object, TProperty = unknown>(selector: PropertySelector<TEntity, TProperty>): EntityPropertyKey<TEntity>;
 
 // @public
 export interface SequenceBuilder {

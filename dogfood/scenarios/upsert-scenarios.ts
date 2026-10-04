@@ -46,14 +46,14 @@ export async function syncIssuesFromUpstream(
             version: 1,
         });
 
-        const firstRun = await db.issues.upsert(incoming.map(toEntity));
+        const firstRun = await db.issues.executeUpsert(incoming.map(toEntity));
 
         // The same feed again, with one title corrected upstream. Re-running must
         // update in place rather than fail on the primary key.
         const corrected = incoming.map((row, index) => index === 0
             ? { ...row, title: `${row.title} (corrected)` }
             : row);
-        const secondRun = await db.issues.upsert(corrected.map(toEntity));
+        const secondRun = await db.issues.executeUpsert(corrected.map(toEntity));
 
         const reloaded = await db.issues.find(`iss_up_${String(incoming[0].number)}`);
         return {
@@ -93,7 +93,7 @@ export async function upsertRefusesAnotherOrganization(
 
         let error = 'no error';
         try {
-            await db.issues.upsert([foreign]);
+            await db.issues.executeUpsert([foreign]);
         } catch (caught) {
             error = (caught as Error).message;
         }

@@ -22,7 +22,11 @@ export interface IncludeNavigationExpression<
 > {
     /** The navigation property. */ readonly navigationProperty: EntityPropertyKey<TEntity>;
     /** The navigation path. */ readonly navigationPath: readonly string[];
-    /** Add a typed where predicate. */ where(selector: (
+    /**
+     * Add a SQL predicate; successive calls combine with AND. Executes no SQL.
+     * The callback receives query fields, not entity instances.
+     * Use and()/or() or chained where(); JavaScript &&/|| discard predicates.
+     */ where(selector: (
         entity: QueryProxy<NavigationElement<TNavigation>>,
     ) => PredicateExpression): this;
     /** Add order by to the query. */ orderBy<TProperty>(selector: (

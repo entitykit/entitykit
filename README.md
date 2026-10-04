@@ -85,6 +85,10 @@ npm install @entitykit/core@alpha @entitykit/mysql@alpha mysql2
 EntityKit requires Node 22.13 or newer. Importing `@entitykit/core` does not
 load a provider or database driver.
 
+Enable [typed predicate linting](./docs/query-predicates.md#enable-typed-linting)
+in your editor and CI before writing queries. It catches JavaScript `&&` and
+`||` on EntityKit predicate objects.
+
 ## Quick start
 
 Define an ordinary class and map it in a `DbContext`:
@@ -120,15 +124,11 @@ class AppDbContext extends DbContext {
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
       entity.property(user => user.name).hasColumnType("text").isRequired();
-      entity.materialize(values => {
-        const { id, email, name } = values;
-        if (typeof id !== "string" ||
-            typeof email !== "string" ||
-            typeof name !== "string") {
-          throw new Error("Cannot materialize User: required fields are missing or invalid.");
-        }
-        return new User({ id, email, name });
-      });
+      entity.materializeChecked(row => new User({
+        id: row.required(user => user.id),
+        email: row.required(user => user.email),
+        name: row.required(user => user.name),
+      }));
       entity.hasIndex(user => user.email).isUnique();
     });
   }
@@ -136,6 +136,14 @@ class AppDbContext extends DbContext {
 
 const dataSource = createSqliteDataSource("./app.db");
 ```
+
+`materializeChecked()` lets the callback construct a fresh entity and check
+the scalar values it requests. Errors identify the entity and property.
+
+EntityKit then assigns the captured mapped values, including configured read
+conversions. Constructor-only transformations can be overwritten; unrequested
+values receive no additional checks. See [materialization](./docs/materialization.md)
+for nullable fields, read conversions, and custom domain values.
 
 Create a local schema, write a row, query it, and save a tracked change.
 `users.create()` constructs and tracks the entity; it executes no SQL.

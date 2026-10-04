@@ -84,9 +84,9 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
             restoration => this.savePlanBuilder.debugView(restoration),
         );
     }
-    public clearChanges(): void {
-        this.assertContextUsable('clearChanges()');
-        this.assertSaveNotInProgress('clearChanges()');
+    public clearTracking(): void {
+        this.assertContextUsable('clearTracking()');
+        this.assertSaveNotInProgress('clearTracking()');
         this.changeTracker.clear();
         this.manyToMany.clear();
     }

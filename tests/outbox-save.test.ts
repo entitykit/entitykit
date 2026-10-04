@@ -90,7 +90,7 @@ describe('outbox saveChanges', () => {
             'OutboxMessage',
         ]);
 
-        db.clearChanges();
+        db.clearTracking();
 
         expect(db.getSavePlan()).toEqual([]);
         expect(user.domainEvents).toHaveLength(1);

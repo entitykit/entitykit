@@ -1,3 +1,6 @@
+import './db-set-for-types.js';
+import './operation-types.js';
+import './checked-materialization-types.js';
 import './context-creation-types.js';
 import './factory-creation-types.js';
 import './creation-types.js';
@@ -14,10 +17,10 @@ import {
     type ModelBuilder,
     type UnsafeRawSqlQueryable,
 } from '@entitykit/core';
-import type { DatabaseConnection } from '@entitykit/core/adapter';
+import { assertSynchronousCallbackResult, selectPropertyName, type DatabaseConnection } from '@entitykit/core/adapter';
 import { Materializer } from '@entitykit/core/experimental';
 import { Migration } from '@entitykit/core/migrations';
-import { generateDbPullCode } from '@entitykit/core/tooling';
+import { generateDbPullCode, readSynchronousDate } from '@entitykit/core/tooling';
 import { defineEntityKitConfig } from '@entitykit/cli';
 import { mySqlProviderServices } from '@entitykit/mysql';
 import { postgresProviderServices } from '@entitykit/postgres';
@@ -70,3 +73,6 @@ void Migration;
 void mySqlProviderServices;
 void postgresProviderServices;
 void generateDbPullCode;
+void assertSynchronousCallbackResult;
+void selectPropertyName;
+void readSynchronousDate;

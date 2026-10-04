@@ -35,6 +35,8 @@ coverage floors remain defined in `config/coverage.json`.
 The mutation lane is intentionally focused on release-critical restoration,
 migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate
 locally when changing the behavior it protects.
+All Stryker campaign definitions live in `config/stryker/`; the npm commands
+select their configuration explicitly from the repository root.
 `test:mutation` includes separate history-initialization/migration-lock,
 provider-validation, SQLite DDL, migration checksum, property metadata, snapshot rename,
 SQLite rebuild, SQLite rebuild planning, schema DDL, join-table planning, primary-key order, migration warnings, and existing-key changes

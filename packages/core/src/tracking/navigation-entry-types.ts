@@ -1,13 +1,13 @@
 /** Explicit-loading handle for a reference navigation. */
 export interface ReferenceNavigationEntry<TNavigation> {
-    /** The navigation property. */ readonly navigationProperty: string;
-    /** Whether loaded. */ readonly isLoaded: boolean;
-    /** Perform the load operation. */ load(): Promise<TNavigation | null>;
+    /** Mapped navigation property name. */ readonly navigationProperty: string;
+    /** Whether EntityKit has deliberately loaded this navigation, including empty results. */ readonly isLoaded: boolean;
+    /** Load and return related entities, performing SQL when needed. Requires a persisted owner still tracked by this context. */ load(): Promise<TNavigation | null>;
 }
 
 /** Explicit-loading handle for a collection navigation. */
 export interface CollectionNavigationEntry<TElement> {
-    /** The navigation property. */ readonly navigationProperty: string;
-    /** Whether loaded. */ readonly isLoaded: boolean;
-    /** Perform the load operation. */ load(): Promise<TElement[]>;
+    /** Mapped navigation property name. */ readonly navigationProperty: string;
+    /** Whether EntityKit has deliberately loaded this navigation, including empty results. */ readonly isLoaded: boolean;
+    /** Load and return related entities, performing SQL when needed. Requires a persisted owner still tracked by this context. */ load(): Promise<TElement[]>;
 }

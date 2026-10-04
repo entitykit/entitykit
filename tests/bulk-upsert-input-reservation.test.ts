@@ -138,7 +138,7 @@ describe('bulk upsert input reservations', () => {
         const db = open(connection);
         const row = generatedRow();
 
-        const pending = db.generated.upsert([row], generatedOptions);
+        const pending = db.generated.executeUpsert([row], generatedOptions);
         await connection.started;
         expect(() => db.generated.attach(row)).toThrow(reservationError);
         connection.release();
@@ -157,7 +157,7 @@ describe('bulk upsert input reservations', () => {
             db.generated.add(row);
         };
 
-        await expect(db.generated.upsert([row], generatedOptions))
+        await expect(db.generated.executeUpsert([row], generatedOptions))
             .rejects.toThrow(reservationError);
 
         expect(row.id).toBe(0);
@@ -172,7 +172,7 @@ describe('bulk upsert input reservations', () => {
             db.tenantRows.add(row);
         };
 
-        await expect(db.tenantRows.upsert([row]))
+        await expect(db.tenantRows.executeUpsert([row]))
             .rejects.toThrow(reservationError);
 
         expect(row.tenantId).toBeUndefined();
@@ -188,7 +188,7 @@ describe('bulk upsert input reservations', () => {
         const row = generatedRow();
 
         await db.transaction(async transaction => {
-            await transaction.generated.upsert([row], generatedOptions);
+            await transaction.generated.executeUpsert([row], generatedOptions);
             expect(() => transaction.generated.attach(row))
                 .toThrow(reservationError);
         });
@@ -204,7 +204,7 @@ describe('bulk upsert input reservations', () => {
         const row = generatedRow();
 
         await expect(db.transaction(async transaction => {
-            await transaction.generated.upsert([row], generatedOptions);
+            await transaction.generated.executeUpsert([row], generatedOptions);
             expect(() => transaction.generated.attach(row))
                 .toThrow(reservationError);
             throw new Error('abort outer');
@@ -222,7 +222,7 @@ describe('bulk upsert input reservations', () => {
 
         await db.transaction(async outer => {
             await expect(outer.transaction(async nested => {
-                await nested.generated.upsert([row], generatedOptions);
+                await nested.generated.executeUpsert([row], generatedOptions);
                 expect(() => nested.generated.attach(row))
                     .toThrow(reservationError);
                 throw new Error('abort nested');
@@ -240,7 +240,7 @@ describe('bulk upsert input reservations', () => {
         const row = tenantRow();
 
         await db.transaction(async transaction => {
-            await transaction.tenantRows.upsert([row]);
+            await transaction.tenantRows.executeUpsert([row]);
             expect(() => transaction.tenantRows.detach(row))
                 .toThrow(reservationError);
             expect(() => {

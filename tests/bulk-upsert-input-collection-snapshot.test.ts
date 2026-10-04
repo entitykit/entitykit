@@ -146,7 +146,7 @@ describe('bulk upsert input collection snapshots', () => {
             tenantReads += 1;
         };
 
-        await expect(db.rows.upsert([])).resolves.toBe(0);
+        await expect(db.rows.executeUpsert([])).resolves.toBe(0);
 
         expect(tenantReads).toBe(0);
         expect(connection.statements).toEqual([]);
@@ -165,7 +165,7 @@ describe('bulk upsert input collection snapshots', () => {
         const inputs = [first];
         first.onTenant = () => inputs.push(tracked);
 
-        await expect(db.rows.upsert(inputs)).resolves.toBe(1);
+        await expect(db.rows.executeUpsert(inputs)).resolves.toBe(1);
 
         expect(inputs).toEqual([first, tracked]);
         expect(connection.statements).toHaveLength(1);
@@ -188,7 +188,7 @@ describe('bulk upsert input collection snapshots', () => {
             inputs.splice(0, inputs.length, replacement);
         };
 
-        await expect(db.rows.upsert(inputs)).resolves.toBe(2);
+        await expect(db.rows.executeUpsert(inputs)).resolves.toBe(2);
 
         expect(inputs).toEqual([replacement]);
         expect(connection.statements.map(statement => statement.values))
@@ -206,7 +206,7 @@ describe('bulk upsert input collection snapshots', () => {
         const inputs = [first];
         first.onLabelRead = () => inputs.push(first);
 
-        await expect(db.rows.upsert(inputs)).resolves.toBe(1);
+        await expect(db.rows.executeUpsert(inputs)).resolves.toBe(1);
 
         expect(inputs).toEqual([first, first]);
         expect(connection.statements).toHaveLength(1);
@@ -225,7 +225,7 @@ describe('bulk upsert input collection snapshots', () => {
             inputs.splice(1, 1, replacement);
         };
 
-        await expect(db.rows.upsert(inputs)).resolves.toBe(2);
+        await expect(db.rows.executeUpsert(inputs)).resolves.toBe(2);
 
         expect(inputs).toEqual([first, replacement]);
         expect(connection.statements.map(statement => statement.values))
@@ -245,7 +245,7 @@ describe('bulk upsert input collection snapshots', () => {
         const replacement = row('replacement');
         const inputs = [first, second];
 
-        const pending = db.rows.upsert(inputs);
+        const pending = db.rows.executeUpsert(inputs);
         await connection.started;
         inputs.splice(0, inputs.length, replacement);
         connection.release();

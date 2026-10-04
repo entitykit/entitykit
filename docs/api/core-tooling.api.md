@@ -257,6 +257,9 @@ export interface PropertySnapshot {
     readonly valueGenerated?: 'never' | 'onAdd' | 'onAddOrUpdate';
 }
 
+// @public (undocumented)
+export function readSynchronousDate(provider: (() => Date) | undefined, operation: string): Date | undefined;
+
 // @public
 export interface RelationshipSnapshot {
     readonly cardinality?: 'manyToOne' | 'oneToOne';

@@ -121,6 +121,11 @@ The app does not support:
 - writable SQLite files on ephemeral serverless filesystems;
 - importing private `dist/` paths or repository source paths.
 
+Sets retain their constructor arguments, so the studio stages a new draft with
+`db.posts.create(input)` and persists it with `saveChanges()`. `AppDbContext`
+inherits the source-backed constructor; its `configure()` hook only adds
+auditing after initialization selects the shared source.
+
 Pages call Next.js `connection()` before reading from the database. The data
 source is also lazy. As a result, `next build` compiles the application without
 opening Postgres or requiring `DATABASE_URL`; database access begins only for a

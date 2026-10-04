@@ -11,9 +11,11 @@ import type { AlternateKeyMetadata } from './alternate-key-metadata';
 import type { CheckConstraintMetadata } from './check-constraint-metadata';
 import type { EntityMetadataArgs } from './entity-metadata-args';
 import type { ComplexPropertyMetadata } from './complex-property-metadata';
+import type { CheckedEntityMaterializer } from './checked-materialization-types';
 export class EntityMetadata<TEntity extends object = object> {
     public readonly ctor: EntityConstructor<TEntity>;
     public readonly materializer?: EntityMaterializer<TEntity>;
+    public readonly checkedMaterializer?: CheckedEntityMaterializer<TEntity>;
     public readonly entityName: string;
     public readonly tableName: string;
     public readonly schemaName?: string;
@@ -36,6 +38,7 @@ export class EntityMetadata<TEntity extends object = object> {
     constructor(args: EntityMetadataArgs<TEntity>) {
         this.ctor = args.ctor;
         this.materializer = args.materializer;
+        this.checkedMaterializer = args.checkedMaterializer;
         this.entityName = args.ctor.name;
         this.tableName = args.tableName;
         this.schemaName = args.schemaName;
@@ -82,14 +85,11 @@ export class EntityMetadata<TEntity extends object = object> {
         if (!property) {
             throw new Error(`Property '${propertyName}' is not configured on entity '${this.entityName}'.`);
         }
-
         return property as PropertyMetadata<TEntity, TProperty>;
     }
-
     public tryGetProperty(propertyName: string): PropertyMetadata<TEntity> | undefined {
         return this.propertiesByName.get(propertyName);
     }
-
     public getKeyValue(entity: TEntity): unknown {
         return this.key().getKeyValue(entity);
     }

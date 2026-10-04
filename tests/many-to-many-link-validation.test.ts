@@ -75,7 +75,7 @@ describe('many-to-many link validation', () => {
         expect(connection.transactionEvents).toEqual([]);
     });
 
-    it('clears queued many-to-many changes through the context clearChanges API', () => {
+    it('clears queued many-to-many changes through the context clearTracking API', () => {
         const connection = new RecordingDatabaseConnection();
         const db =  ManyToManyContext.createWith(connection);
         const post = createPost();
@@ -87,7 +87,7 @@ describe('many-to-many link validation', () => {
 
         expect(db.getSavePlan()).toHaveLength(1);
 
-        db.clearChanges();
+        db.clearTracking();
 
         expect(db.getSavePlan()).toEqual([]);
         expect(db.getSavePlanDebugView()).toBe('No pending changes.');

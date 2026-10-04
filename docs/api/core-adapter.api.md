@@ -24,6 +24,9 @@ export interface AlterColumnChange {
     readonly typeChanged: boolean;
 }
 
+// @public (undocumented)
+export function assertSynchronousCallbackResult(result: unknown, operation: string, createError: (message: string) => Error): void;
+
 // @public
 export function awaitWithOperationCancellation<TResult>(operation: Promise<TResult>, signal?: AbortSignal): Promise<TResult>;
 
@@ -274,6 +277,9 @@ export interface EntityKitDataSource<TConfig extends object = Record<string, unk
 export interface EntityKitDataSourceOptions {
     readonly retry?: RetryPolicyOptions;
 }
+
+// @public
+type EntityPropertyKey<TEntity extends object> = Extract<keyof TEntity, string>;
 
 // @public
 export function excludedColumnMatchClause(columns: readonly string[], quote: (identifier: string) => string, targetQualifier?: string): string;
@@ -545,8 +551,34 @@ export interface MigrationTableShape {
     readonly tableName: string;
 }
 
+// Warning: (ae-forgotten-export) The symbol "EntityPropertyKey" needs to be exported by the entry point index.d.ts
+// Warning: (ae-forgotten-export) The symbol "ModelPropertyToken" needs to be exported by the entry point index.d.ts
+//
+// @public
+type ModelPropertySelector<TEntity extends object> = {
+    readonly [K in EntityPropertyKey<TEntity>]: ModelPropertyToken<TEntity, TEntity[K]>;
+};
+
+// @public
+interface ModelPropertyToken<TEntity extends object, TProperty = unknown> {
+    readonly [modelPropertyToken]: true;
+    readonly [modelPropertyType]?: [TProperty] extends [never] ? never : never;
+    readonly propertyName: EntityPropertyKey<TEntity>;
+}
+
+// @public (undocumented)
+const modelPropertyToken: unique symbol;
+
+// @public (undocumented)
+const modelPropertyType: unique symbol;
+
 // @public
 export const postgresDialect: SqlDialect;
+
+// Warning: (ae-forgotten-export) The symbol "ModelPropertySelector" needs to be exported by the entry point index.d.ts
+//
+// @public
+type PropertySelector<TEntity extends object, TProperty = unknown> = (entity: ModelPropertySelector<TEntity>) => ModelPropertyToken<TEntity, TProperty>;
 
 // @public (undocumented)
 export function queryStreamBatchSize(options?: QueryStreamOptions): number;
@@ -604,6 +636,11 @@ export interface SchemaSqlDialect {
         readonly isPrimaryKey: boolean;
     }): string;
 }
+
+// Warning: (ae-forgotten-export) The symbol "PropertySelector" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+export function selectPropertyName<TEntity extends object, TProperty = unknown>(selector: PropertySelector<TEntity, TProperty>): EntityPropertyKey<TEntity>;
 
 // @public
 export interface SqlDialect extends SchemaSqlDialect {

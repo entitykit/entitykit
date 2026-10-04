@@ -63,14 +63,10 @@ class AppDbContext extends DbContext {
       entity.hasKey(user => user.id);
       entity.property(user => user.id).hasColumnType("text").isRequired();
       entity.property(user => user.email).hasColumnType("text").isRequired();
-      entity.materialize(values => {
-        const { id, email } = values;
-        if (typeof id !== "string" ||
-            typeof email !== "string") {
-          throw new Error("Cannot materialize User: required fields are missing or invalid.");
-        }
-        return new User({ id, email });
-      });
+      entity.materializeChecked(row => new User({
+        id: row.required(user => user.id),
+        email: row.required(user => user.email),
+      }));
     });
   }
 }
@@ -94,14 +90,23 @@ try {
 
 `users.create()` constructs and tracks a new entity without executing SQL. Its
 input comes from the `User` constructor; `saveChanges()` writes the row. The
-separate `materialize()` factory reconstructs stored rows when querying.
+separate `materializeChecked()` callback constructs an entity on reads and
+checks only requested scalar values, with errors naming the entity and property.
+EntityKit then assigns the captured mapped values, including configured read
+conversions. Constructor-only transformations can be overwritten; unrequested
+values receive no additional checks. Custom conversions and narrower domain
+types use an explicit guard; [materialization](https://github.com/entitykit/entitykit/blob/main/docs/materialization.md)
+covers nullable fields and the raw `materialize()` escape hatch.
 
 In an application, keep the data source for the application lifetime and make
 the context inside each request, job, or unit of work. Dispose the context
 first, then dispose the source during shutdown. The optional `DbContext`
 constructor selects a supplied data source automatically; an override of
-`configure()` should call `super.configure(options)` before adding other
-context options.
+`configure()` receives options with that source already selected. Add context
+options directly; no call to `DbContext.configure()` is required for source
+selection. Call `super.configure(options)` to retain configuration implemented
+by an intermediate base class. Selecting a second provider, source, or
+connection is an error.
 
 ## Includes
 

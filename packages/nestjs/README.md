@@ -63,7 +63,7 @@ export class User {
 }
 
 export class AppDbContext extends DbContext {
-  readonly users = this.set<User, [id: string]>(User);
+  readonly users = this.set(User);
 
   protected override model(model: ModelBuilder): void {
     model.entity(User, entity => {
@@ -176,7 +176,6 @@ class TenantDbContext extends AppDbContext {
   }
 
   protected override configure(options: DbContextOptionsBuilder): void {
-    super.configure(options);
     options.useTenantScope(() => this.tenantId);
   }
 }

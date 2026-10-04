@@ -8,7 +8,7 @@ import type {
     DatabaseProviderConnectionConfig,
     DatabaseProviderServices,
 } from '@entitykit/core/adapter';
-import { assertSynchronousCallbackResult } from '@entitykit/core';
+import { assertSynchronousCallbackResult } from '@entitykit/core/adapter';
 
 type ConnectionConfig = Pick<
     ResolvedEntityKitConfig,

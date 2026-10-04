@@ -194,7 +194,7 @@ and private parameter values. The complete unchanged module improves from
 without executing SQL on every provider and runtime; SDK sources are unchanged.
 
 The preceding signed complete coverage checkpoint is
-`51a44bef416e3815e92c4ee4502ab5dba95631db`. The preceding query-cache candidate passed
+`5a597b5ff63964ad708233db3f402a9871bfdef9`. The preceding query-plan candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -210,6 +210,17 @@ remaining runner errors become ordinary killed mutants, and the empty-handler
 deletion fails promptly. Independent compiled API probes pass under Node's
 strict unhandled-rejection mode on both runtimes; SDK sources are unchanged.
 Each slice retains its own source-attributed qualification receipt.
+The API-refinement integration includes all twelve commits through `c0433e97`,
+adding checked materialization, constructor-aware set annotations, canonical
+write and tracking names, typed predicate linting and source-backed CLI contexts.
+The context set-registration base uses a narrow callback so its declaration does
+not expose the internal context host. Packed consumers qualify deprecated aliases
+and seven predicate misuse cases; compiled Bookshop probes exercise the refined
+operations and checked reads on every provider and runtime.
+All 22 Stryker configurations now live in `config/stryker/`, with identical
+loaded options and mutation source hashes. Their fresh test baselines pass after
+the move. The critical campaign invalidates and reruns 57 scored results after
+seven test files change, retaining its 95.78% score with zero runner errors.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
@@ -217,11 +228,11 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 548 suites / 4,076 tests on both runtimes for the current query-plan qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 554 suites / 4,134 tests on both runtimes for the current API-refinement integration; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 769 executable source files; 95.77% statements/lines, 92.62% branches, 95.34% functions at the clean preceding checkpoint; all existing floors pass |
-| Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,305 killed, 34 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
+| Runtime coverage | 769 executable source files; 95.79% statements/lines, 92.67% branches, 95.43% functions at the clean preceding checkpoint; all existing floors pass |
+| Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,303 killed, 36 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
 | SQLite DDL mutation | 90.57% in a separate four-file / 488-mutant campaign covering schema extraction across quoting, comments and expression boundaries |
@@ -243,7 +254,7 @@ pass on the exact reconciled release SHA before publication.
 | Postgres metadata mutation | 98.14% across all 215 mutants in two complete modules; numeric precision and signed scale, arrays, booleans, index and sequence facets; 100% line, branch and function coverage; index/sequence facets kill all 96 mutants |
 | Mixed-index mutation | 97.44% across all 234 mutants in three complete modules; mapped key identity and order, builder ownership, sparse refusal, alternate keys, included properties and skipped-index diagnostics; 100% line/function coverage and 98.97% branches; the new validator kills all 63 mutants |
 | Query-plan mutation | 100% across all 26 mutants in the complete unchanged module; versioned shape, legacy defaults, zero paging, tracking and scope flags, grouping and ordered join identity; 100% line, branch and function coverage |
-| Canonical live providers | Postgres: 37 suites / 176 tests; MySQL: 26 suites / 137 tests; both runtimes pass for the current query-plan qualification |
+| Canonical live providers | Postgres: 37 suites / 176 tests; MySQL: 26 suites / 137 tests; both runtimes pass for the current API-refinement integration |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 

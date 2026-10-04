@@ -99,12 +99,15 @@ abstract class DbContext {
   readonly database: DatabaseFacade;
   readonly changeTracker: ChangeTracker;
 
-  set<TEntity, TKey extends readonly unknown[] = readonly unknown[]>(
-    entityType,
-  ): DbSet<TEntity, TKey>;
+  // Constructor overload; see Creation types for factories and identity-only sets.
+  set<TConstructor extends EntityCreationConstructor, TKey extends readonly unknown[] = readonly unknown[]>(
+    entityType: TConstructor,
+  ): DbSet<EntityCreationResult<TConstructor>, TKey, EntityCreationArguments<TConstructor>>;
   entry<TEntity>(entity): EntityEntry<TEntity> | undefined;
+  entryOrThrow<TEntity>(entity): EntityEntry<TEntity>;
   saveChanges(options?): Promise<number>;
-  clearChanges(): void;
+  clearTracking(): void;
+  clearChanges(): void; // Deprecated alias for clearTracking().
   getSavePlan(): readonly SavePlanEntry[];
   getSavePlanDebugView(): string;
   transaction<TResult>(work, options?): Promise<TResult>;
@@ -133,14 +136,15 @@ context are rejected.
 
 ```ts
 class AppDbContext extends DbContext {
-  readonly users = this.set<User, [id: string]>(User);
+  readonly users = this.set<typeof User, [id: string]>(User);
 }
 
 await using db = dataSource.createContext(AppDbContext);
 ```
 
-When a source-backed context overrides `configure()`, it must call
-`super.configure(options)` before adding non-provider options. The direct
+No call to `DbContext.configure()` is required for source selection. Call
+`super.configure(options)` when retaining configuration implemented by an
+intermediate base class, such as auditing, tenant scope, or diagnostics. The direct
 `useSqlite()`, `usePostgres()`, and `useMySql()` methods instead create a
 context-owned connection; they are concise for scripts, migration contexts,
 and isolated tests, but a server should not use them to create a new Postgres
@@ -181,7 +185,7 @@ immutable query.
 | `attach(entity)` | Tracks an existing entity without scheduling an insert |
 | `remove(entity)` | Marks a tracked entity for deletion |
 | `detach(entity)` | Removes an entity from the context identity map |
-| `upsert(entities, options?)` | Performs set-based upsert within the provider's conflict-target rules |
+| `executeUpsert(entities, options?)` | Performs set-based upsert within the provider's conflict-target rules |
 | `` fromSqlUnsafe`...${value}...` `` | Materializes caller-owned SQL without automatic query filters |
 
 `set(User)` infers the public constructor's argument tuple for `create()`.
@@ -217,8 +221,11 @@ overload with a typed closure, such as `(id: string) => makeUser(id)`.
 argument tuples. Their default `never` does not permit calls. Use `satisfies`
 when checking a factory without erasing its inferred inputs, or provide an
 explicit tuple (`[]` for an actual zero-argument factory). Annotating a set as
-`DbSet<User>` also erases creation arguments; prefer inference or retain the
-creation tuple as the third `DbSet` type argument.
+`DbSet<User>` also erases creation arguments. Prefer `AppDbContext["users"]`
+for application-local annotations or `DbSetFor<typeof User, [id: string]>`
+for a constructor-aware reusable type. `DbSetFor<typeof makeUser>` also
+preserves a synchronous factory's arguments. See [creation types](docs/creation-types.md)
+for exact key, receiver, union, overload, and erased-signature contracts.
 
 `create()` runs the constructor or factory once, validates that it returned an
 instance of the mapped class, and delegates enrollment to the ordinary add
@@ -230,10 +237,13 @@ Creation input typing is not runtime request validation.
 
 Reads use the independent `entity.materialize(factory)` mapping. Supply one
 for classes whose constructor requires input. `saveChanges()` persists created
-entities; use detached constructors or domain factories to prepare `upsert()`
+entities; use detached constructors or domain factories to prepare `executeUpsert()`
 inputs. Existing `add()`, `attach()`, and `remove()` return `EntityEntry`.
 
-`upsert()` accepts `conflictProperties` and `updateProperties`. It bypasses the
+`upsert()` remains a deprecated alias for `executeUpsert()` with the same
+immediate execution behavior.
+
+`executeUpsert()` accepts `conflictProperties` and `updateProperties`. It bypasses the
 change tracker, save interceptors, audit fields, concurrency tokens, and outbox
 events. Postgres and SQLite can target a mapped unique key. MySQL accepts only
 the primary key on models without secondary unique keys because its clause can
@@ -358,6 +368,10 @@ interface ModelBuilder {
 | `softDelete(...)` | Configures a soft-delete marker |
 | `tenantKey(...)` | Configures the tenant ownership property |
 | `materialize(factory)` | Supplies explicit entity rehydration |
+| `materializeChecked(factory)` | Supplies checked scalar access for constructor-based rehydration |
+
+The [rehydration guide](docs/materialization.md) defines `required()` and
+`nullable()`, supported scalar checks, and guards for converted domain values.
 
 ### Property mapping
 
@@ -418,8 +432,8 @@ values, modified properties, database values, reload, concurrency resolution,
 and explicit relationship loaders:
 
 ```ts
-await db.entry(post)?.reference(item => item.author).load();
-await db.entry(user)?.collection(item => item.posts).load();
+await db.entryOrThrow(post).reference(item => item.author).load();
+await db.entryOrThrow(user).collection(item => item.posts).load();
 ```
 
 When lazy loading is enabled, `lazy(entity).navigation` returns an awaitable
@@ -483,6 +497,15 @@ TypeScript module loading, path validation, and atomic file writing.
 connections, data sources, provider services, SQL and migration dialects,
 schema introspection, retry/cancellation/session primitives, value readers, and
 the provider-neutral migration builder.
+
+Use these focused imports for extension and tooling helpers. Their existing
+root exports remain available as deprecated aliases.
+
+| Helper | Recommended entry point |
+| --- | --- |
+| `selectPropertyName` | `@entitykit/core/adapter` |
+| `assertSynchronousCallbackResult` | `@entitykit/core/adapter` |
+| `readSynchronousDate` | `@entitykit/core/tooling` |
 
 `@entitykit/core/experimental` exposes mutable compiler/building internals. It
 has no compatibility guarantee during alpha and should not be used in ordinary

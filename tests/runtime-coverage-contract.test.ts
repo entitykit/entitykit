@@ -238,7 +238,7 @@ describe('runtime coverage contract', () => {
 
     it('keeps mutation testing bounded to critical pure modules', () => {
         const strykerConfig = fs.readFileSync(
-            path.join(process.cwd(), 'stryker.config.cjs'),
+            path.join(process.cwd(), 'config', 'stryker', 'stryker.config.cjs'),
             'utf8',
         );
         const mutationJestConfig = fs.readFileSync(

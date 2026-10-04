@@ -44,6 +44,8 @@ export function runInitCommand(
         ...relativeFiles.map(file => `  ${file}`),
         '',
         ...installGuidance(root, provider),
+        'Enable typed predicate linting: @typescript-eslint/no-unnecessary-condition.',
+        'Setup: https://github.com/entitykit/entitykit/blob/main/docs/query-predicates.md#enable-typed-linting',
         `Next: add your entities and model mappings to ${path.relative(root, contextPath)}`,
         'Then: entitykit migration add InitialCreate',
         'Then: entitykit db migrate',
