@@ -72,4 +72,22 @@ describe('complete mutation report qualification', () => {
         expect(() => checkMutationReports(plan, directory)).toThrow('Duplicate mutation source');
         expect(checkMutationReports({ mode: 'pr', commit: 'docs-commit', jobs: [], deferred: ['core'] }, directory)).toEqual([]);
     });
+
+    it('expands wildcard scopes while still refusing an omitted matching source', () => {
+        const { directory, plan, write } = fixture();
+        plan.jobs = [plan.jobs[0]];
+        plan.jobs[0].mutate = ['src/sqlite-ddl-*.ts'];
+        fs.mkdirSync(path.join(directory, 'src'));
+        fs.writeFileSync(path.join(directory, 'src/sqlite-ddl-column.ts'), 'export const column = 1;');
+        fs.writeFileSync(path.join(directory, 'src/sqlite-ddl-text.ts'), 'export const text = 2;');
+        write('a', 'src/sqlite-ddl-column.ts', ['Killed']);
+        expect(() => checkMutationReports(plan, directory, directory)).toThrow('Missing or unexpected');
+        const report = { files: {
+            'src/sqlite-ddl-column.ts': { mutants: [{ status: 'Killed' }] },
+            'src/sqlite-ddl-text.ts': { mutants: [{ status: 'Killed' }] },
+        } };
+        fs.writeFileSync(path.join(directory, 'a.json'), JSON.stringify(report));
+        expect(checkMutationReports(plan, directory, directory)[0].eligible).toBe(2);
+        expect(checkMutationReports(plan, directory, directory)[0].score).toBe(100);
+    });
 });

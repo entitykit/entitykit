@@ -16,7 +16,15 @@ function mutationScore(files) {
   return { score: detected / eligible * 100, eligible, counts };
 }
 
-function checkMutationReports(plan, directory) {
+function expectedMutationFiles(patterns, sourceRoot) {
+  return [...new Set(patterns.flatMap(pattern => {
+    const file = mutationFile(pattern);
+    const wildcard = ['*', '?', '[', '{'].some(character => file.includes(character));
+    return wildcard ? fs.globSync(file, { cwd: sourceRoot }).map(name => name.split(path.sep).join('/')) : [file];
+  }))].sort();
+}
+
+function checkMutationReports(plan, directory, sourceRoot = process.cwd()) {
   const campaigns = new Map();
   for (const job of plan.jobs) {
     const result = JSON.parse(fs.readFileSync(path.join(directory, `${job.id}.result.json`), 'utf8'));
@@ -26,7 +34,7 @@ function checkMutationReports(plan, directory) {
     if (result.commit !== plan.commit || result.mode !== plan.mode
       || JSON.stringify(result.mutate) !== JSON.stringify(job.mutate)) throw new Error(`Stale mutation result: ${job.id}`);
     const report = JSON.parse(fs.readFileSync(path.join(directory, `${job.id}.json`), 'utf8'));
-    const expected = [...new Set(job.mutate.map(mutationFile))].sort();
+    const expected = expectedMutationFiles(job.mutate, sourceRoot);
     if (JSON.stringify(Object.keys(report.files).sort()) !== JSON.stringify(expected)) {
       throw new Error(`Missing or unexpected mutation source in ${job.id}.`);
     }

@@ -6,4 +6,4 @@ export interface MutationMetrics {
     counts: Record<string, number>;
 }
 export function mutationScore(files: Record<string, MutationFileReport>): MutationMetrics;
-export function checkMutationReports(plan: MutationPlan & { commit: string }, directory: string): Array<MutationMetrics & { id: string; threshold: number }>;
+export function checkMutationReports(plan: MutationPlan & { commit: string }, directory: string, sourceRoot?: string): Array<MutationMetrics & { id: string; threshold: number }>;
