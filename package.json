@@ -38,7 +38,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/ --testPathIgnorePatterns=/node_modules/ --testPathIgnorePatterns=/.claude/",
     "test:coverage": "jest --config jest.coverage.config.cjs && node scripts/check-runtime-coverage.js",
-    "test:mutation": "stryker run && npm run test:mutation:migrations && npm run test:mutation:provider-validation && npm run test:mutation:sqlite-ddl && npm run test:mutation:checksum && npm run test:mutation:property-metadata && npm run test:mutation:snapshot-rename && npm run test:mutation:sqlite-rebuild && npm run test:mutation:sqlite-planning && npm run test:mutation:schema-ddl && npm run test:mutation:sqlite-joins && npm run test:mutation:primary-key-order && npm run test:mutation:migration-warnings && npm run test:mutation:primary-key-change && npm run test:mutation:postgres-generation && npm run test:mutation:store-generation && npm run test:mutation:mysql-types && npm run test:mutation:operation-signal",
+    "test:mutation": "stryker run && npm run test:mutation:migrations && npm run test:mutation:provider-validation && npm run test:mutation:sqlite-ddl && npm run test:mutation:checksum && npm run test:mutation:property-metadata && npm run test:mutation:snapshot-rename && npm run test:mutation:sqlite-rebuild && npm run test:mutation:sqlite-planning && npm run test:mutation:schema-ddl && npm run test:mutation:sqlite-joins && npm run test:mutation:primary-key-order && npm run test:mutation:migration-warnings && npm run test:mutation:primary-key-change && npm run test:mutation:postgres-generation && npm run test:mutation:store-generation && npm run test:mutation:mysql-types && npm run test:mutation:operation-signal && npm run test:mutation:json-validation",
     "test:mutation:migrations": "stryker run stryker.migration.config.cjs",
     "test:mutation:migrations:dry": "stryker run stryker.migration.config.cjs --dryRunOnly",
     "test:mutation:provider-validation": "stryker run stryker.provider-validation.config.cjs",
@@ -96,7 +96,9 @@
     "test:mutation:mysql-types": "stryker run stryker.mysql-types.config.cjs",
     "test:mutation:mysql-types:dry": "stryker run stryker.mysql-types.config.cjs --dryRunOnly",
     "test:mutation:operation-signal": "stryker run stryker.operation-signal.config.cjs",
-    "test:mutation:operation-signal:dry": "stryker run stryker.operation-signal.config.cjs --dryRunOnly"
+    "test:mutation:operation-signal:dry": "stryker run stryker.operation-signal.config.cjs --dryRunOnly",
+    "test:mutation:json-validation": "stryker run stryker.json-validation.config.cjs",
+    "test:mutation:json-validation:dry": "stryker run stryker.json-validation.config.cjs --dryRunOnly"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",

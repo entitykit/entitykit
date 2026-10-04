@@ -1,6 +1,7 @@
 import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src';
 import { DbContext, EntityState } from '../packages/core/src';
 import { sqliteProviderServices } from '../packages/sqlite/src';
+import { observedJsonRejection } from './support/observed-json-rejection';
 
 class JsonRecord {
     public id!: string;
@@ -80,13 +81,15 @@ describe('mapped JSON contract against SQLite', () => {
         };
         process.on('unhandledRejection', observeUnhandled);
         try {
+            const rejected = observedJsonRejection(new Error('JSON failed'));
             const record: JsonRecord = Object.assign(new JsonRecord(), {
                 id: 'record_1',
-                data: Promise.reject(new Error('JSON failed')),
+                data: rejected.promise,
             });
             db.records.add(record);
 
             await expect(db.saveChanges()).rejects.toThrow('Promise or thenable');
+            expect(rejected.observed()).toBe(true);
             await new Promise<void>(resolve => setImmediate(resolve));
             expect(unhandled).toEqual([]);
             expect(await countRows(db)).toBe(0);

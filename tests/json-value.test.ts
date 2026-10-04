@@ -1,4 +1,5 @@
 import { normalizeJsonValue, serializeJsonValue } from '../packages/core/src/json-value';
+import { observedJsonRejection } from './support/observed-json-rejection';
 
 describe('JSON value contract', () => {
     it('snapshots every exact JSON shape', () => {
@@ -96,10 +97,12 @@ describe('JSON value contract', () => {
         };
         process.on('unhandledRejection', observeUnhandled);
         try {
-            const value = { user: { profile: Promise.reject(new Error('failed')) } };
+            const rejected = observedJsonRejection(new Error('failed'));
+            const value = { user: { profile: rejected.promise } };
             expect(() => normalizeJsonValue(value, 'Document.data')).toThrow(
                 'Unsupported JSON value at \'Document.data.user.profile\' (Promise or thenable)',
             );
+            expect(rejected.observed()).toBe(true);
             await new Promise<void>(resolve => setImmediate(resolve));
             expect(unhandled).toEqual([]);
         } finally {
@@ -121,17 +124,18 @@ describe('JSON value contract', () => {
         };
         process.on('unhandledRejection', observeUnhandled);
         try {
+            const rejected = observedJsonRejection(new Error('returned rejection'));
             const thenable = Object.assign(
                 (): void => undefined,
                 {
-                    then: async (): Promise<never> =>
-                        Promise.reject(new Error('returned rejection')),
+                    then: (): unknown => rejected.promise,
                 },
             );
             expect(() => normalizeJsonValue(thenable, 'Document.data')).toThrow(
                 'Unsupported JSON value at \'Document.data\' (Promise or thenable)',
             );
             await new Promise<void>(resolve => setImmediate(resolve));
+            expect(rejected.observed()).toBe(true);
             expect(unhandled).toEqual([]);
         } finally {
             process.off('unhandledRejection', observeUnhandled);
@@ -145,13 +149,14 @@ describe('JSON value contract', () => {
         };
         process.on('unhandledRejection', observeUnhandled);
         try {
-            const value = {
-                first: Promise.reject(new Error('first failed')),
-                second: { nested: Promise.reject(new Error('second failed')) },
-            };
+            const first = observedJsonRejection(new Error('first failed'));
+            const second = observedJsonRejection(new Error('second failed'));
+            const value = { first: first.promise, second: { nested: second.promise } };
             expect(() => normalizeJsonValue(value, 'Document.data')).toThrow(
                 'Document.data.first',
             );
+            expect(first.observed()).toBe(true);
+            expect(second.observed()).toBe(true);
             await new Promise<void>(resolve => setImmediate(resolve));
             expect(unhandled).toEqual([]);
         } finally {
@@ -241,11 +246,13 @@ describe('JSON value contract', () => {
         };
         process.on('unhandledRejection', observeUnhandled);
         try {
+            const extraFailure = observedJsonRejection(new Error('array extra failed'));
+            const symbolFailure = observedJsonRejection(new Error('array symbol failed'));
             const extra = [1] as unknown[] & { extra?: unknown };
-            extra.extra = Promise.reject(new Error('array extra failed'));
+            extra.extra = extraFailure.promise;
             const symbol = Symbol('hidden');
             const symbolKey = Object.assign([1], {
-                [symbol]: Promise.reject(new Error('array symbol failed')),
+                [symbol]: symbolFailure.promise,
             });
 
             expect(() => normalizeJsonValue(extra, 'Document.data')).toThrow(
@@ -254,6 +261,8 @@ describe('JSON value contract', () => {
             expect(() => normalizeJsonValue(symbolKey, 'Document.data')).toThrow(
                 'symbol-keyed property',
             );
+            expect(extraFailure.observed()).toBe(true);
+            expect(symbolFailure.observed()).toBe(true);
             await new Promise<void>(resolve => setImmediate(resolve));
             expect(unhandled).toEqual([]);
         } finally {

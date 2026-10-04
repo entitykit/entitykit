@@ -71,6 +71,8 @@ Run `npm run test:mutation:mysql-types` for exact ENUM and SET literals,
 provider type translation and deterministic schema-introspection metadata.
 Run `npm run test:mutation:operation-signal` for capability and receiver
 preservation, forwarded options, combined cancellation and transaction state.
+Run `npm run test:mutation:json-validation` for synchronous JSON normalization,
+descriptor inspection, exact diagnostic paths and rejected-promise ownership.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 
