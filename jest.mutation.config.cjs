@@ -15,6 +15,7 @@ module.exports = {
     '<rootDir>/tests/query-streaming.test.ts',
     '<rootDir>/tests/cli-rename-hints.test.ts',
     '<rootDir>/tests/snapshot-value-equality.test.ts',
+    '<rootDir>/tests/snapshot-sparse-arrays.test.ts',
     '<rootDir>/tests/restorable-value-snapshot.test.ts',
     '<rootDir>/tests/provider-service-validation.test.ts',
     '<rootDir>/tests/model-diff-operation-description.test.ts',

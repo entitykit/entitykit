@@ -85,17 +85,23 @@ the original three scopes are unchanged.
 
 ## Qualification
 
+Setters that delete an array element now fail assignment and restoration checks.
+Tracked, untracked and streamed SQLite reads refuse incomplete JSON values;
+live Postgres and MySQL reads qualify the same refusal without retaining the
+failed row or changing stored data. Eighteen regressions preserve symmetric
+comparison, cyclic termination and hole/undefined snapshot value semantics.
+
 The preceding signed complete coverage checkpoint is
-`00116fd67ad7b8636554503579bbfaef58cfc024`. The preceding warning-repair candidate passed
+`b7a3bfa0bf7df77379905e71a3f46d8d61ccf92d`. The preceding key-change candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
 retain their reviewed destructive warnings, preserving rename intent and refusing
 unapproved removal before user DDL. Legacy snapshot-only migrations keep their
 existing checks. The full new 27-mutant warning-validation campaign improves
-from 92.59% to 100%, with 100% line and branch coverage. Hostile restoration
-assertions now compare identity without formatting opaque causes. This converts
-two critical runner crashes into ordinary killed mutants; SDK sources are unchanged.
+from 92.59% to 100%, with 100% line and branch coverage. The assertion-only
+restoration slice compares identity without formatting opaque causes and
+converts two critical runner crashes into ordinary killed mutants.
 Each slice retains its own source-attributed qualification receipt.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
@@ -104,10 +110,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 525 suites / 3,608 tests on both runtimes for the current key-change refusal; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 526 suites / 3,626 tests on both runtimes for the current sparse-array repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 767 executable source files; 95.48% statements/lines, 91.78% branches, 94.95% functions at the clean preceding checkpoint; all existing floors pass |
+| Runtime coverage | 768 executable source files; 95.48% statements/lines, 91.79% branches, 94.96% functions at the clean preceding checkpoint; all existing floors pass |
 | Critical mutation | 95.77% across the original 57-file / 1,401-mutant scope; 1,394 scored mutants and four remaining runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -122,7 +128,7 @@ pass on the exact reconciled release SHA before publication.
 | Primary-key order mutation | 98.88% across all 89 mutants; declared tuple order, compatibility metadata and invalid ordinals; 100% branch coverage |
 | Migration warning mutation | 100% across all 27 mutants; reviewed lists, malformed metadata, safe rename intent and legacy snapshot fallback; 100% branch coverage |
 | Existing key-change mutation | 93.33% across all 30 mutants; typed order refusal, legacy snapshots, physical identity and populated SQLite key transitions; 100% branch coverage |
-| Canonical live providers | Postgres: 29 suites / 143 tests; MySQL: 20 suites / 108 tests; both runtimes pass for the current key-change refusal |
+| Canonical live providers | Postgres: 30 suites / 149 tests; MySQL: 21 suites / 114 tests; both runtimes pass for the current sparse-array repair |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
@@ -131,7 +137,7 @@ coverage, all fourteen mutation campaigns, both provider lanes on both runtimes,
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The preceding clean complete coverage run took 145 seconds; its inventory rules and floors
+The preceding clean complete coverage run took 150 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity
