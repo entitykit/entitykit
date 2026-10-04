@@ -1,158 +1,137 @@
 # Stable release hardening
 
-Work is on `hardening`, in small independently verified, PGP-signed commits.
-EntityKit versions remain `0.1.0-alpha.2`. Stable publication, tags, remote
-pushes, and Pagerbase changes are outside this work's authorization.
+The authorized repository hardening is implemented on `hardening`, in small
+PGP-signed, bodyless Conventional Commits by `zsumz`. EntityKit versions remain
+`0.1.0-alpha.2`. The local qualification covers SQLite, Postgres and MySQL;
+stable version selection and publication remain separate release actions.
 
-The production assessment covers SQLite, Postgres, and MySQL. The Pagerbase
-adoption campaign is replaced by the repository-owned
-[Bookshop example](../examples/bookshop/README.md), a tenant-scoped bookstore
-checkout and fulfillment application using public packages.
+The Pagerbase adoption step is replaced by the repository-owned
+[Bookshop example](../examples/bookshop/README.md). It exercises a non-on-call,
+tenant-scoped checkout and fulfillment application through public packages.
+Pagerbase itself has not been modified.
 
-| Workstream | Current evidence | Remaining qualification |
-| --- | --- | --- |
-| Operation cancellation | Rejected promises stay observed; real single-connection pools reclaim 96 canceled queued operations per remote provider; active query cancellation, preaborted operations, stream exit and bounded strict-process shutdown pass; checked-out Postgres clients own asynchronous driver errors | Final candidate qualification |
-| Dependencies | Compatible security fixes; runtime scopes have zero known advisories; unreviewed tooling findings fail | Re-review the expiring `braces` tooling exception when patched |
-| Public contracts | Versioned signatures and package exports; negative compatibility tests; published alpha.1 checksum/SQL/snapshot fixtures and actual persisted-data upgrade/rollback on all three providers | Final candidate qualification |
-| Bookshop adoption substitute | Atomic inventory/version/order/audit/outbox/receipt; replay, tenancy, rollback, concurrent checkout; durable receiver deduplication and actual application process crash recovery on all three providers; standalone accepted-tarball SQLite consumer | Final release campaign |
-| Operational recovery | Canonical integration suites; real TCP commit-response loss and pre-commit disconnect recovery; atomic deadlock retries; killed migration process repair; abrupt Postgres and MySQL server restart durability, rollback and receipt replay | Final candidate qualification; storage hardware qualification belongs to deployment |
-| Performance/resources | Thirteen executable workloads per provider; direct-driver read comparisons, latency percentiles, constant query/parameter budgets, no-tracking stream bounds, disposed-context heap retention, pool pressure, atomic checkout and durable delivery | Final declared Node matrix and candidate qualification |
-| Release preparation | Alpha/stable channel policy and marked dry-run guards; executed workflow shell qualifies stable candidate/latest promotion, exact bytes, forward movement and interrupted-family convergence; stable support and upgrade policy | Complete final qualification; later authorized version selection and publication |
+## Qualification
 
-## Local evidence
+The SDK and gate checkpoint is `eea6ccbc66f4d53b6bd044822c247b31b9877427`.
+Final documentation follows that checkpoint without changing SDK source.
+Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
+18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
+and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
+pass on the exact reconciled release SHA before publication.
 
-The cancellation and security slices passed the complete `npm run verify`
-gate, including lint, strict types, 487 suites / 2,960 tests, the patched Next.js
-production build, seven packed consumers, module-format checks, a single core
-instance, CLI acceptance, peer-skew refusal, and publication dry-run guards.
-The Bookshop checkout slice passed that gate and its public-package scenarios
-on all three providers.
+| Gate | Local evidence |
+| --- | --- |
+| Canonical verification | Lint, live scoped security audit, strict types, 500 suites / 3,114 tests, production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
+| Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
+| Runtime coverage | 757 executable source files; 95.04% statements/lines, 90.47% branches, 94.81% functions; all existing floors pass |
+| Critical mutation | 93.03% across the declared critical seams; fresh baseline plus incremental reruns after ownership regressions; unchanged source and responsible tests are the only reused results |
+| Migration mutation | 95.77% on history initialization, lock ownership and transaction boundaries; no untested mutants |
+| Canonical live providers | Postgres: 25 suites / 129 tests; MySQL: 16 suites / 94 tests; both Node runtimes pass |
+| Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
+| Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
-The delivery slice passed the full gate with 2,961 tests. Package acceptance
-also compiled the Bookshop sources outside the checkout against the accepted
-tarballs and ran the complete SQLite checkout, concurrent receiver, and process
-recovery scenarios there.
+The complete canonical gate is `npm run verify`. CI also requires runtime
+coverage, both mutation campaigns, both provider lanes on both runtimes, and
+the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
+Coverage uses two workers that recycle between suites at 512 MiB so V8
+debugger state does not accumulate across the entire suite in one process.
+The final complete coverage run took 140 seconds; its inventory and floors
+were preserved.
 
-The API contract slice passed the full gate with 488 suites / 2,977 tests,
-all ten public signature reports, and the seven-package export contract.
+## Contracts qualified by the example and provider campaigns
 
-The historical migration slice passed the same full gate. A separately
-installed published `alpha.1` consumer seeded real databases on all three
-providers. The candidate preserved its checksum, SQL, snapshot format and
-history row; read and versioned existing application data; applied and rolled
-back a new migration; and refused an altered historical migration body.
-The fixture records the integrity of each historical package artifact.
+Bookshop commits inventory and optimistic version changes, order, audit,
+outbox and command receipt atomically. Its receipt fingerprints operation,
+tenant, actor and request payload, then replays the original result. The
+campaign checks cross-tenant refusal, stale versions, rollback, concurrent
+duplicate commands, and concurrent purchase of the last copy on every provider.
 
-The operational cancellation gate runs the built public packages in a separate
-Node process with strict unhandled rejections and a 30-second exit deadline.
-Postgres and MySQL each pass three rounds of 32 queued queries, streams,
-transactions and sessions behind a held single-connection pool, without
-executing canceled SQL or callbacks. Four canceled server sleep queries each
-permit an immediate healthy query. Every provider passes preaborted operations
-and 20 stream cancellation/early-return cycles with seven-row batches, followed
-by a healthy query and bounded source shutdown. SQLite checks cancellation
-between synchronous native steps; it does not promise interruption of a
-currently executing native statement.
+Fulfillment sends before acknowledging the outbox. A durable receiver verifies
+the order fingerprint and deduplicates the shipment. Separate application
+processes exit before checkout commit, after checkout commit, and after the
+receiver commits before acknowledgment. Fresh data sources prove rollback,
+durable replay, one business effect, and eventual acknowledgment.
 
-The lost acknowledgment campaign exposed a fatal asynchronous `pg` client
-error after socket loss while checked out. A scoped client lease now owns
-driver errors, refuses further SQL on failed clients, removes them from the
-pool, and hands event ownership back on release without accumulating listeners.
-The real TCP fault now returns an unknown transaction outcome on both remote
-providers. A deliberately permissive retry policy is never consulted; replay
-through the committed Bookshop receipt proves one complete atomic checkout.
-This repair passed the complete gate with 490 suites / 2,990 tests, unchanged
-public API reports, package acceptance, and both canonical live suites again
-(Postgres 125 tests, MySQL 94 tests).
+Strict bounded provider processes reclaim 96 canceled queued operations behind
+a held single-connection pool per remote provider. Preaborted operations, active
+server-query cancellation, 20 stream cancellation/early-return cycles and
+healthy reuse all pass. SQLite checks cancellation between synchronous native
+steps; a currently executing native statement is not preempted. Rejected work
+remains observed after cancellation, and late resources are reclaimed.
 
-Both remote providers pass a real two-transaction deadlock: one victim retries
-the complete operation, three attempts produce two committed operations, and
-both rows contain the expected values. A socket cut after an uncommitted write
-rolls it back, discards the failed physical client, and permits a healthy new
-operation through the same logical lease.
+Real TCP faults drop a COMMIT acknowledgment or disconnect after an uncommitted
+write. Checked-out Postgres clients now own asynchronous driver errors, discard
+failed clients and hand event ownership back on release. Both providers return
+an unknown commit outcome without consulting even a permissive retry policy;
+the durable receipt proves one committed checkout. Disconnects before commit
+roll back and permit healthy reuse. A real deadlock retries the complete unit
+of work: three attempts produce two commits and the expected values.
 
-Migration drills SIGKILL a separate process after real table DDL completes but
-before data and history writes. SQLite and Postgres roll back the uncommitted
-table. MySQL preserves its nontransactional DDL with no history row; the drill
-inspects the known empty partial object before explicitly dropping it. A fresh
-runner then reacquires the migration lock, applies exactly once, and rolls back
-cleanly on every provider. This is a migration repair qualification, not an
-automatic destructive repair policy for application databases.
+Migration process drills kill a separate process after real DDL and before
+data/history writes. SQLite and Postgres roll back the uncommitted table.
+MySQL preserves nontransactional DDL without a history row; the drill inspects
+the known empty partial object before explicitly dropping it. A fresh runner
+then acquires the lock, applies exactly once and rolls back cleanly. Application
+repair requires the inspection described in [the upgrade guide](upgrading.md).
 
-The final native Postgres campaign exposed a fresh-database race: concurrent
-runners created the history table before acquiring the advisory lock and one
-failed with catalog uniqueness error `23505`. History initialization now happens
-once under the provider lock. Default history readers use that same lock and
-session, while explicitly read-only checks remain noninitializing. Repeated real
-Postgres runner races and simultaneous history-reader/update races pass after
-the repair. Default initialization also rejects a caller transaction before SQL
-to avoid implicit MySQL DDL commits and invalid lock cleanup.
-The repair passed the complete canonical gate with 497 suites / 3,095 tests,
-unchanged public API reports and package acceptance; both live suites passed
-again (Postgres 129 tests, MySQL 94 tests). The focused history/lock mutation
-campaign passed at 95.77%, with no untested mutants and unchanged thresholds.
+Fresh Postgres migration races exposed history-table creation before advisory
+lock acquisition, causing catalog error `23505`. Initialization now happens once
+under the provider lock on one session. Repeated runner races and simultaneous
+history-reader/update races pass. Default initialization rejects caller-owned
+transactions before SQL; explicitly read-only history checks remain available
+inside them. This prevents implicit MySQL DDL commits and invalid lock cleanup.
 
-The repaired SDK passed the complete canonical gate on Node 22.13 and Node 24
-with 498 suites / 3,097 tests. The complete V8 coverage gate passed across 757
-runtime source files: 95.02% statements/lines, 90.43% branches and 94.81%
-functions. Two workers recycle between suites at 512 MiB instead of retaining
-every test's debugger state in one process; the canonical campaign completed
-in 156 seconds with its source inventory and thresholds unchanged.
+The server drills abruptly restart only verified isolated Postgres/MySQL
+instances while one checkout is committed and another is uncommitted. Recovery
+preserves the committed inventory/version/order/audit/outbox/receipt, discards
+uncommitted state, replays the receipt and accepts a fresh command. Application
+process and database server recovery are qualified here. Filesystem, storage
+hardware, host power loss and backup restoration belong to deployment testing.
 
-The server campaign restarts only a verified isolated database instance while
-Bookshop has one committed checkout and a second checkout persisted inside an
-uncommitted transaction. PostgreSQL immediate shutdown and MySQL SIGKILL both
-recover the committed inventory/version/order/audit/outbox/receipt, discard
-all uncommitted state, replay the original receipt, and accept a fresh command.
-SQLite's embedded engine is covered by the application process crash campaign.
-These are database process recovery results; filesystem, storage hardware,
-backup restoration and host power loss must be qualified by the deployment.
+The [historical upgrade campaign](migration-compatibility.md) installs four
+actual published `alpha.1` SDK artifacts with pinned integrities. Every provider
+preserves old migration checksums, SQL, snapshot format and history, reads and
+versions existing application data, applies/rolls back a new migration, and
+refuses an altered historical migration body.
 
-The executable performance campaign passes thirteen workloads per provider on
-Node 22.13 and Node 24. Single-row reads and 64-row saves/upserts each use one
-application statement; split includes use two, checkout seven and durable
-delivery six. Streams retain no tracked entities. Reports record latency
-percentiles, parameter counts, heap/RSS growth, event-loop delay, source SHA and
-dirty state with explicit budgets in [the benchmark guide](../benchmarks/README.md).
+## Performance and retained evidence
 
-Profiling the minimum Node runtime found operation guards retaining enabled
-async scopes after their work ended. Guards now release their own idle scope
-without disabling nested or application authority scopes. The original
-250-ms pool-pressure budget passes after this repair; it was not relaxed.
-The scope repair and performance gate passed the full canonical gate with
-492 suites / 2,999 tests and unchanged API contracts. Both remote operational
-campaigns passed again after the repair.
+The [benchmark guide](../benchmarks/README.md) defines the dataset, direct-driver
+comparisons and portable budgets. Single-row reads and 64-row saves/upserts use
+one application statement; split includes use two, checkout seven and durable
+delivery six. Streams retain no tracked entities. Sixty-four disposed context
+cycles qualify retained heap after GC. Idle operation guards now disable only
+their own async scope, preserving nested and application scopes; this repaired
+the minimum-runtime pool-pressure failure without changing its 250-ms budget.
 
-Stable preparation passed the alpha publication acceptance for all seven
-unchanged packages and a real npm dry run of a synthetic stable package against
-a local registry that receives no writes. Executed release workflow shell
-tests qualify both channels: exact family preflight, clean-404 bootstrap,
-network/authentication refusal, backward-movement refusal for any sibling,
-candidate-only staging, same-integrity retry, conflicting-byte refusal,
-all-byte verification before promotion, renewed forward checks, bounded tag
-retries and convergence after a mixed partial family. These are local synthetic
-release-mechanics tests; no package, tag or release was published.
+Reports under `coverage/qualification/performance-node22/` and
+`coverage/qualification/performance-node24/` record all six clean checkpoint
+combinations, source SHA, runtime/machine, percentiles, statement/parameter
+counts and resource metrics. Accepted artifacts and local qualification receipts
+are retained under `coverage/qualification/`. These generated receipts are not
+checked into source; CI uploads the required performance artifacts.
 
-The patched Next.js 16.3.8 demo passed both Chromium browser scenarios on
-Node 22.13 against a separate isolated Postgres database. Its migration check,
-dry run, application and status checks also passed. This qualifies the
-repository example's production paths; arbitrary Next.js apps and bundlers
-remain outside the declared matrix.
+## Release actions still required
 
-Live qualification uses isolated SQLite files, Postgres 18.4 on a private
-loopback port, and MySQL 8.4.11 in an isolated Docker service. Canonical remote
-suites passed: Postgres 25 suites / 125 tests, MySQL 16 suites / 94 tests. These
-are local results for the hardening work. Hosted CI for a final reconciled
-candidate SHA remains required before a stable release.
+1. Select the coordinated stable package version and its compatibility line,
+   then update release notes and manifests when version changes are authorized.
+2. Reconcile the reviewed branch with `main` and obtain fresh complete hosted
+   CI evidence for that exact source revision and the accepted artifact family.
+   Run the live security gate again; a prior audit receipt is insufficient.
+3. Configure/review the trusted publisher and dispatch the
+   [Release workflow](releasing.md) with the stable-channel confirmation.
+   Verify registry integrities, candidate staging, public tag promotion and the
+   complete coherent family. Publication and promotion are separate stages.
 
-Bookshop process drills deliberately terminate separate Node processes before
-checkout commit, after checkout commit, and after the fulfillment receiver
-commits before outbox acknowledgment. They verify uncommitted rollback,
-durable command replay, one shipment, and eventual acknowledgment after a
-fresh application data source starts. They qualify application process
-recovery; database server and storage crashes remain separate campaigns.
+Executed local release-shell tests already qualify alpha/stable forward
+movement, strict-404 bootstrap, authentication/network refusal, conflicting
+bytes, same-integrity retry, candidate staging, verification before promotion,
+bounded tag retries and convergence after a partially promoted family.
+Synthetic stable npm dry runs performed no registry writes.
 
-The sole reviewed tooling advisory is documented in
-[the security policy](../SECURITY.md#dependency-qualification) and
-[the expiring path review](security-tooling-review.json). Release qualification
-must run the live registry gate again; an older audit receipt is insufficient.
+Runtime dependency scopes have zero known advisories. The sole reviewed tooling
+advisory is `braces`, documented in [the security policy](../SECURITY.md#dependency-qualification)
+and [the path review](security-tooling-review.json), expiring
+`2026-11-02T00:00:00Z`. Unreviewed findings, changed paths and an expired review
+fail the gate. Re-review it when patched or before the exception expires.
