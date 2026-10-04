@@ -8,6 +8,7 @@ export function rebuildCopyColumns(
     to: EntitySnapshot,
     operations: readonly ModelDiffOperation[],
     tableKey: string,
+    direction: 'forward' | 'reverse',
 ): MigrationTableCopyColumn[] {
     const previous = new Map(from.properties.map(property => [property.propertyName, property]));
     const previousByColumn = new Map(from.properties.map(property => [property.columnName, property]));
@@ -19,16 +20,15 @@ export function rebuildCopyColumns(
             Boolean(operation.column.oldName) && operationKey(operation) === tableKey);
     return to.properties.flatMap(property => {
         const rename = renames.find(operation =>
-            operation.column.name === property.columnName ||
-            operation.column.oldName === property.columnName);
+            (direction === 'forward' ? operation.column.name : operation.column.oldName) === property.columnName);
         const otherColumn = rename
-            ? rename.column.name === property.columnName
+            ? direction === 'forward'
                 ? rename.column.oldName
                 : rename.column.name
             : undefined;
-        const source = previousByColumn.get(property.columnName) ??
-            previous.get(property.propertyName) ??
-            (otherColumn ? previousByColumn.get(otherColumn) : undefined);
+        const source = (otherColumn ? previousByColumn.get(otherColumn) : undefined) ??
+            previousByColumn.get(property.columnName) ??
+            previous.get(property.propertyName);
         return !source || property.computedSql !== undefined
             ? []
             : [{ source: source.columnName, target: property.columnName }];

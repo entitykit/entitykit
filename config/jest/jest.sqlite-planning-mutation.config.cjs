@@ -5,6 +5,7 @@ module.exports = {
     testMatch: [
         '<rootDir>/tests/sqlite-planning-facets.test.ts',
         '<rootDir>/tests/sqlite-planning-renames.test.ts',
+        '<rootDir>/tests/sqlite-planning-rename-chains.test.ts',
         '<rootDir>/tests/sqlite-principal-column-rename.test.ts',
         '<rootDir>/tests/sqlite-join-principal-rename.test.ts',
         '<rootDir>/tests/sqlite-join-planning-boundaries.test.ts',

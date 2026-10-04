@@ -50,8 +50,8 @@ export function addSqliteRebuildOperations(
             definition: {
                 previous: previousShape,
                 current: currentShape,
-                copyColumns: rebuildCopyColumns(old, entity, operations, key),
-                reverseCopyColumns: rebuildCopyColumns(entity, old, operations, key),
+                copyColumns: rebuildCopyColumns(old, entity, operations, key, 'forward'),
+                reverseCopyColumns: rebuildCopyColumns(entity, old, operations, key, 'reverse'),
             },
         });
     }
