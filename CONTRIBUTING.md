@@ -39,6 +39,10 @@ migration, CLI, provider-value, cancellation and resource-lifetime seams. Run th
 locally when changing the behavior it protects.
 All Stryker campaign definitions live in `config/stryker/`; the npm commands
 select their configuration explicitly from the repository root.
+All Jest configurations live in `config/jest/`, including the base, coverage
+and mutation test selections. npm and Stryker select their paths explicitly;
+the base config anchors `rootDir` at the repository root. For a direct Jest
+command, pass `--config config/jest/jest.config.cjs`.
 `test:mutation` includes separate history-initialization/migration-lock,
 provider-validation, SQLite DDL, migration checksum, property metadata, snapshot rename,
 SQLite rebuild, SQLite rebuild planning, schema DDL, join-table planning, primary-key order, migration warnings, and existing-key changes

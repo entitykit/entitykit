@@ -9,7 +9,7 @@ module.exports = {
         'packages/mysql/src/mysql-column-type.ts',
         'packages/mysql/src/mysql-introspect-snapshot.ts',
     ],
-    jest: { ...base.jest, configFile: 'jest.mysql-types-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.mysql-types-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-mysql-types.html' },
     jsonReporter: { fileName: 'coverage/mutation-mysql-types.json' },
     tempDirName: 'temp/stryker-mysql-types',

@@ -11,7 +11,7 @@ module.exports = {
         'packages/core/src/migrations/model-diff-join-table-detector.ts',
         'packages/core/src/migrations/model-diff-join-table-rollback.ts',
     ],
-    jest: { ...base.jest, configFile: 'jest.sqlite-joins-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.sqlite-joins-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-sqlite-joins.html' },
     jsonReporter: { fileName: 'coverage/mutation-sqlite-joins.json' },
     tempDirName: 'temp/stryker-sqlite-joins',

@@ -6,7 +6,7 @@ module.exports = {
     ...base,
     ignoreStatic: false,
     mutate: ['packages/core/src/model/property-metadata-finalizer.ts'],
-    jest: { ...base.jest, configFile: 'jest.property-metadata-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.property-metadata-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-property-metadata.html' },
     jsonReporter: { fileName: 'coverage/mutation-property-metadata.json' },
     tempDirName: 'temp/stryker-property-metadata',

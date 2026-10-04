@@ -79,7 +79,7 @@ module.exports = {
   testRunner: 'jest',
   jest: {
     projectType: 'custom',
-    configFile: 'jest.mutation.config.cjs',
+    configFile: 'config/jest/jest.mutation.config.cjs',
     enableFindRelatedTests: true,
   },
   coverageAnalysis: 'perTest',

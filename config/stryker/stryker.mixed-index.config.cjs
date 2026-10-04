@@ -8,7 +8,7 @@ module.exports = {
         'packages/core/src/model/index-key-parts.ts',
         'packages/core/src/introspection/db-pull-index-config-emitter.ts',
     ],
-    jest: { ...base.jest, configFile: 'jest.mixed-index-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.mixed-index-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-mixed-index.html' },
     jsonReporter: { fileName: 'coverage/mutation-mixed-index.json' },
     tempDirName: 'temp/stryker-mixed-index',

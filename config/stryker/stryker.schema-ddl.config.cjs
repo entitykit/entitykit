@@ -10,7 +10,7 @@ module.exports = {
         'packages/core/src/sql/ddl-table-reference.ts',
         'packages/core/src/schema/schema-statements.ts',
     ],
-    jest: { ...base.jest, configFile: 'jest.schema-ddl-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.schema-ddl-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-schema-ddl.html' },
     jsonReporter: { fileName: 'coverage/mutation-schema-ddl.json' },
     tempDirName: 'temp/stryker-schema-ddl',

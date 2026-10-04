@@ -256,6 +256,15 @@ SQLite required-key callbacks need reviewed original SQL pinned before upgrade:
 the historical campaign preserves its original source and fixture, proves the
 changed callback is refused without rewriting history, then qualifies the
 [reviewed preservation procedure](migrations.md) on all three providers.
+All 25 Jest configurations now live in `config/jest/`, including the companions
+for migration ordering and required keys. npm and Stryker use explicit paths,
+and the base config keeps the repository root as Jest's `rootDir`. Resolved
+test selections, module mappings, coverage settings and mutation options remain
+unchanged; the generated configuration IDs change with their file locations.
+All 24 required mutation campaigns pass fresh sequential test baselines after
+the move. Their previous scores retain their original source attribution; this
+configuration check does not claim a new complete mutation run. Package sources
+are byte-identical to the signed required-key repair.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must

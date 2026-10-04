@@ -222,7 +222,7 @@ describe('runtime coverage contract', () => {
             'utf8',
         );
         const jestConfig = fs.readFileSync(
-            path.join(process.cwd(), 'jest.coverage.config.cjs'),
+            path.join(process.cwd(), 'config', 'jest', 'jest.coverage.config.cjs'),
             'utf8',
         );
 
@@ -242,7 +242,7 @@ describe('runtime coverage contract', () => {
             'utf8',
         );
         const mutationJestConfig = fs.readFileSync(
-            path.join(process.cwd(), 'jest.mutation.config.cjs'),
+            path.join(process.cwd(), 'config', 'jest', 'jest.mutation.config.cjs'),
             'utf8',
         );
 

@@ -17,7 +17,7 @@ module.exports = {
   ],
   jest: {
     ...base.jest,
-    configFile: 'jest.migration-mutation.config.cjs',
+    configFile: 'config/jest/jest.migration-mutation.config.cjs',
   },
   htmlReporter: { fileName: 'coverage/mutation-migrations.html' },
   jsonReporter: { fileName: 'coverage/mutation-migrations.json' },

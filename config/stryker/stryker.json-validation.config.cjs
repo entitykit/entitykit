@@ -11,7 +11,7 @@ module.exports = {
         'packages/core/src/json/json-container-normalizer.ts',
         'packages/core/src/json/json-normalization-state.ts',
     ],
-    jest: { ...base.jest, configFile: 'jest.json-validation-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.json-validation-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-json-validation.html' },
     jsonReporter: { fileName: 'coverage/mutation-json-validation.json' },
     tempDirName: 'temp/stryker-json-validation',

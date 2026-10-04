@@ -5,7 +5,7 @@ const base = require('./stryker.config.cjs');
 module.exports = {
     ...base,
     mutate: ['packages/sqlite/src/sqlite-ddl-*.ts'],
-    jest: { ...base.jest, configFile: 'jest.sqlite-ddl-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.sqlite-ddl-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-sqlite-ddl.html' },
     jsonReporter: { fileName: 'coverage/mutation-sqlite-ddl.json' },
     tempDirName: 'temp/stryker-sqlite-ddl',

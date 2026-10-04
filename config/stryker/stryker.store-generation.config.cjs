@@ -10,7 +10,7 @@ module.exports = {
         'packages/core/src/model/sequence-builder.ts',
         'packages/core/src/model/property-store-generation.ts',
     ],
-    jest: { ...base.jest, configFile: 'jest.store-generation-mutation.config.cjs' },
+    jest: { ...base.jest, configFile: 'config/jest/jest.store-generation-mutation.config.cjs' },
     htmlReporter: { fileName: 'coverage/mutation-store-generation.html' },
     jsonReporter: { fileName: 'coverage/mutation-store-generation.json' },
     tempDirName: 'temp/stryker-store-generation',
