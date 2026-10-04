@@ -12,7 +12,7 @@ Pagerbase itself has not been modified.
 
 ## Qualification
 
-The SDK and gate checkpoint is `eea6ccbc66f4d53b6bd044822c247b31b9877427`.
+The SDK and gate checkpoint is `49e2a5d402e51d28838db90254a7403bd588bd9c`.
 Final documentation follows that checkpoint without changing SDK source.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
@@ -21,23 +21,45 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 500 suites / 3,114 tests, production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 504 suites / 3,232 tests on both runtimes, production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 757 executable source files; 95.04% statements/lines, 90.47% branches, 94.81% functions; all existing floors pass |
-| Critical mutation | 93.03% across the declared critical seams; fresh baseline plus incremental reruns after ownership regressions; unchanged source and responsible tests are the only reused results |
-| Migration mutation | 95.77% on history initialization, lock ownership and transaction boundaries; no untested mutants |
+| Runtime coverage | 757 executable source files; 95.21% statements/lines, 90.94% branches, 94.81% functions; all existing floors pass |
+| Critical mutation | 95.21% across the original 57-file scope; fresh baseline plus incremental reruns after regressions; unchanged source and responsible tests are the only reused results |
+| Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
+| Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
 | Canonical live providers | Postgres: 25 suites / 129 tests; MySQL: 16 suites / 94 tests; both Node runtimes pass |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, both mutation campaigns, both provider lanes on both runtimes, and
+coverage, all three mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The final complete coverage run took 140 seconds; its inventory and floors
+The final complete coverage run took 152 seconds; its inventory and floors
 were preserved.
+
+The coverage follow-up adds 118 tests for malformed rename options, identity
+collisions and cyclic keys, exact rollback pre-images, map keys, bounded
+diagnostics, migration refusal guidance and provider configuration. Compared
+with the preceding qualification, line coverage increases from 95.04% to
+95.21%, branches from 90.47% to 90.94%, critical mutation from 93.03% to
+95.21%, and migration mutation from 95.77% to 98.59%. The original mutation
+scope and thresholds remain unchanged. Equivalent defensive mutants remain in
+the denominator.
+
+These tests exposed a malformed value reader accepted by `useDataSource` but
+rejected by `useProvider`. Both now reject malformed readers before allocating
+a connection, while accepting structurally valid object and callable readers.
+The separate provider-validation mutation campaign is part of the required
+CI mutation command. Its score does not change the original campaign's scope.
+
+The earlier deadlock, lost-acknowledgment and abrupt-server-restart campaigns
+remain attributed to `eea6ccbc66f4d53b6bd044822c247b31b9877427`; those failure
+and recovery implementations are unchanged by the configuration repair. The
+canonical gates, live provider suites, Bookshop, performance and browser flows
+are rerun for the current SDK checkpoint.
 
 ## Contracts qualified by the example and provider campaigns
 
@@ -105,11 +127,12 @@ cycles qualify retained heap after GC. Idle operation guards now disable only
 their own async scope, preserving nested and application scopes; this repaired
 the minimum-runtime pool-pressure failure without changing its 250-ms budget.
 
-Reports under `coverage/qualification/performance-node22/` and
-`coverage/qualification/performance-node24/` record all six clean checkpoint
+Reports under `coverage/qualification/coverage-improvement/performance-node22/`
+and `coverage/qualification/coverage-improvement/performance-node24/` record all six clean checkpoint
 combinations, source SHA, runtime/machine, percentiles, statement/parameter
 counts and resource metrics. Accepted artifacts and local qualification receipts
-are retained under `coverage/qualification/`. These generated receipts are not
+are retained under `coverage/qualification/coverage-improvement/`, with the
+preceding qualification preserved under `coverage/qualification/`. These generated receipts are not
 checked into source; CI uploads the required performance artifacts.
 
 ## Release actions still required
