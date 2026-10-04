@@ -6,6 +6,7 @@ const { createRequire } = require('node:module');
 const { spawnSync } = require('node:child_process');
 const { historicalMigrationContract, historicalProvider } = require('./historical-migration-contract');
 const { installHistoricalPackages, validateHistoricalPackages } = require('./install-historical-packages');
+const { preserveHistoricalMigrationSql } = require('./preserve-historical-migration-sql');
 
 const root = path.resolve(__dirname, '..');
 const fixture = require('../tests/fixtures/migration-compatibility/alpha-1.json');
@@ -18,13 +19,22 @@ async function verifyMetadata() {
     const target = provider === 'sqlite' ? ':memory:' : `${provider === 'mysql' ? 'mysql' : 'postgres'}://entitykit@127.0.0.1:1/entitykit_legacy_test`;
     const source = historicalProvider(requireCandidate, provider, target);
     const contract = historicalMigrationContract(core, migrations, source);
+    const reviewed = preserveHistoricalMigrationSql(migrations, provider, contract.historical);
     const db = contract.HistoricalContext.create();
     try {
       const expected = fixture.providers[provider];
-      assert.equal(migrations.migrationChecksum(contract.historical, source.dialect, source.createMigrationBuilder), expected.checksum);
+      assert.equal(migrations.migrationChecksum(reviewed, source.dialect, source.createMigrationBuilder), expected.checksum);
+      const authoredChecksum = migrations.migrationChecksum(contract.historical, source.dialect, source.createMigrationBuilder);
+      if (provider === 'sqlite') assert.notEqual(authoredChecksum, expected.checksum);
+      else assert.equal(authoredChecksum, expected.checksum);
       const generator = new migrations.MigrationSqlGenerator(source.migrationDialect, source.createMigrationBuilder);
       const domain = statements => statements.filter(statement => !statement.text.includes('__entitykit_migrations'));
-      assert.deepEqual(domain(generator.buildUpStatements(contract.historical)), domain(expected.up));
+      assert.deepEqual(domain(generator.buildUpStatements(reviewed)), domain(expected.up));
+      assert.deepEqual(domain(generator.buildDownStatements(reviewed)), domain(expected.down));
+      const authoredUp = domain(expected.up).map(statement => provider === 'sqlite'
+        ? { ...statement, text: statement.text.replace('"id" varchar(64) primary key', '"id" varchar(64) not null primary key') }
+        : statement);
+      assert.deepEqual(domain(generator.buildUpStatements(contract.historical)), authoredUp);
       assert.deepEqual(domain(generator.buildDownStatements(contract.historical)), domain(expected.down));
       const current = migrations.contextMigrations(db).createModelSnapshot();
       assert.deepEqual(migrations.diffModelSnapshots(expected.snapshot, current).operations, []);
@@ -45,6 +55,8 @@ async function verifyUpgrade(provider, target, consumer) {
   if (seeded.status !== 0) throw new Error(`Historical ${provider} application failed to seed its database.`);
   const source = historicalProvider(requireCandidate, provider, target);
   const contract = historicalMigrationContract(core, migrations, source);
+  const originalHistorical = contract.historical;
+  contract.historical = preserveHistoricalMigrationSql(migrations, provider, originalHistorical);
   const db = contract.HistoricalContext.create();
   try {
     const runner = new migrations.MigrationRunner(db.database.connection, source.migrationDialect, source.createMigrationBuilder);
@@ -52,6 +64,11 @@ async function verifyUpgrade(provider, target, consumer) {
     assert.equal(historical.length, 1);
     assert.equal(historical[0].checksum, fixture.providers[provider].checksum);
     assert.equal(historical[0].entityKitVersion, fixture.releasedVersion);
+    if (provider === 'sqlite') {
+      await assert.rejects(runner.update([originalHistorical]), migrations.MigrationChecksumError);
+      assert.deepEqual(await runner.getAppliedMigrations({ initializeHistory: false }), historical);
+      console.log('MIGRATION_CHANGED_SQL_REFUSED_ORIGINAL_HISTORY_OK sqlite');
+    }
     assert.deepEqual((await runner.update([contract.historical])).appliedMigrations, []);
     const legacyBook = await db.books.findOrThrow('legacy-book');
     assert.equal(legacyBook.title, 'Published alpha.1 application data');

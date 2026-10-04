@@ -9,12 +9,22 @@ persists data before the candidate opens that database.
 
 The candidate must:
 
-- preserve the old migration body's checksum, generated SQL, model snapshot
+- preserve the old migration SQL, checksum, model snapshot
   format and recorded history;
 - read existing data and persist an optimistic version update;
 - apply one new migration, preserve application data and roll the new
   migration back;
 - reject a changed historical migration body.
+
+The required-key repair makes new SQLite DDL explicitly reject null primary
+keys. The original alpha.1 callback consequently renders different SQL and is
+refused for its changed checksum; the campaign verifies that history stays
+intact. A separate reviewed migration pins the published SQL, parameters and
+transaction options, preserving the recorded digest for upgrade and rollback.
+The original authored source and published fixture are unchanged. PostgreSQL
+and MySQL retain their original callback digests. This qualifies a reviewed
+preservation procedure, rather than automatic compatibility for changed
+callbacks; see [the migration guide](migrations.md).
 
 These are executable database upgrades using a published predecessor. They
 qualify the fixture's persistence contract on all three providers. An

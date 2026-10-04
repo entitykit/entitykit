@@ -8,8 +8,15 @@ for qualification; its source is held fixed in
 [`historical-migration-contract.js`](../../../scripts/historical-migration-contract.js).
 
 `npm run check:migration-compatibility` builds the candidate and compares its
-historical migration checksum and SQL with all three recorded provider
-contracts. It compares the recorded format-v1 model snapshots semantically,
+reviewed original migration SQL and checksum with all three recorded provider
+contracts. The original authored source and published fixture remain unchanged.
+The stronger SQLite required-key DDL changes that original callback's digest:
+the live upgrade first proves it is refused without changing history, then uses
+[`preserve-historical-migration-sql.js`](../../../scripts/preserve-historical-migration-sql.js)
+to pin the recorded SQL, parameters and transaction options. PostgreSQL and
+MySQL callbacks retain their original digests. This is a reviewed application
+upgrade procedure, not automatic compatibility for changed migration callbacks.
+It compares the recorded format-v1 model snapshots semantically,
 so compatible serialization additions do not become schema changes.
 
 It then installs the exact historical package versions into a separate

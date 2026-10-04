@@ -107,7 +107,7 @@ export const sqliteMigrationDialect: MigrationSqlDialect = Object.freeze({
     runMigrationTransaction: runSqliteMigrationTransaction,
     createMigrationHistoryTableStatement(): SqlStatement {
         return {
-            text: `create table if not exists ${quoteIdentifier(migrationHistoryTableName)} (${quoteIdentifier('id')} text primary key, ${quoteIdentifier('name')} text not null, ${quoteIdentifier('checksum')} text not null, ${quoteIdentifier('entitykit_version')} text not null)`,
+            text: `create table if not exists ${quoteIdentifier(migrationHistoryTableName)} (${quoteIdentifier('id')} text not null primary key, ${quoteIdentifier('name')} text not null, ${quoteIdentifier('checksum')} text not null, ${quoteIdentifier('entitykit_version')} text not null)`,
             values: [],
         };
     },

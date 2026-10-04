@@ -138,6 +138,24 @@ Review previously generated alpha migrations for this ordering; regenerate an
 unapplied migration or keep the reviewed parent-first DDL. Applied migration
 history and checksums must retain their original artifacts.
 
+Required SQLite text primary keys include an explicit `NOT NULL` constraint in
+model scripts, migration definitions, generated migrations and table rebuilds.
+New migration-history tables also require their ID. SQLite integer rowid keys
+retain automatic generation and configured rowid non-reuse.
+Updating EntityKit does not retrofit an existing table's constraints. Review and
+repair legacy null keys before rebuilding those tables; preserve applied
+migration artifacts and recorded checksums.
+
+The stronger SQLite DDL changes the SQL and checksum of an older callback that
+recreates a required primary key. Before upgrading an application with such an
+applied migration, pin its reviewed original SQL with `builder.sql(...)`, keeping
+the original ID, name, parameters and transaction options. Verify its checksum
+against the applied history before deployment, then use a new migration to repair
+the table. EntityKit refuses a changed callback rather than rewriting history.
+The published alpha.1 qualification retains its original source and fixture and
+uses [reviewed original SQL](../scripts/preserve-historical-migration-sql.js) to
+exercise that upgrade procedure on all three providers.
+
 SQLite principal-key renames preserve retained many-to-many associations,
 including composite keys and named join constraints. The generated migration
 rebuilds the affected join tables and restores their original references on
@@ -339,7 +357,8 @@ introspection remain provider-owned behavior.
   rebuilds, including cascading and `SET NULL` relationships. A failed check
   rolls back the schema, copied data, and migration history. Cancellation still
   restores enforcement; a connection that cannot restore it is disposed.
-- Generated SQL preserves the historical statement and checksum format. Use
+- The checksum serialization format is unchanged; DDL policy changes can change
+  an older callback's rendered SQL and digest as described above. Use
   the runner for SQLite rebuild deployment. Executing a raw script requires
   the same connection and transaction procedure described by
   [SQLite](https://www.sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes).

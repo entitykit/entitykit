@@ -86,6 +86,8 @@ Run `npm run test:mutation:query-plan` for the versioned query-plan contract,
 legacy defaults, zero paging, join identity, scope flags and private values.
 Run `npm run test:mutation:migration-table-order` for parent-first creation,
 dependent-first removal, provider-specific constraints and physical table identity.
+Run `npm run test:mutation:required-primary-key` for required SQLite keys,
+integer generation, column facets and migration-history creation.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 

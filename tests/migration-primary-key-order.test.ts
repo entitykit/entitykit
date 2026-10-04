@@ -49,7 +49,7 @@ describe('declared primary-key order in migrations', () => {
         ]);
         builder.createTable('keyless_rows', [{ name: 'label', type: 'text' }]);
         expect(builder.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "single_key" ("id" text primary key)',
+            'create table if not exists "single_key" ("id" text not null primary key)',
             'create table if not exists "legacy_keys" ("id" text not null, "tenant" text not null, primary key ("id", "tenant"))',
             'create table if not exists "keyless_rows" ("label" text not null)',
         ]);
@@ -62,7 +62,7 @@ describe('declared primary-key order in migrations', () => {
             const migration = diffModelSnapshots({ formatVersion: 1, entities: [] }, legacy)
                 .toMigration('20261004001401_LegacyOrderedKeys', 'LegacyOrderedKeys');
             const generator = new MigrationSqlGenerator(sqliteProviderServices.migrationDialect, sqliteProviderServices.createMigrationBuilder);
-            expect(generator.generateUpScript(migration)).toContain('"legacy_id" varchar(64) primary key');
+            expect(generator.generateUpScript(migration)).toContain('"legacy_id" varchar(64) not null primary key');
             const operation = diffModelSnapshots({ formatVersion: 1, entities: [] }, legacy).operations[0];
             if (operation.kind !== 'createTable') throw new Error('Expected legacy table creation.');
             for (const column of operation.columns) expect(column).not.toHaveProperty('primaryKeyOrdinal');

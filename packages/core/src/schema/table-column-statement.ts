@@ -36,14 +36,17 @@ function buildColumn(
     if (property.collation) {
         fragments.push(`collate ${dialect.quoteIdentifier(property.collation)}`);
     }
-    if (
+    const inlinePrimaryKey =
         !entity.isKeyless &&
         !entity.hasCompositeKey &&
-        property.propertyName === entity.keyProperties[0]
-    ) {
-        fragments.push('primary key');
-    } else if (property.isRequired) {
+        property.propertyName === entity.keyProperties[0];
+    // SQLite text primary keys need an explicit null constraint. Put it before
+    // PRIMARY KEY so an AUTOINCREMENT clause can follow that constraint.
+    if (property.isRequired && (!inlinePrimaryKey || dialect.name === 'sqlite')) {
         fragments.push('not null');
+    }
+    if (inlinePrimaryKey) {
+        fragments.push('primary key');
     }
     const generation = storeGenerationClause(
         dialect,

@@ -26,12 +26,13 @@ export function renderColumn(
         parts.push(`collate ${dialect.quoteIdentifier(column.collation)}`);
     }
 
+    // SQLite does not infer NOT NULL for text primary keys. Keep the primary
+    // key beside any following AUTOINCREMENT clause for valid SQLite syntax.
+    if (!column.nullable && (!column.primaryKey || dialect.name === 'sqlite')) {
+        parts.push('not null');
+    }
     if (column.primaryKey) {
         parts.push('primary key');
-    }
-
-    if (!column.nullable && !column.primaryKey) {
-        parts.push('not null');
     }
     const generation = storeGenerationClause(
         dialect,

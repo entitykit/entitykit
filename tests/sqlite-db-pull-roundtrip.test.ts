@@ -111,7 +111,7 @@ describe('SQLite db pull round-trip', () => {
         const pulled = await generated.create();
         try {
             expect(pulled.database.createScript())
-                .toContain('"id" integer primary key autoincrement');
+                .toContain('"id" integer not null primary key autoincrement');
         } finally {
             await pulled.dispose();
         }

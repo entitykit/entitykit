@@ -25,10 +25,18 @@ the target artifacts. The [Bookshop example](../examples/bookshop/README.md)
 provides a complete public-package checkout, durable receipt and delivery
 qualification that can be adapted to a non-on-call domain.
 
-Applied migration bodies and checksums are immutable. Keep old migrations and
+Applied migration SQL and checksums are immutable. Keep old migrations and
 their recorded EntityKit versions. Use new migrations for new schema changes.
 Do not regenerate old SQL or update history rows to match the new SDK version.
 Review the checked-in model snapshot and any explicit format transition.
+
+The SQLite required-key repair adds explicit `NOT NULL` to newly rendered DDL.
+An older required-key callback can therefore produce a different checksum.
+Pin its reviewed original SQL, parameters and transaction options, and verify
+the original digest against applied history before upgrading. Use a new
+migration to repair legacy null keys and constraints. The
+[migration guide](migrations.md) describes this reviewed preservation procedure;
+the runner refuses changed digests without rewriting history.
 
 Migration history initialization uses the provider migration lock and runs
 outside caller transactions, including the default `getAppliedMigrations()`

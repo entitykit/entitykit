@@ -83,7 +83,7 @@ describe('MigrationBuilder composite primary keys', () => {
         ]);
 
         expect(builder.statements[0].text).toBe(
-            'create table if not exists "allocations" ("id" text primary key, "sku" text not null)',
+            'create table if not exists "allocations" ("id" text not null primary key, "sku" text not null)',
         );
     });
 

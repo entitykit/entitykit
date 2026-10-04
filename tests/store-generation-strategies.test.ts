@@ -68,7 +68,7 @@ describe('store-generation strategies', () => {
         const sqlite = generatedModel(property =>
             property.useSqliteRowId({ preventReuse: true }), 'integer', 'main').build();
         expect(new SchemaSqlBuilder(sqliteProviderServices.dialect).build(sqlite))
-            .toContain('"id" integer primary key autoincrement');
+            .toContain('"id" integer not null primary key autoincrement');
     });
 
     it('supports an unsigned auto-increment column first in a composite MySQL key', () => {
@@ -166,7 +166,7 @@ describe('store-generation strategies', () => {
         );
 
         expect(generator.generateUpScript(migration)).toContain(
-            '"id" integer primary key autoincrement',
+            '"id" integer not null primary key autoincrement',
         );
         expect(generator.generateUpScript(migration)).toContain(
             'select "id", "sequence_value" from "main"."generated_numbers"',

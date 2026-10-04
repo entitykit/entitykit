@@ -238,6 +238,24 @@ required campaign. Both canonical gates pass 559 suites and 4,194 tests;
 PostgreSQL passes 38 suites and 180 tests, MySQL 27 suites and 141 tests on both
 runtimes. Historical upgrade and rollback, Bookshop, provider shutdown,
 performance and seven accepted package archives also qualify this candidate.
+SQLite required primary keys now receive explicit `NOT NULL` in schema scripts,
+migration builders, scaffolding and rebuilds; new migration-history IDs do too.
+Rowid generation and non-reuse remain supported. Forty new unit cases and eight
+live cases per server provider qualify valid inserts, null and omitted keys,
+optional columns and legacy rebuilds. The original two-module mutation scope
+improves from 82.65% (98 mutants) to 96.43% (112 mutants); adding the complete
+history-table creation method yields 96.67% across 120 mutants, with 116 killed,
+two survivors and two uncovered computed-column defaults. There are no runner
+errors or timeouts. The two complete DDL modules cover all 137 lines and three
+functions, and 38 of 40 branches. This is the 24th required campaign.
+Both canonical gates pass 561 suites and 4,234 tests; PostgreSQL passes 39 suites
+and 188 tests, MySQL 28 suites and 149 tests on both runtimes. Compiled public
+SDK probes, Bookshop, recovery and shutdown, all thirteen performance workloads,
+historical upgrades and seven accepted archives qualify the repair. Older
+SQLite required-key callbacks need reviewed original SQL pinned before upgrade:
+the historical campaign preserves its original source and fixture, proves the
+changed callback is refused without rewriting history, then qualifies the
+[reviewed preservation procedure](migrations.md) on all three providers.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
@@ -245,10 +263,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 559 suites / 4,194 tests on both runtimes for the current migration-order qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 561 suites / 4,234 tests on both runtimes for the current required-key qualification; production examples, public contracts, reviewed historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 769 executable source files; 95.79% statements/lines, 92.67% branches, 95.43% functions at the clean preceding checkpoint; all existing floors pass |
+| Runtime coverage | 775 executable source files; 95.93% statements/lines, 92.76% branches, 95.57% functions at the clean preceding migration-order checkpoint; all existing floors pass |
 | Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,303 killed, 36 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -271,12 +289,13 @@ pass on the exact reconciled release SHA before publication.
 | Postgres metadata mutation | 98.14% across all 215 mutants in two complete modules; numeric precision and signed scale, arrays, booleans, index and sequence facets; 100% line, branch and function coverage; index/sequence facets kill all 96 mutants |
 | Mixed-index mutation | 97.44% across all 234 mutants in three complete modules; mapped key identity and order, builder ownership, sparse refusal, alternate keys, included properties and skipped-index diagnostics; 100% line/function coverage and 98.97% branches; the new validator kills all 63 mutants |
 | Query-plan mutation | 100% across all 26 mutants in the complete unchanged module; versioned shape, legacy defaults, zero paging, tracking and scope flags, grouping and ordered join identity; 100% line, branch and function coverage |
-| Canonical live providers | Postgres: 38 suites / 180 tests; MySQL: 27 suites / 141 tests; both runtimes pass for the current migration-order qualification |
+| Required-key mutation | 96.67% across 120 eligible mutants in two complete DDL modules and the SQLite history-table creation method; 116 killed, two survivors and two uncovered defaults; no errors or timeouts |
+| Canonical live providers | Postgres: 39 suites / 188 tests; MySQL: 28 suites / 149 tests; both runtimes pass for the current required-key qualification |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all twenty-two mutation campaigns, both provider lanes on both runtimes, and
+coverage, all twenty-four mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.

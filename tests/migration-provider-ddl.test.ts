@@ -102,7 +102,7 @@ describe('SQLite migration DDL', () => {
         }]);
 
         expect(builder.statements.map(statement => statement.text)).toEqual([
-            'create table if not exists "widget" ("id" integer primary key autoincrement)',
+            'create table if not exists "widget" ("id" integer not null primary key autoincrement)',
         ]);
     });
 
@@ -167,7 +167,7 @@ describe('SQLite migration DDL', () => {
 
         expect(builder.statements.map(statement => statement.text)).toEqual([
             'pragma defer_foreign_keys = on',
-            'create table "__entitykit_new_widget" ("id" text primary key, "size" integer not null, constraint "ck_widget_size" check (size >= 0))',
+            'create table "__entitykit_new_widget" ("id" text not null primary key, "size" integer not null, constraint "ck_widget_size" check (size >= 0))',
             'insert into "__entitykit_new_widget" ("id", "size") select "id", "size" from "widget"',
             'drop table if exists "widget"',
             'alter table "__entitykit_new_widget" rename to "widget"',
