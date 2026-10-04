@@ -42,7 +42,7 @@ provider-validation, SQLite DDL, and migration checksum campaigns with the same 
 resource allocation, or `npm run test:mutation:sqlite-ddl` for schema extraction
 across SQL quoting, comments, column facets, checks, and index predicates. Run
 `npm run test:mutation:checksum` for stable migration identity across SQL binding
-types, structured values, and unsupported or cyclic input.
+types, structured values, unsupported or cyclic input, and static format constants.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 
