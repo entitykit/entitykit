@@ -1,6 +1,7 @@
 import './context-creation-types.js';
 import './factory-creation-types.js';
 import './creation-types.js';
+import './mixed-index-types.js';
 // Type-level acceptance for a CommonJS consumer resolving the published
 // tarballs under `module: Node16`. Every scoped entry point the release
 // promises is imported here, so a missing `exports` condition or a `.d.ts`

@@ -8,6 +8,7 @@ import type {
     ComplexPropertyOptions,
 } from './complex-property-builder-types';
 import type { IndexBuilder, AlternateKeyBuilder } from './index-builder-types';
+import type { IndexKeyPart } from './index-metadata';
 import type {
     PropertyListSelector,
     PropertyPathSelector,
@@ -54,9 +55,9 @@ export interface EntityBuilder<TEntity extends object> {
         propertyOrSelector:
         EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>,
     ): AlternateKeyBuilder;
-    /** Configure an index over one or more mapped properties. */ hasIndex(
+    /** Configure an index over properties or ordered property and expression keys. */ hasIndex(
         propertyOrSelector:
-        EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>,
+        EntityPropertyKey<TEntity> | PropertyListSelector<TEntity> | ReadonlyArray<IndexKeyPart<TEntity>>,
     ): IndexBuilder<TEntity>;
     /** Configure an index over provider-specific SQL expressions. */ hasExpressionIndex(
         expressionOrExpressions: string | readonly string[],

@@ -158,8 +158,23 @@ mappings and two legacy string-array boundary mutants remain eligible.
 The scale decoding matches [PostgreSQL's numeric implementation](https://github.com/postgres/postgres/blob/REL_18_STABLE/src/backend/utils/adt/numeric.c)
 and the native PostgreSQL 18.4 catalog representation.
 
+Schema pull now preserves the kinds and order of mixed column/expression index
+keys. Previously, mapped columns became raw expressions and generated DDL failed
+on SQLite, Postgres and MySQL. The public `hasIndex` builder accepts typed ordered
+property/expression descriptors, copies caller records, validates every term
+before registration and refuses sparse arrays. Existing property, selector and
+expression calls keep their contracts. Sixty-three new unit cases and four native
+cases per provider cover both key orders, escaped identifiers, regenerated
+metadata and actual uniqueness enforcement on both runtimes.
+The two original complete modules scored 48.97% on 145 baseline mutants; their
+repaired 171-mutant scope scores 96.49%. The new descriptor module kills all 63
+mutants. The expanded three-module campaign scores 97.44% on all 234 mutants:
+228 killed, four survivors and two uncovered defensive defaults, with no errors
+or timeouts. All 220 lines and ten functions are covered, with 98.97% branches;
+the remaining branch is unreachable column handling in the expression-only path.
+
 The preceding signed complete coverage checkpoint is
-`e02db1e98ea09f370b1506d22a249069e98fe358`. The preceding JSON candidate passed
+`cfc261d284a7520331faaa6ad818430a5e277070`. The preceding Postgres metadata candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -182,10 +197,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 541 suites / 3,971 tests on both runtimes for the current Postgres metadata qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 545 suites / 4,034 tests on both runtimes for the current mixed-index qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 768 executable source files; 95.65% statements/lines, 92.34% branches, 95.10% functions at the clean preceding checkpoint; all existing floors pass |
+| Runtime coverage | 768 executable source files; 95.66% statements/lines, 92.43% branches, 95.10% functions at the clean preceding checkpoint; all existing floors pass |
 | Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,305 killed, 34 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -206,12 +221,13 @@ pass on the exact reconciled release SHA before publication.
 | Operation-signal mutation | 100% across all 25 mutants in the full wrapper; capabilities, receiver binding, options, composed cancellation, transaction state and disposal; 100% line, branch and function coverage |
 | JSON validation mutation | 97.46% across all 276 mutants in four complete modules; exact paths, descriptor safety, thenables, promise ownership and retry; 100% line/function coverage and 99.20% branches; no uncovered mutants or runner errors |
 | Postgres metadata mutation | 98.14% across all 215 mutants in two complete modules; numeric precision and signed scale, arrays, booleans, index and sequence facets; 100% line, branch and function coverage; index/sequence facets kill all 96 mutants |
-| Canonical live providers | Postgres: 35 suites / 168 tests; MySQL: 24 suites / 129 tests; both runtimes pass for the current Postgres metadata qualification |
+| Mixed-index mutation | 97.44% across all 234 mutants in three complete modules; mapped key identity and order, builder ownership, sparse refusal, alternate keys, included properties and skipped-index diagnostics; 100% line/function coverage and 98.97% branches; the new validator kills all 63 mutants |
+| Canonical live providers | Postgres: 36 suites / 172 tests; MySQL: 25 suites / 133 tests; both runtimes pass for the current mixed-index qualification |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all twenty mutation campaigns, both provider lanes on both runtimes, and
+coverage, all twenty-one mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.

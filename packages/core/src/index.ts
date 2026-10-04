@@ -19,6 +19,7 @@ export type {
     ComplexPropertyOptions,
 } from './model/complex-property-builder-types';
 export type { AlternateKeyBuilder, IndexBuilder } from './model/index-builder-types';
+export type { IndexKeyPart } from './model/index-metadata';
 export type { SequenceDataType } from './model/sequence-metadata';
 export type { SequenceBuilder } from './model/sequence-builder-types';
 export {

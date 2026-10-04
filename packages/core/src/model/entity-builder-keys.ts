@@ -1,7 +1,8 @@
 import type { EntityConstructor, EntityPropertyKey } from '../types';
 import { IndexBuilderImplementation } from './index-builder';
 import type { IndexBuilder } from './index-builder-types';
-import type { MutableIndexMetadata, IndexMetadata } from './index-metadata';
+import type { MutableIndexMetadata, IndexMetadata, IndexKeyPart } from './index-metadata';
+import { indexFromKeyParts } from './index-key-parts';
 import { finalizeIndexes } from './index-metadata-finalizer';
 import type { PropertyListSelector } from './model-property-selector';
 import { selectPropertyNames } from './model-property-selector';
@@ -52,7 +53,12 @@ export class EntityBuilderKeys<TEntity extends object> {
         }
     }
 
-    public index(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>): IndexBuilder<TEntity> {
+    public index(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity> | ReadonlyArray<IndexKeyPart<TEntity>>): IndexBuilder<TEntity> {
+        if (typeof propertyOrSelector !== 'string' && typeof propertyOrSelector !== 'function') {
+            const index = indexFromKeyParts(propertyOrSelector);
+            this.indexes.push(index);
+            return new IndexBuilderImplementation(index);
+        }
         const propertyNames = typeof propertyOrSelector === 'function'
             ? selectPropertyNames(propertyOrSelector)
             : [propertyOrSelector];

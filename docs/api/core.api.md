@@ -634,7 +634,7 @@ export interface EntityBuilder<TEntity extends object> {
     hasAlternateKey(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>): AlternateKeyBuilder;
     hasCheckConstraint(name: string, sql: string): this;
     hasExpressionIndex(expressionOrExpressions: string | readonly string[]): IndexBuilder<TEntity>;
-    hasIndex(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>): IndexBuilder<TEntity>;
+    hasIndex(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity> | ReadonlyArray<IndexKeyPart<TEntity>>): IndexBuilder<TEntity>;
     hasKey(propertyOrSelector: EntityPropertyKey<TEntity> | PropertyListSelector<TEntity>): this;
     hasManyToMany<TTarget extends object, TNavigation>(targetEntity: EntityConstructor<TTarget>, navigationSelector: PropertySelector<TEntity, TNavigation>): ManyToManyRelationshipBuilder<TTarget>;
     hasNoKey(): this;
@@ -1099,8 +1099,8 @@ export interface IndexBuilder<TEntity extends object> {
     isUnique(): this;
 }
 
-// @public (undocumented)
-type IndexKeyPart<TEntity extends object = object> = {
+// @public
+export type IndexKeyPart<TEntity extends object = object> = {
     readonly kind: 'property';
     readonly propertyName: EntityPropertyKey<TEntity>;
 } | {
@@ -1118,7 +1118,6 @@ interface IndexMetadata<TEntity extends object = object> {
     readonly includedPropertyNames?: ReadonlyArray<EntityPropertyKey<TEntity>>;
     // (undocumented)
     readonly isUnique: boolean;
-    // Warning: (ae-forgotten-export) The symbol "IndexKeyPart" needs to be exported by the entry point index.d.ts
     readonly keyParts?: ReadonlyArray<IndexKeyPart<TEntity>>;
     readonly propertyNames: ReadonlyArray<EntityPropertyKey<TEntity>>;
 }

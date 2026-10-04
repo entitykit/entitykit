@@ -75,6 +75,9 @@ Run `npm run test:mutation:json-validation` for synchronous JSON normalization,
 descriptor inspection, exact diagnostic paths and rejected-promise ownership.
 Run `npm run test:mutation:postgres-schema-values` for numeric precision and signed
 scale, array aliases, catalog booleans, index keys and sequence facets.
+Run `npm run test:mutation:mixed-index` for ordered property/expression keys,
+builder validation and faithful index generation, including alternate keys,
+included properties and skipped metadata diagnostics.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 
