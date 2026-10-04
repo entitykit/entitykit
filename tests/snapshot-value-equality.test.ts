@@ -111,6 +111,28 @@ describe('snapshot value equality', () => {
         expect(snapshotValuesEqual(hiddenLeft, hiddenRight)).toBe(true);
     });
 
+    it('distinguishes map keys when values and entry counts are identical', () => {
+        const left = new Map([[{ id: 1 }, 'same']]);
+        const right = new Map([[{ id: 2 }, 'same']]);
+
+        expect(snapshotValuesEqual(left, right)).toBe(false);
+        expect(snapshotValuesEqual(right, left)).toBe(false);
+        expect(snapshotValuesEqual(
+            new Map([[1, 'a'], [2, 'b']]),
+            new Map([[2, 'b'], [1, 'a']]),
+        )).toBe(false);
+    });
+
+    it('rejects a primitive or a different native type in either comparison direction', () => {
+        const values = [new Date(0), /value/g, new Uint8Array([1]), [], new Map(), new Set()];
+        for (const value of values) {
+            expect(snapshotValuesEqual(value, null)).toBe(false);
+            expect(snapshotValuesEqual(null, value)).toBe(false);
+            expect(snapshotValuesEqual(value, {})).toBe(false);
+            expect(snapshotValuesEqual({}, value)).toBe(false);
+        }
+    });
+
     it('terminates on equivalent and different cyclic graphs', () => {
         const left: { value: number; self?: unknown } = { value: 1 };
         const same: { value: number; self?: unknown } = { value: 1 };

@@ -32,6 +32,8 @@ describe('migration transaction ownership', () => {
             runner.revert(migration)],
         ['update', async (runner: MigrationRunner, migration: Migration) =>
             runner.update([migration])],
+        ['history initialization', async (runner: MigrationRunner) =>
+            runner.getAppliedMigrations()],
     ] as const)('rejects %s inside an active user transaction', async (
         operation,
         run,
@@ -45,6 +47,10 @@ describe('migration transaction ownership', () => {
             await expect(attempt).rejects.toBeInstanceOf(MigrationError);
             await expect(attempt).rejects.toThrow(
                 `Migration ${operation} cannot run inside an active transaction`,
+            );
+            await expect(attempt).rejects.toThrow('Let the current transaction finish first');
+            await expect(attempt).rejects.toThrow(
+                'EntityKit owns migration transactions so locks and transaction-suppressed statements remain correct.',
             );
         });
 
