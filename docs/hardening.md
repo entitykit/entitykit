@@ -274,6 +274,13 @@ upgrades qualify on all three providers and both runtimes. The new required
 relationship-index campaign covers both complete finalization modules: 144
 eligible mutants, 139 killed, five survivors, no uncovered mutants or runner
 errors, and 96.53% mutation with complete line, branch and function coverage.
+SQLite schema pull discovers CHECK keywords outside quoted defaults while
+retaining original offsets for names and expressions. Fifteen generated-model
+round trips preserve both enforcement and constraint names. The complete
+four-module parser scope passes 118 tests on both runtimes and scores 90.12%
+across 496 eligible mutants; the repaired token matcher has complete line,
+branch and function coverage. The overall parser scope has 99.39% line and
+98.52% branch coverage with complete function coverage.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must

@@ -34,15 +34,25 @@ export function sqliteDdlText(sql: string): { sql: string; code: string } {
 
 export function sqliteDdlMatches(sql: string, pattern: RegExp): RegExpExecArray[] {
     const text = sqliteDdlText(sql);
+    const anchored = new RegExp(pattern.source, pattern.flags.replace(/[gy]/gu, '') + 'y');
+    const matches: RegExpExecArray[] = [];
     let cursor = 0;
     let depth = 0;
-    return Array.from(text.sql.matchAll(pattern))
-        .filter(match => {
-            while (cursor < match.index) {
-                if (text.code[cursor] === '(') depth++;
-                else if (text.code[cursor] === ')') depth--;
-                cursor++;
-            }
-            return depth === 0 && text.code[match.index] !== ' ';
-        });
+    let consumedEnd = 0;
+    // Discover starts in executable SQL, then capture names at the same original offsets.
+    for (const token of text.code.matchAll(/\b\w+/gu)) {
+        while (cursor < token.index) {
+            if (text.code[cursor] === '(') depth++;
+            else if (text.code[cursor] === ')') depth--;
+            cursor++;
+        }
+        if (depth !== 0 || token.index < consumedEnd) continue;
+        anchored.lastIndex = token.index;
+        const match = anchored.exec(text.sql);
+        if (match) {
+            matches.push(match);
+            consumedEnd = anchored.lastIndex;
+        }
+    }
+    return matches;
 }
