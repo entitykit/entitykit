@@ -37,7 +37,7 @@
     "lint": "eslint . --ignore-pattern temp/ --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --runInBand --testPathIgnorePatterns=/tests/integration/ --testPathIgnorePatterns=/node_modules/ --testPathIgnorePatterns=/.claude/",
-    "test:coverage": "jest --config jest.coverage.config.cjs && node scripts/check-runtime-coverage.js",
+    "test:coverage": "node --max-old-space-size=6144 node_modules/jest/bin/jest.js --config jest.coverage.config.cjs && node scripts/check-runtime-coverage.js",
     "test:mutation": "stryker run config/stryker/stryker.config.cjs && npm run test:mutation:migrations && npm run test:mutation:provider-validation && npm run test:mutation:sqlite-ddl && npm run test:mutation:checksum && npm run test:mutation:property-metadata && npm run test:mutation:snapshot-rename && npm run test:mutation:sqlite-rebuild && npm run test:mutation:sqlite-planning && npm run test:mutation:schema-ddl && npm run test:mutation:sqlite-joins && npm run test:mutation:primary-key-order && npm run test:mutation:migration-warnings && npm run test:mutation:primary-key-change && npm run test:mutation:postgres-generation && npm run test:mutation:store-generation && npm run test:mutation:mysql-types && npm run test:mutation:operation-signal && npm run test:mutation:json-validation && npm run test:mutation:postgres-schema-values && npm run test:mutation:mixed-index && npm run test:mutation:query-plan",
     "test:mutation:migrations": "stryker run config/stryker/stryker.migration.config.cjs",
     "test:mutation:migrations:dry": "stryker run config/stryker/stryker.migration.config.cjs --dryRunOnly",

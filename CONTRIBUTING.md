@@ -31,6 +31,8 @@ npm run test:mutation
 Coverage uses two workers that recycle between suites at 512 MiB to bound V8
 debugger state on the minimum Node runtime. The full runtime inventory and
 coverage floors remain defined in `config/coverage.json`.
+The coverage command gives Jest's coordinator a 6 GiB heap budget to combine
+the complete inventory without changing worker recycling or coverage floors.
 
 The mutation lane is intentionally focused on release-critical restoration,
 migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate
