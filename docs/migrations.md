@@ -141,6 +141,12 @@ each key column a unique position from zero. Specify it on every key column or
 omit it everywhere to retain legacy column order. Rebuild definitions may retain
 a named primary key through `primaryKeyName`.
 
+Reordering the same primary-key columns on an existing table requires reviewed
+provider SQL. Snapshot diffing and scaffolding refuse that change with a
+`MigrationError` containing the table and both physical column orders. An empty
+scaffold does not bypass the refusal. Review the key constraint and every
+dependent foreign key when writing the forward and rollback SQL.
+
 Generated migrations retain a frozen `destructiveWarnings` list from the
 reviewed operations. Database updates use that list so explicit renames remain
 safe and table, column, and join removals require `allowDataLoss` or the CLI's

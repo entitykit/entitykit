@@ -38,6 +38,14 @@ the configured physical column layout. This repairs MySQL's refusal to create
 composite join references when key order differs from property declaration order.
 Legacy aligned keys retain their original SQL and omit unnecessary ordinals.
 
+Reordering the same key columns on an existing table is now refused before
+scaffolding or SQL. The typed diagnostic records both physical column orders
+and requires reviewed provider SQL. Populated principal rows, references and
+history remain unchanged across all providers. Physical renames, property
+refactors and existing SQLite key membership changes retain their behavior.
+The full new 30-mutant refusal campaign improves from 66.67% to 93.33%, with
+100% line and branch coverage. Two redundant mutants remain eligible.
+
 The new complete four-module join campaign scores 90.51% across 137 mutants;
 12 surviving mutants and one untested defensive refusal remain eligible.
 The same four-module scope initially scored 86.13%. Before rollback ordering
@@ -72,7 +80,7 @@ remain unchanged. This follows
 The property-rename repair separately qualifies metadata references,
 dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
 Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
-mutants in the denominator. All thirteen campaigns use the existing thresholds;
+mutants in the denominator. All fourteen campaigns use the existing thresholds;
 the original three scopes are unchanged.
 
 ## Qualification
@@ -96,7 +104,7 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 524 suites / 3,585 tests on both runtimes for the preceding warning repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 525 suites / 3,608 tests on both runtimes for the current key-change refusal; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
 | Runtime coverage | 767 executable source files; 95.48% statements/lines, 91.78% branches, 94.95% functions at the clean preceding checkpoint; all existing floors pass |
@@ -113,12 +121,13 @@ pass on the exact reconciled release SHA before publication.
 | Join planning mutation | 90.51% across all 137 mutants in four complete modules; actual compiled source, retained associations, explicit replacement, principal key/table renames and rollback; all mutants eligible |
 | Primary-key order mutation | 98.88% across all 89 mutants; declared tuple order, compatibility metadata and invalid ordinals; 100% branch coverage |
 | Migration warning mutation | 100% across all 27 mutants; reviewed lists, malformed metadata, safe rename intent and legacy snapshot fallback; 100% branch coverage |
-| Canonical live providers | Postgres: 28 suites / 140 tests; MySQL: 19 suites / 105 tests; both runtimes pass for the preceding warning repair |
+| Existing key-change mutation | 93.33% across all 30 mutants; typed order refusal, legacy snapshots, physical identity and populated SQLite key transitions; 100% branch coverage |
+| Canonical live providers | Postgres: 29 suites / 143 tests; MySQL: 20 suites / 108 tests; both runtimes pass for the current key-change refusal |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all thirteen mutation campaigns, both provider lanes on both runtimes, and
+coverage, all fourteen mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
