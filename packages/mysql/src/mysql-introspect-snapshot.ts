@@ -48,7 +48,7 @@ export function buildSnapshot(
         table.columns.push({
             name: column.column_name,
             ordinal: Number(column.ordinal_position),
-            storeType: column.column_type.toLowerCase(),
+            storeType: column.column_type,
             isNullable: column.is_nullable === 'YES',
             defaultSql: normalizeDefault(column.column_default, column.column_type, column.extra),
             isStoreGenerated: autoIncrement,
