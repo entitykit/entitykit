@@ -87,4 +87,18 @@ describe('checked-out Postgres client error ownership', () => {
             expect(raw.listenerCount('error')).toBe(0);
         }
     });
+
+    it.each(['on', 'removeListener'])('does not borrow a partial event API exposing only %s', async capability => {
+        const event = jest.fn();
+        const raw = {
+            query: jest.fn(async () => await Promise.resolve({ rows: [], rowCount: 0 })),
+            release: jest.fn(),
+            ...capability === 'on' ? { on: event } : { removeListener: event },
+        };
+        const lease = retainPostgresClient(raw as PoolClient);
+        await expect(lease.query('select 1')).resolves.toHaveProperty('rowCount', 0);
+        lease.release();
+        expect(raw.release).toHaveBeenCalledTimes(1);
+        expect(event).not.toHaveBeenCalled();
+    });
 });

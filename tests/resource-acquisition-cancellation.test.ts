@@ -102,6 +102,27 @@ describe('resource acquisition cancellation', () => {
         expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
     });
 
+    it.each(['synchronous', 'asynchronous'])('wraps a non-Error %s acquisition failure', async kind => {
+        const controller = new AbortController();
+        const reason = { poolState: 'closed' };
+        const release = jest.fn();
+        // Third-party acquisition callbacks can throw or reject arbitrary values.
+        const acquire = kind === 'synchronous'
+            ? (): never => {
+                // eslint-disable-next-line @typescript-eslint/only-throw-error
+                throw reason;
+            }
+            : async (): Promise<never> => {
+                // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                return Promise.reject(reason);
+            };
+        await expect(acquireWithOperationCancellation(acquire, release, controller.signal)).rejects.toMatchObject({
+            message: 'Resource acquisition failed.', cause: reason,
+        });
+        controller.abort('after failure');
+        expect(release).not.toHaveBeenCalled();
+    });
+
     it('reports rejected late cleanup without exposing its error or abandoning a promise', async () => {
         const warning = jest.spyOn(process, 'emitWarning').mockImplementation(() => undefined);
         const controller = new AbortController();
