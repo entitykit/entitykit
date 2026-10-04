@@ -26,7 +26,8 @@ export function rebuildCopyColumns(
                 ? rename.column.oldName
                 : rename.column.name
             : undefined;
-        const source = previous.get(property.propertyName) ??
+        const source = previousByColumn.get(property.columnName) ??
+            previous.get(property.propertyName) ??
             (otherColumn ? previousByColumn.get(otherColumn) : undefined);
         return !source || property.computedSql !== undefined
             ? []

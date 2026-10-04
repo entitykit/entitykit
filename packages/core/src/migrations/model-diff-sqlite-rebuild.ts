@@ -33,7 +33,12 @@ export function addSqliteRebuildOperations(
     const rebuilds: RebuildTableOperation[] = [];
     for (const [key, entity] of current) {
         const old = previous.get(key);
-        if (!old || old.isView || entity.isView || !needsRebuild(operations, key)) {
+        if (!old || old.isView || entity.isView) {
+            continue;
+        }
+        const previousShape = tableShape(old, previousByName);
+        const currentShape = tableShape(entity, currentByName);
+        if (!needsRebuild(operations, key) && foreignKeySignature(previousShape) === foreignKeySignature(currentShape)) {
             continue;
         }
         rebuilds.push({
@@ -42,8 +47,8 @@ export function addSqliteRebuildOperations(
             tableName: entity.tableName,
             schemaName: entity.schemaName,
             definition: {
-                previous: tableShape(old, previousByName),
-                current: tableShape(entity, currentByName),
+                previous: previousShape,
+                current: currentShape,
                 copyColumns: rebuildCopyColumns(old, entity, operations, key),
                 reverseCopyColumns: rebuildCopyColumns(entity, old, operations, key),
             },
@@ -90,6 +95,10 @@ function needsRebuild(
                     operation.column.collation !== undefined ||
                     operation.column.storeGeneration !== undefined ||
                     operation.column.primaryKey)));
+}
+
+function foreignKeySignature(table: MigrationTableShape): string {
+    return JSON.stringify(table.foreignKeys.map(key => JSON.stringify(key)).sort());
 }
 
 function tableShape(

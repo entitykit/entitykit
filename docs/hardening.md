@@ -12,11 +12,23 @@ Pagerbase itself has not been modified.
 
 ## Open migration qualification
 
-Principal-only SQLite key renames remain a release blocker. When a referenced
-principal column changes but the dependent's mapped property stays the same,
-the planner rebuilds the principal and leaves the existing foreign key pointing
-to the old column. The execution check refuses and rolls back the migration;
-the planner still needs to rebuild that dependent table.
+Principal-only SQLite key renames now rebuild dependents whose physical
+foreign-key definitions change. Populated primary, alternate and composite
+keys preserve their rows and enforcement through application and rollback.
+Copy planning also uses physical column identity before mapped property names;
+property refactors and name swaps preserve the original values during rebuilds.
+Unrelated principal changes, relationship declaration order and view mappings
+do not trigger dependent rebuilds.
+
+The independent three-module planning campaign improves from 59.79% across
+194 mutants to 93.85% across 195 mutants after the copy repair adds one mutant.
+All mutants remain eligible, with no untested mutants or runner errors.
+Its 32 added regressions cover real schema application and rollback, generated
+source ordering, keys, checks, indexes, defaults and generated columns.
+The complete planning modules reach 100% line and branch coverage.
+
+Initial SQLite migrations for a model explicitly mapped to `main` still emit
+unsupported `create schema` SQL. This remains an open release blocker.
 
 The cross-table execution repair preserves rows through restrictive, cascading
 and `SET NULL` relationships, including explicit `main` schema names. It
@@ -31,18 +43,18 @@ remain unchanged. This follows
 The property-rename repair separately qualifies metadata references,
 dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
 Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
-mutants in the denominator. All eight campaigns use the existing thresholds;
+mutants in the denominator. All nine campaigns use the existing thresholds;
 the original three scopes are unchanged.
 
 ## Qualification
 
-The current coverage and Node 24 canonical checkpoint is
-`823c214e1fc4e0b9c0f852b21f6bde6d2051eaa8`. Node 22 canonical verification
-also passes at the SQLite SDK checkpoint `6ffcae84093c93ed3d7e874748ca084e11b595a7`;
-the subsequent changes add tests, fixtures and mutation campaigns.
-The earlier shared-core and live-provider checkpoint is
-`49e2a5d402e51d28838db90254a7403bd588bd9c`. SDK changes since it are confined
-to SQLite schema extraction and are qualified through real SQLite round trips.
+The latest signed complete coverage checkpoint is
+`57c22d71d74fdf15db93459700a62c39cd7a41ce`. Its working candidate passed
+both canonical runtime gates, both live provider suites and the historical
+upgrade campaign; retained source attestations match the committed inputs.
+Coverage was then rerun on that clean signed revision. The current planning
+repair has additional focused regressions and its own full mutation scope;
+its subsequent qualification is recorded separately in the slice receipts.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
@@ -50,26 +62,29 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 510 suites / 3,402 tests in the latest Node 24 gate and Node 22 coverage run; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 514 suites / 3,437 tests on both runtimes at the preceding execution checkpoint; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 759 executable source files; 95.38% statements/lines, 91.41% branches, 94.84% functions; all existing floors pass |
+| Runtime coverage | 760 executable source files; 95.42% statements/lines, 91.63% branches, 94.91% functions at the clean preceding execution checkpoint; all existing floors pass |
 | Critical mutation | 95.76% across the original 57-file / 1,401-mutant scope; 95.72% when holding the original scored denominator constant; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
 | SQLite DDL mutation | 90.57% in a separate four-file / 488-mutant campaign covering schema extraction across quoting, comments and expression boundaries |
 | Checksum mutation | 100% across all 120 serializer mutants, including static format constants; 14 fixed digests match the published alpha.1 package |
 | Property metadata mutation | 100% across all 104 finalizer mutants; public builder refusals and valid sparse metadata defaults; no untested mutants, errors or timeouts |
-| Canonical live providers | Postgres: 25 suites / 129 tests; MySQL: 16 suites / 94 tests; both Node runtimes pass |
+| Snapshot rename mutation | 95.83% across all 72 mutants; metadata references, public migration SQL, real dependent renames and rollback |
+| SQLite execution mutation | 100% across all 151 mutants; owned transaction, referential checks, cancellation and setting restoration; 100% branch coverage |
+| SQLite planning mutation | 93.85% across all 195 mutants in three complete modules; 100% line and branch coverage; physical copy identity, dependent rebuilds and operation grouping |
+| Canonical live providers | Postgres: 26 suites / 130 tests; MySQL: 17 suites / 95 tests; both runtimes pass at the preceding execution checkpoint and have passed the principal-only planning qualification |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all eight mutation campaigns, both provider lanes on both runtimes, and
+coverage, all nine mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The current complete coverage run took 139 seconds; its inventory rules and floors
+The current complete coverage run took 142 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity
@@ -112,9 +127,11 @@ source. These additions leave the original three mutation scopes unchanged.
 The earlier deadlock, lost-acknowledgment and abrupt-server-restart campaigns
 remain attributed to `eea6ccbc66f4d53b6bd044822c247b31b9877427`; those failure
 and recovery implementations are unchanged by the later repairs. The native
-provider suites, provider Bookshop/performance checks and Postgres browser flows
-remain attributed to the shared-core checkpoint above. The current Node 24 gate
-reruns the canonical SQLite, package and example checks on a clean signed tree.
+provider suites and historical upgrades have been rerun at the preceding
+execution checkpoint. Provider Bookshop/performance checks and Postgres browser
+flows remain attributed to `49e2a5d402e51d28838db90254a7403bd588bd9c`.
+The latest canonical gates rerun SQLite, package and example checks, with their
+working-candidate inputs attested to the signed execution checkpoint.
 
 ## Contracts qualified by the example and provider campaigns
 
