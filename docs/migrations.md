@@ -129,6 +129,18 @@ Both options are repeatable. Table hints accept `old_table=new_table` or
 `schema.table.old_column=new_column`. Review the generated operation—rename
 hints are explicit intent, not a fuzzy matching system.
 
+SQLite principal-key renames preserve retained many-to-many associations,
+including composite keys and named join constraints. The generated migration
+rebuilds the affected join tables and restores their original references on
+rollback. An explicit join replacement still discards that join's associations;
+review the destructive warnings before approving it.
+
+Composite migration keys follow the order in `hasKey`, independently of property
+declaration order. For a hand-written `createTable`, `primaryKeyOrdinal` may give
+each key column a unique position from zero. Specify it on every key column or
+omit it everywhere to retain legacy column order. Rebuild definitions may retain
+a named primary key through `primaryKeyName`.
+
 ### Inspect and remove local artifacts
 
 ```sh

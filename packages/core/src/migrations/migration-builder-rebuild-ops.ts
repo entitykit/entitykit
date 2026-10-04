@@ -22,6 +22,7 @@ export function rebuildTable(
     const temporaryName = boundedIdentifier(`__entitykit_new_${target.tableName}`);
     core.emitDdl('pragma defer_foreign_keys = on');
     createTable(core, temporaryName, target.columns, target.schemaName, {
+        primaryKeyName: target.primaryKeyName,
         foreignKeys: target.foreignKeys,
         checkConstraints: target.checkConstraints,
     }, false);

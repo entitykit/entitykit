@@ -496,6 +496,7 @@ export interface MigrationColumnDefinition {
     readonly name: string;
     readonly nullable?: boolean;
     readonly primaryKey?: boolean;
+    readonly primaryKeyOrdinal?: number;
     readonly storeGeneration?: StoreGenerationStrategy;
     readonly type: string;
 }
@@ -797,6 +798,7 @@ export interface MigrationTableShape {
     readonly columns: readonly MigrationColumnDefinition[];
     readonly foreignKeys: readonly MigrationTableForeignKey[];
     readonly indexes: readonly MigrationIndexDefinition[];
+    readonly primaryKeyName?: string;
     readonly schemaName?: string;
     readonly tableName: string;
 }

@@ -43,7 +43,7 @@ export function diffManyToManyJoinTables(
     return operations;
 }
 
-function collectJoinTables(
+export function collectJoinTables(
     snapshot: ModelSnapshot,
     entitiesByName: ReadonlyMap<string, EntitySnapshot>,
 ): Map<string, CreateJoinTableOperation> {
@@ -63,7 +63,7 @@ function joinTableKey(operation: Pick<CreateJoinTableOperation, 'schemaName' | '
     return `${operation.schemaName ?? ''}.${operation.tableName}`;
 }
 
-function joinTableSignature(operation: CreateJoinTableOperation): string {
+export function joinTableSignature(operation: CreateJoinTableOperation): string {
     const columns = joinTableColumnSets(operation);
     return JSON.stringify({
         columns: operation.columns,

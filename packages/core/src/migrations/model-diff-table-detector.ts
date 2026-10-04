@@ -3,6 +3,7 @@ import type {
 } from '../model/model-snapshot-types';
 import type { CreateTableOperation, DropTableOperation } from './model-diff-operations';
 import { toColumnDefinition } from './model-diff-helpers';
+import { withSnapshotPrimaryKeyOrder } from './migration-primary-key-order';
 
 /**
  * Whole-table create and drop operation construction.
@@ -17,7 +18,7 @@ export function createTableOperation(entity: EntitySnapshot): CreateTableOperati
         entityName: entity.entityName,
         tableName: entity.tableName,
         schemaName: entity.schemaName,
-        columns: entity.properties.map(toColumnDefinition),
+        columns: withSnapshotPrimaryKeyOrder(entity, entity.properties.map(toColumnDefinition)),
         checkConstraints: entity.checkConstraints?.map(check => ({ ...check })),
     };
 }
@@ -28,7 +29,7 @@ export function dropTableOperation(entity: EntitySnapshot): DropTableOperation {
         entityName: entity.entityName,
         tableName: entity.tableName,
         schemaName: entity.schemaName,
-        columns: entity.properties.map(toColumnDefinition),
+        columns: withSnapshotPrimaryKeyOrder(entity, entity.properties.map(toColumnDefinition)),
         checkConstraints: entity.checkConstraints?.map(check => ({ ...check })),
     };
 }

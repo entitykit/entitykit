@@ -2,6 +2,7 @@ import type { MigrationBuilderCore } from './migration-builder-core';
 import { collectTableColumns, type MigrationTableCallback } from './migration-table-builder';
 import { renderColumn } from './migration-builder-column-render';
 import { ddlTableReference } from '../sql/ddl-table-reference';
+import { orderedPrimaryKeyColumns } from './migration-primary-key-order';
 import type {
     MigrationColumnDefinition,
     MigrationCreateTableOptions,
@@ -45,7 +46,7 @@ export function createTable(
     // A key spanning several columns needs a table-level constraint; rendering
     // `primary key` inline on each column would be invalid SQL. Dropping the
     // flag leaves `not null`, which is what a key column needs anyway.
-    const primaryKeyColumns = definitions.filter(column => column.primaryKey);
+    const primaryKeyColumns = orderedPrimaryKeyColumns(definitions);
     if (options.primaryKeyName !== undefined && !options.primaryKeyName.trim()) {
         throw new Error('createTable primaryKeyName requires a non-empty name.');
     }

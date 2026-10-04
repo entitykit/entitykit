@@ -5,6 +5,7 @@ import { createForeignKeyOperation, diffForeignKeys, dropForeignKeyOperation } f
 import { entityKey } from './model-diff-helpers';
 import { createIndexOperation, diffIndexes, dropIndexOperation } from './model-diff-index-detector';
 import { diffManyToManyJoinTables } from './model-diff-join-table-detector';
+import { prepareJoinTableRollback } from './model-diff-join-table-rollback';
 import { SnapshotDiffMigration } from './model-diff-migrations';
 import type { ModelDiffOperation } from './model-diff-operations';
 import { applyRenameHints, type ModelDiffRenameHints } from './model-diff-rename-hints';
@@ -12,6 +13,7 @@ import { createTableOperation, dropTableOperation } from './model-diff-table-det
 import { diffCheckConstraints } from './model-diff-check-detector';
 import { diffSequences } from './model-diff-sequence-detector';
 import { addSqliteRebuildOperations } from './model-diff-sqlite-rebuild';
+import { addSqliteJoinRebuildOperations } from './model-diff-sqlite-join-rebuild';
 
 export type { ModelDiffOperation } from './model-diff-operations';
 export type { ModelDiffRenameHints } from './model-diff-rename-hints';
@@ -20,7 +22,6 @@ export {
     isDestructiveModelDiffOperation,
 } from './model-diff-operation-description';
 export { ModelDiffMigration, migrationFromOperations } from './model-diff-migrations';
-
 /** Public contract for model diff. */ export interface ModelDiff {
     /** The operations. */ readonly operations: readonly ModelDiffOperation[];
     /** Whether changes. */ readonly hasChanges: boolean;
@@ -33,10 +34,10 @@ export { ModelDiffMigration, migrationFromOperations } from './model-diff-migrat
 
 /** Perform the diff model snapshots operation. */ export function diffModelSnapshots(from: ModelSnapshot, to: ModelSnapshot, options: ModelDiffOptions = {}): ModelDiff {
     const prepared = applyRenameHints(from, to, options.renameHints);
-    const operations = [
+    const operations = prepareJoinTableRollback([
         ...prepared.renameOperations,
         ...buildDiffOperations(prepared.snapshot, to),
-    ];
+    ], from);
     return {
         operations,
         hasChanges: operations.length > 0,
@@ -44,7 +45,7 @@ export { ModelDiffMigration, migrationFromOperations } from './model-diff-migrat
             return new SnapshotDiffMigration(
                 id,
                 name,
-                addSqliteRebuildOperations(operations, from, to),
+                addSqliteJoinRebuildOperations(addSqliteRebuildOperations(operations, from, to), from, to),
             );
         },
     };

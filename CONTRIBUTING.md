@@ -37,7 +37,7 @@ migration, CLI, provider-value, cancellation and resource-lifetime seams. Run th
 locally when changing the behavior it protects.
 `test:mutation` includes separate history-initialization/migration-lock,
 provider-validation, SQLite DDL, migration checksum, property metadata, snapshot rename,
-SQLite rebuild, SQLite rebuild planning, and schema DDL
+SQLite rebuild, SQLite rebuild planning, schema DDL, join-table planning, and primary-key order
 campaigns with the same score thresholds. Run
 `npm run test:mutation:migrations` for the focused ownership check or
 `npm run test:mutation:provider-validation` for configuration validation before
@@ -55,6 +55,10 @@ Run `npm run test:mutation:sqlite-planning` for dependent rebuild detection,
 physical column copying, and grouping of constraints and indexes during schema changes.
 Run `npm run test:mutation:schema-ddl` for schema namespaces, provider rendering
 callbacks, and SQLite's implicit `main` schema.
+Run `npm run test:mutation:sqlite-joins` for retained associations, explicit join
+replacement, principal renames, and restoration of original references.
+Run `npm run test:mutation:primary-key-order` for declared tuple order,
+legacy metadata, and invalid primary-key ordinals.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 

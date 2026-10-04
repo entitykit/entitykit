@@ -7,6 +7,7 @@ import { createForeignKeyOperation } from './model-diff-foreign-key-detector';
 import { operationKey } from './model-diff-operation-key';
 import { entityKey, toColumnDefinition } from './model-diff-helpers';
 import { createIndexOperation } from './model-diff-index-detector';
+import { withSnapshotPrimaryKeyOrder } from './migration-primary-key-order';
 import {
     indexDefinition,
     tableForeignKeyDefinition,
@@ -108,7 +109,7 @@ function tableShape(
     return {
         tableName: entity.tableName,
         schemaName: entity.schemaName,
-        columns: entity.properties.map(toColumnDefinition),
+        columns: withSnapshotPrimaryKeyOrder(entity, entity.properties.map(toColumnDefinition)),
         foreignKeys: entity.relationships.map(relationship =>
             tableForeignKeyDefinition(
                 createForeignKeyOperation(entity, relationship, entitiesByName),

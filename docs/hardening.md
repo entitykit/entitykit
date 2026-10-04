@@ -21,11 +21,31 @@ Unrelated principal changes, relationship declaration order and view mappings
 do not trigger dependent rebuilds.
 
 The independent three-module planning campaign improves from 59.79% across
-194 mutants to 93.85% across 195 mutants after the copy repair adds one mutant.
+194 mutants to 94.36% across 195 mutants after the copy repair adds one mutant.
 All mutants remain eligible, with no untested mutants or runner errors.
 Its 32 added regressions cover real schema application and rollback, generated
 source ordering, keys, checks, indexes, defaults and generated columns.
 The complete planning modules reach 100% line and branch coverage.
+
+Many-to-many principal key renames now rebuild retained SQLite join tables
+without discarding associations or named primary keys. Generated TypeScript
+qualifies the same application and rollback paths. Explicit join replacements
+run before principal renames and retain original foreign-key definitions for
+rollback; independently retained associations preserve their rows.
+
+Migration primary keys now follow their declared tuple order while retaining
+the configured physical column layout. This repairs MySQL's refusal to create
+composite join references when key order differs from property declaration order.
+Legacy aligned keys retain their original SQL and omit unnecessary ordinals.
+
+The new complete four-module join campaign scores 90.51% across 137 mutants;
+12 surviving mutants and one untested defensive refusal remain eligible.
+The same four-module scope initially scored 86.13%. Before rollback ordering
+was added, its three-module subset improved from 48.98% to 88.78% across
+98 mutants; those are separate denominators. The new complete key-order scope
+improves from 51.69% to 98.88% across the same 89 mutants, with one equivalent
+survivor. Together these five modules reach 100% line and function coverage
+and 98.83% branch coverage. No existing score threshold or scope is reduced.
 
 SQLite models explicitly mapped to `main` or `MAIN` now create and migrate
 without schema-creation SQL or invalid qualified foreign-key and index targets.
@@ -52,18 +72,18 @@ remain unchanged. This follows
 The property-rename repair separately qualifies metadata references,
 dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
 Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
-mutants in the denominator. All ten campaigns use the existing thresholds;
+mutants in the denominator. All twelve campaigns use the existing thresholds;
 the original three scopes are unchanged.
 
 ## Qualification
 
-The latest signed complete coverage checkpoint is
-`84b9a0f2d1e9889445b69ec72a93f4e45c67a800`. Its working candidate passed
+The preceding signed complete coverage checkpoint is
+`ab505344b9bd566087c514c52224d94c9c90cd6b`. The preceding schema candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
-Coverage was then rerun on that clean signed revision. The current schema
-repair has additional focused regressions and its own full mutation scope;
-its subsequent qualification is recorded separately in the slice receipts.
+The sandbox fixture resolves its temporary path before exact shell-path
+assertions; coverage then passed on the clean signed revision with the same SDK.
+Current key-migration qualification is recorded separately in the slice receipts.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
@@ -71,10 +91,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 519 suites / 3,491 tests on both runtimes for the current schema repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 523 suites / 3,553 tests on both runtimes for the current key-migration repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 760 executable source files; 95.44% statements/lines, 91.69% branches, 94.91% functions at the clean preceding planning checkpoint; all existing floors pass |
+| Runtime coverage | 762 executable source files; 95.44% statements/lines, 91.72% branches, 94.94% functions at the clean preceding checkpoint; all existing floors pass |
 | Critical mutation | 95.76% across the original 57-file / 1,401-mutant scope; 95.72% when holding the original scored denominator constant; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -83,18 +103,20 @@ pass on the exact reconciled release SHA before publication.
 | Property metadata mutation | 100% across all 104 finalizer mutants; public builder refusals and valid sparse metadata defaults; no untested mutants, errors or timeouts |
 | Snapshot rename mutation | 95.83% across all 72 mutants; metadata references, public migration SQL, real dependent renames and rollback |
 | SQLite execution mutation | 100% across all 151 mutants; owned transaction, referential checks, cancellation and setting restoration; 100% branch coverage |
-| SQLite planning mutation | 93.85% across all 195 mutants in three complete modules; 100% line and branch coverage; physical copy identity, dependent rebuilds and operation grouping |
+| SQLite planning mutation | 94.36% across all 195 mutants in three complete modules; 100% line and branch coverage; physical copy identity, dependent rebuilds and operation grouping |
 | Schema DDL mutation | 100% across all 38 mutants in three complete modules; namespace ownership, implicit SQLite schemas and provider callback rendering; 100% line and branch coverage |
-| Canonical live providers | Postgres: 26 suites / 130 tests; MySQL: 17 suites / 95 tests; both runtimes pass for the current schema repair |
+| Join planning mutation | 90.51% across all 137 mutants in four complete modules; actual compiled source, retained associations, explicit replacement, principal key/table renames and rollback; all mutants eligible |
+| Primary-key order mutation | 98.88% across all 89 mutants; declared tuple order, compatibility metadata and invalid ordinals; 100% branch coverage |
+| Canonical live providers | Postgres: 27 suites / 137 tests; MySQL: 18 suites / 102 tests; both runtimes pass for the current key-migration repair |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all ten mutation campaigns, both provider lanes on both runtimes, and
+coverage, all twelve mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The preceding clean complete coverage run took 148 seconds; its inventory rules and floors
+The preceding clean complete coverage run took 139 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity
