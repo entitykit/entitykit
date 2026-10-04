@@ -78,6 +78,8 @@ scale, array aliases, catalog booleans, index keys and sequence facets.
 Run `npm run test:mutation:mixed-index` for ordered property/expression keys,
 builder validation and faithful index generation, including alternate keys,
 included properties and skipped metadata diagnostics.
+Run `npm run test:mutation:query-plan` for the versioned query-plan contract,
+legacy defaults, zero paging, join identity, scope flags and private values.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 

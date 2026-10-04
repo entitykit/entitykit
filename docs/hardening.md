@@ -183,11 +183,18 @@ provider and runtime. All 210 lines, 39 branches and seven functions in three
 complete cache-shape modules are covered. The unchanged 103-mutant scope improves
 from 39.81% to 89.32%, with 92 killed, 11 equivalent survivors retained and no
 uncovered mutants, errors or timeouts. This advisory result remains below the
-existing 90% threshold and is excluded from the 21 required mutation campaigns;
+existing 90% threshold and is excluded from the 22 required mutation campaigns;
 SDK source, versions and required gates are unchanged.
 
+Versioned query plans now have five additional public-builder regressions for
+legacy defaults, zero paging, scope overrides, grouping, ordered join identity
+and private parameter values. The complete unchanged module improves from
+61.54% to 100% across all 26 mutants, with 100% coverage of its 56 lines,
+14 branches and one function. Strict compiled public probes describe plans
+without executing SQL on every provider and runtime; SDK sources are unchanged.
+
 The preceding signed complete coverage checkpoint is
-`0bb11233d5e10e95fbfe3941cbbb7011b5a93331`. The preceding mixed-index candidate passed
+`51a44bef416e3815e92c4ee4502ab5dba95631db`. The preceding query-cache candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -210,10 +217,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 547 suites / 4,071 tests on both runtimes for the current query-cache qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 548 suites / 4,076 tests on both runtimes for the current query-plan qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 769 executable source files; 95.68% statements/lines, 92.49% branches, 95.16% functions at the clean preceding checkpoint; all existing floors pass |
+| Runtime coverage | 769 executable source files; 95.77% statements/lines, 92.62% branches, 95.34% functions at the clean preceding checkpoint; all existing floors pass |
 | Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,305 killed, 34 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -235,12 +242,13 @@ pass on the exact reconciled release SHA before publication.
 | JSON validation mutation | 97.46% across all 276 mutants in four complete modules; exact paths, descriptor safety, thenables, promise ownership and retry; 100% line/function coverage and 99.20% branches; no uncovered mutants or runner errors |
 | Postgres metadata mutation | 98.14% across all 215 mutants in two complete modules; numeric precision and signed scale, arrays, booleans, index and sequence facets; 100% line, branch and function coverage; index/sequence facets kill all 96 mutants |
 | Mixed-index mutation | 97.44% across all 234 mutants in three complete modules; mapped key identity and order, builder ownership, sparse refusal, alternate keys, included properties and skipped-index diagnostics; 100% line/function coverage and 98.97% branches; the new validator kills all 63 mutants |
-| Canonical live providers | Postgres: 37 suites / 176 tests; MySQL: 26 suites / 137 tests; both runtimes pass for the current query-cache qualification |
+| Query-plan mutation | 100% across all 26 mutants in the complete unchanged module; versioned shape, legacy defaults, zero paging, tracking and scope flags, grouping and ordered join identity; 100% line, branch and function coverage |
+| Canonical live providers | Postgres: 37 suites / 176 tests; MySQL: 26 suites / 137 tests; both runtimes pass for the current query-plan qualification |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all twenty-one mutation campaigns, both provider lanes on both runtimes, and
+coverage, all twenty-two mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
