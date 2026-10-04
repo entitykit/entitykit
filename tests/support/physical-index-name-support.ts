@@ -7,6 +7,7 @@ import { RelationshipIndexContext, type RelationshipIndexMode } from './one-to-o
 const collision = 'Entity \'IndexProfile\' maps multiple indexes to database name \'ux_ek_index_profiles_user_id\'. Configure distinct index database names.';
 export function definePhysicalIndexNameTests(provider: 'sqlite' | 'postgres' | 'mysql', url: () => string): void {
     const invalid: RelationshipIndexMode[] = ['filteredUnnamed', 'propertyFirstCollision', 'expressionFirstCollision'];
+    if (provider !== 'postgres') invalid.push('propertyFirstCaseCollision', 'expressionFirstCaseCollision');
     it.each(invalid)('rejects %s before creating a fresh schema', async mode => {
         await qualify(provider, url(), mode, 'fresh');
     });
@@ -14,6 +15,7 @@ export function definePhysicalIndexNameTests(provider: 'sqlite' | 'postgres' | '
         await qualify(provider, url(), mode, 'refusedUpgrade');
     });
     const valid: RelationshipIndexMode[] = ['propertyFirst', 'expressionFirst'];
+    if (provider === 'postgres') valid.push('propertyFirstCaseCollision', 'expressionFirstCaseCollision');
     if (provider !== 'mysql') valid.push('filtered');
     it.each(valid)('retains uniqueness through adding, removing and rolling back %s', async mode => {
         await qualify(provider, url(), mode, 'migrations');
@@ -34,8 +36,18 @@ async function qualify(provider: 'sqlite' | 'postgres' | 'mysql', url: string, m
         };
         await cleanup();
         try {
+            const assertRefused = async (): Promise<void> => {
+                let unexpected: RelationshipIndexContext | undefined;
+                try {
+                    expect(() => {
+                        unexpected = source.createContext(RelationshipIndexContext, mode);
+                    }).toThrow(collision);
+                } finally {
+                    await unexpected?.dispose();
+                }
+            };
             if (operation === 'fresh') {
-                expect(() => source.createContext(RelationshipIndexContext, mode)).toThrow(collision);
+                await assertRefused();
                 const sql = provider === 'sqlite' ? 'select name from sqlite_master where type = \'table\' and name in (\'ek_index_users\', \'ek_index_profiles\')'
                     : provider === 'postgres' ? 'select tablename as name from pg_tables where schemaname = current_schema() and tablename in (\'ek_index_users\', \'ek_index_profiles\')'
                         : 'select table_name as name from information_schema.tables where table_schema = database() and table_name in (\'ek_index_users\', \'ek_index_profiles\')';
@@ -52,7 +64,7 @@ async function qualify(provider: 'sqlite' | 'postgres' | 'mysql', url: string, m
                 expect((await query('select id from ek_index_profiles order by id')).rows).toEqual([{ id: 'first' }]);
             };
             if (operation === 'refusedUpgrade') {
-                expect(() => source.createContext(RelationshipIndexContext, mode)).toThrow(collision);
+                await assertRefused();
                 await assertEnforced();
                 return;
             }
@@ -65,7 +77,8 @@ async function qualify(provider: 'sqlite' | 'postgres' | 'mysql', url: string, m
             await assertEnforced();
             const removing = diffModelSnapshots(after, before);
             expect(removing.operations).toHaveLength(1);
-            expect(removing.operations[0]).toMatchObject({ kind: 'dropIndex', name: mode === 'filtered' ? 'ux_profile_user_configured' : 'ux_profile_user_label' });
+            expect(removing.operations[0]).toMatchObject({ kind: 'dropIndex', name: mode === 'filtered' ? 'ux_profile_user_configured'
+                : mode.endsWith('CaseCollision') ? 'UX_EK_INDEX_PROFILES_USER_ID' : 'ux_profile_user_label' });
             const removed = removing.toMigration('20261004010002_RemoveIndex', 'RemoveIndex');
             const migrations = [initial, added, removed];
             await contextMigrations(original).update(migrations, { allowDataLoss: true });

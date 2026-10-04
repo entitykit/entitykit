@@ -10,7 +10,7 @@ export function buildIndexes(
     entity: EntityMetadata,
     dialect: SqlDialect,
 ): string[] {
-    validateIndexDatabaseNames(entity);
+    validateIndexDatabaseNames(entity, dialect.name);
     return entity.indexes
         .filter(index => !entity.alternateKeys.some(key =>
             isAlternateKeyBackingIndex(index, key.propertyNames)))

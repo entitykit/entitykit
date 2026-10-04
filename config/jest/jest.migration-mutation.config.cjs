@@ -10,5 +10,6 @@ module.exports = {
     '<rootDir>/tests/migration-runner-update/*.test.ts',
     '<rootDir>/tests/mysql-migration-lock.test.ts',
     '<rootDir>/tests/migration-synchronous-sqlite.test.ts',
+    '<rootDir>/tests/migration-index-provider-rules.test.ts',
   ],
 };

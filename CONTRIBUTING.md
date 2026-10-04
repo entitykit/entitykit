@@ -47,6 +47,8 @@ command, pass `--config config/jest/jest.config.cjs`.
 and alternate-key backing indexes plus physical index-name validation, including
 one-to-one enforcement with mixed or filtered indexes, covering columns,
 composite-key reuse and rejection of colliding generated or configured names.
+It also covers provider-specific index identity, migration snapshot validation
+in both directions and refusal before connection leases or database writes.
 `npm run test:mutation:checked-scalar` qualifies the complete checked scalar
 validator, including timestamp precision and refusal of incompatible values.
 `test:mutation` includes separate history-initialization/migration-lock,

@@ -50,7 +50,7 @@ export function bootstrapDbContext(
     const model = modelBuilder.build();
 
     assertTenantScopeConfigured(hasConfiguredTenantScope(optionsBuilder), model);
-    const options = optionsBuilder.build();
+    const options = optionsBuilder.build(model);
     return { options, model };
 }
 

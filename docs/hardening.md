@@ -288,6 +288,26 @@ functions. It scores 96% across 175 eligible mutants: 168 killed and seven
 survivors, with no timeouts, uncovered mutants or runner errors. The new
 physical-name validator kills 29 of 31 mutants; two equivalent substitutions of
 its internal term labels remain eligible alongside the five existing survivors.
+The provider-identity follow-up rejects ASCII case-equivalent index names on
+SQLite and MySQL, including equivalent definitions whose different snapshot
+names would make later removal ambiguous. PostgreSQL retains distinct quoted
+names, and SQLite retains distinct non-ASCII identifiers. Contexts validate
+before leasing a connection. Runtime diffs now retain both original snapshots;
+generated and runtime migrations validate both sides against the executing
+provider before emitting SQL, computing checksums, acquiring locks or changing
+history. Thirty-two populated SQLite cases cover runtime and generated
+addition, removal, apply, revert and update in both index-term orders. Live
+Postgres/MySQL controls preserve valid relationship enforcement and rollback.
+The focused suite passes 242 tests across 19 suites on Node 22 and 24, with
+complete coverage of 198 lines, 97 branches and nine functions. Its expanded
+cold mutation campaign scores 96.46% across all 198 mutants: 191 killed and
+seven survivors, with no errors, timeouts or uncovered mutants. The snapshot
+guard kills all six mutants; the name validator kills 46 of 48 mutants. Snapshot
+fixtures are built inside tests so mutated validation failures count as killed
+mutants instead of errors while loading a test module.
+The migration campaign retains its history, lock and transaction scope and
+adds update preflight coverage: 71 of 72 mutants killed, one survivor, 98.61%,
+and no errors, timeouts or uncovered mutants.
 SQLite schema pull discovers CHECK keywords outside quoted defaults while
 retaining original offsets for names and expressions. Fifteen generated-model
 round trips preserve both enforcement and constraint names. The complete

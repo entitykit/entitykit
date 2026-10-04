@@ -31,7 +31,6 @@ export { ModelDiffMigration, migrationFromOperations } from './model-diff-migrat
 /** Options that configure model diff. */ export interface ModelDiffOptions {
     /** The rename hints. */ readonly renameHints?: ModelDiffRenameHints;
 }
-
 /** Perform the diff model snapshots operation. */ export function diffModelSnapshots(from: ModelSnapshot, to: ModelSnapshot, options: ModelDiffOptions = {}): ModelDiff {
     for (const entity of [...from.entities, ...to.entities]) validateIndexDatabaseNames(entity);
     const prepared = applyRenameHints(from, to, options.renameHints);
@@ -47,6 +46,7 @@ export { ModelDiffMigration, migrationFromOperations } from './model-diff-migrat
                 id,
                 name,
                 addSqliteJoinRebuildOperations(addSqliteRebuildOperations(operations, from, to), from, to),
+                from, to,
             );
         },
     };

@@ -10,6 +10,7 @@ import { operationKey } from './model-diff-sqlite-rebuild';
 import { isOperationAbsorbedByRebuild } from './model-diff-rebuild-group';
 import { collectDestructiveWarnings } from './migration-scaffold-warnings';
 import { orderMigrationTables } from './migration-table-order';
+import type { ModelSnapshot } from '../model/model-snapshot-types';
 
 /**
  * Running a computed diff as a migration — the execution side, kept apart from
@@ -28,6 +29,8 @@ export class SnapshotDiffMigration extends Migration {
         public readonly id: string,
         public readonly name: string,
         private readonly operations: readonly ModelDiffOperation[],
+        public override readonly previousSnapshot: ModelSnapshot,
+        public override readonly targetSnapshot: ModelSnapshot,
     ) {
         super();
         this.destructiveWarnings = Object.freeze(collectDestructiveWarnings(operations));

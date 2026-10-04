@@ -109,6 +109,20 @@ and physical column names. Model validation, schema generation and snapshot
 comparison reject conflicting definitions before generating or executing
 migration SQL. Equivalent declarations of the same physical index remain valid.
 
+Names must be distinct under the selected provider's identifier rules, too.
+SQLite treats ASCII case-only variants such as `UX_PROFILES_USERID` and
+`ux_profiles_userId` as one identifier, even when quoted. MySQL also rejects
+ASCII case-equivalent index names. PostgreSQL keeps distinct quoted names
+case-sensitive. Equivalent definitions with identical spelling remain supported;
+case-only aliases are rejected on SQLite and MySQL because migration snapshots
+must agree with the database about how many indexes exist.
+
+Snapshot diffs are provider-neutral. Runtime and generated migrations retain
+both snapshots, and EntityKit checks them against the executing provider before
+SQL generation, checksum calculation, application or rollback. Context model
+validation runs before acquiring a connection lease; migration execution checks
+before starting a session, acquiring locks or initializing history.
+
 A one-to-one relationship needs unconditional uniqueness on its complete
 foreign-key tuple. An additional filtered or mixed index does not replace that
 enforcement index. For example, give a filtered unique index its own name:

@@ -18,6 +18,7 @@ import type {
 } from './runner/migration-runner-options';
 import { MigrationUpdateRunner } from './runner/migration-update-runner';
 import { readMigrationHistory } from './runner/read-migration-history';
+import { validateMigrationIndexNames } from './migration-index-validation';
 
 export type {
     MigrationDiagnosticsHandler,
@@ -65,6 +66,7 @@ export type {
         options: MigrationOperationOptions = {},
     ): Promise<void> {
         this.assertOutsideTransaction('apply');
+        validateMigrationIndexNames(migration, this.dialect.sql.name);
         await this.runWithMigrationLock(
             async () => this.executor.runMigration(
                 migration,
@@ -81,6 +83,7 @@ export type {
         options: MigrationOperationOptions = {},
     ): Promise<void> {
         this.assertOutsideTransaction('revert');
+        validateMigrationIndexNames(migration, this.dialect.sql.name);
         await this.runWithMigrationLock(
             async () => this.executor.runMigration(
                 migration,
@@ -110,6 +113,7 @@ export type {
         options: MigrationUpdateOptions = {},
     ): Promise<MigrationUpdateResult> {
         this.assertOutsideTransaction('update');
+        for (const migration of migrations) validateMigrationIndexNames(migration, this.dialect.sql.name);
         return this.updater.update(migrations, options);
     }
 

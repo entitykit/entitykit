@@ -5,7 +5,8 @@ import { createPostgresDataSource } from '../../packages/postgres/src';
 import { createMySqlDataSource } from '../../packages/mysql/src';
 
 export type RelationshipIndexMode = 'original' | 'propertyFirst' | 'expressionFirst' | 'filtered' | 'ordinary'
-    | 'filteredUnnamed' | 'propertyFirstCollision' | 'expressionFirstCollision';
+    | 'filteredUnnamed' | 'propertyFirstCollision' | 'expressionFirstCollision'
+    | 'propertyFirstCaseCollision' | 'expressionFirstCaseCollision';
 class IndexUser {
     public id!: string;
     public profile!: IndexProfile | null;
@@ -40,9 +41,10 @@ export class RelationshipIndexContext extends DbContext {
             } else if (this.mode !== 'original') {
                 const property = { kind: 'property', propertyName: 'userId' } as const;
                 const expression = { kind: 'expression', expression: 'lower(label)' } as const;
-                entity.hasIndex(this.mode === 'propertyFirst' || this.mode === 'propertyFirstCollision'
+                entity.hasIndex(this.mode.startsWith('propertyFirst')
                     ? [property, expression] : [expression, property])
-                    .hasDatabaseName(this.mode.endsWith('Collision') ? 'ux_ek_index_profiles_user_id' : 'ux_profile_user_label').isUnique();
+                    .hasDatabaseName(this.mode.endsWith('CaseCollision') ? 'UX_EK_INDEX_PROFILES_USER_ID'
+                        : this.mode.endsWith('Collision') ? 'ux_ek_index_profiles_user_id' : 'ux_profile_user_label').isUnique();
             }
         });
     }
@@ -50,6 +52,7 @@ export class RelationshipIndexContext extends DbContext {
 
 export function defineOneToOneIndexProviderTests(provider: 'sqlite' | 'postgres' | 'mysql', url: () => string): void {
     const modes: RelationshipIndexMode[] = ['original', 'propertyFirst', 'expressionFirst', 'ordinary'];
+    if (provider === 'postgres') modes.push('propertyFirstCaseCollision', 'expressionFirstCaseCollision');
     if (provider !== 'mysql') modes.push('filtered');
     it.each(modes)('enforces one profile per user in a fresh %s model', async mode => {
         await qualify(provider, url(), mode, false);

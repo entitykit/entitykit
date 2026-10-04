@@ -1,4 +1,5 @@
 import { defaultIndexName } from '../relational-identifiers';
+import { ModelValidationError } from '../errors/model-validation-error';
 
 interface IndexNameEntity {
     readonly entityName: string;
@@ -17,13 +18,15 @@ interface IndexNameEntity {
 }
 
 /** Refuse conflicting definitions of one physical index before schema SQL or diffing. */
-export function validateIndexDatabaseNames(entity: IndexNameEntity): void {
+export function validateIndexDatabaseNames(entity: IndexNameEntity, providerName?: string): void {
     const columns = new Map(entity.properties.map(property => [property.propertyName, property.columnName]));
     const columnName = (propertyName: string): string => columns.get(propertyName) ?? propertyName;
-    const definitions: Map<string, string> = new Map();
+    const definitions: Map<string, { readonly name: string; readonly definition: string }> = new Map();
     for (const index of entity.indexes) {
         const name = index.databaseName ?? defaultIndexName(index.isUnique, entity.tableName,
             index.propertyNames.map(columnName));
+        const identity = providerName === 'sqlite' || providerName === 'mysql'
+            ? name.replace(/[A-Z]/g, character => character.toLowerCase()) : name;
         const definition = JSON.stringify([
             index.isUnique,
             (index.keyParts ?? index.propertyNames.map(propertyName => ({ kind: 'property' as const, propertyName })))
@@ -31,9 +34,10 @@ export function validateIndexDatabaseNames(entity: IndexNameEntity): void {
             index.includedPropertyNames?.map(columnName) ?? [],
             index.filter ?? null,
         ]);
-        if (definitions.has(name) && definitions.get(name) !== definition) {
-            throw new Error(`Entity '${entity.entityName}' maps multiple indexes to database name '${name}'. Configure distinct index database names.`);
+        const existing = definitions.get(identity);
+        if (existing && (existing.name !== name || existing.definition !== definition)) {
+            throw new ModelValidationError(`Entity '${entity.entityName}' maps multiple indexes to database name '${name}'. Configure distinct index database names.`);
         }
-        definitions.set(name, definition);
+        definitions.set(identity, { name, definition });
     }
 }
