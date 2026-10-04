@@ -65,6 +65,8 @@ Run `npm run test:mutation:primary-key-change` for existing-key order refusal,
 physical tuple identity, legacy metadata, and retained SQLite key transitions.
 Run `npm run test:mutation:postgres-generation` for identity options, exact
 sequence identifiers and catalog default-expression boundaries.
+Run `npm run test:mutation:store-generation` for identity policy, safe integers,
+cache sizes, sequence references, numeric bounds and property generation state.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 

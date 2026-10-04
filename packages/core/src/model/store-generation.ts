@@ -45,14 +45,15 @@
 export function identityGeneration(
     options: IdentityColumnOptions = {},
 ): StoreGenerationStrategy {
+    const { mode = 'byDefault', isCyclic = false } = options;
     const strategy = {
         kind: 'identity' as const,
-        mode: options.mode ?? 'byDefault',
+        mode,
         startValue: integer(options.startValue, 'Identity start value'),
         incrementBy: integer(options.incrementBy, 'Identity increment'),
         minValue: integer(options.minValue, 'Identity minimum'),
         maxValue: integer(options.maxValue, 'Identity maximum'),
-        isCyclic: options.isCyclic ?? false,
+        isCyclic,
         cache: options.cache,
     };
     validateStoreGeneration(strategy);
@@ -75,6 +76,14 @@ export function validateStoreGeneration(
 function validateIdentity(
     strategy: Extract<StoreGenerationStrategy, { /** The kind. */ kind: 'identity' }>,
 ): void {
+    const mode: unknown = strategy.mode;
+    const isCyclic: unknown = strategy.isCyclic;
+    if (mode !== 'always' && mode !== 'byDefault') {
+        throw new Error('Identity mode must be \'always\' or \'byDefault\'.');
+    }
+    if (typeof isCyclic !== 'boolean') {
+        throw new Error('Identity cycling flag must be a boolean.');
+    }
     for (const [label, value] of [
         ['start value', strategy.startValue],
         ['increment', strategy.incrementBy],
@@ -95,8 +104,8 @@ function validateIdentity(
     const minimum = toBigInt(strategy.minValue);
     const maximum = toBigInt(strategy.maxValue);
     const start = toBigInt(strategy.startValue);
-    if (minimum !== undefined && maximum !== undefined && minimum > maximum) {
-        throw new Error('Identity minimum must not exceed its maximum.');
+    if (minimum !== undefined && maximum !== undefined && minimum >= maximum) {
+        throw new Error('Identity minimum must be less than its maximum.');
     }
     if (start !== undefined && minimum !== undefined && start < minimum) {
         throw new Error('Identity start value must not be below its minimum.');

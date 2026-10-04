@@ -80,7 +80,7 @@ remain unchanged. This follows
 The property-rename repair separately qualifies metadata references,
 dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
 Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
-mutants in the denominator. All fifteen campaigns use the existing thresholds;
+mutants in the denominator. All sixteen campaigns use the existing thresholds;
 the original three scopes are unchanged.
 
 ## Qualification
@@ -101,8 +101,19 @@ arithmetic defaults. The new full Postgres generation campaign improves from
 identifier repair adds three mutants. Focused generation coverage reaches
 97.75% lines and 97.5% branches, retaining the defensive empty-name guard.
 
+Identity policy now refuses malformed modes and non-boolean cycling flags before
+model configuration can be used. Omitted options keep their established defaults.
+Sequence and identity bounds require a minimum strictly below the maximum,
+matching native Postgres; valid starts at either endpoint remain supported.
+Seventy-three unit cases and three native checks qualify insertion policy,
+cycling, exhaustion, safe integers, caches, bigint precision and exact diagnostics.
+The three-module store-generation campaign improves from 52.59% on 251 baseline
+mutants to 90.98% on 266 repaired-module mutants, with 242 killed and 24 equivalent
+optional-bound guards retained. All 292 lines, 97 branches and 26 functions are
+covered; no mutants are uncovered, time out or crash the runner.
+
 The preceding signed complete coverage checkpoint is
-`71d74df24c6a66e387e3d9351f604e20b4bfe80e`. The preceding sparse-array candidate passed
+`268d75f01b7da447632471aa1e88aa7d7ad61889`. The preceding sequence-identifier candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -125,10 +136,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 528 suites / 3,673 tests on both runtimes for the current sequence-identifier repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 530 suites / 3,746 tests on both runtimes for the current generation-policy repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 768 executable source files; 95.48% statements/lines, 91.79% branches, 94.96% functions at the clean preceding checkpoint; all existing floors pass |
+| Runtime coverage | 768 executable source files; 95.51% statements/lines, 91.92% branches, 94.96% functions at the clean preceding checkpoint; all existing floors pass |
 | Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,305 killed, 34 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -144,16 +155,17 @@ pass on the exact reconciled release SHA before publication.
 | Migration warning mutation | 100% across all 27 mutants; reviewed lists, malformed metadata, safe rename intent and legacy snapshot fallback; 100% branch coverage |
 | Existing key-change mutation | 93.33% across all 30 mutants; typed order refusal, legacy snapshots, physical identity and populated SQLite key transitions; 100% branch coverage |
 | Postgres generation mutation | 95.04% across all 121 mutants; identity options, exact sequence identifiers, SQL quoting and default-expression boundaries; executable native round trip |
-| Canonical live providers | Postgres: 31 suites / 150 tests; MySQL: 21 suites / 114 tests; both runtimes pass for the current sequence-identifier repair |
+| Store-generation mutation | 90.98% across all 266 mutants in three complete modules; 100% line, branch and function coverage; policy, reference, numeric and generation-state contracts |
+| Canonical live providers | Postgres: 32 suites / 153 tests; MySQL: 21 suites / 114 tests; both runtimes pass for the current generation-policy repair |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all fifteen mutation campaigns, both provider lanes on both runtimes, and
+coverage, all sixteen mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The preceding clean complete coverage run at `71d74df2` took 146 seconds; its inventory rules and floors
+The preceding clean complete coverage run at `268d75f0` took 143 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity

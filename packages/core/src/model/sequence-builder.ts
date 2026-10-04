@@ -79,8 +79,8 @@ function validateBounds(metadata: MutableSequenceMetadata): void {
     const minimum = toBigInt(metadata.minValue);
     const maximum = toBigInt(metadata.maxValue);
     const start = toBigInt(metadata.startValue);
-    if (minimum !== undefined && maximum !== undefined && minimum > maximum) {
-        throw new Error('Sequence minimum must not exceed its maximum.');
+    if (minimum !== undefined && maximum !== undefined && minimum >= maximum) {
+        throw new Error('Sequence minimum must be less than its maximum.');
     }
     if (start !== undefined && minimum !== undefined && start < minimum) {
         throw new Error('Sequence start value must not be below its minimum.');
