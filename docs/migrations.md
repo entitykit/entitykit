@@ -296,6 +296,16 @@ introspection remain provider-owned behavior.
   scaffolds table rebuilds for affected model changes and copies mapped columns
   into the rebuilt table. Review copy columns, constraints, indexes, both
   directions, free disk space, and a file backup.
+- `db migrate` and `MigrationRunner` suspend enabled foreign-key enforcement
+  before a rebuild transaction, check every foreign key before committing, and
+  restore enforcement afterward. This preserves dependent rows during parent
+  rebuilds, including cascading and `SET NULL` relationships. A failed check
+  rolls back the schema, copied data, and migration history. Cancellation still
+  restores enforcement; a connection that cannot restore it is disposed.
+- Generated SQL preserves the historical statement and checksum format. Use
+  the runner for SQLite rebuild deployment. Executing a raw script requires
+  the same connection and transaction procedure described by
+  [SQLite](https://www.sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes).
 - SQLite exposes no provider migration lock. Avoid concurrent deployers even
   though ordinary database locking still exists.
 

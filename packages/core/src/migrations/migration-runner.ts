@@ -45,7 +45,7 @@ export type {
         );
         this.generator = new MigrationSqlGenerator(dialect, builderFactory);
         this.diagnostics = new MigrationDiagnostics(dialect, diagnosticsOptions);
-        this.executor = new MigrationExecutor(database, this.diagnostics);
+        this.executor = new MigrationExecutor(database, this.diagnostics, dialect);
         this.updater = new MigrationUpdateRunner(
             database,
             dialect,

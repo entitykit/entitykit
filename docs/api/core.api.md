@@ -1496,6 +1496,7 @@ interface MigrationSqlDialect {
     readonly name: string;
     releaseMigrationLockStatement?(): SqlStatement;
     renderIdempotentMigrationBlock?(migration: MigrationIdentity, bodySql: string): string;
+    runMigrationTransaction?(database: DatabaseConnection, statements: readonly SqlStatement[], options: DatabaseOperationOptions): Promise<void>;
     selectMigrationHistoryStatement(): SqlStatement;
     readonly sql: SqlDialect;
     validateMigrationLockAcquired?(result: DatabaseQueryResult): void;

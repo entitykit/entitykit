@@ -5,7 +5,7 @@ import {
 } from './migration-metadata';
 import { postgresDialect, type SqlDialect } from '../sql/sql-dialect';
 import type { SqlStatement } from '../sql/sql-statement';
-import type { DatabaseQueryResult } from '../storage/database-connection';
+import type { DatabaseConnection, DatabaseOperationOptions, DatabaseQueryResult } from '../storage/database-connection';
 import { MigrationError } from '../errors/migration-errors';
 
 /** Migration fields needed by history tables and idempotent script wrappers. */
@@ -17,6 +17,12 @@ export interface MigrationIdentity {
 /** Public contract for migration sql dialect. */ export interface MigrationSqlDialect {
     /** Stable name for this contract or database object. */ readonly name: string;
     /** The sql. */ readonly sql: SqlDialect;
+    /** Execute an ordered migration batch with provider-owned transaction and constraint handling. */
+    runMigrationTransaction?(
+        database: DatabaseConnection,
+        statements: readonly SqlStatement[],
+        options: DatabaseOperationOptions,
+    ): Promise<void>;
     /** Create migration history table statement. */ createMigrationHistoryTableStatement(): SqlStatement;
     /** Perform the select migration history statement operation. */ selectMigrationHistoryStatement(): SqlStatement;
     /** Read whether the migration history table exists without creating it. */ migrationHistoryTableExistsStatement?(): SqlStatement;

@@ -12,20 +12,27 @@ Pagerbase itself has not been modified.
 
 ## Open migration qualification
 
-Related-table SQLite rebuilds remain a release blocker. Native regressions
-reproduce a foreign-key failure at commit after rebuilding both ends of a
-relationship, even when `foreign_key_check` finds no violations. A parent
-rebuild with `ON DELETE CASCADE` can also delete its existing child rows.
-Deferring constraint checks does not prevent those cascading deletes. The
-repair must suspend foreign-key enforcement before the owned transaction,
-validate the resulting schema and rows before commit, and restore the original
-connection setting on success, failure and cancellation, following
+Principal-only SQLite key renames remain a release blocker. When a referenced
+principal column changes but the dependent's mapped property stays the same,
+the planner rebuilds the principal and leaves the existing foreign key pointing
+to the old column. The execution check refuses and rolls back the migration;
+the planner still needs to rebuild that dependent table.
+
+The cross-table execution repair preserves rows through restrictive, cascading
+and `SET NULL` relationships, including explicit `main` schema names. It
+suspends enabled foreign keys before the owned transaction, validates the
+result before commit, restores enforcement after failure or cancellation, and
+disposes a connection that cannot restore its setting. The independent full
+executor/SQLite transaction campaign kills all 151 mutants and reaches 100%
+branch coverage. Generated migration statements and checksum serialization
+remain unchanged. This follows
 [SQLite's rebuild procedure](https://www.sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes).
 
-The property-rename repair and its independent mutation campaign qualify
-metadata references, real dependent-only SQLite renames, and live Postgres/MySQL
-renames and rollback. They leave the cross-table rebuild failure open for the
-next slice.
+The property-rename repair separately qualifies metadata references,
+dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
+Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
+mutants in the denominator. All eight campaigns use the existing thresholds;
+the original three scopes are unchanged.
 
 ## Qualification
 
@@ -58,7 +65,7 @@ pass on the exact reconciled release SHA before publication.
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all six mutation campaigns, both provider lanes on both runtimes, and
+coverage, all eight mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.

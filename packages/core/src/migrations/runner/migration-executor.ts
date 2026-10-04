@@ -2,6 +2,7 @@ import type { DatabaseConnection, DatabaseOperationOptions } from '../../storage
 import type { SqlStatement } from '../../sql/sql-statement';
 import { MigrationExecutionError } from '../../errors/migration-errors';
 import type { Migration } from '../migration';
+import type { MigrationSqlDialect } from '../migration-sql-dialect';
 import type { MigrationDiagnostics } from './migration-diagnostics';
 import { OperationCanceledError } from '../../errors/runtime-errors';
 import { startElapsedTimer } from '../../diagnostics/runtime/elapsed-time';
@@ -10,6 +11,7 @@ export class MigrationExecutor {
     constructor(
         private readonly database: DatabaseConnection,
         private readonly diagnostics: MigrationDiagnostics,
+        private readonly dialect: MigrationSqlDialect,
     ) {}
 
     public async runMigration(
@@ -81,6 +83,10 @@ export class MigrationExecutor {
 
             const currentBatch = batch;
             batch = [];
+            if (this.dialect.runMigrationTransaction) {
+                await this.dialect.runMigrationTransaction(this.database, currentBatch, options);
+                return;
+            }
             await this.database.transaction(async () => {
                 for (const statement of currentBatch) {
                     await this.database.query(statement, options);

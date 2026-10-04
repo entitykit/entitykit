@@ -208,6 +208,14 @@ SQLite reports that no provider lock was used. Generated migration and `db
 pull` output is review material, not a substitute for reviewing the target
 database.
 
+Migration dialects may implement `runMigrationTransaction` to execute one
+ordered transactional batch with provider-specific constraint handling. Core
+keeps transaction-suppressed statements outside those batches and defaults to
+the connection's transaction method. SQLite uses this hook to suspend enabled
+foreign keys before a table rebuild, validate them inside the transaction,
+and restore the connection setting afterward. Generated statements and
+checksum serialization remain independent of this execution scope.
+
 ## Release flow
 
 The current `main` release pipeline applies this shape to the seven-package
