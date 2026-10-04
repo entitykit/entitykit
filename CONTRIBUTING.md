@@ -35,9 +35,12 @@ coverage floors remain defined in `config/coverage.json`.
 The mutation lane is intentionally focused on release-critical restoration,
 migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate
 locally when changing the behavior it protects.
-`test:mutation` includes a separate history-initialization and migration-lock
-campaign with the same score thresholds; run `npm run test:mutation:migrations`
-for that focused ownership check.
+`test:mutation` includes separate history-initialization/migration-lock and
+provider-validation campaigns with the same score thresholds. Run
+`npm run test:mutation:migrations` for the focused ownership check or
+`npm run test:mutation:provider-validation` for configuration validation before
+resource allocation. Their separate scores preserve the original critical
+campaign's scope and comparison.
 
 Live provider work needs the matching database lane:
 

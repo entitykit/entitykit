@@ -16,6 +16,7 @@ module.exports = {
     '<rootDir>/tests/cli-rename-hints.test.ts',
     '<rootDir>/tests/snapshot-value-equality.test.ts',
     '<rootDir>/tests/restorable-value-snapshot.test.ts',
+    '<rootDir>/tests/provider-service-validation.test.ts',
     '<rootDir>/tests/model-diff-operation-description.test.ts',
     '<rootDir>/tests/migration-column-builder.test.ts',
     '<rootDir>/tests/restoration-scope-primitives.test.ts',
