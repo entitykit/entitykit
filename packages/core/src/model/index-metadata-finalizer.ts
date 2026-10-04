@@ -1,6 +1,6 @@
 import type { EntityConstructor, EntityPropertyKey } from '../types';
 import type { AlternateKeyMetadata } from './alternate-key-metadata';
-import { mergeAlternateKeyIndexes } from './alternate-key-indexes';
+import { isUnconditionalPropertyUniqueIndex, mergeAlternateKeyIndexes } from './alternate-key-indexes';
 import type { IndexMetadata, MutableIndexMetadata } from './index-metadata';
 import type { PropertyMetadata } from './property-metadata';
 import { RelationshipCardinality, type RelationshipMetadata } from './relationship-metadata';
@@ -34,7 +34,7 @@ export function finalizeIndexes<TEntity extends object>(
             relationship.cardinality === RelationshipCardinality.OneToOne &&
             !sameProperties(relationship.foreignKeyProperties, keyProperties) &&
             !indexes.some(index =>
-                index.isUnique &&
+                isUnconditionalPropertyUniqueIndex(index) &&
                 sameProperties(index.propertyNames, relationship.foreignKeyProperties))
         ) {
             indexes.push({

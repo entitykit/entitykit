@@ -265,6 +265,15 @@ All 24 required mutation campaigns pass fresh sequential test baselines after
 the move. Their previous scores retain their original source attribution; this
 configuration check does not claim a new complete mutation run. Package sources
 are byte-identical to the signed required-key repair.
+The review repairs preserve populated SQLite rename chains forward and backward
+without data-loss opt-in; all three planning modules have complete line, branch
+and function coverage and score 93.94% across 198 eligible mutants. One-to-one
+relationships retain unconditional uniqueness on their complete foreign-key
+tuple when mixed or filtered indexes are added. Fresh schemas and populated
+upgrades qualify on all three providers and both runtimes. The new required
+relationship-index campaign covers both complete finalization modules: 144
+eligible mutants, 139 killed, five survivors, no uncovered mutants or runner
+errors, and 96.53% mutation with complete line, branch and function coverage.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
@@ -304,7 +313,7 @@ pass on the exact reconciled release SHA before publication.
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all twenty-four mutation campaigns, both provider lanes on both runtimes, and
+coverage, all twenty-five mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
