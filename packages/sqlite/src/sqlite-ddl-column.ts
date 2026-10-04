@@ -2,6 +2,14 @@ import type { DatabaseCheckConstraint } from '@entitykit/core/adapter';
 import { matchingParen, unquoteIdentifier } from './sqlite-ddl-scanner';
 import { sqliteDdlMatches } from './sqlite-ddl-text';
 
+export function sqliteParenthesizedDefault(sql: string): string | undefined {
+    const match = sqliteDdlMatches(sql, /\bdefault\s*\(/ig).at(0);
+    if (!match) return undefined;
+    const open = match.index + match[0].lastIndexOf('(');
+    const close = matchingParen(sql, open);
+    return close < 0 ? undefined : sql.slice(open, close + 1);
+}
+
 export function sqliteGeneratedExpression(sql: string): { expression: string; stored: boolean } | undefined {
     const marker = /\b(?:generated\s+always\s+)?as\s*\(/ig;
     const match = sqliteDdlMatches(sql, marker).at(0);

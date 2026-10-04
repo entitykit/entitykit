@@ -2,7 +2,7 @@ import type {
     DatabaseCheckConstraint,
     DatabaseIndexKeyPart,
 } from '@entitykit/core/adapter';
-import { sqliteColumnChecks, sqliteGeneratedExpression } from './sqlite-ddl-column';
+import { sqliteColumnChecks, sqliteGeneratedExpression, sqliteParenthesizedDefault } from './sqlite-ddl-column';
 import {
     collectNamedCheckNames,
     hasKeywordSequence,
@@ -17,6 +17,7 @@ import {
 import { sqliteDdlMatches, sqliteDdlText } from './sqlite-ddl-text';
 export interface SqliteColumnDdl {
     readonly autoIncrement: boolean;
+    readonly defaultSql?: string;
     readonly collation?: string;
     readonly generatedExpression?: string;
     readonly generatedStored?: boolean;
@@ -70,6 +71,7 @@ export function parseSqliteTableSql(sql: string | undefined): {
         const generated = sqliteGeneratedExpression(rest);
         columns.set(unquoteIdentifier(identifier), {
             autoIncrement: hasKeywordSequence(rest, ['autoincrement']),
+            defaultSql: sqliteParenthesizedDefault(rest),
             collation: collation ? unquoteIdentifier(collation) : undefined,
             generatedExpression: generated?.expression,
             generatedStored: generated?.stored,

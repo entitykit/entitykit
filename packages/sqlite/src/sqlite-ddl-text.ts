@@ -34,6 +34,15 @@ export function sqliteDdlText(sql: string): { sql: string; code: string } {
 
 export function sqliteDdlMatches(sql: string, pattern: RegExp): RegExpExecArray[] {
     const text = sqliteDdlText(sql);
+    let cursor = 0;
+    let depth = 0;
     return Array.from(text.sql.matchAll(pattern))
-        .filter(match => text.code[match.index] !== ' ');
+        .filter(match => {
+            while (cursor < match.index) {
+                if (text.code[cursor] === '(') depth++;
+                else if (text.code[cursor] === ')') depth--;
+                cursor++;
+            }
+            return depth === 0 && text.code[match.index] !== ' ';
+        });
 }

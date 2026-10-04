@@ -33,6 +33,7 @@ describe('SQLite schema fragment metadata', () => {
         for (const column of table.columns.values()) {
             expect(column).toEqual({
                 autoIncrement: false,
+                defaultSql: undefined,
                 collation: undefined,
                 generatedExpression: undefined,
                 generatedStored: undefined,
