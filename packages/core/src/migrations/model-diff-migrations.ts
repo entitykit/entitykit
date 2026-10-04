@@ -9,6 +9,7 @@ import type { ModelDiffOperation } from './model-diff-operations';
 import { operationKey } from './model-diff-sqlite-rebuild';
 import { isOperationAbsorbedByRebuild } from './model-diff-rebuild-group';
 import { collectDestructiveWarnings } from './migration-scaffold-warnings';
+import { orderMigrationTables } from './migration-table-order';
 
 /**
  * Running a computed diff as a migration — the execution side, kept apart from
@@ -71,7 +72,7 @@ function applyOperations(
     // a second constraint operation would fail on providers without alter-table support.
     const inlined = inlineForeignKeys(builder, operations, direction);
     const rebuilt = rebuiltTableKeys(builder, operations);
-    const ordered = direction === 'up' ? operations : [...operations].reverse();
+    const ordered = orderMigrationTables(direction === 'up' ? operations : [...operations].reverse(), direction);
     const applyOperation = direction === 'up' ? applyUp : applyDown;
     for (const operation of ordered) {
         if (

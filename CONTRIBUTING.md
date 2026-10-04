@@ -84,6 +84,8 @@ builder validation and faithful index generation, including alternate keys,
 included properties and skipped metadata diagnostics.
 Run `npm run test:mutation:query-plan` for the versioned query-plan contract,
 legacy defaults, zero paging, join identity, scope flags and private values.
+Run `npm run test:mutation:migration-table-order` for parent-first creation,
+dependent-first removal, provider-specific constraints and physical table identity.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 

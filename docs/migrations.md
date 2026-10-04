@@ -129,6 +129,15 @@ Both options are repeatable. Table hints accept `old_table=new_table` or
 `schema.table.old_column=new_column`. Review the generated operation—rename
 hints are explicit intent, not a fuzzy matching system.
 
+Generated migrations create referenced tables before their dependents and remove
+dependents first, regardless of model registration order. PostgreSQL and MySQL
+add foreign keys after table creation, so cyclic relationships can reference
+tables created by the same migration. SQLite keeps foreign keys inline. Its
+populated `restrict` cycles require explicit data cleanup before table removal.
+Review previously generated alpha migrations for this ordering; regenerate an
+unapplied migration or keep the reviewed parent-first DDL. Applied migration
+history and checksums must retain their original artifacts.
+
 SQLite principal-key renames preserve retained many-to-many associations,
 including composite keys and named join constraints. The generated migration
 rebuilds the affected join tables and restores their original references on

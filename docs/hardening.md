@@ -183,7 +183,7 @@ provider and runtime. All 210 lines, 39 branches and seven functions in three
 complete cache-shape modules are covered. The unchanged 103-mutant scope improves
 from 39.81% to 89.32%, with 92 killed, 11 equivalent survivors retained and no
 uncovered mutants, errors or timeouts. This advisory result remains below the
-existing 90% threshold and is excluded from the 22 required mutation campaigns;
+existing 90% threshold and is excluded from the 23 required mutation campaigns;
 SDK source, versions and required gates are unchanged.
 
 Versioned query plans now have five additional public-builder regressions for
@@ -194,7 +194,8 @@ and private parameter values. The complete unchanged module improves from
 without executing SQL on every provider and runtime; SDK sources are unchanged.
 
 The preceding signed complete coverage checkpoint is
-`5a597b5ff63964ad708233db3f402a9871bfdef9`. The preceding query-plan candidate passed
+`c26b65bab300aca206540964168a306ebaf9c2f2`, with 95.85% lines, 92.71% branches
+and 95.48% functions across 774 runtime files. The preceding query-plan candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -217,10 +218,26 @@ The context set-registration base uses a narrow callback so its declaration does
 not expose the internal context host. Packed consumers qualify deprecated aliases
 and seven predicate misuse cases; compiled Bookshop probes exercise the refined
 operations and checked reads on every provider and runtime.
-All 22 Stryker configurations now live in `config/stryker/`, with identical
+The 22 existing Stryker configurations moved into `config/stryker/`, with identical
 loaded options and mutation source hashes. Their fresh test baselines pass after
 the move. The critical campaign invalidates and reruns 57 scored results after
 seven test files change, retaining its 95.78% score with zero runner errors.
+Generated migrations now create principal tables before dependent tables and
+remove dependents first. PostgreSQL and MySQL receive separate foreign-key
+operations after table creation; SQLite retains inline constraints. Cyclic
+SQLite `restrict` data needs explicit cleanup before removing its tables.
+The email-claim regression reproduces PostgreSQL `42P01` before the repair and
+passes generated creation, populated rollback and inverse migrations afterward.
+Sixty new unit cases and four live cases per server provider qualify chains,
+self references, cycles, replacement relationships and rebuild alternatives.
+The original two-module mutation scope improves from 42.98% (114 mutants) to
+91.41% (128 mutants after the repair). The expanded four-module campaign scores
+91.57% across 261 mutants, with 236 killed, three timeouts and 22 survivors;
+all 365 lines, 107 branches and 21 functions are covered. This becomes the 23rd
+required campaign. Both canonical gates pass 559 suites and 4,194 tests;
+PostgreSQL passes 38 suites and 180 tests, MySQL 27 suites and 141 tests on both
+runtimes. Historical upgrade and rollback, Bookshop, provider shutdown,
+performance and seven accepted package archives also qualify this candidate.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
@@ -228,7 +245,7 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 554 suites / 4,134 tests on both runtimes for the current API-refinement integration; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 559 suites / 4,194 tests on both runtimes for the current migration-order qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
 | Runtime coverage | 769 executable source files; 95.79% statements/lines, 92.67% branches, 95.43% functions at the clean preceding checkpoint; all existing floors pass |
@@ -254,7 +271,7 @@ pass on the exact reconciled release SHA before publication.
 | Postgres metadata mutation | 98.14% across all 215 mutants in two complete modules; numeric precision and signed scale, arrays, booleans, index and sequence facets; 100% line, branch and function coverage; index/sequence facets kill all 96 mutants |
 | Mixed-index mutation | 97.44% across all 234 mutants in three complete modules; mapped key identity and order, builder ownership, sparse refusal, alternate keys, included properties and skipped-index diagnostics; 100% line/function coverage and 98.97% branches; the new validator kills all 63 mutants |
 | Query-plan mutation | 100% across all 26 mutants in the complete unchanged module; versioned shape, legacy defaults, zero paging, tracking and scope flags, grouping and ordered join identity; 100% line, branch and function coverage |
-| Canonical live providers | Postgres: 37 suites / 176 tests; MySQL: 26 suites / 137 tests; both runtimes pass for the current API-refinement integration |
+| Canonical live providers | Postgres: 38 suites / 180 tests; MySQL: 27 suites / 141 tests; both runtimes pass for the current migration-order qualification |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
