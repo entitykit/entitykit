@@ -80,7 +80,7 @@ remain unchanged. This follows
 The property-rename repair separately qualifies metadata references,
 dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
 Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
-mutants in the denominator. All seventeen campaigns use the existing thresholds;
+mutants in the denominator. All eighteen campaigns use the existing thresholds;
 the original three scopes are unchanged.
 
 ## Qualification
@@ -121,8 +121,16 @@ The two complete-module campaign improves from 46.11% to 99.40% on the same
 and no uncovered mutants or runner errors. All 219 lines, 82 branches and five
 functions are covered, including deterministic ordering and filtered catalog rows.
 
+The operation-signal wrapper is now qualified across its full module. Twenty-seven
+new unit/SQLite cases and ten native cases per provider on both runtimes cover
+capability preservation, receiver binding, options, live transaction state,
+combined cancellation, rollback and connection reuse. Independent compiled
+public probes qualify 24 cases per runtime under strict rejection handling.
+All 25 mutants are killed, improving the score from 48% to 100% with no source
+changes or runner errors. All 64 lines, 21 branches and seven functions are covered.
+
 The preceding signed complete coverage checkpoint is
-`dc590e4dee7d74cb84a6fa4c5818c01bf2b1ef60`. The preceding generation-policy candidate passed
+`1b58feda8cef723cd10cedbcba9376cace989348`. The preceding MySQL-literal candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -145,10 +153,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 533 suites / 3,802 tests on both runtimes for the current MySQL literal repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 535 suites / 3,829 tests on both runtimes for the current signal-wrapper qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 768 executable source files; 95.56% statements/lines, 92.03% branches, 94.99% functions at the clean preceding checkpoint; all existing floors pass |
+| Runtime coverage | 768 executable source files; 95.59% statements/lines, 92.17% branches, 94.99% functions at the clean preceding checkpoint; all existing floors pass |
 | Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,305 killed, 34 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -166,16 +174,17 @@ pass on the exact reconciled release SHA before publication.
 | Postgres generation mutation | 95.04% across all 121 mutants; identity options, exact sequence identifiers, SQL quoting and default-expression boundaries; executable native round trip |
 | Store-generation mutation | 90.98% across all 266 mutants in three complete modules; 100% line, branch and function coverage; policy, reference, numeric and generation-state contracts |
 | MySQL type and snapshot mutation | 99.40% across all 167 mutants in two complete modules; exact ENUM and SET values, type aliases, collation handling, ordering and filtered metadata; 100% line, branch and function coverage |
-| Canonical live providers | Postgres: 32 suites / 153 tests; MySQL: 22 suites / 117 tests; both runtimes pass for the current MySQL literal repair |
+| Operation-signal mutation | 100% across all 25 mutants in the full wrapper; capabilities, receiver binding, options, composed cancellation, transaction state and disposal; 100% line, branch and function coverage |
+| Canonical live providers | Postgres: 33 suites / 163 tests; MySQL: 23 suites / 127 tests; both runtimes pass for the current signal-wrapper qualification |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all seventeen mutation campaigns, both provider lanes on both runtimes, and
+coverage, all eighteen mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The preceding clean complete coverage run at `dc590e4d` took 155 seconds; its inventory rules and floors
+The preceding clean complete coverage run at `1b58feda` took 148 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity
