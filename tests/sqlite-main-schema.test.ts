@@ -31,7 +31,7 @@ describe('SQLite implicit main schema through public APIs', () => {
             const rebuilt = diffModelSnapshots(before, after).toMigration('20261004000201_RebuildMainSchema', 'RebuildMainSchema');
             await migrations.update([initial]);
             await seedMainSchema(context);
-            await migrations.update([initial, rebuilt]);
+            await migrations.update([initial, rebuilt], { allowDataLoss: true });
             await expectMainSchemaState(context);
             await migrations.update([initial, rebuilt], { target: initial.id });
             await expectMainSchemaState(context);

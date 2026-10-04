@@ -63,7 +63,7 @@ export async function qualifyPlanningPair(
         await planningRows(connection, before.entities[0].keyProperty
             ? 'insert into planning_records (id, label) values (7, \'Novel\')'
             : 'insert into planning_records (label) values (\'Novel\')');
-        await runner.update([initial, changed]);
+        await runner.update([initial, changed], { allowDataLoss: true });
         await inspect(connection, 'up');
         await runner.update([initial, changed], { target: initial.id });
         await inspect(connection, 'down');

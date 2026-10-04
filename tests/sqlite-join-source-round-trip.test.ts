@@ -1,27 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
-import ts from 'typescript';
-import * as migrationsApi from '../packages/core/src/migrations/api';
 import { contextMigrations, renderSnapshotSource, scaffoldMigration, type Migration, type ModelSnapshot, type ModelDiffRenameHints } from '../packages/core/src/migrations/api';
 import { createManagedTempDirectory } from './support/managed-temp-directory';
+import { compiledMigration } from './support/compiled-migration-source';
 import { expectJoinCatalog, joinSnapshot, JoinRenameContext, seedJoinCatalog } from './support/join-principal-rename-support';
-
-/** Execute actual generated TypeScript against the public migration module. */
-function compiledMigration(source: string): Migration {
-    const module: { exports: { default?: new () => Migration } } = { exports: {} };
-    const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
-    vm.runInNewContext(compiled.outputText, {
-        module, exports: module.exports,
-        require: (name: string): typeof migrationsApi => {
-            if (name !== '@entitykit/core/migrations') throw new Error(`Unexpected generated import ${name}.`);
-            return migrationsApi;
-        },
-    }, { timeout: 1000 });
-    const Constructor = module.exports.default;
-    if (Constructor === undefined) throw new Error('Generated migration has no default export.');
-    return new Constructor();
-}
 
 function scaffoldPair(before: ModelSnapshot, after: ModelSnapshot, renameHints: ModelDiffRenameHints): {
     initial: Migration; renamed: Migration; source: string;
@@ -56,7 +38,7 @@ describe('scaffolded join migrations through actual generated source', () => {
                 const migrations = contextMigrations(context);
                 await migrations.update([initial]);
                 await seedJoinCatalog(context, composite);
-                await migrations.update([initial, renamed], { allowDataLoss: true });
+                await migrations.update([initial, renamed]);
                 await expectJoinCatalog(context, settings);
                 await migrations.update([initial, renamed], { target: initial.id });
                 await expectJoinCatalog(context, { composite });
@@ -84,7 +66,7 @@ describe('scaffolded join migrations through actual generated source', () => {
             const migrations = contextMigrations(context);
             await migrations.update([initial]);
             await seedJoinCatalog(context, false);
-            await migrations.update([initial, renamed], { allowDataLoss: true });
+            await migrations.update([initial, renamed]);
             await expectJoinCatalog(context, { sourceRenamed: true, targetTable: 'edition_tags' });
             await migrations.update([initial, renamed], { target: initial.id });
             await expectJoinCatalog(context, {});

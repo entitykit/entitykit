@@ -110,7 +110,7 @@ describe('SQLite rebuild planning through public migration execution', () => {
             await planningRows(connection, 'insert into catalog_entries values (\'edition\', \'tenant\', \'Novel\')');
             await planningRows(connection, 'insert into catalog_links values (\'link\', \'edition\', \'tenant\')');
             for (const direction of ['up', 'down'] as const) {
-                await runner.update([initial, changed], direction === 'up' ? {} : { target: initial.id });
+                await runner.update([initial, changed], direction === 'up' ? { allowDataLoss: present } : { target: initial.id });
                 expect(await planningRows(connection, 'select * from catalog_links')).toEqual([
                     { id: 'link', owner_key: 'edition', owner_tenant: 'tenant' },
                 ]);

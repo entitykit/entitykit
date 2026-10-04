@@ -19,6 +19,8 @@ export abstract class Migration {
 
     /** The previous snapshot. */ public readonly previousSnapshot?: ModelSnapshot;
     /** The target snapshot. */ public readonly targetSnapshot?: ModelSnapshot;
+    /** Reviewed forward-operation warnings; absent metadata falls back to snapshots. */
+    public readonly destructiveWarnings?: readonly string[];
 
     /**
    * Add SQL operations required to apply the migration.

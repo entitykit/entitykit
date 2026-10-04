@@ -101,7 +101,7 @@ describe('SQLite migration rebuild safety', () => {
                 await migrations.update([initial]);
                 await seed(connection);
 
-                await migrations.update([initial, rebuilt]);
+                await migrations.update([initial, rebuilt], { allowDataLoss: true });
 
                 expect(await query(connection, 'select id, legacy_book_code, category_id from catalog_offers')).toEqual([
                     { id: 'offer', legacy_book_code: 'edition', category_id: 'category' },

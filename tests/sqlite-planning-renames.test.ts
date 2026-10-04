@@ -81,7 +81,7 @@ describe('SQLite rebuild rename and dependency planning', () => {
             await planningRows(connection, 'insert into catalog_entries values (\'edition\', \'tenant\', \'Novel\')');
             await planningRows(connection, 'insert into catalog_links values (\'link\', \'edition\', \'tenant\')');
             for (const direction of ['up', 'down'] as const) {
-                await runner.update([initial, changed], direction === 'up' ? {} : { target: initial.id });
+                await runner.update([initial, changed], direction === 'up' ? { allowDataLoss: true } : { target: initial.id });
                 const table = direction === 'up' ? 'catalog_editions' : 'catalog_entries';
                 expect(await planningRows(connection, `select * from ${table}`)).toEqual([{ legacy_id: 'edition', tenant: 'tenant', label: 'Novel' }]);
                 expect(await planningRows(connection, 'select * from catalog_links')).toEqual([{ id: 'link', owner_key: 'edition', owner_tenant: 'tenant' }]);
@@ -145,7 +145,7 @@ describe('SQLite rebuild rename and dependency planning', () => {
             await runner.update([initial]);
             await planningRows(connection, 'insert into catalog_entries values (\'edition\', \'tenant\', \'Novel\')');
             await planningRows(connection, 'insert into catalog_links values (\'link\', \'edition\', \'tenant\')');
-            await runner.update([initial, changed]);
+            await runner.update([initial, changed], { allowDataLoss: true });
             expect(await planningRows(connection, 'select * from catalog_links')).toEqual([{ id: 'link', owner_key: 'edition', owner_tenant: 'tenant' }]);
             expect(await planningRows(connection, 'pragma foreign_key_list(catalog_links)')).toEqual([]);
             await expect(planningRows(connection, 'select * from catalog_entries')).rejects.toThrow();

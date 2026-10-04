@@ -28,7 +28,7 @@ describe('stable join-table planning boundaries', () => {
             const migrations = contextMigrations(context);
             await migrations.update([initial]);
             await seedJoinCatalog(context, false);
-            await migrations.update([initial, changed]);
+            await migrations.update([initial, changed], { allowDataLoss: true });
             await expectJoinCatalog(context, {});
             for (const script of [sqliteGenerator.generateUpScript(changed), sqliteGenerator.generateDownScript(changed)]) {
                 expect(script).toContain('__entitykit_new_join_entries');
