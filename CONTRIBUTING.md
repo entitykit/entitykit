@@ -21,11 +21,10 @@ test builds the workspaces, installs the tarballs into a clean consumer, checks
 Node16 and NodeNext types, exercises CommonJS and ESM runtimes against SQLite,
 runs the installed CLI, and verifies the single-core package invariant.
 
-CI also runs:
+PR CI also runs runtime coverage:
 
 ```console
 npm run test:coverage
-npm run test:mutation
 ```
 
 Coverage uses two workers that recycle between suites at 512 MiB to bound V8
@@ -33,6 +32,25 @@ debugger state on the minimum Node runtime. The full runtime inventory and
 coverage floors remain defined in `config/coverage.json`.
 The coverage command gives Jest's coordinator a 6 GiB heap budget to combine
 the complete inventory without changing worker recycling or coverage floors.
+
+Mutation qualification has a separate cadence. PRs run affected scoped campaigns
+in parallel. SDK, shared fixture, configuration and dependency changes conservatively
+select all 25 scoped campaigns; direct test changes select their campaigns and
+docs-only changes skip mutation execution. The broad core campaign runs in eight
+file-based shards during nightly qualification and every release. Every original
+mutation pattern remains in exactly one shard; the combined original campaign
+score must meet its unchanged floor. An omitted or failed shard fails qualification.
+
+The nightly workflow runs at 05:31 UTC and can also be dispatched manually.
+The release workflow explicitly requires all 26 campaigns on its exact source
+revision, forcing fresh results. PR incremental reports are reusable only when
+SDK, tests, fixtures, dependencies and configuration match; PR jobs cannot save
+caches. Core mutation qualification is deferred on ordinary PRs, so a green PR
+is not complete release qualification. Local full qualification remains:
+
+```console
+npm run test:mutation
+```
 
 The mutation lane is intentionally focused on release-critical restoration,
 migration, CLI, provider-value, cancellation and resource-lifetime seams. Run the relevant expensive gate

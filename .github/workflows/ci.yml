@@ -6,12 +6,26 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full-mutation:
+        description: Run every mutation campaign with fresh results
+        type: boolean
+        default: false
   # Release calls this workflow for the ref it is publishing, so the
   # release gate is this gate rather than a hand-copied subset of it.
   workflow_call:
+    inputs:
+      full-mutation:
+        description: Require complete fresh mutation qualification
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -63,29 +77,23 @@ jobs:
             coverage/lcov.info
           if-no-files-found: warn
 
+  mutation-campaigns:
+    name: Mutation campaigns
+    uses: ./.github/workflows/mutation.yml
+    with:
+      full: ${{ inputs.full-mutation || false }}
+
   mutation:
     name: Critical-path mutation score
+    needs: [mutation-campaigns]
+    if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22.13.0
-          cache: npm
-      - run: npm ci
-      - run: npm run test:mutation
-      - name: Retain mutation qualification reports
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: mutation-reports
-          path: |
-            coverage/mutation*.json
-            coverage/mutation*.html
-          if-no-files-found: warn
+      - name: Require mutation qualification
+        env:
+          RESULT: ${{ needs.mutation-campaigns.result }}
+        run: test "$RESULT" = success
 
   postgres:
     name: Live Postgres on Node ${{ matrix.node }}

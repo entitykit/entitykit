@@ -64,6 +64,13 @@ The exact candidate on `main` must also pass the complete reusable CI matrix:
   database server recovery, and performance budgets;
 - Next.js 16 production browser flows against Postgres 18.
 
+Ordinary PRs run affected scoped mutation campaigns. The broad core campaign is
+split into eight shards for nightly runs and release qualification. Release
+dispatch passes `full-mutation: true` to the reusable CI workflow, forcing fresh
+results from all 26 original campaigns on the release revision. All shards must
+finish and their combined campaign score must meet the original floor. A green
+PR or a nightly report from another revision does not replace this release gate.
+
 The release workflow invokes that matrix for its own dispatch SHA and waits
 for every lane before packing. Older green runs do not qualify a later commit.
 The security tooling review must still be valid in the release window.

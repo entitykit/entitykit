@@ -77,11 +77,15 @@ jobs:
     needs: [confirm, guard]
     # Every lane CI runs, invoked for this dispatch's ref: verify on Node
     # 22.13 and Node 24, runtime coverage, the critical-path mutation score,
-    # live Postgres, live MySQL, and the Next.js/Postgres browser flow. Calling
+    # live Postgres, live MySQL, and the Next.js/Postgres browser flow. The full
+    # mutation input forces every campaign, including all broad-core shards,
+    # on this exact release revision without reusing incremental results. Calling
     # the workflow instead of restating
     # a subset of it is what keeps the release gate from drifting behind the
     # branch gate.
     uses: ./.github/workflows/ci.yml
+    with:
+      full-mutation: true
 
   evidence:
     name: Pack the release tarballs

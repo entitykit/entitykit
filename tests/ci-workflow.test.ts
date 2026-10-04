@@ -44,9 +44,9 @@ const packageNames = [
  */
 const packedIntegrity =
     'packed="sha512-$(openssl dgst -sha512 -binary "$tarball" | base64 | tr -d \'\\n\')"';
-/** The lanes a release must clear, all of them owned by ci.yml. */
+/** The ordinary evidence lanes owned by ci.yml. */
 const evidenceCommands = [
-    'npm run verify', 'npm run test:coverage', 'npm run test:mutation',
+    'npm run verify', 'npm run test:coverage',
     'npm run test:integration', 'npm run test:integration:mysql',
 ] as const;
 
@@ -55,7 +55,7 @@ describe('public CI workflow', () => {
 
     it('owns exactly the evidence and release workflows', () => {
         expect(fs.readdirSync(workflowDirectory).sort())
-            .toEqual(['ci.yml', 'release.yml']);
+            .toEqual(['ci.yml', 'mutation.yml', 'release.yml']);
     });
 
     it('runs every alpha release evidence lane', () => {
@@ -80,10 +80,8 @@ describe('public CI workflow', () => {
             workflow.indexOf('\npermissions:'),
         );
 
-        // Release calls this file, so the release gate cannot drift into
-        // a hand-copied subset of the branch gate.
+        // Release calls the same gate with full mutation qualification.
         expect(triggers).toContain('workflow_call:');
-        // ...without giving up the triggers that gate main in the first place.
         expect(triggers).toContain('push:');
         expect(triggers).toContain('pull_request:');
         expect(triggers).toContain('workflow_dispatch:');
@@ -92,16 +90,18 @@ describe('public CI workflow', () => {
     it('pins actions immutably and does not persist push credentials', () => {
         const uses = pinnedActions(workflow);
         expect(uses.length).toBeGreaterThan(0);
-        expect(uses.every(value => /@[0-9a-f]{40}$/u.test(value)))
+        expect(uses.filter(value => !value.startsWith('./')).every(value => /@[0-9a-f]{40}$/u.test(value)))
             .toBe(true);
+        expect(uses.filter(value => value.startsWith('./'))).toEqual(['./.github/workflows/mutation.yml']);
         expect(workflow.match(/persist-credentials: false/gu)?.length)
-            .toBe(6);
+            .toBe(5);
         expect(workflow).toContain('permissions:\n  contents: read');
     });
 
     it('never publishes from the evidence workflow', () => {
         expect(workflow).not.toContain('npm publish');
     });
+
 });
 
 describe('coordinated release workflow', () => {
@@ -158,11 +158,11 @@ describe('coordinated release workflow', () => {
     });
 
     it('runs the complete CI matrix on the ref it is releasing', () => {
-        // The release matrix IS the CI matrix: both Node versions, runtime
-        // coverage, the mutation score, and both live databases, invoked as a
-        // reusable workflow so the caller cannot silently keep a subset.
+        // A release calls the complete reusable matrix with fresh mutations.
         expect(jobBlock(workflow, 'ci'))
             .toContain('uses: ./.github/workflows/ci.yml');
+        expect(jobBlock(workflow, 'ci')).toContain('full-mutation: true');
+        expect(jobBlock(ci, 'mutation-campaigns')).toContain('uses: ./.github/workflows/mutation.yml');
         expect(ci).toContain('workflow_call:');
         expect(ci).toContain('node: [22.13.0, 24]');
         for (const command of evidenceCommands) {
