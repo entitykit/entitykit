@@ -102,6 +102,11 @@ existing checks. The full new 27-mutant warning-validation campaign improves
 from 92.59% to 100%, with 100% line and branch coverage. The assertion-only
 restoration slice compares identity without formatting opaque causes and
 converts two critical runner crashes into ordinary killed mutants.
+The cancellation assertion slice records driver-rejection ownership before
+test cleanup and observes failures in discarded promise branches. All four
+remaining runner errors become ordinary killed mutants, and the empty-handler
+deletion fails promptly. Independent compiled API probes pass under Node's
+strict unhandled-rejection mode on both runtimes; SDK sources are unchanged.
 Each slice retains its own source-attributed qualification receipt.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
@@ -114,7 +119,7 @@ pass on the exact reconciled release SHA before publication.
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
 | Runtime coverage | 768 executable source files; 95.48% statements/lines, 91.79% branches, 94.96% functions at the clean preceding checkpoint; all existing floors pass |
-| Critical mutation | 95.77% across the original 57-file / 1,401-mutant scope; 1,394 scored mutants and four remaining runner errors; fresh baseline plus incremental qualification |
+| Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,305 killed, 34 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
 | SQLite DDL mutation | 90.57% in a separate four-file / 488-mutant campaign covering schema extraction across quoting, comments and expression boundaries |
@@ -137,7 +142,7 @@ coverage, all fourteen mutation campaigns, both provider lanes on both runtimes,
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The preceding clean complete coverage run took 150 seconds; its inventory rules and floors
+The preceding clean complete coverage run at `71d74df2` took 146 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity
