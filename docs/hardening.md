@@ -281,6 +281,15 @@ four-module parser scope passes 118 tests on both runtimes and scores 90.12%
 across 496 eligible mutants; the repaired token matcher has complete line,
 branch and function coverage. The overall parser scope has 99.39% line and
 98.52% branch coverage with complete function coverage.
+Checked materialization accepts precision on `timestamptz` while retaining
+Date-instance and finite-time validation. Tracked and untracked saved values
+qualify on SQLite and Postgres; MySQL datetime precision remains compatible.
+All five precision cases pass on each provider and runtime. The complete
+scalar-checker campaign passes 77 focused tests and kills 78 of 80 eligible
+mutants (97.50%) with no uncovered mutants or runner errors and complete line,
+branch and function coverage. These four review repairs require fresh combined
+verification and the full hosted CI matrix on the corrected revision before
+merging or publication; the earlier required-key receipts cover their own SHA.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
 18.4 on an isolated loopback port, MySQL 8.4.11 in an isolated Docker service,
 and temporary SQLite files. Hosted release lanes use `ubuntu-latest` and must
@@ -320,7 +329,7 @@ pass on the exact reconciled release SHA before publication.
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all twenty-five mutation campaigns, both provider lanes on both runtimes, and
+coverage, all twenty-six mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.

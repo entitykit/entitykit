@@ -13,7 +13,7 @@ export function isCheckedScalarValue(value: unknown, columnType: string): boolea
     if (/^(?:bool|boolean)$/u.test(type)) {
         return typeof value === 'boolean';
     }
-    if (/^(?:timestamp(?:\(\d+\))?(?: with(?:out)? time zone)?|timestamptz|datetime(?:\(\d+\))?)$/u.test(type)) {
+    if (/^(?:timestamp(?:\(\d+\))?(?: with(?:out)? time zone)?|timestamptz(?:\(\d+\))?|datetime(?:\(\d+\))?)$/u.test(type)) {
         return value instanceof Date && Number.isFinite(value.getTime());
     }
     if (/^(?:bytea|blob|(?:var)?binary(?:\(\d+\))?)$/u.test(type)) {

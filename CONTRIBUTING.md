@@ -46,6 +46,8 @@ command, pass `--config config/jest/jest.config.cjs`.
 `npm run test:mutation:relationship-index` qualifies complete index finalization
 and alternate-key backing indexes, including one-to-one enforcement with mixed
 or filtered indexes, covering columns and composite-key reuse.
+`npm run test:mutation:checked-scalar` qualifies the complete checked scalar
+validator, including timestamp precision and refusal of incompatible values.
 `test:mutation` includes separate history-initialization/migration-lock,
 provider-validation, SQLite DDL, migration checksum, property metadata, snapshot rename,
 SQLite rebuild, SQLite rebuild planning, schema DDL, join-table planning, primary-key order, migration warnings, and existing-key changes

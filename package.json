@@ -38,7 +38,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --config config/jest/jest.config.cjs --runInBand --testPathIgnorePatterns=/tests/integration/ --testPathIgnorePatterns=/node_modules/ --testPathIgnorePatterns=/.claude/",
     "test:coverage": "node --max-old-space-size=6144 node_modules/jest/bin/jest.js --config config/jest/jest.coverage.config.cjs && node scripts/check-runtime-coverage.js",
-    "test:mutation": "stryker run config/stryker/stryker.config.cjs && npm run test:mutation:migrations && npm run test:mutation:provider-validation && npm run test:mutation:sqlite-ddl && npm run test:mutation:checksum && npm run test:mutation:property-metadata && npm run test:mutation:snapshot-rename && npm run test:mutation:sqlite-rebuild && npm run test:mutation:sqlite-planning && npm run test:mutation:schema-ddl && npm run test:mutation:sqlite-joins && npm run test:mutation:primary-key-order && npm run test:mutation:migration-warnings && npm run test:mutation:primary-key-change && npm run test:mutation:postgres-generation && npm run test:mutation:store-generation && npm run test:mutation:mysql-types && npm run test:mutation:operation-signal && npm run test:mutation:json-validation && npm run test:mutation:postgres-schema-values && npm run test:mutation:mixed-index && npm run test:mutation:query-plan && npm run test:mutation:migration-table-order && npm run test:mutation:required-primary-key && npm run test:mutation:relationship-index",
+    "test:mutation": "stryker run config/stryker/stryker.config.cjs && npm run test:mutation:migrations && npm run test:mutation:provider-validation && npm run test:mutation:sqlite-ddl && npm run test:mutation:checksum && npm run test:mutation:property-metadata && npm run test:mutation:snapshot-rename && npm run test:mutation:sqlite-rebuild && npm run test:mutation:sqlite-planning && npm run test:mutation:schema-ddl && npm run test:mutation:sqlite-joins && npm run test:mutation:primary-key-order && npm run test:mutation:migration-warnings && npm run test:mutation:primary-key-change && npm run test:mutation:postgres-generation && npm run test:mutation:store-generation && npm run test:mutation:mysql-types && npm run test:mutation:operation-signal && npm run test:mutation:json-validation && npm run test:mutation:postgres-schema-values && npm run test:mutation:mixed-index && npm run test:mutation:query-plan && npm run test:mutation:migration-table-order && npm run test:mutation:required-primary-key && npm run test:mutation:relationship-index && npm run test:mutation:checked-scalar",
     "test:mutation:migrations": "stryker run config/stryker/stryker.migration.config.cjs",
     "test:mutation:migrations:dry": "stryker run config/stryker/stryker.migration.config.cjs --dryRunOnly",
     "test:mutation:provider-validation": "stryker run config/stryker/stryker.provider-validation.config.cjs",
@@ -110,7 +110,9 @@
     "test:mutation:required-primary-key": "stryker run config/stryker/stryker.required-primary-key.config.cjs",
     "test:mutation:required-primary-key:dry": "stryker run config/stryker/stryker.required-primary-key.config.cjs --dryRunOnly",
     "test:mutation:relationship-index": "stryker run config/stryker/stryker.relationship-index.config.cjs",
-    "test:mutation:relationship-index:dry": "stryker run config/stryker/stryker.relationship-index.config.cjs --dryRunOnly"
+    "test:mutation:relationship-index:dry": "stryker run config/stryker/stryker.relationship-index.config.cjs --dryRunOnly",
+    "test:mutation:checked-scalar": "stryker run config/stryker/stryker.checked-scalar.config.cjs",
+    "test:mutation:checked-scalar:dry": "stryker run config/stryker/stryker.checked-scalar.config.cjs --dryRunOnly"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",
