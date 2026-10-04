@@ -11,7 +11,7 @@ passes on its exact source revision.
 | Runtime | Alpha status | Boundary |
 | --- | --- | --- |
 | Node.js 22.13.0 | Qualified baseline | Runs the complete verify gate, builds release artifacts, and drives the coverage, mutation, Postgres, and MySQL lanes. This is the minimum supported version. |
-| Node.js 24 | Qualified | Runs the complete `npm run verify` gate. |
+| Node.js 24 | Qualified | Runs the complete verify gate and both live database lanes, including recovery and performance qualification. |
 | Other patches/minors of Node.js 22 and 24 from 22.13 onward | Expected to work | Allowed by the package manifests, but not every minor or patch is a separate CI lane. |
 | Other Node.js majors | Unqualified | An engine range permits installation; a new major needs its own release campaign before support is claimed. |
 | Node.js before 22.13 | Unsupported | Outside `engines`; the SQLite provider also depends on the built-in `node:sqlite` module available at the supported baseline. |
@@ -77,7 +77,7 @@ A source example or source-only typecheck is not that gate.
 | Custom | `@entitykit/core/adapter` | Provider-owned | Not qualified by EntityKit | The adapter contracts are public alpha APIs. A third-party provider owns its database and driver support claims. |
 
 Postgres 18 and MySQL 8.4 are the server versions exercised by the live CI
-lanes. Other server versions may work, but they are not release-qualified by
+lanes on Node 22.13 and Node 24. Other server versions may work, but they are not release-qualified by
 this alpha.
 
 ### Provider feature matrix
