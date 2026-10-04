@@ -43,13 +43,15 @@ export function renderPostgresStoreType(column: ColumnRow): string {
     }
 
     if (
+        ['numeric', 'decimal'].includes(column.data_type) &&
         column.numeric_precision !== null &&
-    column.numeric_scale !== null &&
-    Number(column.numeric_scale) > 0
+        column.numeric_scale !== null
     ) {
+        // PostgreSQL stores numeric scale as a signed 11-bit catalog value.
+        const scale = (Number(column.numeric_scale) & 0x7ff ^ 0x400) - 0x400;
         return (
             `${column.data_type}(` +
-      `${String(Number(column.numeric_precision))},${String(Number(column.numeric_scale))})`
+            `${String(Number(column.numeric_precision))},${String(scale)})`
         );
     }
 

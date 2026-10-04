@@ -144,8 +144,22 @@ mutant scoreable, and the diagnostic repair adds seven mutants. All 421 lines an
 23 functions are covered, with 99.20% branch coverage; the remaining branch is a
 defensive null-prototype diagnostic fallback.
 
+Postgres schema pull now retains numeric precision at scale zero and decodes
+signed numeric scale from catalog metadata. Previously, `numeric(10,0)` became
+unconstrained `numeric`, and `numeric(2,-3)` became invalid `numeric(2,2045)`.
+Seventy-nine new unit cases and three native Bookshop cases qualify generated
+schema recreation, rounding, overflow, quoted index keys, expressions, included
+columns and partial predicates on both runtimes. The two complete-module
+campaign improves from 56.07% on 214 baseline mutants to 98.14% on 215 repaired
+mutants, with 211 killed and four retained. All 157 lines, 72 branches and nine
+functions are covered; no mutants are uncovered, time out or crash the runner.
+The index/sequence facet module kills all 96 mutants. Two redundant alias
+mappings and two legacy string-array boundary mutants remain eligible.
+The scale decoding matches [PostgreSQL's numeric implementation](https://github.com/postgres/postgres/blob/REL_18_STABLE/src/backend/utils/adt/numeric.c)
+and the native PostgreSQL 18.4 catalog representation.
+
 The preceding signed complete coverage checkpoint is
-`19b718a9539f93c4aceea59727e8e84b848f6240`. The preceding signal-wrapper candidate passed
+`e02db1e98ea09f370b1506d22a249069e98fe358`. The preceding JSON candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -168,10 +182,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 538 suites / 3,892 tests on both runtimes for the current JSON qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 541 suites / 3,971 tests on both runtimes for the current Postgres metadata qualification; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 768 executable source files; 95.62% statements/lines, 92.24% branches, 95.10% functions at the clean preceding checkpoint; all existing floors pass |
+| Runtime coverage | 768 executable source files; 95.65% statements/lines, 92.34% branches, 95.10% functions at the clean preceding checkpoint; all existing floors pass |
 | Critical mutation | 95.78% across the original 57-file / 1,401-mutant scope; 1,398 scored mutants, 1,305 killed, 34 timeouts, 52 survivors, seven uncovered and zero runner errors; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -191,16 +205,17 @@ pass on the exact reconciled release SHA before publication.
 | MySQL type and snapshot mutation | 99.40% across all 167 mutants in two complete modules; exact ENUM and SET values, type aliases, collation handling, ordering and filtered metadata; 100% line, branch and function coverage |
 | Operation-signal mutation | 100% across all 25 mutants in the full wrapper; capabilities, receiver binding, options, composed cancellation, transaction state and disposal; 100% line, branch and function coverage |
 | JSON validation mutation | 97.46% across all 276 mutants in four complete modules; exact paths, descriptor safety, thenables, promise ownership and retry; 100% line/function coverage and 99.20% branches; no uncovered mutants or runner errors |
-| Canonical live providers | Postgres: 34 suites / 165 tests; MySQL: 24 suites / 129 tests; both runtimes pass for the current JSON qualification |
+| Postgres metadata mutation | 98.14% across all 215 mutants in two complete modules; numeric precision and signed scale, arrays, booleans, index and sequence facets; 100% line, branch and function coverage; index/sequence facets kill all 96 mutants |
+| Canonical live providers | Postgres: 35 suites / 168 tests; MySQL: 24 suites / 129 tests; both runtimes pass for the current Postgres metadata qualification |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all nineteen mutation campaigns, both provider lanes on both runtimes, and
+coverage, all twenty mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The preceding clean complete coverage run at `19b718a9` took 148 seconds; its inventory rules and floors
+The preceding clean complete coverage run at `e02db1e9` took 151 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity
