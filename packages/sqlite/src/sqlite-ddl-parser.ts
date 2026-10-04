@@ -2,6 +2,7 @@ import type {
     DatabaseCheckConstraint,
     DatabaseIndexKeyPart,
 } from '@entitykit/core/adapter';
+import { sqliteColumnChecks, sqliteGeneratedExpression } from './sqlite-ddl-column';
 import {
     collectNamedCheckNames,
     hasKeywordSequence,
@@ -13,6 +14,7 @@ import {
     tableDefinitionSuffix,
     unquoteIdentifier,
 } from './sqlite-ddl-scanner';
+import { sqliteDdlMatches, sqliteDdlText } from './sqlite-ddl-text';
 export interface SqliteColumnDdl {
     readonly autoIncrement: boolean;
     readonly collation?: string;
@@ -43,7 +45,7 @@ export function parseSqliteTableSql(sql: string | undefined): {
         return candidate;
     };
     for (const definition of definitions) {
-        const namedCheck = /^constraint\s+("[^"]+"|`[^`]+`|\[[^\]]+\]|\S+)\s+check\s*\(([\s\S]*)\)$/i.exec(definition);
+        const namedCheck = /^constraint\s+("(?:[^"]|"")+"|`(?:[^`]|``)+`|\[[^\]]+\]|\S+)\s+check\s*\(([\s\S]*)\)$/i.exec(definition);
         if (namedCheck) {
             checks.push({ name: unquoteIdentifier(namedCheck[1]), sql: namedCheck[2].trim() });
             continue;
@@ -64,8 +66,8 @@ export function parseSqliteTableSql(sql: string | undefined): {
             continue;
         }
         const rest = definition.slice(identifier.length).trim();
-        const collation = /\bcollate\s+("[^"]+"|`[^`]+`|\[[^\]]+\]|[^\s,)]+)/i.exec(rest)?.[1];
-        const generated = generatedExpression(rest);
+        const collation = sqliteDdlMatches(rest, /\bcollate\s+("(?:[^"]|"")+"|`(?:[^`]|``)+`|\[[^\]]+\]|[^\s,)]+)/ig).at(0)?.[1];
+        const generated = sqliteGeneratedExpression(rest);
         columns.set(unquoteIdentifier(identifier), {
             autoIncrement: hasKeywordSequence(rest, ['autoincrement']),
             collation: collation ? unquoteIdentifier(collation) : undefined,
@@ -73,7 +75,7 @@ export function parseSqliteTableSql(sql: string | undefined): {
             generatedStored: generated?.stored,
             primaryKeyDescending: hasKeywordSequence(rest, ['primary', 'key', 'desc']),
         });
-        checks.push(...columnChecks(
+        checks.push(...sqliteColumnChecks(
             rest,
             anonymousName,
         ));
@@ -92,58 +94,20 @@ export function parseSqliteIndexSql(sql: string | undefined): {
     if (!sql) {
         return {};
     }
-    const onPosition = sql.search(/\bon\b/i);
-    const open = sql.indexOf('(', onPosition);
-    const close = matchingParen(sql, open);
-    if (open < 0 || close < 0) {
+    const text = sqliteDdlText(sql);
+    const onPosition = text.code.search(/\bon\b/i);
+    const open = text.code.indexOf('(', onPosition);
+    const close = matchingParen(text.code, open);
+    if (onPosition < 0 || open < 0 || close < 0) {
         return {};
     }
-    const keyParts = splitTopLevel(sql.slice(open + 1, close)).map(term => {
+    const keyParts = splitTopLevel(text.sql.slice(open + 1, close)).map(term => {
         const identifier = simpleIdentifier(term);
         return identifier
             ? { kind: 'column' as const, name: identifier }
             : { kind: 'expression' as const, expression: term.trim() };
     });
-    const tail = sql.slice(close + 1).trim();
+    const tail = text.sql.slice(close + 1).trim();
     const filter = /^where\s+([\s\S]+)$/i.exec(tail)?.[1]?.trim();
     return { keyParts, filter };
-}
-
-function generatedExpression(sql: string): { expression: string; stored: boolean } | undefined {
-    const marker = /\b(?:generated\s+always\s+)?as\s*\(/ig;
-    const match = marker.exec(sql);
-    if (!match) {
-        return undefined;
-    }
-    const open = match.index + match[0].lastIndexOf('(');
-    const close = matchingParen(sql, open);
-    if (close < 0) {
-        return undefined;
-    }
-    return {
-        expression: sql.slice(open + 1, close).trim(),
-        stored: /^\s*stored\b/i.test(sql.slice(close + 1)),
-    };
-}
-
-function columnChecks(
-    sql: string,
-    anonymousName: () => string,
-): DatabaseCheckConstraint[] {
-    const checks: DatabaseCheckConstraint[] = [];
-    const marker = /\b(?:constraint\s+("[^"]+"|`[^`]+`|\[[^\]]+\]|[^\s(]+)\s+)?check\s*\(/ig;
-    let match: RegExpExecArray | null;
-    while ((match = marker.exec(sql)) !== null) {
-        const open = match.index + match[0].lastIndexOf('(');
-        const close = matchingParen(sql, open);
-        if (close < 0) {
-            break;
-        }
-        checks.push({
-            name: match[1] ? unquoteIdentifier(match[1]) : anonymousName(),
-            sql: sql.slice(open + 1, close).trim(),
-        });
-        marker.lastIndex = close + 1;
-    }
-    return checks;
 }
