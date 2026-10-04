@@ -29,7 +29,7 @@ function stepScript(job: string, step: string): string {
 }
 
 export class ReleaseWorkflowSandbox {
-    public readonly directory = createManagedTempDirectory('entitykit-release-workflow-');
+    public readonly directory = fs.realpathSync(createManagedTempDirectory('entitykit-release-workflow-'));
     public readonly statePath = path.join(this.directory, 'registry.json');
     public readonly outputPath = path.join(this.directory, 'outputs');
     public readonly targetTag: string;
