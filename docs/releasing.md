@@ -58,7 +58,7 @@ runs.
 The exact candidate on `main` must also pass the complete reusable CI matrix:
 
 - the canonical gate on Node 22.13.0 and Node 24;
-- runtime coverage and the critical-path mutation score;
+- runtime coverage and all required mutation campaigns;
 - Postgres 18 and MySQL 8.4 integration, Bookshop, published-release migration
   upgrades, cancellation, deadlocks, commit-response loss, process crashes,
   database server recovery, and performance budgets;
