@@ -2243,10 +2243,13 @@ interface SchemaSqlDialect {
     alterSequenceStatement?(current: SqlSequenceDefinition, previous: SqlSequenceDefinition): string;
     alterStoreGenerationStatements?(quotedTable: string, quotedColumn: string, current: StoreGenerationStrategy | undefined, previous: StoreGenerationStrategy | undefined, columnType: string): readonly string[];
     createIndexExistenceGuard?(): string;
+    createSchemaStatements?(schemaName: string): readonly string[];
     // Warning: (ae-forgotten-export) The symbol "SqlSequenceDefinition" needs to be exported by the entry point index.d.ts
     createSequenceStatement?(sequence: SqlSequenceDefinition): string;
+    ddlTableReference?(schemaName: string | undefined, tableName: string): string;
     dropConstraintClause?(kind: 'primaryKey' | 'unique' | 'foreignKey' | 'check', quotedName: string): string;
     dropIndexStatement?(quotedIndex: string, quotedTable: string | undefined, concurrently: boolean): string;
+    dropSchemaStatement?(schemaName: string): string;
     dropSequenceStatement?(sequence: SqlSequenceDefinition): string;
     generatedColumnClause?(expression: string, stored: boolean): string;
     indexExpression?(expression: string): string;

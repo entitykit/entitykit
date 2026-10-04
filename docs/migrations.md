@@ -289,6 +289,10 @@ introspection remain provider-owned behavior.
 ### SQLite
 
 - The provider uses Node's built-in `node:sqlite` driver.
+- Models may map to the implicit `main` schema, including its uppercase spelling.
+  Schema creation, initial migrations, foreign keys, indexes and rebuilds use
+  SQLite's DDL grammar. Other schema namespaces and schema removal are refused.
+  Normal query aliases retain their qualification.
 - SQLite has one implicit `main` schema for EntityKit introspection; attached
   databases are out of scope. `--schema main` is accepted, but other names
   produce an empty pull.

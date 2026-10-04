@@ -17,8 +17,9 @@ export function buildCreateSchemaStatements(
             .filter((schemaName): schemaName is string => Boolean(schemaName)),
     ]);
 
-    return Array.from(schemaNames).map(
-        schemaName =>
-            `create schema if not exists ${dialect.quoteIdentifier(schemaName)};`,
-    );
+    return Array.from(schemaNames).flatMap(schemaName => {
+        const statements = dialect.createSchemaStatements?.(schemaName) ??
+            [`create schema if not exists ${dialect.quoteIdentifier(schemaName)}`];
+        return statements.map(statement => `${statement};`);
+    });
 }

@@ -3,6 +3,7 @@ import type { IndexMetadata } from '../model/index-metadata';
 import { isAlternateKeyBackingIndex } from '../model/alternate-key-indexes';
 import { defaultIndexName } from '../sql/identifiers';
 import type { SqlDialect } from '../sql/sql-dialect';
+import { ddlTableReference } from '../sql/ddl-table-reference';
 
 export function buildIndexes(
     entity: EntityMetadata,
@@ -53,7 +54,7 @@ function buildIndex(
 
     return `create ${unique}index ${existenceGuard}${dialect.quoteIdentifier(
         indexName,
-    )} on ${dialect.quoteQualifiedIdentifier(
+    )} on ${ddlTableReference(dialect,
         entity.schemaName, entity.tableName,
     )} (${columns})${includeClause}${filterClause};`;
 }

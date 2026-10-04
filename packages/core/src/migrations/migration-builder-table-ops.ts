@@ -1,6 +1,7 @@
 import type { MigrationBuilderCore } from './migration-builder-core';
 import { collectTableColumns, type MigrationTableCallback } from './migration-table-builder';
 import { renderColumn } from './migration-builder-column-render';
+import { ddlTableReference } from '../sql/ddl-table-reference';
 import type {
     MigrationColumnDefinition,
     MigrationCreateTableOptions,
@@ -18,11 +19,14 @@ import type {
  * Add a `create schema if not exists` operation.
  */
 export function createSchema(core: MigrationBuilderCore, schemaName: string): void {
-    core.emitDdl(`create schema if not exists ${core.dialect.quoteIdentifier(schemaName)}`);
+    const statements = core.dialect.createSchemaStatements?.(schemaName) ??
+        [`create schema if not exists ${core.dialect.quoteIdentifier(schemaName)}`];
+    for (const statement of statements) core.emitDdl(statement);
 }
 
 export function dropSchema(core: MigrationBuilderCore, schemaName: string): void {
-    core.emitDdl(`drop schema if exists ${core.dialect.quoteIdentifier(schemaName)}`);
+    core.emitDdl(core.dialect.dropSchemaStatement?.(schemaName) ??
+        `drop schema if exists ${core.dialect.quoteIdentifier(schemaName)}`);
 }
 
 export function createTable(
@@ -76,7 +80,7 @@ export function createTable(
         const principalColumns = foreignKey.principalColumns.map(column => core.dialect.quoteIdentifier(column)).join(', ');
         const onDelete = foreignKey.onDelete ? ` on delete ${foreignKey.onDelete}` : '';
         parts.push(
-            `constraint ${core.dialect.quoteIdentifier(foreignKey.name)} foreign key (${localColumns}) references ${core.dialect.quoteQualifiedIdentifier(foreignKey.principalSchemaName, foreignKey.principalTableName)} (${principalColumns})${onDelete}`,
+            `constraint ${core.dialect.quoteIdentifier(foreignKey.name)} foreign key (${localColumns}) references ${ddlTableReference(core.dialect, foreignKey.principalSchemaName, foreignKey.principalTableName)} (${principalColumns})${onDelete}`,
         );
     }
     for (const check of options.checkConstraints ?? []) {

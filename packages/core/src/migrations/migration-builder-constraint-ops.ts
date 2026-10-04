@@ -1,4 +1,5 @@
 import type { MigrationBuilderCore } from './migration-builder-core';
+import { ddlTableReference } from '../sql/ddl-table-reference';
 import type { MigrationForeignKeyDefinition } from './migration-builder-types';
 
 /**
@@ -59,7 +60,7 @@ export function addForeignKey(core: MigrationBuilderCore, foreignKey: MigrationF
     const principalColumns = foreignKey.principalColumns.map(column => core.dialect.quoteIdentifier(column)).join(', ');
     const onDelete = foreignKey.onDelete ? ` on delete ${foreignKey.onDelete}` : '';
     core.emitDdl(
-        `alter table ${core.dialect.quoteQualifiedIdentifier(foreignKey.schemaName, foreignKey.tableName)} add constraint ${core.dialect.quoteIdentifier(foreignKey.name)} foreign key (${columns}) references ${core.dialect.quoteQualifiedIdentifier(foreignKey.principalSchemaName, foreignKey.principalTableName)} (${principalColumns})${onDelete}`,
+        `alter table ${core.dialect.quoteQualifiedIdentifier(foreignKey.schemaName, foreignKey.tableName)} add constraint ${core.dialect.quoteIdentifier(foreignKey.name)} foreign key (${columns}) references ${ddlTableReference(core.dialect, foreignKey.principalSchemaName, foreignKey.principalTableName)} (${principalColumns})${onDelete}`,
     );
 }
 

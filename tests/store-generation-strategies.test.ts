@@ -23,9 +23,10 @@ class TenantGeneratedNumber {
 function generatedModel(
     configure: (property: PropertyBuilder<number>) => void,
     type = 'integer',
+    schema = 'app',
 ): ModelBuilderImplementation {
     return new ModelBuilderImplementation().entity(GeneratedNumber, entity => {
-        entity.toTable('generated_numbers', 'app');
+        entity.toTable('generated_numbers', schema);
         entity.hasKey(row => row.id);
         configure(entity.property(row => row.id).hasColumnName('id').hasColumnType(type));
         entity.property(row => row.sequenceValue)
@@ -65,7 +66,7 @@ describe('store-generation strategies', () => {
             .toContain('`id` int primary key auto_increment');
 
         const sqlite = generatedModel(property =>
-            property.useSqliteRowId({ preventReuse: true })).build();
+            property.useSqliteRowId({ preventReuse: true }), 'integer', 'main').build();
         expect(new SchemaSqlBuilder(sqliteProviderServices.dialect).build(sqlite))
             .toContain('"id" integer primary key autoincrement');
     });
@@ -153,9 +154,9 @@ describe('store-generation strategies', () => {
 
     it('rebuilds SQLite tables when rowid reuse semantics change', () => {
         const before = generatedModel(property =>
-            property.useSqliteRowId()).build().toSnapshot();
+            property.useSqliteRowId(), 'integer', 'main').build().toSnapshot();
         const after = generatedModel(property =>
-            property.useSqliteRowId({ preventReuse: true }))
+            property.useSqliteRowId({ preventReuse: true }), 'integer', 'main')
             .build().toSnapshot();
         const migration = diffModelSnapshots(before, after)
             .toMigration('2_RowId', 'RowId');
@@ -168,7 +169,7 @@ describe('store-generation strategies', () => {
             '"id" integer primary key autoincrement',
         );
         expect(generator.generateUpScript(migration)).toContain(
-            'select "id", "sequence_value" from "app"."generated_numbers"',
+            'select "id", "sequence_value" from "main"."generated_numbers"',
         );
         expect(generator.generateDownScript(migration))
             .not.toContain('autoincrement');

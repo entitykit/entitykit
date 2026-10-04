@@ -10,7 +10,7 @@ The Pagerbase adoption step is replaced by the repository-owned
 tenant-scoped checkout and fulfillment application through public packages.
 Pagerbase itself has not been modified.
 
-## Open migration qualification
+## Migration qualification
 
 Principal-only SQLite key renames now rebuild dependents whose physical
 foreign-key definitions change. Populated primary, alternate and composite
@@ -27,8 +27,17 @@ Its 32 added regressions cover real schema application and rollback, generated
 source ordering, keys, checks, indexes, defaults and generated columns.
 The complete planning modules reach 100% line and branch coverage.
 
-Initial SQLite migrations for a model explicitly mapped to `main` still emit
-unsupported `create schema` SQL. This remains an open release blocker.
+SQLite models explicitly mapped to `main` or `MAIN` now create and migrate
+without schema-creation SQL or invalid qualified foreign-key and index targets.
+Real catalogs qualify alternate keys, generated columns, collation, indexes,
+reference and many-to-many constraints, table rebuilds and complete rollback.
+Unsupported namespaces fail before schema SQL; implicit schemas cannot be dropped.
+Query alias qualification remains independent of DDL rendering.
+
+Three optional provider rendering methods preserve default Postgres/MySQL SQL
+and allow ordered schema creation statements with the owning dialect as `this`.
+The separate full 38-mutant schema campaign improves from 76.32% to 100%,
+killing all mutants and reaching 100% branch coverage across its three modules.
 
 The cross-table execution repair preserves rows through restrictive, cascading
 and `SET NULL` relationships, including explicit `main` schema names. It
@@ -43,16 +52,16 @@ remain unchanged. This follows
 The property-rename repair separately qualifies metadata references,
 dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
 Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
-mutants in the denominator. All nine campaigns use the existing thresholds;
+mutants in the denominator. All ten campaigns use the existing thresholds;
 the original three scopes are unchanged.
 
 ## Qualification
 
 The latest signed complete coverage checkpoint is
-`57c22d71d74fdf15db93459700a62c39cd7a41ce`. Its working candidate passed
+`84b9a0f2d1e9889445b69ec72a93f4e45c67a800`. Its working candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
-Coverage was then rerun on that clean signed revision. The current planning
+Coverage was then rerun on that clean signed revision. The current schema
 repair has additional focused regressions and its own full mutation scope;
 its subsequent qualification is recorded separately in the slice receipts.
 Local campaigns use Node 22.13.0 and Node 24.19.0 on macOS ARM64, Postgres
@@ -62,10 +71,10 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 514 suites / 3,437 tests on both runtimes at the preceding execution checkpoint; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 519 suites / 3,491 tests on both runtimes for the current schema repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
-| Runtime coverage | 760 executable source files; 95.42% statements/lines, 91.63% branches, 94.91% functions at the clean preceding execution checkpoint; all existing floors pass |
+| Runtime coverage | 760 executable source files; 95.44% statements/lines, 91.69% branches, 94.91% functions at the clean preceding planning checkpoint; all existing floors pass |
 | Critical mutation | 95.76% across the original 57-file / 1,401-mutant scope; 95.72% when holding the original scored denominator constant; fresh baseline plus incremental qualification |
 | Migration mutation | 98.59% on history initialization, lock ownership and transaction boundaries; no untested mutants |
 | Provider validation mutation | 99.27% in a separate campaign for configuration validation before resource allocation; no untested mutants |
@@ -75,16 +84,17 @@ pass on the exact reconciled release SHA before publication.
 | Snapshot rename mutation | 95.83% across all 72 mutants; metadata references, public migration SQL, real dependent renames and rollback |
 | SQLite execution mutation | 100% across all 151 mutants; owned transaction, referential checks, cancellation and setting restoration; 100% branch coverage |
 | SQLite planning mutation | 93.85% across all 195 mutants in three complete modules; 100% line and branch coverage; physical copy identity, dependent rebuilds and operation grouping |
-| Canonical live providers | Postgres: 26 suites / 130 tests; MySQL: 17 suites / 95 tests; both runtimes pass at the preceding execution checkpoint and have passed the principal-only planning qualification |
+| Schema DDL mutation | 100% across all 38 mutants in three complete modules; namespace ownership, implicit SQLite schemas and provider callback rendering; 100% line and branch coverage |
+| Canonical live providers | Postgres: 26 suites / 130 tests; MySQL: 17 suites / 95 tests; both runtimes pass for the current schema repair |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all nine mutation campaigns, both provider lanes on both runtimes, and
+coverage, all ten mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.
-The current complete coverage run took 142 seconds; its inventory rules and floors
+The preceding clean complete coverage run took 148 seconds; its inventory rules and floors
 were preserved.
 
 The preceding coverage follow-up added 118 tests for malformed rename options, identity
@@ -127,11 +137,11 @@ source. These additions leave the original three mutation scopes unchanged.
 The earlier deadlock, lost-acknowledgment and abrupt-server-restart campaigns
 remain attributed to `eea6ccbc66f4d53b6bd044822c247b31b9877427`; those failure
 and recovery implementations are unchanged by the later repairs. The native
-provider suites and historical upgrades have been rerun at the preceding
-execution checkpoint. Provider Bookshop/performance checks and Postgres browser
+provider suites and historical upgrades have been rerun for the current schema
+repair. Provider Bookshop/performance checks and Postgres browser
 flows remain attributed to `49e2a5d402e51d28838db90254a7403bd588bd9c`.
 The latest canonical gates rerun SQLite, package and example checks, with their
-working-candidate inputs attested to the signed execution checkpoint.
+SDK and test inputs retained in the corresponding slice receipts.
 
 ## Contracts qualified by the example and provider campaigns
 

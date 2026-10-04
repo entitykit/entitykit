@@ -7,6 +7,7 @@ import type { SqlStatement } from '@entitykit/core/adapter';
 import { sqliteStoreGenerationClause } from './sqlite-store-generation';
 import { excludedColumnMatchClause } from '@entitykit/core/adapter';
 import { runSqliteMigrationTransaction } from './sqlite-migration-transaction';
+import { sqliteCreateSchemaStatements, sqliteDdlTableReference, sqliteDropSchemaStatement } from './sqlite-schema-ddl';
 
 function quoteIdentifier(identifier: string): string {
     if (!identifier || identifier.trim().length === 0) {
@@ -31,6 +32,9 @@ function quoteQualifiedIdentifier(...identifiers: ReadonlyArray<string | undefin
  */
 export const sqliteDialect: SqlDialect = Object.freeze({
     name: 'sqlite',
+    createSchemaStatements: sqliteCreateSchemaStatements,
+    dropSchemaStatement: sqliteDropSchemaStatement,
+    ddlTableReference: sqliteDdlTableReference,
     maxStatementParameters(): number {
     // SQLITE_MAX_VARIABLE_NUMBER, whose compiled-in default has been 32766
     // since 3.32. Builds may lower it; a build that does will reject a

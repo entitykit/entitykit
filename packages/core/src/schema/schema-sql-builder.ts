@@ -15,8 +15,8 @@ export class SchemaSqlBuilder {
     }
 
     public buildStatements(model: Model): string[] {
-        const schemaStatements = buildCreateSchemaStatements(model, this.dialect);
         const sequenceStatements = buildCreateSequenceStatements(model, this.dialect);
+        const schemaStatements = buildCreateSchemaStatements(model, this.dialect);
         const tableStatements = orderTablesForCreation(model)
             .filter(entity => !entity.isView)
             .map(

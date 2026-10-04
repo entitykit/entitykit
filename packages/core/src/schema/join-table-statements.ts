@@ -4,6 +4,7 @@ import type { Model } from '../model/model';
 import { defaultForeignKeyName } from '../sql/identifiers';
 import type { SqlDialect } from '../sql/sql-dialect';
 import { buildColumnType } from './column-type';
+import { ddlTableReference } from '../sql/ddl-table-reference';
 
 export function buildManyToManyJoinTables(
     model: Model,
@@ -75,7 +76,7 @@ function buildJoinTable(
         [
             `  constraint ${dialect.quoteIdentifier(sourceConstraint)}`,
             `foreign key (${quoted(sourceColumns)})`,
-            `references ${dialect.quoteQualifiedIdentifier(
+            `references ${ddlTableReference(dialect,
                 source.schemaName, source.tableName,
             )} (${quoted(sourceKeys.map(key => key.columnName))})`,
             `on delete ${relationship.deleteBehavior}`,
@@ -83,7 +84,7 @@ function buildJoinTable(
         [
             `  constraint ${dialect.quoteIdentifier(targetConstraint)}`,
             `foreign key (${quoted(targetColumns)})`,
-            `references ${dialect.quoteQualifiedIdentifier(
+            `references ${ddlTableReference(dialect,
                 target.schemaName, target.tableName,
             )} (${quoted(targetKeys.map(key => key.columnName))})`,
             `on delete ${relationship.deleteBehavior}`,
