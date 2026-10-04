@@ -80,7 +80,7 @@ remain unchanged. This follows
 The property-rename repair separately qualifies metadata references,
 dependent-only SQLite renames, and live Postgres/MySQL renames and rollback.
 Its full 72-mutant campaign scores 95.83%, retaining equivalent defensive
-mutants in the denominator. All fourteen campaigns use the existing thresholds;
+mutants in the denominator. All fifteen campaigns use the existing thresholds;
 the original three scopes are unchanged.
 
 ## Qualification
@@ -91,8 +91,18 @@ live Postgres and MySQL reads qualify the same refusal without retaining the
 failed row or changing stored data. Eighteen regressions preserve symmetric
 comparison, cyclic termination and hole/undefined snapshot value semantics.
 
+Postgres introspection now preserves exact owned-sequence identifiers, including
+quoted whitespace, dots, quotes and apostrophes. Sequence declarations, schemas
+and property generation references preserve those names through generated model
+code and recreated native tables. Blank model names remain invalid. Forty-seven
+new unit cases and a live round trip also qualify identity options and retained
+arithmetic defaults. The new full Postgres generation campaign improves from
+49.15% on 118 baseline mutants to 95.04% on 121 repaired-module mutants; the
+identifier repair adds three mutants. Focused generation coverage reaches
+97.75% lines and 97.5% branches, retaining the defensive empty-name guard.
+
 The preceding signed complete coverage checkpoint is
-`b7a3bfa0bf7df77379905e71a3f46d8d61ccf92d`. The preceding key-change candidate passed
+`71d74df24c6a66e387e3d9351f604e20b4bfe80e`. The preceding sparse-array candidate passed
 both canonical runtime gates, both live provider suites and the historical
 upgrade campaign; retained source attestations match the committed inputs.
 Coverage then passed on that clean signed revision. Generated migrations now
@@ -115,7 +125,7 @@ pass on the exact reconciled release SHA before publication.
 
 | Gate | Local evidence |
 | --- | --- |
-| Canonical verification | Lint, live scoped security audit, strict types, 526 suites / 3,626 tests on both runtimes for the current sparse-array repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
+| Canonical verification | Lint, live scoped security audit, strict types, 528 suites / 3,673 tests on both runtimes for the current sequence-identifier repair; production examples, public contracts, historical upgrade, operations, performance, accepted packages and publication dry runs |
 | Public contracts | Ten signature reports and seven package export maps; negative tests for fields, generic constraints, constructors and overloads |
 | Package acceptance | Seven actual tarballs; CommonJS/ESM runtimes, Node16/NodeNext types, one core instance, CLI, peer-skew refusal, and an external packed Bookshop SQLite consumer |
 | Runtime coverage | 768 executable source files; 95.48% statements/lines, 91.79% branches, 94.96% functions at the clean preceding checkpoint; all existing floors pass |
@@ -133,12 +143,13 @@ pass on the exact reconciled release SHA before publication.
 | Primary-key order mutation | 98.88% across all 89 mutants; declared tuple order, compatibility metadata and invalid ordinals; 100% branch coverage |
 | Migration warning mutation | 100% across all 27 mutants; reviewed lists, malformed metadata, safe rename intent and legacy snapshot fallback; 100% branch coverage |
 | Existing key-change mutation | 93.33% across all 30 mutants; typed order refusal, legacy snapshots, physical identity and populated SQLite key transitions; 100% branch coverage |
-| Canonical live providers | Postgres: 30 suites / 149 tests; MySQL: 21 suites / 114 tests; both runtimes pass for the current sparse-array repair |
+| Postgres generation mutation | 95.04% across all 121 mutants; identity options, exact sequence identifiers, SQL quoting and default-expression boundaries; executable native round trip |
+| Canonical live providers | Postgres: 31 suites / 150 tests; MySQL: 21 suites / 114 tests; both runtimes pass for the current sequence-identifier repair |
 | Performance/resources | Thirteen workloads per provider on both runtimes; latency, query/parameter counts, pool pressure, streaming, retained heap/RSS and event-loop budgets pass |
 | Framework example | Next.js 16.3.8 production build, migration check/dry run/application/status, and both real Chromium flows against Postgres |
 
 The complete canonical gate is `npm run verify`. CI also requires runtime
-coverage, all fourteen mutation campaigns, both provider lanes on both runtimes, and
+coverage, all fifteen mutation campaigns, both provider lanes on both runtimes, and
 the Next.js browser lane. [Contributing](../CONTRIBUTING.md) lists the commands.
 Coverage uses two workers that recycle between suites at 512 MiB so V8
 debugger state does not accumulate across the entire suite in one process.

@@ -81,15 +81,15 @@ export class ModelBuilder {
         if (!name.trim()) {
             throw new ModelValidationError('Sequence name must not be empty.');
         }
-        const builder = new SequenceBuilderImplementation({ name: name.trim() });
+        const builder = new SequenceBuilderImplementation({ name });
         try {
             // The public void contract hides values that JavaScript still returns.
             const result: unknown = configure?.(builder);
             assertSynchronousCallbackResult(
                 result,
-                `ModelBuilder.hasSequence(${name.trim()}) callback`,
+                `ModelBuilder.hasSequence(${name}) callback`,
                 message => new ModelValidationError(message, {
-                    sequenceName: name.trim(),
+                    sequenceName: name,
                     contractViolation: 'asyncSequenceConfiguration',
                 }),
             );

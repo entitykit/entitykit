@@ -63,6 +63,8 @@ Run `npm run test:mutation:migration-warnings` for reviewed warning metadata,
 explicit rename intent, malformed declarations, and legacy snapshot fallback.
 Run `npm run test:mutation:primary-key-change` for existing-key order refusal,
 physical tuple identity, legacy metadata, and retained SQLite key transitions.
+Run `npm run test:mutation:postgres-generation` for identity options, exact
+sequence identifiers and catalog default-expression boundaries.
 Their separate scores preserve the original critical
 campaign's scope and comparison.
 

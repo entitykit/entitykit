@@ -84,6 +84,6 @@ function optionalNumber(
 }
 
 function nonEmpty(value: string | null | undefined): string | undefined {
-    const normalized = value?.trim();
-    return normalized && normalized.length > 0 ? normalized : undefined;
+    return value === null || value === undefined || value.length === 0
+        ? undefined : value;
 }

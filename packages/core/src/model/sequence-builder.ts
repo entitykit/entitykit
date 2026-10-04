@@ -65,7 +65,7 @@ function requireName(value: string, label: string): string {
     if (!value.trim()) {
         throw new Error(`${label} must not be empty.`);
     }
-    return value.trim();
+    return value;
 }
 
 function requireInteger(value: number | bigint, label: string): number | bigint {
