@@ -101,6 +101,30 @@ npx entitykit db status --check
 snapshot. Capture model changes in a migration first; do not let runtime model
 state get ahead of migration history.
 
+### Keep index names distinct
+
+Different index definitions on one entity must have distinct effective database
+names. EntityKit checks both configured names and defaults derived from the table
+and physical column names. Model validation, schema generation and snapshot
+comparison reject conflicting definitions before generating or executing
+migration SQL. Equivalent declarations of the same physical index remain valid.
+
+A one-to-one relationship needs unconditional uniqueness on its complete
+foreign-key tuple. An additional filtered or mixed index does not replace that
+enforcement index. For example, give a filtered unique index its own name:
+
+```ts
+entity.hasIndex(row => row.userId)
+  .isUnique()
+  .hasFilter("label <> 'hidden'")
+  .hasDatabaseName("ux_profiles_visible_user");
+```
+
+Existing default names remain unchanged. If a saved snapshot contains colliding
+definitions, review the actual database indexes and correct the model and
+snapshot before planning further changes. Preserve applied migration bodies and
+checksums using [the upgrade procedure](upgrading.md).
+
 ### Preserve renames
 
 A name change can look like a drop followed by an add. Tell the differ when the

@@ -5,6 +5,7 @@ module.exports = {
   mutate: [
     'packages/core/src/model/index-metadata-finalizer.ts',
     'packages/core/src/model/alternate-key-indexes.ts',
+    'packages/core/src/model/index-name-validation.ts',
   ],
   jest: { ...base.jest, configFile: 'config/jest/jest.relationship-index.config.cjs' },
   htmlReporter: { fileName: 'coverage/mutation-relationship-index.html' },

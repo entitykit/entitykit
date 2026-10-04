@@ -4,7 +4,8 @@ import { createSqliteDataSource } from '../../packages/sqlite/src';
 import { createPostgresDataSource } from '../../packages/postgres/src';
 import { createMySqlDataSource } from '../../packages/mysql/src';
 
-export type RelationshipIndexMode = 'original' | 'propertyFirst' | 'expressionFirst' | 'filtered' | 'ordinary';
+export type RelationshipIndexMode = 'original' | 'propertyFirst' | 'expressionFirst' | 'filtered' | 'ordinary'
+    | 'filteredUnnamed' | 'propertyFirstCollision' | 'expressionFirstCollision';
 class IndexUser {
     public id!: string;
     public profile!: IndexProfile | null;
@@ -32,14 +33,16 @@ export class RelationshipIndexContext extends DbContext {
             entity.property(row => row.userId).hasColumnName('user_id').hasColumnType('varchar(64)').isRequired();
             entity.property(row => row.label).hasColumnType('varchar(64)').isRequired();
             entity.hasOne(IndexUser, row => row.user).withOne(row => row.profile).hasForeignKey(row => row.userId);
-            if (this.mode === 'ordinary' || this.mode === 'filtered') {
-                const index = entity.hasIndex(row => row.userId).isUnique().hasDatabaseName('ux_profile_user_configured');
-                if (this.mode === 'filtered') index.hasFilter('label <> \'hidden\'');
+            if (this.mode === 'ordinary' || this.mode === 'filtered' || this.mode === 'filteredUnnamed') {
+                const index = entity.hasIndex(row => row.userId).isUnique();
+                if (this.mode !== 'filteredUnnamed') index.hasDatabaseName('ux_profile_user_configured');
+                if (this.mode !== 'ordinary') index.hasFilter('label <> \'hidden\'');
             } else if (this.mode !== 'original') {
                 const property = { kind: 'property', propertyName: 'userId' } as const;
                 const expression = { kind: 'expression', expression: 'lower(label)' } as const;
-                entity.hasIndex(this.mode === 'propertyFirst' ? [property, expression] : [expression, property])
-                    .hasDatabaseName('ux_profile_user_label').isUnique();
+                entity.hasIndex(this.mode === 'propertyFirst' || this.mode === 'propertyFirstCollision'
+                    ? [property, expression] : [expression, property])
+                    .hasDatabaseName(this.mode.endsWith('Collision') ? 'ux_ek_index_profiles_user_id' : 'ux_profile_user_label').isUnique();
             }
         });
     }

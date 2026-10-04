@@ -14,7 +14,7 @@ import { diffCheckConstraints } from './model-diff-check-detector';
 import { diffSequences } from './model-diff-sequence-detector';
 import { addSqliteRebuildOperations } from './model-diff-sqlite-rebuild';
 import { addSqliteJoinRebuildOperations } from './model-diff-sqlite-join-rebuild';
-
+import { validateIndexDatabaseNames } from '../model/index-name-validation';
 export type { ModelDiffOperation } from './model-diff-operations';
 export type { ModelDiffRenameHints } from './model-diff-rename-hints';
 export {
@@ -33,6 +33,7 @@ export { ModelDiffMigration, migrationFromOperations } from './model-diff-migrat
 }
 
 /** Perform the diff model snapshots operation. */ export function diffModelSnapshots(from: ModelSnapshot, to: ModelSnapshot, options: ModelDiffOptions = {}): ModelDiff {
+    for (const entity of [...from.entities, ...to.entities]) validateIndexDatabaseNames(entity);
     const prepared = applyRenameHints(from, to, options.renameHints);
     const operations = prepareJoinTableRollback([
         ...prepared.renameOperations,
@@ -50,7 +51,6 @@ export { ModelDiffMigration, migrationFromOperations } from './model-diff-migrat
         },
     };
 }
-
 /**
  * Orchestrate the per-facet detectors over a snapshot pair.
  *

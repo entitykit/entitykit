@@ -44,8 +44,9 @@ and mutation test selections. npm and Stryker select their paths explicitly;
 the base config anchors `rootDir` at the repository root. For a direct Jest
 command, pass `--config config/jest/jest.config.cjs`.
 `npm run test:mutation:relationship-index` qualifies complete index finalization
-and alternate-key backing indexes, including one-to-one enforcement with mixed
-or filtered indexes, covering columns and composite-key reuse.
+and alternate-key backing indexes plus physical index-name validation, including
+one-to-one enforcement with mixed or filtered indexes, covering columns,
+composite-key reuse and rejection of colliding generated or configured names.
 `npm run test:mutation:checked-scalar` qualifies the complete checked scalar
 validator, including timestamp precision and refusal of incompatible values.
 `test:mutation` includes separate history-initialization/migration-lock,

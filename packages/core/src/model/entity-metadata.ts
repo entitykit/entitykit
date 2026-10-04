@@ -12,6 +12,7 @@ import type { CheckConstraintMetadata } from './check-constraint-metadata';
 import type { EntityMetadataArgs } from './entity-metadata-args';
 import type { ComplexPropertyMetadata } from './complex-property-metadata';
 import type { CheckedEntityMaterializer } from './checked-materialization-types';
+import { validateIndexDatabaseNames } from './index-name-validation';
 export class EntityMetadata<TEntity extends object = object> {
     public readonly ctor: EntityConstructor<TEntity>;
     public readonly materializer?: EntityMaterializer<TEntity>;
@@ -61,6 +62,7 @@ export class EntityMetadata<TEntity extends object = object> {
         const key = configureEntityMetadataKey(args, this.propertiesByName);
         this.keyProperties = key.keyProperties;
         this.keyMetadata = key.keyMetadata;
+        validateIndexDatabaseNames(this);
     }
     public get tablePath(): readonly string[] {
         return this.schemaName ? [this.schemaName, this.tableName] : [this.tableName];
@@ -93,11 +95,9 @@ export class EntityMetadata<TEntity extends object = object> {
     public getKeyValue(entity: TEntity): unknown {
         return this.key().getKeyValue(entity);
     }
-
     public getKeyValues(entity: TEntity): unknown[] {
         return this.key().getKeyValues(entity);
     }
-
     /** Key values read from a database row, in declaration order. */
     public getKeyValuesFromRow(
         row: Record<string, unknown>,

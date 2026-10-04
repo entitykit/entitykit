@@ -274,6 +274,20 @@ upgrades qualify on all three providers and both runtimes. The new required
 relationship-index campaign covers both complete finalization modules: 144
 eligible mutants, 139 killed, five survivors, no uncovered mutants or runner
 errors, and 96.53% mutation with complete line, branch and function coverage.
+The follow-up index-name repair rejects conflicting definitions with the same
+effective database name in the finalized entity, schema renderer and both
+supplied diff snapshots. Equivalent declarations remain supported. This
+includes unnamed partial indexes and explicitly named mixed indexes colliding
+with an inferred one-to-one key; existing generated identifiers stay unchanged.
+Distinctly named indexes preserve populated enforcement through creation,
+removal and both rollback directions. Nine SQLite/Postgres cases and eight
+MySQL cases qualify rejection before schema changes and valid migration paths
+on both supported runtimes. The expanded relationship campaign passes 170 tests
+across 16 suites on both runtimes and covers all 185 lines, 85 branches and eight
+functions. It scores 96% across 175 eligible mutants: 168 killed and seven
+survivors, with no timeouts, uncovered mutants or runner errors. The new
+physical-name validator kills 29 of 31 mutants; two equivalent substitutions of
+its internal term labels remain eligible alongside the five existing survivors.
 SQLite schema pull discovers CHECK keywords outside quoted defaults while
 retaining original offsets for names and expressions. Fifteen generated-model
 round trips preserve both enforcement and constraint names. The complete

@@ -1,6 +1,7 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { IndexMetadata } from '../model/index-metadata';
 import { isAlternateKeyBackingIndex } from '../model/alternate-key-indexes';
+import { validateIndexDatabaseNames } from '../model/index-name-validation';
 import { defaultIndexName } from '../sql/identifiers';
 import type { SqlDialect } from '../sql/sql-dialect';
 import { ddlTableReference } from '../sql/ddl-table-reference';
@@ -9,6 +10,7 @@ export function buildIndexes(
     entity: EntityMetadata,
     dialect: SqlDialect,
 ): string[] {
+    validateIndexDatabaseNames(entity);
     return entity.indexes
         .filter(index => !entity.alternateKeys.some(key =>
             isAlternateKeyBackingIndex(index, key.propertyNames)))
