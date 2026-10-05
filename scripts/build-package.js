@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const ts = require('typescript');
 
 const root = path.resolve(__dirname, '..');
 const compiler = require.resolve('typescript/bin/tsc');
@@ -18,6 +19,23 @@ if (args.includes('--clean')) {
     const packageRoot = path.join(root, 'packages', name);
     fs.rmSync(path.join(packageRoot, 'dist'), { recursive: true, force: true });
     fs.rmSync(path.join(packageRoot, 'tsconfig.tsbuildinfo'), { force: true });
+  }
+} else {
+  // TypeScript can consider an unchanged project up to date even when an
+  // emitted file was deleted. Derive every expected output from its config,
+  // including internal modules and declarations, before reusing build info.
+  const configHost = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined };
+  for (const name of packages) {
+    const packageRoot = path.join(root, 'packages', name);
+    const config = ts.getParsedCommandLineOfConfigFile(
+      path.join(packageRoot, 'tsconfig.json'), {}, configHost,
+    );
+    // Let the compiler below report configuration errors itself.
+    if (!config || config.errors.length > 0) continue;
+    const missing = config.fileNames.some(file =>
+      ts.getOutputFileNames(config, file, !ts.sys.useCaseSensitiveFileNames)
+        .some(output => !fs.existsSync(output)));
+    if (missing) fs.rmSync(path.join(packageRoot, 'tsconfig.tsbuildinfo'), { force: true });
   }
 }
 

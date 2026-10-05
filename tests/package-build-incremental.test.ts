@@ -62,6 +62,20 @@ describe('package-family builds', () => {
                 bytes: fs.readFileSync(file), modified: fs.statSync(file).mtimeMs,
             }))).toEqual(before);
 
+            // Retaining build info must not make a successful build skip
+            // deleted runtime, declaration or executable outputs.
+            const missing = [
+                path.join(project, 'packages/sqlite/dist'),
+                path.join(project, 'packages/postgres/dist/index.js'),
+                path.join(project, 'packages/mysql/dist/index.d.ts'),
+                path.join(project, 'packages/core/dist/removed.js'),
+                path.join(project, 'packages/core/dist/removed.d.ts'),
+                path.join(project, 'packages/cli/dist/index.js'),
+            ];
+            for (const file of missing) fs.rmSync(file, { recursive: true, force: true });
+            build();
+            for (const file of [...artifacts, ...missing]) expect(fs.existsSync(file)).toBe(true);
+
             fs.unlinkSync(removedSource);
             const obsoleteOutput = path.join(project, 'packages/core/dist/removed.js');
             expect(fs.existsSync(obsoleteOutput)).toBe(true);

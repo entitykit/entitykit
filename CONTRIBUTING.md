@@ -22,6 +22,8 @@ Node16 and NodeNext types, exercises CommonJS and ESM runtimes against SQLite,
 runs the installed CLI, and verifies the single-core package invariant.
 
 `npm run build` retains TypeScript's incremental state for ordinary development.
+It invalidates a package's build state when expected emitted files are missing,
+so deleting `dist` or an individual runtime/declaration file is repaired by the next build.
 Use `npm run build:clean` after deleting or renaming source files to remove stale
 outputs. Package acceptance and the root prepack hook always use the clean build
 so distributable files come only from the current sources.
