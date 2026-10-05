@@ -11,6 +11,8 @@ import type { RelationshipDetectionValues } from './relationship-detection-value
 import { TrackedCascadeGraph } from './tracked-cascade-graph';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import { cascadeGraphHasDynamicAccessors } from './cascade-graph-stability';
+import { detectLiveTrackedCascades } from './live-cascade-detection';
 
 /** Apply configured delete behavior to dependents already tracked in memory. */
 export function detectTrackedCascades(
@@ -21,6 +23,10 @@ export function detectTrackedCascades(
     const entries = tracker.entries();
     const pending = entries.filter(entry => entry.state === EntityState.Deleted);
     if (pending.length === 0) return;
+    if (cascadeGraphHasDynamicAccessors(entries, model)) {
+        detectLiveTrackedCascades(tracker, model, captured);
+        return;
+    }
     const graph = new TrackedCascadeGraph(tracker, model, entries, captured);
     for (const principal of pending) {
         if (principal.state !== EntityState.Deleted) continue;

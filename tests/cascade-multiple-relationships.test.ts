@@ -3,6 +3,7 @@ import { detectTrackedCascades } from '../packages/core/src/tracking/relationshi
 import { captureRelationshipDetectionValues } from '../packages/core/src/tracking/relationship-detection-values';
 import { sqliteProviderServices } from '../packages/sqlite/src';
 import { contextModel, internalChangeTracker } from './support/public-api-internals';
+import * as graphModule from '../packages/core/src/tracking/tracked-cascade-graph';
 
 class CascadeRoot {
     public id = 0; public leftChildren: MultiChild[] = []; public rightChildren: MultiChild[] = [];
@@ -13,7 +14,7 @@ class MultiChild {
 class MultipleContext extends DbContext {
     public roots = this.set(CascadeRoot);
     public children = this.set(MultiChild);
-    constructor(private readonly setNullLeft = false) {
+    constructor(private readonly setNullLeft = false, private readonly rightBehavior = DeleteBehavior.Cascade) {
         super();
     }
     protected override configure(options: DbContextOptionsBuilder): void {
@@ -32,7 +33,7 @@ class MultipleContext extends DbContext {
             entity.hasOne(CascadeRoot, row => row.left).withMany(row => row.leftChildren)
                 .hasForeignKey(row => row.leftId).onDelete(this.setNullLeft ? DeleteBehavior.SetNull : DeleteBehavior.Cascade);
             entity.hasOne(CascadeRoot, row => row.right).withMany(row => row.rightChildren)
-                .hasForeignKey(row => row.rightId).onDelete(DeleteBehavior.Cascade);
+                .hasForeignKey(row => row.rightId).onDelete(this.rightBehavior);
         });
     }
 }
@@ -76,6 +77,7 @@ async function openMultiple(setNullLeft = false, rightId = 1): Promise<MultipleC
 }
 
 describe('cascade relationships sharing a dependent', () => {
+    afterEach(() => jest.restoreAllMocks());
     it('clears every relationship to the same deleted principal and queues the dependent once', async () => {
         const db = await openMultiple();
         try {
@@ -94,11 +96,17 @@ describe('cascade relationships sharing a dependent', () => {
         }
     });
 
-    it('preserves the initial dependent-state boundary when another principal is processed', async () => {
+    it.each([false, true])('preserves the initial dependent-state boundary when another principal is processed (accessor=%s)', async accessor => {
         const db = await openMultiple(false, 2);
         try {
             const roots = await db.roots.include(row => row.leftChildren).include(row => row.rightChildren).orderBy(row => row.id).toArray();
             const child = roots[0].leftChildren[0];
+            if (accessor) {
+                let left = child.left;
+                Object.defineProperty(child, 'left', { get: () => left, set: (value: CascadeRoot | null) => {
+                    left = value;
+                } });
+            }
             for (const root of roots) db.roots.remove(root);
             db.changeTracker.detectChanges();
             expect(child.left).toBeNull();
@@ -155,12 +163,18 @@ describe('cascade relationships sharing a dependent', () => {
         }
     });
 
-    it('keeps an added dependent detached when more than one relationship cascades', async () => {
+    it.each([false, true])('keeps an added dependent detached when more than one relationship cascades (accessor=%s)', async accessor => {
         const db = await openMultiple();
         try {
             const root = await db.roots.where(row => row.id.eq(1)).single();
             const added = Object.assign(new MultiChild(), { id: 10, leftId: 1, rightId: 1, left: root, right: root });
             const entry = db.children.add(added);
+            if (accessor) {
+                let left: CascadeRoot | null = added.left;
+                Object.defineProperty(added, 'left', { get: () => left, set: (value: CascadeRoot | null) => {
+                    left = value;
+                } });
+            }
             db.roots.remove(root);
             db.changeTracker.detectChanges();
             expect(db.entry(added)).toBeUndefined();
@@ -184,6 +198,58 @@ describe('cascade relationships sharing a dependent', () => {
             expect(added.left).toBeNull();
             expect(added.right).toBe(roots[1]);
             expect(roots[1].rightChildren).toContain(added);
+        } finally {
+            await db.dispose();
+        }
+    });
+    it.each([false, true])('honors a navigation redirected by an earlier cascade accessor (SetNull=%s)', async setNull => {
+        const db = await openMultiple(setNull);
+        try {
+            await db.database.connection.query({ text: 'insert into cascade_roots values (3)', values: [] });
+            await db.database.connection.query({ text: 'insert into multi_children (id, leftId, rightId) values (2, 3, 3)', values: [] });
+            const roots = await db.roots.include(row => row.leftChildren).include(row => row.rightChildren).orderBy(row => row.id).toArray();
+            const first = roots[0].leftChildren[0];
+            const redirected = roots[2].rightChildren[0];
+            let stored = first.left;
+            Object.defineProperty(first, 'left', {
+                get: () => stored,
+                set: (value: CascadeRoot | null) => {
+                    stored = value;
+                    if (value === null) redirected.right = roots[1];
+                },
+            });
+            db.roots.remove(roots[0]); db.roots.remove(roots[1]);
+            const Graph = graphModule.TrackedCascadeGraph;
+            const preparation = jest.spyOn(graphModule, 'TrackedCascadeGraph').mockImplementation((...args) => new Graph(...args));
+            db.changeTracker.detectChanges();
+            expect(db.entry(redirected)?.state).toBe(EntityState.Deleted);
+            expect(redirected.right).toBeNull();
+            expect(redirected.left).toBe(roots[2]);
+            expect(roots[2].leftChildren).toEqual([redirected]);
+            expect(preparation).not.toHaveBeenCalled();
+        } finally {
+            await db.dispose();
+        }
+    });
+    it.each([DeleteBehavior.NoAction, DeleteBehavior.Restrict])('leaves %s relationships for database enforcement in accessor graphs', async behavior => {
+        const db = MultipleContext.create(true, behavior);
+        try {
+            await db.database.ensureCreated();
+            await db.database.connection.query({ text: 'insert into cascade_roots values (1)', values: [] });
+            await db.database.connection.query({ text: 'insert into multi_children (id, leftId, rightId) values (1, 1, 1)', values: [] });
+            const root = await db.roots.include(row => row.leftChildren).include(row => row.rightChildren).single();
+            const child = root.leftChildren[0];
+            let right = child.right;
+            Object.defineProperty(child, 'right', { get: () => right, set: (value: CascadeRoot | null) => {
+                right = value;
+            } });
+            db.roots.remove(root);
+            db.changeTracker.detectChanges();
+            expect(child.leftId).toBeNull();
+            expect(child.left).toBeNull();
+            expect(child.rightId).toBe(1);
+            expect(child.right).toBe(root);
+            expect(db.entry(child)?.state).not.toBe(EntityState.Deleted);
         } finally {
             await db.dispose();
         }

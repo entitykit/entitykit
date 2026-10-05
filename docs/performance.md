@@ -39,12 +39,17 @@ updates each entry's indexes and validates the completed boundary once; public
 detach still validates immediately. Checkpoints, reserved identities, failed
 acceptance and caller-transaction rollback remain covered.
 
-Cascade discovery resolves affected principal/dependent adjacency through the
-existing captured key, tenant and pending-intent rules, then processes a queue.
+Cascade discovery for ordinary data properties resolves affected
+principal/dependent adjacency through the existing captured key, tenant and
+pending-intent rules, then processes a queue.
 It rechecks live relationship intent before applying each edge and preserves
 the dependent-state boundary between principals. The linear work gate covers
 relationship resolution for disjoint pairs and reverse-tracked chains; it does
 not claim every accessor or inverse-collection mutation has constant cost.
+Graphs with relationship/FK accessors or entity/prototype proxies retain ordered
+live discovery: arbitrary user code can redirect another dependent during a
+cascade, which invalidates a precomputed edge index. Descriptor inspection
+selects that path without invoking getters or proxy traps.
 Post-save-only observers no longer rebuild the pre-save plan. An actual
 `savingChanges` callback still does, because it may change tracked state.
 

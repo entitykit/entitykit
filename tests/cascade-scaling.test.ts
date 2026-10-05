@@ -24,6 +24,27 @@ class CascadeContext extends DbContext {
 describe('tracked cascade scaling', () => {
     afterEach(() => jest.restoreAllMocks());
 
+    it('preserves a reverse-tracked cascade chain when navigation accessors require live discovery', async () => {
+        const db = CascadeContext.create();
+        try {
+            await db.database.ensureCreated();
+            await db.database.connection.query({ text: 'insert into cascade_nodes values (1, null), (2, 1), (3, 2)', values: [] });
+            const nodes = await db.nodes.orderByDescending(row => row.id).toArray();
+            let parent = nodes[0].parent;
+            Object.defineProperty(nodes[0], 'parent', { get: () => parent, set: (value: CascadeNode | null) => {
+                parent = value;
+            } });
+            db.nodes.remove(nodes[2]);
+            db.changeTracker.detectChanges();
+            expect(db.changeTracker.entries().every(entry => entry.state === EntityState.Deleted)).toBe(true);
+            expect(nodes.every(node => node.parent === null && node.children.length === 0)).toBe(true);
+            await expect(db.saveChanges()).resolves.toBe(3);
+            expect(await db.nodes.count()).toBe(0);
+        } finally {
+            await db.dispose();
+        }
+    });
+
     it.each([100, 200, 400])('resolves %i disjoint parent/child pairs with linear relationship work', async count => {
         const db = CascadeContext.create();
         try {
