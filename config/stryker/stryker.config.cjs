@@ -53,7 +53,7 @@ module.exports = {
     'packages/core/src/tracking/navigation-load-ownership-checkpoint.ts:82-122',
     'packages/core/src/tracking/navigation-load-ownership-comparison.ts:48-149',
     'packages/core/src/tracking/navigation-load-ownership-facts.ts',
-    'packages/core/src/tracking/entity-entry-snapshot.ts:21-24',
+    'packages/core/src/tracking/entity-entry-snapshot.ts:22-26',
     'packages/core/src/core/many-to-many-change-set.ts:102-106',
     'packages/core/src/query/include-navigation-loaded-state.ts',
     'packages/core/src/query/include-loader.ts:47-70',
