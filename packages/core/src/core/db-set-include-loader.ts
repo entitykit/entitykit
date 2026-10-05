@@ -10,6 +10,7 @@ import type { DbSetContext } from './db-set-context';
 import type { DbSetDiagnostics } from './db-set-diagnostics';
 import type { QueryFilterOperation } from './query-filter-operation';
 import type { IncludeLoadRoot } from '../query/include-loader-context';
+import { useQueryIdentityResolution, type QueryIdentityResolution } from '../materialization/query-identity-resolution';
 
 /**
  * Load one query's include graph through its immutable filter operation.
@@ -18,7 +19,7 @@ import type { IncludeLoadRoot } from '../query/include-loader-context';
  * unwinds every graph write already stitched for this query and detaches only
  * the related entities it recorded tracking itself, leaving the materialized
  * roots without a contradictory relationship graph. A `asNoTracking()` query
- * stitches into a throwaway tracker that is discarded either way, so its
+ * uses query-local identities and an empty tracker for journaling, so its
  * restoration failures are not allowed to poison the context.
  */
 export async function loadDbSetIncludes<TEntity extends object>(
@@ -30,6 +31,7 @@ export async function loadDbSetIncludes<TEntity extends object>(
     changeTracker: ChangeTracker,
     applyQueryFilters: QueryFilterOperation['apply'],
     options?: DatabaseOperationOptions,
+    identities?: QueryIdentityResolution,
 ): Promise<void> {
     const tracked = changeTracker === context.changeTracker;
     return runNavigationLoadOperation(
@@ -50,7 +52,7 @@ export async function loadDbSetIncludes<TEntity extends object>(
             options,
             tracked,
             tracked,
-            scope,
+            useQueryIdentityResolution(scope, identities),
         ).loadRoots(metadata, roots, model.includes),
     );
 }

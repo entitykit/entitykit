@@ -16,6 +16,7 @@ import type { SuppliedIncludeValues } from './include-load-root';
 import { directNavigationWriter } from '../tracking/navigation-writer';
 import type { NavigationLoadScope } from '../tracking/navigation-load-scope';
 import { inertNavigationLoadTrackerJournal } from '../tracking/navigation-load-tracker-journal';
+import { queryIdentityResolutionFor, useQueryIdentityResolution } from '../materialization/query-identity-resolution';
 
 /**
  * Eager relationship/navigation loading for `include(...)`.
@@ -64,9 +65,9 @@ export class IncludeLoader {
             diagnostics,
             valueReader,
             selectSql: new SelectSqlBuilder(dialect),
-            materializer: new Materializer(valueReader, (entry): void => {
+            materializer: useQueryIdentityResolution(new Materializer(valueReader, (entry): void => {
                 trackerJournal.own(entry);
-            }),
+            }), scope ? queryIdentityResolutionFor(scope) : undefined),
         });
     }
 

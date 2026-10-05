@@ -11,6 +11,7 @@ import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { DbSetCountRunner } from './db-set-count-runner';
 import type { QueryFilterOperation } from './query-filter-operation';
 import { loadDbSetIncludes } from './db-set-include-loader';
+import { QueryIdentityResolution, useQueryIdentityResolution } from '../materialization/query-identity-resolution';
 /** Runs full-entity, scalar, projection, and aggregate reads for a `DbSet`. */
 export class DbSetQueryRunner<TEntity extends object> {
     private materializerInstance?: Materializer;
@@ -46,12 +47,18 @@ export class DbSetQueryRunner<TEntity extends object> {
         const tracker = filteredModel.trackingBehavior === 'noTracking'
             ? new ChangeTracker()
             : this.context.changeTracker;
+        const identities = tracker !== this.context.changeTracker
+            ? new QueryIdentityResolution()
+            : undefined;
+        const materializer = identities
+            ? useQueryIdentityResolution(new Materializer(this.context.valueReader), identities)
+            : this.materializer;
         try {
             const materialized = await this.pipeline.execute(
                 shape,
                 async () => {
                     const result = await this.context.database.query(statement, options);
-                    const roots = this.materializer.materializeManyWithValues(
+                    const roots = materializer.materializeManyWithValues(
                         this.metadata, result.rows, tracker,
                     );
                     return {
@@ -70,13 +77,12 @@ export class DbSetQueryRunner<TEntity extends object> {
                         tracker,
                         (metadata, query) => operation.apply(metadata, query),
                         options,
+                        identities,
                     ),
             );
             return materialized.map(root => root.entity);
         } finally {
-            if (tracker !== this.context.changeTracker) {
-                tracker.clear();
-            }
+            identities?.clear();
         }
     }
 

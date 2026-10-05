@@ -2,6 +2,7 @@ import type { DbContextOptionsBuilder, ModelBuilder } from '../packages/core/src
 import { DbContext, EntityState } from '../packages/core/src';
 import { sqliteProviderServices } from '../packages/sqlite/src';
 import * as initialSnapshot from '../packages/core/src/tracking/initial-tracked-entry-snapshot';
+import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
 
 class SnapshotRow {
     public id = 0;
@@ -50,6 +51,40 @@ describe('initial tracked snapshot work', () => {
             expect(fromProvider).toHaveBeenCalledTimes(3 * count);
             expect(db.changeTracker.entries()).toHaveLength(count);
             const row = rows[0];
+            row.payload.nested.label = 'changed';
+            db.changeTracker.detectChanges();
+            expect(db.entry(row)?.state).toBe(EntityState.Modified);
+            expect(db.entry(row)?.originalValues.payload).toEqual({ nested: { label: 'original' } });
+            await expect(db.saveChanges()).resolves.toBe(1);
+            db.changeTracker.clear();
+            await expect(db.rows.find(row.id)).resolves.toMatchObject({
+                payload: { nested: { label: 'changed' } },
+            });
+        } finally {
+            await db.dispose();
+        }
+    });
+
+    it('uses no tracking snapshots for 1000 buffered no-tracking rows and retains attachment facts', async () => {
+        const db = SnapshotContext.create();
+        try {
+            await db.database.ensureCreated();
+            await db.database.connection.query({
+                text: `with recursive numbers(n) as (select 1 union all select n+1 from numbers where n < 1000)
+                    insert into snapshot_rows select n, '{"nested":{"label":"original"}}' from numbers`,
+                values: [],
+            });
+            const snapshots = jest.spyOn(initialSnapshot, 'captureInitialTrackedEntrySnapshot');
+            const tracked = jest.spyOn(ChangeTracker.prototype, 'track');
+            fromProvider.mockClear();
+            const rows = await db.rows.asNoTracking().toArray();
+            expect(rows).toHaveLength(1000);
+            expect(tracked).not.toHaveBeenCalled();
+            expect(snapshots).not.toHaveBeenCalled();
+            expect(fromProvider).toHaveBeenCalledTimes(2000);
+            expect(db.changeTracker.entries()).toEqual([]);
+            const row = rows[0];
+            db.rows.attach(row);
             row.payload.nested.label = 'changed';
             db.changeTracker.detectChanges();
             expect(db.entry(row)?.state).toBe(EntityState.Modified);

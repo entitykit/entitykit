@@ -14,6 +14,7 @@ import {
     constructMaterializedEntity,
     reusedMaterializedEntityError,
 } from './materialized-entity-factory';
+import { queryIdentityResolutionFor } from './query-identity-resolution';
 
 export class Materializer {
     private readonly materializedEntities: WeakSet<object> = new WeakSet();
@@ -70,7 +71,10 @@ export class Materializer {
                 boundValues,
             };
         }
-        const existing = changeTracker.tryGetByBoundIdentityValues(
+        const identities = queryIdentityResolutionFor(this);
+        const queryEntity = identities?.get(metadata, boundValues);
+        if (queryEntity) return { entity: queryEntity, values, boundValues };
+        const existing = identities ? undefined : changeTracker.tryGetByBoundIdentityValues(
             metadata,
             boundValues,
         );
@@ -82,6 +86,11 @@ export class Materializer {
         rememberMaterializedPersistenceFacts(
             entity, metadata, values, boundValues,
         );
+
+        if (identities) {
+            identities.add(metadata, boundValues, entity);
+            return { entity, values, boundValues };
+        }
 
         // Initial tracking is strict. Identity resolution must happen against the
         // captured provider row above; a collision here means materialization and
