@@ -18,10 +18,10 @@ describe('batched loaded inverse collections', () => {
             fixture.batch.publish();
             expect(fixture.parent.dependents).toEqual([existing, existing, fixture.child]);
             expect(() => {
-                fixture.batch.publish(); 
+                fixture.batch.publish();
             }).not.toThrow();
         } finally {
-            await fixture.db.dispose(); 
+            await fixture.db.dispose();
         }
     });
 
@@ -36,7 +36,7 @@ describe('batched loaded inverse collections', () => {
             fixture.batch.publish();
             expect(fixture.parent.dependents).toEqual([other, fixture.child]);
         } finally {
-            await fixture.db.dispose(); 
+            await fixture.db.dispose();
         }
     });
 
@@ -55,7 +55,7 @@ describe('batched loaded inverse collections', () => {
             fixture.batch.publish();
             expect(fixture.parent.dependents).toEqual([]);
         } finally {
-            await fixture.db.dispose(); 
+            await fixture.db.dispose();
         }
     });
 
@@ -68,7 +68,7 @@ describe('batched loaded inverse collections', () => {
             fixture.batch.publish();
             expect(fixture.parent.dependents).toEqual([fixture.child]);
         } finally {
-            await fixture.db.dispose(); 
+            await fixture.db.dispose();
         }
     });
 
@@ -83,13 +83,13 @@ describe('batched loaded inverse collections', () => {
             }
             const newer = [...fixture.parent.dependents];
             expect(() => {
-                fixture.batch.publish(); 
+                fixture.batch.publish();
             }).toThrow(
                 'Navigation \'RefusalPrincipal.dependents\' changed while its load was in progress.',
             );
             expect(fixture.parent.dependents).toEqual(newer);
         } finally {
-            await fixture.db.dispose(); 
+            await fixture.db.dispose();
         }
     });
 });
