@@ -54,6 +54,8 @@ only when the application shuts down.
   systems, and explicit non-goals.
 - [Architecture](architecture.md) — package ownership and the query, save,
   provider, migration, and release flows.
+- [Performance](performance.md) — scaling contracts, qualification limits and
+  the explicit model-reuse direction.
 - [Contributing](../CONTRIBUTING.md) — repository rules and verification gates.
 
 ## Alpha status
