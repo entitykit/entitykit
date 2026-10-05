@@ -146,5 +146,4 @@ export class DbSetQueryRunner<TEntity extends object> {
             };
         });
     }
-
 }

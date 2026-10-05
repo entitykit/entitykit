@@ -1,9 +1,7 @@
 import { createRequire } from 'node:module';
 import { setImmediate as yieldToEventLoop } from 'node:timers/promises';
 import type * as NodeSqlite from 'node:sqlite';
-import type { DatabaseSync } from 'node:sqlite';
-import type { SqlStatement } from '@entitykit/core/adapter';
-import type { DatabaseProviderOperation } from '@entitykit/core/adapter';
+import type { SqlStatement, DatabaseProviderOperation } from '@entitykit/core/adapter';
 import type {
     DatabaseConnection,
     DatabaseOperationOptions,
@@ -41,7 +39,7 @@ export { defaultSqliteBusyTimeoutMs } from './sqlite-connection-config';
  * module, and the connection wires them onto the one open handle.
  */
 export class SqliteDatabaseConnection implements DatabaseConnection {
-    private readonly db: DatabaseSync;
+    private readonly db: NodeSqlite.DatabaseSync;
     private readonly transactions: SqliteTransactionRunner;
 
     constructor(config: string | SqliteConnectionConfig) {

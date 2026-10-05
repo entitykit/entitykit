@@ -65,11 +65,7 @@ export class Materializer {
             rememberMaterializedPersistenceFacts(
                 entity, metadata, values, boundValues,
             );
-            return {
-                entity,
-                values,
-                boundValues,
-            };
+            return { entity, values, boundValues };
         }
         const identities = queryIdentityResolutionFor(this);
         const queryEntity = identities?.get(metadata, boundValues);
@@ -102,10 +98,8 @@ export class Materializer {
             values,
             boundValues,
         );
-        // The only moment anyone knows this tracking is ours: the identity lookup
-        // above missed, the entity is brand new, and registration just succeeded.
-        // The entry itself is the receipt -- a later entry under the same entity
-        // belongs to whoever established it.
+        // This entry is our registration receipt; a later entry for the same
+        // entity belongs to whoever established it.
         this.onFreshEntityTracked?.(entry as unknown as EntityEntry<object>);
         return { entity: entry.entity, values, boundValues };
     }
@@ -123,9 +117,7 @@ export class Materializer {
         rows: ReadonlyArray<Record<string, unknown>>,
         changeTracker: ChangeTracker,
     ): Array<MaterializedRow<TEntity>> {
-        return rows.map(row =>
-            this.materializeWithValues(metadata, row, changeTracker),
-        );
+        return rows.map(row => this.materializeWithValues(metadata, row, changeTracker));
     }
 
     /** Materialize entities without requiring or retaining identity keys. */

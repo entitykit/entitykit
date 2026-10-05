@@ -95,7 +95,6 @@ export class ChangeTrackerRegistry {
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         return this.entriesByEntity.get(entity) as unknown as EntityEntry<TEntity> | undefined;
     }
-
     public entries(): ReadonlyArray<EntityEntry<object>> {
         return Array.from(this.trackedEntries);
     }
@@ -109,7 +108,6 @@ export class ChangeTrackerRegistry {
         if (entry) this.assertInvariant();
         return entry;
     }
-
     /** The acceptance boundary validates the completed batch or its rollback. */
     public detachForAcceptance<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         const entry = this.entry(entity);

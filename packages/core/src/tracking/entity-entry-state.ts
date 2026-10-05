@@ -22,9 +22,7 @@ export class EntityEntryState<TEntity extends object> {
         originalBoundValues?: Record<string, unknown>,
         ownedSnapshot?: InitialTrackedEntrySnapshot,
     ) {
-        const captured = ownedSnapshot ?? captureInitialTrackedEntrySnapshot(
-            entity, metadata, originalValues, originalBoundValues,
-        );
+        const captured = ownedSnapshot ?? captureInitialTrackedEntrySnapshot(entity, metadata, originalValues, originalBoundValues);
         this.snapshot = captured.values;
         this.boundSnapshot = captured.boundValues;
         registerEntryNavigationCheckpoint(owner as unknown as EntityEntry<object>, this.navigations);

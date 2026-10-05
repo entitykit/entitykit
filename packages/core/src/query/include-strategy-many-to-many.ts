@@ -15,16 +15,10 @@ import type { SqlStatement } from '../sql/sql-statement';
 /**
  * Many-to-many eager load across a join table.
  *
- * The batched path joins the related table through the join table in one query,
- * binds the current keys, and lets the stitcher fan the rows back out onto the
- * current entities. As with one-to-many, an include-level limit/offset needs
- * either a per-parent window (single join column, a window-capable provider) or
- * the per-entity fallback (composite key / provider without window functions).
- * The critical detail this class
- * guards is parameter-binding order: unlike one-to-many, the windowed variant
- * converts and binds the current keys directly via `parameters.add(...)` up
- * front and lists the parent key *before* the entity columns in the inner
- * SELECT. Preserve that sequence -- positional bind order must match the SQL.
+ * Batch disjoint current-key sets through the join table, then stitch once.
+ * Limits use per-parent windows for single keys on window-capable providers;
+ * other shapes retain the per-entity fallback. Window bindings and SELECTs
+ * place parent keys before related columns: positional order must match SQL.
  */
 export class IncludeStrategyManyToMany extends IncludeStrategyBase {
     constructor(ctx: IncludeLoaderContext, private readonly stitcher: IncludeStitcher) {

@@ -21,9 +21,7 @@ export class EntityEntry<TEntity extends object> {
         originalBoundValues?: Record<string, unknown>,
         ownedSnapshot?: InitialTrackedEntrySnapshot,
     ) {
-        this.trackedState = new EntityEntryState(
-            this, metadata, entity, state, originalValues, originalBoundValues, ownedSnapshot,
-        );
+        this.trackedState = new EntityEntryState(this, metadata, entity, state, originalValues, originalBoundValues, ownedSnapshot);
     }
     public get state(): EntityState {
         return this.trackedState.state;
