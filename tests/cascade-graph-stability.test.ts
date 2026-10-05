@@ -111,4 +111,35 @@ describe('cascade graph stability', () => {
         Reflect.deleteProperty(post, 'author');
         expect(cascadeGraphHasDynamicAccessors(entries, model)).toBe(false);
     });
+
+    it.each(['proxy', 'filter', 'iterator', 'index', 'prototype'])('detects a dynamic %s collection without invoking hooks', kind => {
+        const { parent, post, entries, model } = fixture();
+        const inverse = model.getEntity(RequiredPost).relationships[0].inverseNavigationProperty as unknown;
+        if (typeof inverse !== 'string') throw new Error('Missing fixture inverse');
+        let collection = [post];
+        const hook = jest.fn<never, unknown[]>(() => {
+            throw new Error('Preflight invoked a collection hook.');
+        });
+        if (kind === 'proxy') {
+            collection = new Proxy<RequiredPost[]>(collection, { get: hook, getOwnPropertyDescriptor: hook, ownKeys: hook, getPrototypeOf: hook });
+        } else if (kind === 'prototype') {
+            Object.setPrototypeOf(collection, Object.create(Array.prototype, { filter: { get: hook } }) as object);
+        } else {
+            const property = kind === 'iterator' ? Symbol.iterator : kind === 'index' ? '0' : 'filter';
+            Object.defineProperty(collection, property, { get: hook });
+        }
+        Object.defineProperty(parent, inverse, { value: collection });
+        expect(cascadeGraphHasDynamicAccessors(entries, model)).toBe(true);
+        expect(hook).not.toHaveBeenCalled();
+    });
+
+    it('keeps ordinary arrays with duplicate entries and holes on the indexed path', () => {
+        const { parent, post, entries, model } = fixture();
+        const inverse = model.getEntity(RequiredPost).relationships[0].inverseNavigationProperty as unknown;
+        if (typeof inverse !== 'string') throw new Error('Missing fixture inverse');
+        const collection = [post, post];
+        collection.length = 3;
+        Object.defineProperty(parent, inverse, { value: collection });
+        expect(cascadeGraphHasDynamicAccessors(entries, model)).toBe(false);
+    });
 });

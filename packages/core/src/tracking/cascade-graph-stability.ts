@@ -1,9 +1,9 @@
-import { types } from 'node:util';
 import type { Model } from '../model/model';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import { navigationPropertyHasDynamicBehavior } from './navigation-property-stability';
 
-/** Arbitrary accessors/proxies can redirect other edges while a cascade runs. */
+/** Entity and collection hooks can redirect other edges while a cascade runs. */
 export function cascadeGraphHasDynamicAccessors(
     entries: ReadonlyArray<EntityEntry<object>>,
     model: Model,
@@ -24,21 +24,8 @@ export function cascadeGraphHasDynamicAccessors(
     }
     for (const entry of entries) {
         for (const property of properties.get(entry.metadata) ?? []) {
-            if (hasAccessor(entry.entity, property)) return true;
+            if (navigationPropertyHasDynamicBehavior(entry.entity, property)) return true;
         }
-    }
-    return false;
-}
-
-/** Inspect descriptors without calling user getters or proxy traps. */
-function hasAccessor(entity: object, property: string): boolean {
-    let owner: object | null = entity;
-    while (owner) {
-        if (types.isProxy(owner)) return true;
-        const descriptor = Object.getOwnPropertyDescriptor(owner, property);
-        // Native accessor descriptors always contain both get and set keys.
-        if (descriptor) return 'get' in descriptor;
-        owner = Object.getPrototypeOf(owner) as object | null;
     }
     return false;
 }

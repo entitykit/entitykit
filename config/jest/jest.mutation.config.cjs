@@ -105,6 +105,7 @@ module.exports = {
     '<rootDir>/tests/deletion-acceptance-scaling.test.ts',
     '<rootDir>/tests/cascade-scaling.test.ts',
     '<rootDir>/tests/cascade-graph-stability.test.ts',
+    '<rootDir>/tests/cascade-dynamic-collections.test.ts',
     '<rootDir>/tests/tracked-cascade-graph.test.ts',
     '<rootDir>/tests/cascade-multiple-relationships.test.ts',
     '<rootDir>/tests/relationship-semantics.test.ts',
