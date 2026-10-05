@@ -9,10 +9,16 @@ const compiler = require.resolve('typescript/bin/tsc');
 // packages explicitly keeps the build deterministic and the failure legible.
 const packages = ['core', 'sqlite', 'postgres', 'mysql', 'cli', 'testing', 'nestjs'];
 
-for (const name of packages) {
-  const packageRoot = path.join(root, 'packages', name);
-  fs.rmSync(path.join(packageRoot, 'dist'), { recursive: true, force: true });
-  fs.rmSync(path.join(packageRoot, 'tsconfig.tsbuildinfo'), { force: true });
+const args = process.argv.slice(2);
+if (args.some(arg => arg !== '--clean')) {
+  throw new Error('Usage: node scripts/build-package.js [--clean]');
+}
+if (args.includes('--clean')) {
+  for (const name of packages) {
+    const packageRoot = path.join(root, 'packages', name);
+    fs.rmSync(path.join(packageRoot, 'dist'), { recursive: true, force: true });
+    fs.rmSync(path.join(packageRoot, 'tsconfig.tsbuildinfo'), { force: true });
+  }
 }
 
 const result = spawnSync(

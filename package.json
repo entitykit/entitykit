@@ -29,7 +29,9 @@
   ],
   "scripts": {
     "build": "node scripts/build-package.js",
+    "build:clean": "node scripts/build-package.js --clean",
     "postbuild": "npm rebuild @entitykit/cli --ignore-scripts",
+    "postbuild:clean": "npm rebuild @entitykit/cli --ignore-scripts",
     "check:package": "node scripts/check-package.js",
     "check:publish-alpha": "node scripts/check-alpha-publish.js",
     "check:publish": "node scripts/check-alpha-publish.js",
@@ -66,7 +68,7 @@
     "test:mutation:primary-key-change": "stryker run config/stryker/stryker.primary-key-change.config.cjs",
     "test:mutation:primary-key-change:dry": "stryker run config/stryker/stryker.primary-key-change.config.cjs --dryRunOnly",
     "test:mutation:dry": "stryker run config/stryker/stryker.config.cjs --dryRunOnly",
-    "prepack": "npm run build",
+    "prepack": "npm run build:clean",
     "prepublishOnly": "node scripts/guard-alpha-publish.js",
     "release:alpha": "node -e \"console.error('Local publishing is not supported: dispatch the Release workflow (.github/workflows/release.yml).'); process.exit(1)\"",
     "verify": "npm run lint && npm run check:security && npm run typecheck && npm test && npm run check:nextjs && npm run check:bookshop && npm run check:api && npm run check:migration-compatibility && npm run check:operations && npm run check:performance && npm run check:package && npm run check:publish",

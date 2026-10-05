@@ -272,7 +272,7 @@ function assertSkewRejected(project, coreTarball, cliTarball) {
   );
 }
 
-runNpm(['run', 'build']);
+runNpm(['run', 'build:clean']);
 process.stdout.write(`PACKAGE_BUILD_OK ${String(packages.length)} packages\n`);
 
 const temporaryRoot = fs.mkdtempSync(

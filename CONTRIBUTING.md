@@ -21,6 +21,11 @@ test builds the workspaces, installs the tarballs into a clean consumer, checks
 Node16 and NodeNext types, exercises CommonJS and ESM runtimes against SQLite,
 runs the installed CLI, and verifies the single-core package invariant.
 
+`npm run build` retains TypeScript's incremental state for ordinary development.
+Use `npm run build:clean` after deleting or renaming source files to remove stale
+outputs. Package acceptance and the root prepack hook always use the clean build
+so distributable files come only from the current sources.
+
 PR CI also runs runtime coverage:
 
 ```console

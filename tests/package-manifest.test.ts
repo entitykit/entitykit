@@ -61,13 +61,14 @@ describe('package manifest', () => {
         expect(manifest.bin).toBeUndefined();
         expect(manifest.scripts).toMatchObject({
             build: 'node scripts/build-package.js',
+            'build:clean': 'node scripts/build-package.js --clean',
             'check:package': 'node scripts/check-package.js',
             'check:publish-alpha': 'node scripts/check-alpha-publish.js',
             'check:publish': 'node scripts/check-alpha-publish.js',
             'check:nextjs': 'npm run build && npm run verify'
                 + ' --workspace @entitykit/example-nextjs-postgres',
             typecheck: 'tsc -p tsconfig.json --noEmit',
-            prepack: 'npm run build',
+            prepack: 'npm run build:clean',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
             verify: 'npm run lint && npm run check:security && npm run typecheck && npm test'
                 + ' && npm run check:nextjs && npm run check:bookshop && npm run check:api && npm run check:migration-compatibility'
