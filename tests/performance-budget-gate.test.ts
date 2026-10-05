@@ -36,4 +36,16 @@ describe('executable performance budget gate', () => {
             await measure('qualified work', counters, async () => { counters.queries += 1; }, 1, 1);
         `)).toBe(0);
     });
+    it('isolates warmup and measured statement budgets from earlier workloads', () => {
+        expect(evaluate(`
+            const assert = require('node:assert/strict');
+            const counters = { queries: 99, maxParameters: 999 };
+            await measure('isolated work', counters, async () => {
+                assert.equal(counters.queries, 0);
+                assert.equal(counters.maxParameters, 0);
+                counters.queries = 1;
+                counters.maxParameters = 2;
+            }, 1, 1);
+        `)).toBe(0);
+    });
 });

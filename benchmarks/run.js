@@ -10,6 +10,9 @@ const { directDriver, seedWorkload } = require('./direct-driver');
 const { ormWorkloads } = require('./orm-workloads');
 const { resourceWorkloads, bookshopWorkloads } = require('./resource-workloads');
 const { budgets, pairedReadBudgets } = require('./workload-measurement');
+const { scalingWorkloads } = require('./scaling-workloads');
+const { scalingStreamWorkloads } = require('./scaling-stream-workloads');
+const { contextSetupWorkloads } = require('./context-setup-workloads');
 
 async function main() {
   const provider = process.argv[2] ?? 'sqlite';
@@ -30,18 +33,29 @@ async function main() {
     const expectedRows = Number((await raw.query('select count(*) as total from entitykit_benchmark_records'))[0].total);
     const { pool, resources } = await resourceWorkloads(source, counters, expectedRows);
     results.push(pool, ...await bookshopWorkloads(provider, target, counters));
+    const scaling = await scalingWorkloads(source, raw, provider, counters);
+    const streams = await scalingStreamWorkloads(source, provider, counters);
+    results.push(...scaling.results, ...streams.results);
+    const contextSetup = await contextSetupWorkloads(source, counters);
+    await scaling.cleanup();
     const comparisons = pairedReadBudgets(results);
+    const databaseVersion = String((await raw.query(provider === 'sqlite'
+      ? 'select sqlite_version() as version' : 'select version() as version'))[0].version);
     const eventLoopMaxMs = loopDelay.max / 1_000_000;
     assert.ok(eventLoopMaxMs <= budgets.eventLoopMaxMs, 'Event-loop delay exceeded the qualification budget.');
     assert.ok(results.every(result => Number.isFinite(result.p95Ms) && result.p95Ms >= 0));
     const evidence = {
       schemaVersion: 1, generatedAt: new Date().toISOString(), provider,
-      entityKitVersion: require('../package.json').version, node: process.version,
+      entityKitVersion: require('../package.json').version, node: process.version, databaseVersion,
       gitSha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
       workingTreeDirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim().length > 0,
       environment: { platform: process.platform, architecture: process.arch, cpu: os.cpus()[0]?.model, cpuCount: os.cpus().length },
       parameters: { seedRows: rows, rowPayloadBytes: 192, warmups: 5, readSamples: 40, poolMaximum: 4 },
-      budgets, results, comparisons, resources: { ...resources, eventLoopMaxMs },
+      measurement: { percentileMethod: 'nearest-rank', scalingSamples: 8,
+        ormIncludesFreshContext: true, rawReusesConnection: true,
+        databaseStorage: process.env.ENTITYKIT_BENCHMARK_STORAGE_LABEL ?? (provider === 'sqlite' ? 'temporary-file' : 'unspecified') },
+      budgets, results, comparisons, contextSetup, scalingStreams: streams.resources,
+      sqliteFastConsumerCancellation: streams.cancellation, resources: { ...resources, eventLoopMaxMs },
     };
     const directory = process.env.ENTITYKIT_BENCHMARK_OUTPUT_DIR ?? path.join(__dirname, '..', 'coverage', 'performance');
     fs.mkdirSync(directory, { recursive: true });

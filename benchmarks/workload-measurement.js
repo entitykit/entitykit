@@ -14,12 +14,18 @@ function percentile(values, fraction) {
   return sorted[Math.ceil(sorted.length * fraction) - 1];
 }
 
-async function measure(name, counters, operation, samples = 40, queryBudget = 1, maximumMs = budgets.readP95Ms) {
-  for (let index = 0; index < 5; index += 1) await operation(index);
+async function measure(name, counters, operation, samples = 40, queryBudget = 1, maximumMs = budgets.readP95Ms, prepare) {
+  for (let index = 0; index < 5; index += 1) {
+    await prepare?.();
+    counters.queries = 0;
+    counters.maxParameters = 0;
+    await operation(index);
+  }
   const latency = [];
   let maximumQueries = 0;
   let maximumParameters = 0;
   for (let index = 0; index < samples; index += 1) {
+    await prepare?.();
     counters.queries = 0;
     counters.maxParameters = 0;
     const start = performance.now();
@@ -31,7 +37,8 @@ async function measure(name, counters, operation, samples = 40, queryBudget = 1,
     await new Promise(resolve => setImmediate(resolve));
   }
   const result = { name, samples, p50Ms: percentile(latency, 0.5), p95Ms: percentile(latency, 0.95),
-    p99Ms: percentile(latency, 0.99), maximumQueries, maximumParameters, queryBudget, maximumP95Ms: maximumMs };
+    p99Ms: percentile(latency, 0.99), maximumQueries, maximumParameters, queryBudget, maximumP95Ms: maximumMs,
+    preparationExcluded: prepare !== undefined };
   assert.ok(result.p95Ms <= maximumMs, `${name}: p95 ${result.p95Ms}ms exceeded ${maximumMs}ms.`);
   assert.ok(maximumQueries <= queryBudget, `${name}: ${maximumQueries} diagnostic statements exceeded ${queryBudget}.`);
   console.log(`PERFORMANCE_WORKLOAD_OK ${name} p95=${result.p95Ms.toFixed(3)}ms queries=${maximumQueries}`);
