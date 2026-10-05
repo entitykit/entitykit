@@ -89,6 +89,7 @@ module.exports = {
     'packages/core/src/query/include-loader-stitch.ts',
     'packages/core/src/query/include-key-predicate.ts',
     'packages/core/src/query/include-key-statements.ts',
+    'packages/core/src/query/include-filter-bindings.ts',
     'packages/core/src/query/include-reference-inverse-batch.ts',
     'packages/core/src/query/include-loader-key-batch.ts',
     'packages/core/src/query/include-many-to-many-stitch.ts',

@@ -11,6 +11,7 @@ import type { IncludeFilterModel } from './query-model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { boundQueryTuple, principalBoundTuple } from './include-bound-key';
 import { includeKeyStatements } from './include-key-statements';
+import { bindIncludeFilter } from './include-filter-bindings';
 
 export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
     constructor(
@@ -29,6 +30,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
         inverseNavigation: string,
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
+        filter = principals.length > 0 ? bindIncludeFilter(dependentMetadata, filter) : filter;
         const supportsWindowBatch =
             this.ctx.dialect.supportsWindowFunctions?.() === true &&
             relationship.foreignKeyProperties.length === 1;

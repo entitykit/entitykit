@@ -4,6 +4,7 @@ import type { IncludeLoaderContext, IncludeLoadRoot } from './include-loader-con
 import type { SqlStatement } from '../sql/sql-statement';
 import { includeKeyPredicate } from './include-key-predicate';
 import { includeKeyStatements } from './include-key-statements';
+import { bindIncludeFilter } from './include-filter-bindings';
 
 /**
  * Turn a set of parent-key tuples into materialized rows, split to stay within
@@ -33,8 +34,9 @@ export class IncludePropertyLoader {
         filter?: IncludeFilterModel,
     ): Promise<Array<IncludeLoadRoot<TEntity>>> {
         if (tuples.length === 0) return [];
+        const boundFilter = filter ? bindIncludeFilter(metadata, filter) : undefined;
         const build = (keys: ReadonlyArray<readonly unknown[]>): SqlStatement =>
-            this.buildPropertyStatement(metadata, propertyNames, keys, filter);
+            this.buildPropertyStatement(metadata, propertyNames, keys, boundFilter);
         // A bare limit/offset is a global window. Its callers use a single
         // parent's keys; only partitioned windows may split parent sets.
         const statements = filter?.limit !== undefined || filter?.offset !== undefined

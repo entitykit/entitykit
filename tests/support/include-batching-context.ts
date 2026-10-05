@@ -117,8 +117,9 @@ export async function openCompositeIncludeGraph(count: number, parameterLimit?: 
     return db;
 }
 
-export async function openWindowIncludeGraph(): Promise<IncludeBatchingContext> {
-    const db = IncludeBatchingContext.create(96);
+export async function openWindowIncludeGraph(
+    db: IncludeBatchingContext = IncludeBatchingContext.create(96),
+): Promise<IncludeBatchingContext> {
     await db.database.ensureCreated();
     for (const text of [
         'with recursive numbers(n) as (select 1 union all select n + 1 from numbers where n < 33) insert into batch_parents (id) select n from numbers',

@@ -67,6 +67,8 @@ module.exports = {
     '<rootDir>/tests/loaded-inverse-collection-batch.test.ts',
     '<rootDir>/tests/include-key-batching.test.ts',
     '<rootDir>/tests/include-key-planning.test.ts',
+    '<rootDir>/tests/include-filter-bindings.test.ts',
+    '<rootDir>/tests/include-filter-conversion-sqlite.test.ts',
     '<rootDir>/tests/nested-include.test.ts',
     '<rootDir>/tests/filtered-include.test.ts',
     '<rootDir>/tests/one-to-one.test.ts',

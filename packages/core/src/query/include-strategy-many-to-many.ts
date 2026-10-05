@@ -11,13 +11,12 @@ import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { boundQueryTuple } from './include-bound-key';
 import { includeKeyStatements } from './include-key-statements';
 import type { SqlStatement } from '../sql/sql-statement';
+import { bindIncludeFilter } from './include-filter-bindings';
 
 /**
- * Many-to-many eager load across a join table.
- *
  * Batch disjoint current-key sets through the join table, then stitch once.
- * Limits use per-parent windows for single keys on window-capable providers;
- * other shapes retain the per-entity fallback. Window bindings and SELECTs
+ * Limits use per-parent windows where supported, or a per-entity fallback.
+ * Window bindings and SELECTs
  * place parent keys before related columns: positional order must match SQL.
  */
 export class IncludeStrategyManyToMany extends IncludeStrategyBase {
@@ -52,6 +51,7 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
             return { metadata: info.relatedMetadata, roots: [] };
         }
 
+        filter = filter ? bindIncludeFilter(info.relatedMetadata, filter) : undefined;
         if (currentEntities.length > 1 && (filter?.limit !== undefined || filter?.offset !== undefined)) {
             // The windowed batch partitions by a single join column and needs
             // `row_number()`, so a composite key or a provider without window
