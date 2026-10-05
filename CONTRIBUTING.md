@@ -25,6 +25,9 @@ runs the installed CLI, and verifies the single-core package invariant.
 Use `npm run build:clean` after deleting or renaming source files to remove stale
 outputs. Package acceptance and the root prepack hook always use the clean build
 so distributable files come only from the current sources.
+`verify` builds the SDK family once through package acceptance, then runs the
+examples and remaining checks against those outputs. Standalone `check:*`
+commands still build their prerequisites.
 
 PR CI also runs runtime coverage:
 

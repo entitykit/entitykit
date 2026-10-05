@@ -71,8 +71,11 @@ describe('package manifest', () => {
             prepack: 'npm run build:clean',
             prepublishOnly: 'node scripts/guard-alpha-publish.js',
             verify: 'npm run lint && npm run check:security && npm run typecheck && npm test'
-                + ' && npm run check:nextjs && npm run check:bookshop && npm run check:api && npm run check:migration-compatibility'
-                + ' && npm run check:operations && npm run check:performance && npm run check:package'
+                + ' && npm run check:package'
+                + ' && npm run verify --workspace @entitykit/example-nextjs-postgres'
+                + ' && npm run verify --workspace @entitykit/example-bookshop'
+                + ' && node scripts/check-api.js && node scripts/check-migration-compatibility.js sqlite'
+                + ' && node scripts/check-provider-operations.js sqlite && node scripts/check-performance.js sqlite'
                 + ' && npm run check:publish',
         });
         // The P4 placeholder is gone: verify runs the packaging gates for real.
