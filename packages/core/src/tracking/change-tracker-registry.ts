@@ -105,6 +105,13 @@ export class ChangeTrackerRegistry {
     }
 
     public detach<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
+        const entry = this.detachForAcceptance(entity);
+        if (entry) this.assertInvariant();
+        return entry;
+    }
+
+    /** The acceptance boundary validates the completed batch or its rollback. */
+    public detachForAcceptance<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         const entry = this.entry(entity);
         if (!entry) return undefined;
         const tracked = entry as unknown as EntityEntry<object>;
@@ -115,7 +122,6 @@ export class ChangeTrackerRegistry {
         this.entriesByEntity.delete(entity);
         this.identities.remove(tracked);
         this.trackedEntries.delete(tracked);
-        this.assertInvariant();
         return entry;
     }
     public restore(entry: EntityEntry<object>): void {

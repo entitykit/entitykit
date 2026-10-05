@@ -99,6 +99,8 @@ module.exports = {
     '<rootDir>/tests/bulk-upsert-provider-value-snapshot.test.ts',
     '<rootDir>/tests/generated-hydration-failure-atomicity-sqlite.test.ts',
     '<rootDir>/tests/save-bookkeeping-scaling.test.ts',
+    '<rootDir>/tests/deletion-acceptance-scaling.test.ts',
+    '<rootDir>/tests/generated-relationship-target-lifecycle.test.ts',
     '<rootDir>/tests/generated-values-sqlite.test.ts',
     '<rootDir>/tests/generated-value-snapshot.test.ts',
     '<rootDir>/tests/generated-key-propagation-failure-atomicity.test.ts',

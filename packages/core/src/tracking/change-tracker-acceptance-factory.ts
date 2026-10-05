@@ -11,7 +11,7 @@ export function createChangeTrackerAcceptance(
         entry => registry.has(entry),
         registry.identities,
         entity => {
-            registry.detach(entity);
+            registry.detachForAcceptance(entity);
         },
         entry => {
             registry.restore(entry);

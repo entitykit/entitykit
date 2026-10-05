@@ -9,6 +9,7 @@ export function assertTemporaryPrincipalCanDetach(
     tracker: ChangeTracker,
     principal: EntityEntry<object>,
 ): void {
+    if (!activeTemporaryGeneratedIdentity(principal)) return;
     for (const dependent of tracker.entries()) {
         const relationships = dependent.metadata.relationships as
             readonly TrackedRelationshipMetadata[];
