@@ -5,6 +5,7 @@ module.exports = {
   mutate: [
     'packages/mysql/src/mysql-value-reader.ts',
     'packages/postgres/src/postgres-client-lease.ts',
+    'packages/postgres/src/postgres-row-stream.ts:48-61',
     'packages/sqlite/src/sqlite-database-connection.ts:96-115',
     'packages/sqlite/src/sqlite-row-stream.ts',
     'packages/core/src/storage/operation-cancellation.ts',

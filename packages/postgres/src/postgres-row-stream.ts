@@ -53,10 +53,7 @@ export async function* streamPostgresRows<TRow extends Record<string, unknown>>(
                 `fetch forward ${String(batchSize)} from ${cursorName}`,
             );
             throwIfQueryAborted(options.signal);
-            if (result.rows.length === 0) {
-                hasRows = false;
-                continue;
-            }
+            hasRows = result.rows.length === batchSize;
             for (const row of result.rows) {
                 throwIfQueryAborted(options.signal);
                 yield row;

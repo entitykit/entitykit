@@ -27,6 +27,34 @@ function postgresFixture(query: jest.Mock): {
 }
 
 describe('Postgres query streaming', () => {
+    it.each([0, 1, 2, 3, 4])('fetches only the necessary batches for %i rows, inside and outside a transaction', async count => {
+        for (const callerTransaction of [false, true]) {
+            const rows = Array.from({ length: count }, (_, id) => ({ id }));
+            let position = 0;
+            const query = jest.fn(async (text: string) => {
+                await Promise.resolve();
+                if (!text.startsWith('fetch forward')) return { rows: [], rowCount: 0 };
+                const batch = rows.slice(position, position + 2);
+                position += batch.length;
+                return { rows: batch, rowCount: batch.length };
+            });
+            const { connection, release } = postgresFixture(query);
+            const read = async (): Promise<void> => {
+                await expect(collect(connection.stream({ text: 'select id from widgets', values: [] }, { batchSize: 2 }))).resolves.toEqual(rows);
+                if (callerTransaction) expect(release).not.toHaveBeenCalled();
+            };
+            if (callerTransaction) await connection.transaction(read);
+            else await read();
+            const commands = query.mock.calls.map(call => call[0]);
+            expect(commands.filter(text => text.startsWith('fetch forward'))).toHaveLength(Math.floor(count / 2) + 1);
+            expect(commands).toHaveLength(Math.floor(count / 2) + 5);
+            expect(commands.at(-2)).toMatch(/^close entitykit_stream_/);
+            expect(commands.at(-1)).toBe('commit');
+            expect(release).toHaveBeenCalledTimes(1);
+            expect(release).toHaveBeenCalledWith(undefined);
+        }
+    });
+
     it('uses a bounded server cursor and parameterized declaration', async () => {
         let fetchCount = 0;
         const query = jest.fn(async (text: string) => {
