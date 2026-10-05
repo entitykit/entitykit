@@ -72,12 +72,14 @@ function collectNavigationChange(
     changes.push(change);
     const previous = navigationItems(snapshot.value, relationship);
     const present = navigationItems(current, relationship);
-    for (const entity of present.filter(item => !previous.includes(item))) {
+    const previousMembers = new Set(previous);
+    const presentMembers = new Set(present);
+    for (const entity of present.filter(item => !previousMembers.has(item))) {
         change.handled = addIntent(
             tracker, entity, relationship, principal, 'addedTo', intents,
         ) && change.handled;
     }
-    for (const entity of previous.filter(item => !present.includes(item))) {
+    for (const entity of previous.filter(item => !presentMembers.has(item))) {
         change.handled = addIntent(
             tracker, entity, relationship, principal, 'removedFrom', intents,
         ) && change.handled;

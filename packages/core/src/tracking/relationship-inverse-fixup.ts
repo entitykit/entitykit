@@ -5,6 +5,7 @@ import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import { copyNavigationCollection } from './navigation-collection-copy';
+import type { LoadedInverseCollectionBatch } from './loaded-inverse-collection-batch';
 import {
     directNavigationWriter,
     type NavigationWriter,
@@ -17,12 +18,14 @@ export function addToRelationshipInverse(
     dependent: EntityEntry<object>,
     severPrevious: (entry: EntityEntry<object>) => void,
     writer: NavigationWriter = directNavigationWriter,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
     const principalEntry = tracker.entry(principal);
     if (!inverse || !principalEntry) {
         return;
     }
+    if (inverseCollections?.add(relationship, principal, dependent.entity)) return;
     const values = principal as Record<string, unknown>;
     const entityName = principalEntry.metadata.entityName;
     if (relationship.cardinality === RelationshipCardinality.OneToOne) {
@@ -51,6 +54,7 @@ export function removeFromRelationshipInverse(
     principal: unknown,
     dependent: object,
     writer: NavigationWriter = directNavigationWriter,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     const inverse = relationship.inverseNavigationProperty;
     const principalEntry = principal && typeof principal === 'object'
@@ -59,6 +63,7 @@ export function removeFromRelationshipInverse(
     if (!inverse || !principalEntry) {
         return;
     }
+    if (inverseCollections?.remove(relationship, principalEntry.entity, dependent)) return;
     const values = principalEntry.entity as Record<string, unknown>;
     const entityName = principalEntry.metadata.entityName;
     if (Array.isArray(values[inverse])) {

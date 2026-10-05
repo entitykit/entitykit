@@ -13,6 +13,8 @@ import { assertRelationshipTenantCompatible } from './relationship-tenant-valida
 import { detachRelationshipEntry } from './change-tracker-relationship-detection-registry';
 import { assertTrackedTargetCanBeAssigned } from './relationship-target-resolver';
 import { writeVerifiedNavigation } from './verified-navigation-write';
+import type { LoadedInverseCollectionBatch } from './loaded-inverse-collection-batch';
+import { directNavigationWriter } from './navigation-writer';
 export function linkDependent(
     tracker: ChangeTracker,
     model: Model,
@@ -22,6 +24,7 @@ export function linkDependent(
     previousPrincipal?: unknown,
     captured?: RelationshipDetectionValues,
     reassigned?: ReadonlySet<EntityEntry<object>>,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     const principalEntry = tracker.entry(principal);
     if (principalEntry)
@@ -34,6 +37,7 @@ export function linkDependent(
             relationship,
             previous,
             dependent.entity,
+            directNavigationWriter, inverseCollections,
         );
     }
     const principalMetadata = model.getEntity<Record<string, unknown>>(
@@ -65,9 +69,10 @@ export function linkDependent(
         previousEntry => {
             if (reassigned?.has(previousEntry)) return;
             severDependent(
-                tracker, previousEntry, relationship, principal, captured,
+                tracker, previousEntry, relationship, principal, captured, inverseCollections,
             );
         },
+        directNavigationWriter, inverseCollections,
     );
 }
 export function severDependent(
@@ -76,6 +81,7 @@ export function severDependent(
     relationship: TrackedRelationshipMetadata,
     principal?: object,
     captured?: RelationshipDetectionValues,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     const required = relationship.foreignKeyProperties.every(
         property => dependent.metadata.getProperty(property).isRequired);
@@ -107,6 +113,7 @@ export function severDependent(
             relationship,
             previous,
             dependent.entity,
+            directNavigationWriter, inverseCollections,
         );
     }
 }
@@ -128,22 +135,4 @@ export function cascadeDeleteDependent(
         principal,
         dependent.entity,
     );
-}
-export function clearStaleReference(
-    tracker: ChangeTracker,
-    dependent: EntityEntry<object>,
-    relationship: TrackedRelationshipMetadata,
-): void {
-    const values = dependent.entity as Record<string, unknown>;
-    const previous = values[relationship.navigationProperty];
-    writeVerifiedNavigation(dependent.entity, relationship.navigationProperty, null, dependent.metadata.entityName);
-    dependent.markNavigationNotLoaded(relationship.navigationProperty);
-    if (previous) {
-        removeFromRelationshipInverse(
-            tracker,
-            relationship,
-            previous,
-            dependent.entity,
-        );
-    }
 }

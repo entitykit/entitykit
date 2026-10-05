@@ -1,10 +1,8 @@
 import type { Model } from '../model/model';
 import type { ChangeTracker } from './change-tracker';
 import type { EntityEntry } from './entity-entry';
-import {
-    clearStaleReference,
-    linkDependent,
-} from './relationship-fixup';
+import { linkDependent } from './relationship-fixup';
+import { clearStaleReference } from './relationship-stale-reference';
 import { findTrackedPrincipalByBoundValues } from './relationship-resolution';
 import { captureNavigation } from './navigation-snapshot';
 import { snapshotValuesEqual } from './snapshot-value-equality';

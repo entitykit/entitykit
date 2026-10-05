@@ -46,7 +46,7 @@ export class LoadedInverseCollectionBatch {
         return true;
     }
 
-    public publish(): void {
+    public publish(captureBaseline: typeof captureNavigation = captureNavigation): void {
         for (const properties of this.changes.values()) {
             for (const change of properties.values()) {
                 const { entry, property, previous } = change;
@@ -58,7 +58,7 @@ export class LoadedInverseCollectionBatch {
                 this.writer.write(entry.entity, property, change.items
                     .filter(item => change.active.get(item.value) === item)
                     .map(item => item.value), entry.metadata.entityName);
-                captureNavigation(entry, property);
+                captureBaseline(entry, property);
             }
         }
         this.changes.clear();

@@ -4,8 +4,10 @@ import type { EntityEntry } from './entity-entry';
 import { EntityState } from './entity-state';
 import { captureNavigation, navigationSnapshot,
     navigationValueChanged } from './navigation-snapshot';
-import { clearStaleReference, linkDependent,
+import { linkDependent,
     severDependent } from './relationship-fixup';
+import { clearStaleReference } from './relationship-stale-reference';
+import type { LoadedInverseCollectionBatch } from './loaded-inverse-collection-batch';
 import {
     findTrackedPrincipal,
     relationshipForeignKeyMatchesPrincipal,
@@ -23,6 +25,7 @@ export function detectReferenceChanges(
     model: Model,
     entries: ReadonlyArray<EntityEntry<object>>,
     captured: RelationshipDetectionValues,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     for (const dependent of entries) {
         if (
@@ -35,7 +38,7 @@ export function detectReferenceChanges(
             readonly TrackedRelationshipMetadata[];
         for (const relationship of relationships) {
             detectReferenceChange(
-                tracker, model, dependent, relationship, captured,
+                tracker, model, dependent, relationship, captured, inverseCollections,
             );
         }
     }
@@ -47,6 +50,7 @@ function detectReferenceChange(
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     captured: RelationshipDetectionValues,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     const values = relationshipValuesFor(dependent, captured);
     const current = (dependent.entity as Record<string, unknown>)[
@@ -71,22 +75,14 @@ function detectReferenceChange(
         let handled = false;
         if (current && typeof current === 'object') {
             linkDependent(
-                tracker,
-                model,
-                dependent,
-                relationship,
-                current,
-                snapshot.value,
-                captured,
+                tracker, model, dependent, relationship, current,
+                snapshot.value, captured, undefined, inverseCollections,
             );
             handled = true;
         } else if (snapshot.value) {
             severDependent(
-                tracker,
-                dependent,
-                relationship,
-                snapshot.value,
-                captured,
+                tracker, dependent, relationship, snapshot.value,
+                captured, inverseCollections,
             );
             handled = true;
         }
@@ -131,19 +127,14 @@ function detectReferenceChange(
     );
     if (principal) {
         linkDependent(
-            tracker,
-            model,
-            dependent,
-            relationship,
-            principal.entity,
-            undefined,
-            captured,
+            tracker, model, dependent, relationship, principal.entity,
+            undefined, captured, undefined, inverseCollections,
         );
     } else if (relationship.foreignKeyProperties.some(
         property => values[property] === null || values[property] === undefined,
     )) {
-        severDependent(tracker, dependent, relationship, undefined, captured);
+        severDependent(tracker, dependent, relationship, undefined, captured, inverseCollections);
     } else {
-        clearStaleReference(tracker, dependent, relationship);
+        clearStaleReference(tracker, dependent, relationship, inverseCollections);
     }
 }
