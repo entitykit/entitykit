@@ -61,7 +61,7 @@ export class ChangeTrackerRegistry {
             originalValues,
             originalBoundValues,
         );
-        const { values, boundValues, identity } = prepared;
+        const { values, identity } = prepared;
         const { identityKey } = identity;
         this.assertMutation('Tracking an entity', entity, identityKey);
         const existingByIdentity = this.identities.get(identityKey);
@@ -73,8 +73,7 @@ export class ChangeTrackerRegistry {
             entity,
             metadata,
             state,
-            values,
-            boundValues,
+            prepared,
             identity.temporaryGeneratedIdentity,
             () => {
                 this.assertMutation('Changing EntityEntry.state', entity);

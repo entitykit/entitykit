@@ -7,7 +7,7 @@ import { assertEntityEntryStateMutation } from './entity-entry-mutation-guard';
 import { acceptNavigationSnapshotValues, refreshNavigationSnapshots, type NavigationSnapshotValues } from './navigation-snapshot';
 import { captureBoundEntityValues, cloneBoundValues } from './bound-value-snapshot';
 import { EntityEntryNavigationState } from './entity-entry-navigation-state';
-import { captureInitialTrackedEntrySnapshot } from './initial-tracked-entry-snapshot';
+import { captureInitialTrackedEntrySnapshot, type InitialTrackedEntrySnapshot } from './initial-tracked-entry-snapshot';
 import { registerEntryNavigationCheckpoint } from './entity-entry-navigation-checkpoint';
 export class EntityEntryState<TEntity extends object> {
     private snapshot: Record<string, unknown>;
@@ -20,8 +20,9 @@ export class EntityEntryState<TEntity extends object> {
         private currentState: EntityState,
         originalValues?: Record<string, unknown>,
         originalBoundValues?: Record<string, unknown>,
+        ownedSnapshot?: InitialTrackedEntrySnapshot,
     ) {
-        const captured = captureInitialTrackedEntrySnapshot(
+        const captured = ownedSnapshot ?? captureInitialTrackedEntrySnapshot(
             entity, metadata, originalValues, originalBoundValues,
         );
         this.snapshot = captured.values;

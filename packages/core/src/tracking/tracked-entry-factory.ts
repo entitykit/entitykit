@@ -3,6 +3,7 @@ import type { ChangeTracker } from './change-tracker';
 import { configureTrackedEntry } from './change-tracker-model';
 import { EntityEntry } from './entity-entry';
 import type { EntityState } from './entity-state';
+import type { InitialTrackedEntrySnapshot } from './initial-tracked-entry-snapshot';
 import {
     registerTemporaryGeneratedIdentity,
     type TemporaryGeneratedIdentity,
@@ -13,17 +14,19 @@ export function createTrackedEntry<TEntity extends object>(
     entity: TEntity,
     metadata: EntityMetadata<TEntity>,
     state: EntityState,
-    values: Record<string, unknown>,
-    boundValues: Record<string, unknown>,
+    ownedSnapshot: InitialTrackedEntrySnapshot,
     temporaryIdentity: TemporaryGeneratedIdentity | undefined,
     assertStateMutation: () => void,
 ): EntityEntry<TEntity> {
+    // Registration already owns these defensive snapshots. Direct entry
+    // construction still captures caller-owned values before retaining them.
     const entry = new EntityEntry(
         entity,
         metadata,
         state,
-        values,
-        boundValues,
+        undefined,
+        undefined,
+        ownedSnapshot,
     );
     registerTemporaryGeneratedIdentity(
         entry as unknown as EntityEntry<object>,

@@ -8,6 +8,7 @@ import { EntityState } from './entity-state';
 import { collectionEntry, referenceEntry, type CollectionNavigationEntry, type EntityNavigationLoader, type ReferenceNavigationEntry } from './navigation-entry';
 import type { NavigationSnapshotValues } from './navigation-snapshot';
 import { persistedEntryKeyValue } from './persisted-entry-key-value';
+import type { InitialTrackedEntrySnapshot } from './initial-tracked-entry-snapshot';
 export { cloneSnapshotValue } from './entity-entry-snapshot';
 export class EntityEntry<TEntity extends object> {
     private readonly trackedState: EntityEntryState<TEntity>;
@@ -18,9 +19,10 @@ export class EntityEntry<TEntity extends object> {
         state: EntityState,
         originalValues?: Record<string, unknown>,
         originalBoundValues?: Record<string, unknown>,
+        ownedSnapshot?: InitialTrackedEntrySnapshot,
     ) {
         this.trackedState = new EntityEntryState(
-            this, metadata, entity, state, originalValues, originalBoundValues,
+            this, metadata, entity, state, originalValues, originalBoundValues, ownedSnapshot,
         );
     }
     public get state(): EntityState {
