@@ -12,6 +12,8 @@ import { incrementVersionValue } from './version-value-increment';
 import { saveStatePersistedEntries } from './save-state-persisted-entries';
 import type { RestorationScope } from '../../restoration-scope';
 import { acceptVersionIncrements } from './tracked-version-acceptance';
+import type { EntityEntry } from '../../tracking/entity-entry';
+import type { PersistedEntrySnapshot } from '../../tracking/persisted-entry-snapshot';
 
 export class TrackedSaveState {
     constructor(
@@ -62,10 +64,17 @@ export class TrackedSaveState {
         plan: readonly SavePlanEntry[],
         generatedValues: readonly AppliedGeneratedValue[],
     ): void {
-        const persisted = plan.flatMap(item =>
-            savePlanExecution(item)?.persistedEntries ?? []);
+        const byEntry: Map<EntityEntry<object>, PersistedEntrySnapshot> = new Map();
+        for (const item of plan) {
+            const persisted = savePlanExecution(item)?.persistedEntries;
+            if (!persisted) continue;
+            for (const snapshot of persisted) {
+                const entry = snapshot.entry;
+                if (!byEntry.has(entry)) byEntry.set(entry, snapshot);
+            }
+        }
         for (const generated of generatedValues) {
-            const snapshot = persisted.find(item => item.entry === generated.entry);
+            const snapshot = byEntry.get(generated.entry);
             if (snapshot) {
                 snapshot.values[generated.propertyName] = generated.persistedValue;
                 snapshot.boundValues[generated.propertyName] =

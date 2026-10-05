@@ -10,6 +10,7 @@ import { cloneSnapshotValue } from '../../tracking/snapshot-value-clone';
 
 export class GeneratedValueRecorder {
     private readonly values: AppliedGeneratedValue[] = [];
+    private readonly valuesByEntry: Map<EntityEntry<object>, Map<string, AppliedGeneratedValue>> = new Map();
     private readonly sources: GeneratedIdentityRollbackSource[] = [];
 
     constructor(private readonly changeTracker: ChangeTracker) {}
@@ -43,13 +44,17 @@ export class GeneratedValueRecorder {
         entry: EntityEntry<object>,
         values: readonly AppliedPropertyValue[],
     ): void {
+        const indexed = this.valuesByEntry.get(entry) ?? new Map<string, AppliedGeneratedValue>();
+        this.valuesByEntry.set(entry, indexed);
         for (const value of values) {
-            this.values.push({
+            const applied = {
                 entry,
                 propertyName: value.propertyName,
                 persistedValue: value.persistedValue,
                 boundValue: cloneSnapshotValue(value.boundValue),
-            });
+            };
+            this.values.push(applied);
+            indexed.set(applied.propertyName, applied);
         }
     }
 
@@ -58,21 +63,17 @@ export class GeneratedValueRecorder {
         propertyName: string,
     ): AppliedPropertyValue | undefined {
         const entry = this.changeTracker.entry(entity);
-        for (let index = this.values.length - 1; index >= 0; index -= 1) {
-            const value = this.values[index];
-            if (value.entry === entry && value.propertyName === propertyName) {
-                return {
-                    propertyName: value.propertyName,
-                    persistedValue: value.persistedValue,
-                    boundValue: cloneSnapshotValue(value.boundValue),
-                };
-            }
-        }
-        return undefined;
+        const value = entry ? this.valuesByEntry.get(entry)?.get(propertyName) : undefined;
+        return value ? {
+            propertyName: value.propertyName,
+            persistedValue: value.persistedValue,
+            boundValue: cloneSnapshotValue(value.boundValue),
+        } : undefined;
     }
 
     public take(): readonly AppliedGeneratedValue[] {
         this.sources.length = 0;
+        this.valuesByEntry.clear();
         return this.values.splice(0);
     }
 

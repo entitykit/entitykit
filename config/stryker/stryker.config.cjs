@@ -44,6 +44,8 @@ module.exports = {
     'packages/core/src/core/bulk-write-tenant.ts:53-64',
     'packages/core/src/core/bulk-write-tenant.ts:80-83',
     'packages/core/src/core/unit-of-work/generated-value-writer.ts:82-98',
+    'packages/core/src/core/unit-of-work/generated-value-recorder.ts',
+    'packages/core/src/core/unit-of-work/tracked-save-state.ts:63-85',
     'packages/core/src/core/unit-of-work/tracked-version-acceptance.ts:37-75',
     'packages/core/src/tracking/change-tracker-detection.ts:85-92',
     'packages/core/src/tracking/relationship-detection-restore.ts:18-32',
