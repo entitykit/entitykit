@@ -30,6 +30,8 @@ The script fails if late resource cleanup emits its failure warning.
 These deadlines are generous correctness limits for isolated qualification,
 not production latency targets. SQLite runs synchronously and checks abort
 signals between native steps; it cannot preempt a running native statement.
+SQLite streams also yield to the event loop after at most `min(batchSize, 256)`
+rows, allowing fast consumers to receive timer-driven aborts and heartbeats.
 Database server crashes and storage durability have separate failure scenarios.
 
 The remote commands also run the Bookshop checkout through a transparent

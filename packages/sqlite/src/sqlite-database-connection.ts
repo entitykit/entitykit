@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { setImmediate as yieldToEventLoop } from 'node:timers/promises';
 import type * as NodeSqlite from 'node:sqlite';
 import type { DatabaseSync } from 'node:sqlite';
 import type { SqlStatement } from '@entitykit/core/adapter';
@@ -93,10 +94,19 @@ export class SqliteDatabaseConnection implements DatabaseConnection {
         options: QueryStreamOptions = {},
     ): AsyncGenerator<TRow> {
         await Promise.resolve();
-        queryStreamBatchSize(options);
+        const yieldEvery = Math.min(queryStreamBatchSize(options), 256);
         throwIfQueryAborted(options.signal);
         try {
-            yield* streamSqliteRows<TRow>(this.db, statement, options.signal);
+            let batchRows = 0;
+            for (const row of streamSqliteRows<TRow>(this.db, statement, options.signal)) {
+                yield row;
+                if (++batchRows === yieldEvery) {
+                    throwIfQueryAborted(options.signal);
+                    await yieldToEventLoop();
+                    throwIfQueryAborted(options.signal);
+                    batchRows = 0;
+                }
+            }
         } catch (error) {
             if (error instanceof OperationCanceledError) {
                 throw error;
