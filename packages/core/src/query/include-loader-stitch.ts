@@ -2,7 +2,7 @@ import type { EntityMetadata } from '../model/entity-metadata';
 import type { RelationshipMetadata } from '../model/relationship-metadata';
 import { RelationshipCardinality } from '../model/relationship-metadata';
 import type { IncludeLoaderContext, IncludeLoadRoot, ManyToManyRelationshipInfo } from './include-loader-context';
-import { pushUnique } from './include-navigation-helpers';
+import { getUniqueObjectList, pushUniqueObject, type UniqueObjectList } from './include-navigation-helpers';
 import { uniqueIncludeRoots } from './include-load-root';
 import {
     dependentStitchKey,
@@ -21,7 +21,7 @@ export class IncludeStitcher {
         relationship: RelationshipMetadata<object, TPrincipal>,
         dependents: readonly IncludeLoadRoot[],
     ): IncludeLoadRoot[] {
-        const dependentsByPrincipalKey: Map<string, object[]> = new Map();
+        const dependentsByPrincipalKey: Map<string, UniqueObjectList> = new Map();
         const appliedDependents: Set<object> = new Set();
         const appliedPrincipalKeys = new Set(principals.flatMap(principal => {
             if (includeNavigationHasPendingIntent(
@@ -62,9 +62,7 @@ export class IncludeStitcher {
                     relationship,
                 )
             ) continue;
-            const group = dependentsByPrincipalKey.get(key) ?? [];
-            pushUnique(group, dependent);
-            dependentsByPrincipalKey.set(key, group);
+            pushUniqueObject(getUniqueObjectList(dependentsByPrincipalKey, key), dependent);
             appliedDependents.add(dependent);
 
             const principal = principalsByKey.get(key);
@@ -94,7 +92,7 @@ export class IncludeStitcher {
                 relationship,
                 boundValues,
             );
-            const group = dependentsByPrincipalKey.get(key) ?? [];
+            const group = dependentsByPrincipalKey.get(key)?.items ?? [];
             if (
                 relationship.cardinality === RelationshipCardinality.OneToOne &&
                 group.length > 1

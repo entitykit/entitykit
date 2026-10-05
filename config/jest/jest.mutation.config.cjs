@@ -57,6 +57,8 @@ module.exports = {
     '<rootDir>/tests/accessor-refusal-load-atomicity-sqlite.test.ts',
     '<rootDir>/tests/accessor-refusal-restoration-poisoning-sqlite.test.ts',
     '<rootDir>/tests/include-loading.test.ts',
+    '<rootDir>/tests/include-collection-scaling.test.ts',
+    '<rootDir>/tests/loaded-inverse-collection-batch.test.ts',
     '<rootDir>/tests/nested-include.test.ts',
     '<rootDir>/tests/filtered-include.test.ts',
     '<rootDir>/tests/one-to-one.test.ts',

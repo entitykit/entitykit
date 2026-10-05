@@ -59,6 +59,7 @@ module.exports = {
     'packages/core/src/query/include-loader.ts:47-70',
     'packages/core/src/failure-atomic-navigation-write.ts',
     'packages/core/src/tracking/loaded-reference-fixup.ts',
+    'packages/core/src/tracking/loaded-inverse-collection-batch.ts',
     'packages/core/src/core/many-to-many-change-set.ts:31-45',
     'packages/core/src/core/navigation-link-ops.ts:53-97',
     'packages/core/src/query/include-loader-stitch.ts',

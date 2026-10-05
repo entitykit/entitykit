@@ -20,6 +20,7 @@ import {
     dependentBoundTuple,
 } from './include-bound-key';
 import { fixupIncludedReference } from './include-reference-fixup';
+import { LoadedInverseCollectionBatch } from '../tracking/loaded-inverse-collection-batch';
 
 /**
  * Reference (many-to-one) eager load.
@@ -44,6 +45,9 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
+        const inverseCollections = new LoadedInverseCollectionBatch(
+            this.ctx.changeTracker, this.ctx.journal, this.ctx.trackerJournal,
+        );
         const foreignKeyProperties = relationship.foreignKeyProperties;
         const principalMetadata = this.ctx.model.getEntity(
             relationship.principalEntity,
@@ -64,13 +68,14 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         if (foreignKeyTuples.length === 0) {
             for (const { entity, boundValues } of roots) {
                 if (fixupIncludedReference(
-                    this.ctx, metadata, entity, relationship, null,
+                    this.ctx, metadata, entity, relationship, null, inverseCollections,
                 )) {
                     this.markLoaded(
                         entity, relationship.navigationProperty, boundValues,
                     );
                 }
             }
+            inverseCollections.publish();
             this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'skipped', roots.length, 0, 0, 0, elapsed());
             return { metadata: principalMetadata, roots: [] };
         }
@@ -105,7 +110,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                 : null;
             const principal = principalRoot?.entity ?? null;
             const applied = fixupIncludedReference(
-                this.ctx, metadata, entity, relationship, principal,
+                this.ctx, metadata, entity, relationship, principal, inverseCollections,
             );
             if (applied && principalRoot) {
                 loadedPrincipals.push(principalRoot);
@@ -116,6 +121,8 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                 );
             }
         }
+
+        inverseCollections.publish();
 
         const uniquePrincipals = uniqueIncludeRoots(loadedPrincipals);
         this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'splitQuery', roots.length, foreignKeyTuples.length, principals.length, uniquePrincipals.length, elapsed());

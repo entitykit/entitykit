@@ -5,6 +5,7 @@ import type { EntityEntry } from '../tracking/entity-entry';
 import { fixupLoadedReference } from '../tracking/loaded-reference-fixup';
 import type { TrackedRelationshipMetadata } from '../tracking/tracked-relationship-metadata';
 import type { IncludeLoaderContext } from './include-loader-context';
+import type { LoadedInverseCollectionBatch } from '../tracking/loaded-inverse-collection-batch';
 import { markIncludeNavigationLoaded } from './include-navigation-loaded-state';
 import { includeNavigationHasPendingIntent } from './include-pending-relationship';
 
@@ -14,6 +15,7 @@ export function fixupIncludedReference<TEntity extends object>(
     entity: TEntity,
     relationship: RelationshipMetadata<TEntity>,
     principal: object | null,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): boolean {
     if (includeNavigationHasPendingIntent(
         ctx,
@@ -30,6 +32,7 @@ export function fixupIncludedReference<TEntity extends object>(
             principal,
             ctx.journal,
             ctx.trackerJournal,
+            inverseCollections,
         );
     } else {
         ctx.journal.write(

@@ -8,6 +8,7 @@ import {
 import { navigationSnapshot } from './navigation-snapshot';
 import { captureNavigation } from './navigation-snapshot';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
+import type { LoadedInverseCollectionBatch } from './loaded-inverse-collection-batch';
 import {
     inertNavigationLoadTrackerJournal,
     type NavigationLoadTrackerJournal,
@@ -36,6 +37,7 @@ export function fixupLoadedReference(
     writer: NavigationWriter = directNavigationWriter,
     trackerJournal: NavigationLoadTrackerJournal
         = inertNavigationLoadTrackerJournal,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     const values = dependent.entity as Record<string, unknown>;
     const current = values[relationship.navigationProperty];
@@ -47,6 +49,7 @@ export function fixupLoadedReference(
     }
     for (const previous of new Set([current, baseline.value])) {
         if (previous && typeof previous === 'object' && previous !== principal) {
+            if (inverseCollections?.remove(relationship, previous, dependent.entity)) continue;
             removeFromRelationshipInverse(
                 tracker, relationship, previous, dependent.entity, writer,
             );
@@ -62,6 +65,7 @@ export function fixupLoadedReference(
         dependent.metadata.entityName,
     );
     if (!principal) return;
+    if (inverseCollections?.add(relationship, principal, dependent.entity)) return;
     addToRelationshipInverse(
         tracker,
         relationship,
