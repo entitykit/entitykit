@@ -118,7 +118,7 @@ export function cascadeDeleteDependent(
 ): void {
     if (dependent.state === EntityState.Added) {
         detachRelationshipEntry(tracker, dependent.entity);
-    } else {
+    } else if (dependent.state !== EntityState.Detached) {
         dependent.markDeleted();
     }
     writeVerifiedNavigation(dependent.entity, relationship.navigationProperty, null, dependent.metadata.entityName);

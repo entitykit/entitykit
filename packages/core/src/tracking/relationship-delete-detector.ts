@@ -7,8 +7,10 @@ import {
     severDependent,
 } from './relationship-fixup';
 import { relationshipConnects } from './relationship-resolution';
-import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
+import { TrackedCascadeGraph } from './tracked-cascade-graph';
+import type { EntityEntry } from './entity-entry';
+import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 
 /** Apply configured delete behavior to dependents already tracked in memory. */
 export function detectTrackedCascades(
@@ -16,58 +18,32 @@ export function detectTrackedCascades(
     model: Model,
     captured: RelationshipDetectionValues,
 ): void {
-    let changed = true;
-    while (changed) {
-        changed = false;
-        const entries = tracker.entries();
-        for (const principal of entries) {
-            if (principal.state !== EntityState.Deleted) {
-                continue;
-            }
-            for (const dependent of entries) {
-                if (
-                    dependent.state === EntityState.Deleted ||
-                    dependent.state === EntityState.Detached
-                ) {
-                    continue;
-                }
-                const relationships = dependent.metadata.relationships as
-                    readonly TrackedRelationshipMetadata[];
-                for (const relationship of relationships) {
-                    if (
-                        relationship.principalEntity !== principal.metadata.ctor ||
-                        !relationshipConnects(
-                            tracker,
-                            model,
-                            dependent,
-                            relationship,
-                            principal,
-                            captured,
-                        )
-                    ) {
-                        continue;
-                    }
-                    if (relationship.deleteBehavior === DeleteBehavior.Cascade) {
-                        cascadeDeleteDependent(
-                            tracker,
-                            dependent,
-                            relationship,
-                            principal.entity,
-                        );
-                        changed = true;
-                    } else if (
-                        relationship.deleteBehavior === DeleteBehavior.SetNull
-                    ) {
-                        severDependent(
-                            tracker,
-                            dependent,
-                            relationship,
-                            principal.entity,
-                            captured,
-                        );
-                    }
+    const entries = tracker.entries();
+    const pending = entries.filter(entry => entry.state === EntityState.Deleted);
+    if (pending.length === 0) return;
+    const graph = new TrackedCascadeGraph(tracker, model, entries, captured);
+    for (const principal of pending) {
+        if (principal.state !== EntityState.Deleted) continue;
+        const dependents: Map<EntityEntry<object>, TrackedRelationshipMetadata[]> = new Map();
+        for (const { dependent, relationship } of graph.dependentsOf(principal)) {
+            const relationships = dependents.get(dependent) ?? [];
+            relationships.push(relationship);
+            dependents.set(dependent, relationships);
+        }
+        for (const [dependent, relationships] of dependents) {
+            if (
+                dependent.state === EntityState.Deleted ||
+                dependent.state === EntityState.Detached
+            ) continue;
+            for (const relationship of relationships) {
+                if (!relationshipConnects(tracker, model, dependent, relationship, principal, captured)) continue;
+                if (relationship.deleteBehavior === DeleteBehavior.Cascade) {
+                    cascadeDeleteDependent(tracker, dependent, relationship, principal.entity);
+                } else if (relationship.deleteBehavior === DeleteBehavior.SetNull) {
+                    severDependent(tracker, dependent, relationship, principal.entity, captured);
                 }
             }
+            if ((dependent.state as EntityState) === EntityState.Deleted) pending.push(dependent);
         }
     }
 }
