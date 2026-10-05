@@ -20,7 +20,7 @@ import {
     dependentBoundTuple,
 } from './include-bound-key';
 import { fixupIncludedReference } from './include-reference-fixup';
-import { LoadedInverseCollectionBatch } from '../tracking/loaded-inverse-collection-batch';
+import { createReferenceInverseBatch } from './include-reference-inverse-batch';
 
 /**
  * Reference (many-to-one) eager load.
@@ -45,9 +45,6 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         filter?: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const inverseCollections = new LoadedInverseCollectionBatch(
-            this.ctx.changeTracker, this.ctx.journal, this.ctx.trackerJournal,
-        );
         const foreignKeyProperties = relationship.foreignKeyProperties;
         const principalMetadata = this.ctx.model.getEntity(
             relationship.principalEntity,
@@ -66,6 +63,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
         );
 
         if (foreignKeyTuples.length === 0) {
+            const inverseCollections = createReferenceInverseBatch(this.ctx, roots, relationship);
             for (const { entity, boundValues } of roots) {
                 if (fixupIncludedReference(
                     this.ctx, metadata, entity, relationship, null, inverseCollections,
@@ -75,7 +73,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
                     );
                 }
             }
-            inverseCollections.publish();
+            inverseCollections?.publish();
             this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'skipped', roots.length, 0, 0, 0, elapsed());
             return { metadata: principalMetadata, roots: [] };
         }
@@ -97,6 +95,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
             ]),
         );
         const loadedPrincipals: IncludeLoadRoot[] = [];
+        const inverseCollections = createReferenceInverseBatch(this.ctx, roots, relationship, principals);
 
         for (const { entity, boundValues } of roots) {
             const foreignKeyTuple = foreignKeyProperties.map(
@@ -122,7 +121,7 @@ export class IncludeStrategyReference extends IncludeStrategyBase {
             }
         }
 
-        inverseCollections.publish();
+        inverseCollections?.publish();
 
         const uniquePrincipals = uniqueIncludeRoots(loadedPrincipals);
         this.emitIncludeDiagnostic(metadata.entityName, principalMetadata.entityName, relationship.navigationProperty, 'splitQuery', roots.length, foreignKeyTuples.length, principals.length, uniquePrincipals.length, elapsed());

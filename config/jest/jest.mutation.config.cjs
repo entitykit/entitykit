@@ -63,6 +63,7 @@ module.exports = {
     '<rootDir>/tests/accessor-refusal-restoration-poisoning-sqlite.test.ts',
     '<rootDir>/tests/include-loading.test.ts',
     '<rootDir>/tests/include-collection-scaling.test.ts',
+    '<rootDir>/tests/include-bidirectional-accessors.test.ts',
     '<rootDir>/tests/loaded-inverse-collection-batch.test.ts',
     '<rootDir>/tests/include-key-batching.test.ts',
     '<rootDir>/tests/include-key-planning.test.ts',
