@@ -15,11 +15,12 @@ cover no-tracking reads, tracked optimistic updates, 64-row saves and upserts,
 32 simultaneous reads through a four-connection pool, no-tracking streams with
 32-row batches, and atomic Bookshop checkout plus durable delivery.
 
-The expanded gate runs 30 SQL workloads and four context-setup measurements:
+The expanded gate runs 34 SQL workloads and four context-setup measurements:
 
 | Added area | Populated workload and checked behavior |
 | --- | --- |
 | Inverse and collection includes | 250 and 1,000 children sharing a parent; two SQL statements, complete inverse graph, unique identities |
+| Separately loaded relationships | 250 and 1,000 children; no-op saves submit no SQL, explicit detection builds the complete graph, and both paths preserve their navigation baselines |
 | Composite includes | 1,024 distinct two-column parent keys, references and four-child collections; five SQL statements across key chunks |
 | Window batching | 33 scalar-key parents, 80 filter bindings, tenant scope and per-parent `skip(1).take(2)`, collection and many-to-many; cap 96 and four statements |
 | Converted reads | 1,000 nested JSON values, tracked no-op detect/save and buffered no-tracking; correct values and tracker ownership |
@@ -103,6 +104,7 @@ No database URL or credentials are included in evidence.
 
 Algorithmic work-count regressions live in `tests/include-collection-scaling`,
 `include-key-batching`, `tracked-snapshot-work`, `save-bookkeeping-scaling`,
-`deletion-acceptance-scaling` and `cascade-scaling`. They assert actual work
+`deletion-acceptance-scaling`, `cascade-scaling`, `relationship-fixup-scaling`
+and `include-filter-bindings`. They assert actual work
 bounds rather than elapsed-time ratios. The [performance design notes](../docs/performance.md)
 describe the contracts, model-reuse decision and remaining provider opportunities.

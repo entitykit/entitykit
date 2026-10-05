@@ -13,6 +13,17 @@ group owns a working collection and membership index, then publishes once with
 one journal write and baseline refresh. Per-child references still use verified
 writes, and refused accessors, pending intent, supersession and failed loads
 retain their rollback guarantees. Collection stitching uses Set membership.
+Before the first reference write, includes inspect the participating reference
+and inverse navigations. Bidirectional setters and dynamic collections retain
+immediate fixup, so their own inverse edits remain valid.
+
+Ordinary change detection batches inverse collections once per principal and
+navigation in each of its reference and inverse-intent passes. The second pass
+still observes the completed first pass before resolving user intent. Membership
+indexes also bound duplicate work. Dynamic graphs and Added relationship owners
+retain immediate fixup. The outer detection journal owns rollback. A no-op save
+still restores its temporary plan changes; explicit `detectChanges()` retains
+the graph and advances its baseline.
 
 Composite include predicates preserve binding order in a balanced tree. Batches
 have at most 256 composite tuples and respect the provider's actual parameter
@@ -20,11 +31,16 @@ limit, including applied filters, tenant bindings and window bounds. Windowed
 scalar collections and many-to-many batches partition disjoint parent-key sets
 so each parent's complete window stays together. Unsupported window batching
 retains the existing per-parent path.
+Include filters capture owned provider operands once per load. The parameter
+probe and key chunks reuse those facts while binding independent value copies;
+null membership, string patterns, tenant scope and parameter order are preserved.
 
 SQLite streams yield after at most `min(batchSize, 256)` rows and check
 cancellation before continuing. Fast consumers can receive timers and heartbeats;
 one long synchronous native step remains non-preemptible. PostgreSQL stops
 fetching after a short batch, while exact full batches still need an EOF fetch.
+Cancellation is checked after the last yielded row before successful completion,
+including a short final batch in an owned or caller transaction.
 
 Tracking consumes its already-owned prepared initial snapshot once. Buffered
 no-tracking materialization uses query-local identities instead of full tracked
@@ -46,7 +62,8 @@ It rechecks live relationship intent before applying each edge and preserves
 the dependent-state boundary between principals. The linear work gate covers
 relationship resolution for disjoint pairs and reverse-tracked chains; it does
 not claim every accessor or inverse-collection mutation has constant cost.
-Graphs with relationship/FK accessors or entity/prototype proxies retain ordered
+Graphs with relationship/FK accessors, entity/prototype proxies, proxied inverse
+arrays or custom collection descriptors retain ordered
 live discovery: arbitrary user code can redirect another dependent during a
 cascade, which invalidates a precomputed edge index. Descriptor inspection
 selects that path without invoking getters or proxy traps.
@@ -57,6 +74,9 @@ Normal SDK builds preserve TypeScript incremental state. `build:clean`,
 prepack and package acceptance remove stale outputs explicitly. Verification
 accepts one clean package-family build, then checks its outputs rather than
 compiling the same seven projects repeatedly.
+Normal builds derive expected outputs from each TypeScript configuration and
+invalidate that package's incremental state when runtime or declaration files
+are missing. This includes internal modules and the CLI entry point.
 
 ## Model-reuse decision
 
