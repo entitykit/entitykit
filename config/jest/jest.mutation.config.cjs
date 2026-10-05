@@ -106,5 +106,7 @@ module.exports = {
     '<rootDir>/tests/identity-map.test.ts',
     '<rootDir>/tests/tracked-acceptance-journal.test.ts',
     '<rootDir>/tests/save-plan-builder-scope.test.ts',
+    '<rootDir>/tests/save-observer-plan-work.test.ts',
+    '<rootDir>/tests/save-interceptors.test.ts',
   ],
 };

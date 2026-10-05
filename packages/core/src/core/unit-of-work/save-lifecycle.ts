@@ -25,7 +25,9 @@ export class SaveLifecycle {
     ): Promise<readonly SavePlanEntry[]> {
         let plan = initialPlan;
         for (const interceptor of this.options.saveInterceptors) {
-            await interceptor.savingChanges?.({ plan });
+            const saving = interceptor.savingChanges?.bind(interceptor);
+            if (!saving) continue;
+            await saving({ plan });
             plan = rebuildPlan();
         }
         return plan;

@@ -74,6 +74,7 @@ module.exports = {
     'packages/core/src/core/policy-property-path.ts:21-36',
     'packages/core/src/core/save-plan-inspection.ts',
     'packages/core/src/core/save-plan-builder.ts:43-58',
+    'packages/core/src/core/unit-of-work/save-lifecycle.ts:22-34',
     'packages/core/src/core/save-time-writes.ts:43-49',
     'packages/core/src/core/save-time-relationship-reconciliation.ts:44-70',
     'packages/core/src/core/save-time-relationship-generation-values.ts:52-59',
