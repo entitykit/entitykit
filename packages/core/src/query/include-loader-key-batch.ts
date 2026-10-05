@@ -1,7 +1,9 @@
-import { FieldExpression } from './expression/field-expression';
 import { createQueryModel, cloneQueryModel, type IncludeFilterModel } from './query-model';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { IncludeLoaderContext, IncludeLoadRoot } from './include-loader-context';
+import type { SqlStatement } from '../sql/sql-statement';
+import { includeKeyPredicate } from './include-key-predicate';
+import { includeKeyStatements } from './include-key-statements';
 
 /**
  * Turn a set of parent-key tuples into materialized rows, split to stay within
@@ -30,48 +32,31 @@ export class IncludePropertyLoader {
         tuples: ReadonlyArray<readonly unknown[]>,
         filter?: IncludeFilterModel,
     ): Promise<Array<IncludeLoadRoot<TEntity>>> {
-        const chunkSize = this.keyChunkSize(propertyNames.length, filter);
-        if (tuples.length > chunkSize) {
-            const loaded: Array<IncludeLoadRoot<TEntity>> = [];
-            for (let start = 0; start < tuples.length; start += chunkSize) {
-                loaded.push(...await this.loadByPropertyChunk(metadata, propertyNames, tuples.slice(start, start + chunkSize), filter));
+        if (tuples.length === 0) return [];
+        const build = (keys: ReadonlyArray<readonly unknown[]>): SqlStatement =>
+            this.buildPropertyStatement(metadata, propertyNames, keys, filter);
+        // A bare limit/offset is a global window. Its callers use a single
+        // parent's keys; only partitioned windows may split parent sets.
+        const statements = filter?.limit !== undefined || filter?.offset !== undefined
+            ? [build(tuples)]
+            : includeKeyStatements(this.ctx.dialect, tuples, propertyNames.length, build);
+        const loaded: Array<IncludeLoadRoot<TEntity>> = [];
+        for (const statement of statements) {
+            const result = await this.ctx.database.query(statement, this.ctx.operationOptions);
+            for (const root of this.ctx.materializer.materializeManyWithValues(metadata, result.rows, this.ctx.changeTracker)) {
+                loaded.push(root);
             }
-            return loaded;
         }
-
-        return this.loadByPropertyChunk(metadata, propertyNames, tuples, filter);
+        return loaded;
     }
 
-    /**
-   * Parent keys that fit in one statement, or `Infinity` when the provider
-   * declares no cap or the include's own window forbids splitting.
-   */
-    private keyChunkSize(propertiesPerTuple: number, filter?: IncludeFilterModel): number {
-        const limit = this.ctx.dialect.maxStatementParameters?.();
-        if (limit === undefined || filter?.limit !== undefined || filter?.offset !== undefined) {
-            return Number.POSITIVE_INFINITY;
-        }
-
-        // Leave room for the parameters the include's own predicate contributes.
-        const reserved = 64;
-        return Math.max(Math.floor((limit - reserved) / Math.max(propertiesPerTuple, 1)), 1);
-    }
-
-    private async loadByPropertyChunk<TEntity extends object>(
+    private buildPropertyStatement<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         propertyNames: readonly string[],
         tuples: ReadonlyArray<readonly unknown[]>,
         filter?: IncludeFilterModel,
-    ): Promise<Array<IncludeLoadRoot<TEntity>>> {
-    // One property keeps the compact `in (...)` form; several compile to an
-    // `or` of `and`ed equality tests, one per key tuple.
-        const basePredicate = propertyNames.length === 1
-            ? new FieldExpression(propertyNames[0] as never).in(tuples.map(tuple => tuple[0]))
-            : tuples
-                .map(tuple => propertyNames
-                    .map((propertyName, index) => new FieldExpression(propertyName as never).eq(tuple[index] as never))
-                    .reduce((left, right) => left.and(right)))
-                .reduce((left, right) => left.or(right));
+    ): SqlStatement {
+        const basePredicate = includeKeyPredicate(propertyNames, tuples);
         const predicate = filter?.predicate ? basePredicate.and(filter.predicate) : basePredicate;
         const query = cloneQueryModel(createQueryModel(metadata.ctor), {
             predicate,
@@ -80,15 +65,6 @@ export class IncludePropertyLoader {
             limit: filter?.limit,
         });
         const filteredQuery = this.ctx.applyQueryFilters ? this.ctx.applyQueryFilters(metadata, query) : query;
-        const statement = this.ctx.selectSql.build(metadata, filteredQuery);
-        const result = await this.ctx.database.query(
-            statement,
-            this.ctx.operationOptions,
-        );
-        return this.ctx.materializer.materializeManyWithValues(
-            metadata,
-            result.rows,
-            this.ctx.changeTracker,
-        );
+        return this.ctx.selectSql.build(metadata, filteredQuery);
     }
 }

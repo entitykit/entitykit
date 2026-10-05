@@ -9,6 +9,8 @@ import { uniqueIncludeRoots } from './include-load-root';
 import type { IncludeFilterModel } from './query-model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { boundQueryTuple } from './include-bound-key';
+import { includeKeyStatements } from './include-key-statements';
+import type { SqlStatement } from '../sql/sql-statement';
 
 /**
  * Many-to-many eager load across a join table.
@@ -100,23 +102,17 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
         emitDiagnostic = true,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const statement = buildManyToManyBatchStatement(
-            this.ctx.dialect,
-            this.ctx.applyQueryFilters,
-            info,
-            currentKeys,
-            filter,
+        const statements = includeKeyStatements(
+            this.ctx.dialect, currentKeys, info.currentJoinColumns.length,
+            keys => buildManyToManyBatchStatement(
+                this.ctx.dialect, this.ctx.applyQueryFilters, info, keys, filter,
+            ),
         );
-        const result = await this.ctx.database.query(
-            statement,
-            this.ctx.operationOptions,
-        );
-        const relatedRoots = this.ctx.materializer.materializeManyWithValues(info.relatedMetadata, result.rows, this.ctx.changeTracker);
-        const uniqueRelated = this.stitcher.assignManyToManyRelated(result.rows, relatedRoots, currentEntities, info);
+        const loaded = await this.loadStatements(statements, currentEntities, info);
         if (emitDiagnostic) {
-            this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'splitQuery', currentEntities.length, currentKeys.length, result.rowCount, uniqueRelated.length, elapsed());
+            this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'splitQuery', currentEntities.length, currentKeys.length, loaded.rowCount, loaded.roots.length, elapsed());
         }
-        return { metadata: info.relatedMetadata, roots: uniqueRelated };
+        return { metadata: info.relatedMetadata, roots: loaded.roots };
     }
 
     private async loadWindowedBatch(
@@ -126,20 +122,34 @@ export class IncludeStrategyManyToMany extends IncludeStrategyBase {
         filter: IncludeFilterModel,
     ): Promise<LoadedIncludeResult> {
         const elapsed = startElapsedTimer();
-        const statement = buildManyToManyWindowStatement(
-            this.ctx.dialect,
-            this.ctx.applyQueryFilters,
-            info,
-            currentKeys,
-            filter,
+        const statements = includeKeyStatements(
+            this.ctx.dialect, currentKeys, 1,
+            keys => buildManyToManyWindowStatement(
+                this.ctx.dialect, this.ctx.applyQueryFilters, info, keys, filter,
+            ),
         );
-        const result = await this.ctx.database.query(
-            statement,
-            this.ctx.operationOptions,
-        );
-        const relatedRoots = this.ctx.materializer.materializeManyWithValues(info.relatedMetadata, result.rows, this.ctx.changeTracker);
-        const uniqueRelated = this.stitcher.assignManyToManyRelated(result.rows, relatedRoots, currentEntities, info);
-        this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'windowedBatch', currentEntities.length, currentKeys.length, result.rowCount, uniqueRelated.length, elapsed());
-        return { metadata: info.relatedMetadata, roots: uniqueRelated };
+        const loaded = await this.loadStatements(statements, currentEntities, info);
+        this.emitIncludeDiagnostic(info.currentMetadata.entityName, info.relatedMetadata.entityName, info.navigationProperty, 'windowedBatch', currentEntities.length, currentKeys.length, loaded.rowCount, loaded.roots.length, elapsed());
+        return { metadata: info.relatedMetadata, roots: loaded.roots };
+    }
+
+    private async loadStatements(
+        statements: Iterable<SqlStatement>,
+        currentEntities: readonly IncludeLoadRoot[],
+        info: ManyToManyRelationshipInfo,
+    ): Promise<{ roots: IncludeLoadRoot[]; rowCount: number }> {
+        const rows: Array<Record<string, unknown>> = [];
+        const roots: IncludeLoadRoot[] = [];
+        let rowCount = 0;
+        for (const statement of statements) {
+            const result = await this.ctx.database.query(statement, this.ctx.operationOptions);
+            rowCount += result.rowCount;
+            for (const row of result.rows) rows.push(row);
+            const materialized = this.ctx.materializer.materializeManyWithValues(
+                info.relatedMetadata, result.rows, this.ctx.changeTracker,
+            );
+            for (const root of materialized) roots.push(root);
+        }
+        return { roots: this.stitcher.assignManyToManyRelated(rows, roots, currentEntities, info), rowCount };
     }
 }

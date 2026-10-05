@@ -5,6 +5,7 @@ import type { SqlDialect } from '../sql/sql-dialect';
 import type { SqlParameterBag } from '../sql/sql-statement';
 import type { IncludeFilterModel } from './query-model';
 import type { ManyToManyRelationshipInfo } from './include-loader-context';
+import { combineIncludeKeyTerms } from './include-key-predicate';
 
 /**
  * SQL text fragments and aliases shared by the include subquery strategies.
@@ -61,11 +62,10 @@ export function joinKeyPredicate(
         return `${column} in (${currentKeys.map(tuple => bind(tuple, 0)).join(', ')})`;
     }
 
-    return currentKeys
-        .map(tuple => `(${info.currentJoinColumns
-            .map((column, index) => `${dialect.quoteIdentifier('j')}.${dialect.quoteIdentifier(column)} = ${bind(tuple, index)}`)
-            .join(' and ')})`)
-        .join(' or ');
+    const predicates = currentKeys.map(tuple => `(${info.currentJoinColumns
+        .map((column, index) => `${dialect.quoteIdentifier('j')}.${dialect.quoteIdentifier(column)} = ${bind(tuple, index)}`)
+        .join(' and ')})`);
+    return combineIncludeKeyTerms(predicates, (left, right) => `(${left} or ${right})`);
 }
 
 export function includeOrderBy(

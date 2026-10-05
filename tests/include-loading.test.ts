@@ -241,10 +241,10 @@ describe('include loading', () => {
     });
 
     it('splits a parent set too large to bind into statements that fit', async () => {
-    // This test dialect lowers SQLite's real 32_766 cap to 100. The key list is
+    // This test dialect lowers SQLite's real 32_766 cap to 25. The key list is
     // EntityKit's own construction, so it is split and concatenated — where a
     // caller's oversized `in([...])` is refused as caller-owned data.
-        const db = await seed(50, 0, 0, 100);
+        const db = await seed(50, 0, 0, 25);
 
         const authors = await db.authors.include(author => author.posts).toArray();
 

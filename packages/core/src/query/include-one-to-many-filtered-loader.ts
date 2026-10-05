@@ -10,6 +10,7 @@ import { IncludeStrategyBase } from './include-strategy-base';
 import type { IncludeFilterModel } from './query-model';
 import { startElapsedTimer } from '../diagnostics/runtime/elapsed-time';
 import { boundQueryTuple, principalBoundTuple } from './include-bound-key';
+import { includeKeyStatements } from './include-key-statements';
 
 export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
     constructor(
@@ -107,20 +108,21 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
                 ))[0])
                 .filter(value => value !== undefined && value !== null),
         );
-        const statement = buildOneToManyWindowStatement(
+        const statements = includeKeyStatements(this.ctx.dialect, principalKeys, 1, keys => buildOneToManyWindowStatement(
             this.ctx.dialect,
             this.ctx.applyQueryFilters,
             dependentMetadata,
             relationship,
-            principalKeys,
+            keys,
             filter,
-        );
-        const result = await this.ctx.database.query(statement, this.ctx.operationOptions);
-        const dependents = this.ctx.materializer.materializeManyWithValues(
-            dependentMetadata,
-            result.rows,
-            this.ctx.changeTracker,
-        );
+        ));
+        const dependents: IncludeLoadRoot[] = [];
+        let rowCount = 0;
+        for (const statement of statements) {
+            const result = await this.ctx.database.query(statement, this.ctx.operationOptions);
+            rowCount += result.rowCount;
+            for (const root of this.ctx.materializer.materializeManyWithValues(dependentMetadata, result.rows, this.ctx.changeTracker)) dependents.push(root);
+        }
         const assigned = this.stitcher.assignDependentsToPrincipals(
             principalMetadata,
             principals,
@@ -135,7 +137,7 @@ export class IncludeOneToManyFilteredLoader extends IncludeStrategyBase {
             'windowedBatch',
             principals.length,
             principalKeys.length,
-            result.rowCount,
+            rowCount,
             assigned.length,
             elapsed(),
         );
