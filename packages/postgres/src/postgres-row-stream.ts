@@ -59,6 +59,7 @@ export async function* streamPostgresRows<TRow extends Record<string, unknown>>(
                 yield row;
             }
         }
+        throwIfQueryAborted(options.signal);
     } catch (error) {
         primaryError = options.signal?.aborted === true
             ? new OperationCanceledError(options.signal.reason)

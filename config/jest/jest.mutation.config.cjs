@@ -6,6 +6,7 @@ module.exports = {
     '<rootDir>/tests/mysql-value-reader.test.ts',
     '<rootDir>/tests/postgres-client-lease.test.ts',
     '<rootDir>/tests/postgres-query-streaming.test.ts',
+    '<rootDir>/tests/postgres-stream-final-cancellation.test.ts',
     '<rootDir>/tests/operation-cancellation-promise.test.ts',
     '<rootDir>/tests/operation-cancellation-state.test.ts',
     '<rootDir>/tests/resource-acquisition-cancellation.test.ts',
