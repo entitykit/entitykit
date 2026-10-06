@@ -174,6 +174,30 @@ describe('one-to-one reassignment chains', () => {
         await value.db.dispose();
     });
 
+    it.each(behaviors.flatMap(([label, behavior, optional]) =>
+        twoEntryOrders.map(([orderLabel, order]) => [
+            label, behavior, optional, orderLabel, order,
+        ] as const)))(
+        'persists an inverse-only %s chain tracked %s',
+        async (_label, behavior, optional, _orderLabel, order) => {
+            const value = await graph(2, order, behavior, optional);
+            try {
+                value.parents[0].profile = null;
+                value.parents[1].profile = value.profiles[0];
+                value.parents[2].profile = value.profiles[1];
+                await expect(value.db.saveChanges()).resolves.toBe(2);
+                expect(await stored(value.db)).toEqual([
+                    { id: 'd1', parent_id: 'p2' },
+                    { id: 'd2', parent_id: 'p3' },
+                ]);
+                expect(value.profiles.map(profile => value.db.entry(profile)?.state)).toEqual(['Unchanged', 'Unchanged']);
+                expect(value.profiles.map(profile => profile.parent)).toEqual(value.parents.slice(1));
+            } finally {
+                await value.db.dispose();
+            }
+        },
+    );
+
     it.each(twoEntryOrders)(
         'rejects an FK cycle tracked %s before mutation',
         async (_label, order) => {

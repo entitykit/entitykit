@@ -81,4 +81,25 @@ describe('include filter binding ownership', () => {
         (first.values[0] as Uint8Array)[0] = 88;
         expect(sql.build(metadata, query).values).toEqual([new Uint8Array([7])]);
     });
+
+    it('binds negated values once and preserves field-to-field comparisons without conversion', () => {
+        const { metadata, convert } = mapping();
+        const comparison = PredicateExpression.fieldComparison(
+            { propertyName: 'id' }, 'ne', { propertyName: 'score' },
+        );
+        const predicate = new FieldExpression('score').eq(2).not();
+        const fixed = bindIncludeFilter(metadata, { predicate, orderings: [] });
+        expect(convert).toHaveBeenCalledTimes(1);
+        const sql = new SelectSqlBuilder(sqliteDialect);
+        const first = sql.build(metadata, cloneQueryModel(createQueryModel(BindingRow), fixed));
+        const second = sql.build(metadata, cloneQueryModel(createQueryModel(BindingRow), fixed));
+        expect(first).toEqual(second);
+        expect(first.text).toContain('not');
+        expect(first.values).toContain(102);
+        expect(convert).toHaveBeenCalledTimes(1);
+        const compared = bindIncludeFilter(metadata, { predicate: comparison, orderings: [] });
+        expect(() => sql.build(metadata, cloneQueryModel(createQueryModel(BindingRow), compared)))
+            .toThrow('Field-to-field predicates require joined query SQL compilation.');
+        expect(convert).toHaveBeenCalledTimes(1);
+    });
 });

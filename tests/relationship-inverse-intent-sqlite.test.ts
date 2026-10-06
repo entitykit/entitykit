@@ -230,7 +230,7 @@ describe('relationship inverse intent resolution', () => {
         expect(() => {
             db.changeTracker.detectChanges();
         }).toThrow(
-            'appears in more than one final inverse navigation',
+            'Dependent \'IntentChild\' appears in more than one final inverse navigation for relationship \'parent\'.',
         );
         await db.dispose();
     });
