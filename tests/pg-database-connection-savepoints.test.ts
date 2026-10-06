@@ -48,6 +48,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_1'],
             ['select nested', []],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['select outer', []],
             ['commit'],
         ]);
@@ -122,6 +123,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_1'],
             ['release savepoint entitykit_sp_1'],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['rollback'],
         ]);
         expect(pgClient.release).toHaveBeenCalledTimes(1);
@@ -249,6 +251,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_1'],
             ['savepoint entitykit_sp_1'],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['rollback'],
         ]);
     });
@@ -261,6 +264,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             .mockResolvedValueOnce(undefined)
             .mockResolvedValueOnce(undefined)
             .mockRejectedValueOnce({ code: 'DEEP_ROLLBACK_FAILED' })
+            .mockResolvedValueOnce(undefined)
             .mockResolvedValueOnce(undefined)
             .mockResolvedValueOnce({ rows: [], rowCount: 0 })
             .mockResolvedValueOnce(undefined);
@@ -284,6 +288,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_2'],
             ['rollback to savepoint entitykit_sp_2'],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['select recovered', []],
             ['commit'],
         ]);
