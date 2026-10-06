@@ -60,8 +60,12 @@ principal/dependent adjacency through the existing captured key, tenant and
 pending-intent rules, then processes a queue.
 It rechecks live relationship intent before applying each edge and preserves
 the dependent-state boundary between principals. The linear work gate covers
-relationship resolution for disjoint pairs and reverse-tracked chains; it does
-not claim every accessor or inverse-collection mutation has constant cost.
+relationship resolution for disjoint pairs and reverse-tracked chains. Ordinary
+Cascade and SetNull paths also accumulate inverse removals by principal and
+navigation, then publish each completed collection once. Their public tests
+bound collection work as child counts increase and verify failure restoration
+and caller rollback. Loaded-removal benchmarks exercise both behaviors on all
+three providers. No constant-cost claim applies to dynamic application hooks.
 Graphs with relationship/FK accessors, entity/prototype proxies, proxied inverse
 arrays or custom collection descriptors retain ordered
 live discovery: arbitrary user code can redirect another dependent during a

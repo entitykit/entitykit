@@ -56,6 +56,8 @@ only when the application shuts down.
   provider, migration, and release flows.
 - [Performance](performance.md) — scaling contracts, qualification limits and
   the explicit model-reuse direction.
+- [Stabilization](stabilization.md) — numeric, tracking, write and failure
+  contracts, with finite state and resource repetition checks.
 - [Contributing](../CONTRIBUTING.md) — repository rules and verification gates.
 
 ## Alpha status

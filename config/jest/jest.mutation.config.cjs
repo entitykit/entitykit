@@ -3,6 +3,15 @@ const base = require('./jest.config.cjs');
 module.exports = {
   ...base,
   testMatch: [
+    '<rootDir>/tests/aggregate-result-aliases-sqlite.test.ts',
+    '<rootDir>/tests/aggregate-count-boundaries.test.ts',
+    '<rootDir>/tests/aggregate-query-model/*.test.ts',
+    '<rootDir>/tests/joined-projection/*.test.ts',
+    '<rootDir>/tests/postgres-savepoint-ownership.test.ts',
+    '<rootDir>/tests/pg-database-connection-savepoints.test.ts',
+    '<rootDir>/tests/pg-database-connection-transactions.test.ts',
+    '<rootDir>/tests/cascade-inverse-removal-sqlite.test.ts',
+    '<rootDir>/tests/stabilization-repetition-sqlite.test.ts',
     '<rootDir>/tests/mysql-value-reader.test.ts',
     '<rootDir>/tests/postgres-client-lease.test.ts',
     '<rootDir>/tests/postgres-query-streaming.test.ts',

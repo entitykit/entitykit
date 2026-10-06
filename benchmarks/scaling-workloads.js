@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { ScalingRecord, withScalingContext, seedScalingGraph, dropScalingTables } = require('./scaling-model');
 const { measure, budgets } = require('./workload-measurement');
 const { relationshipFixupWorkloads } = require('./relationship-fixup-workloads');
+const { cascadeRemovalWorkloads } = require('./cascade-removal-workloads');
 
 function limitedSource(source, limit) {
   return {
@@ -15,6 +16,7 @@ async function scalingWorkloads(source, raw, provider, counters) {
   const results = [];
   await seedScalingGraph(raw, provider, source, counters);
   results.push(...await relationshipFixupWorkloads(source, counters));
+  results.push(...await cascadeRemovalWorkloads(source, raw, provider, counters));
   for (const size of [250, 1_000]) {
     results.push(await measure(`orm.inverse-include-${size}`, counters, () => withScalingContext(source, counters, async db => {
       const children = await db.children.where(row => row.id.gte(100_000)).orderBy(row => row.id).take(size).include(row => row.parent).toArray();

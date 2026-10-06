@@ -3,6 +3,10 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
+    'packages/core/src/core/db-set-result-mapper.ts:65-114',
+    'packages/core/src/core/query-count-result.ts',
+    'packages/core/src/core/projection-row-materializer.ts:91-104',
+    'packages/postgres/src/postgres-transaction.ts:80-137',
     'packages/mysql/src/mysql-value-reader.ts',
     'packages/postgres/src/postgres-client-lease.ts',
     'packages/postgres/src/postgres-row-stream.ts:48-63',
@@ -73,7 +77,7 @@ module.exports = {
     'packages/core/src/tracking/navigation-property-stability.ts',
     'packages/core/src/tracking/live-cascade-detection.ts',
     'packages/core/src/tracking/relationship-delete-detector.ts',
-    'packages/core/src/tracking/relationship-fixup.ts:126-137',
+    'packages/core/src/tracking/relationship-fixup.ts:120-140',
     'packages/core/src/tracking/relationship-detection-inverse-batch.ts',
     'packages/core/src/tracking/relationship-change-detector.ts',
     'packages/core/src/tracking/relationship-inverse-intents.ts',

@@ -87,6 +87,31 @@ function defineTests(label: string, configure: (options: DbContextOptionsBuilder
                 .toArray();
             expect(rows.map(r => r.team)).toEqual([null, 'west', 'east']);
         });
+
+        it.each(['constructor', 'toString', 'ordinary', ...label === 'MySQL' ? [] : ['__proto__']])(
+            'returns %s as an own aggregate and grouped result field', async alias => {
+                const aggregate = await db.members.aggregate(value => ({ [alias]: value.count() })).single();
+                expect(Object.getPrototypeOf(aggregate)).toBe(Object.prototype);
+                expect(Object.hasOwn(aggregate, alias)).toBe(true);
+                expect(aggregate[alias]).toBe(4);
+                expect(JSON.stringify(aggregate)).toBe(JSON.stringify({ [alias]: 4 }));
+                const groups = await db.members.groupBy(row => ({ team: row.team }))
+                    .orderBy(group => group.key.team)
+                    .select(group => ({ [alias]: group.key.team, total: group.count() })).toArray();
+                expect(groups).toEqual([
+                    { [alias]: 'east', total: 1 }, { [alias]: 'west', total: 1 }, { [alias]: null, total: 2 },
+                ]);
+                expect(groups.every(row => Object.getPrototypeOf(row) === Object.prototype && Object.hasOwn(row, alias))).toBe(true);
+            },
+        );
+
+        if (label === 'MySQL') {
+            it('preserves mysql2 private-field rejection before aggregate materialization', async () => {
+                await expect(db.members.aggregate(value => ({ ['__proto__']: value.count() })).single())
+                    .rejects.toMatchObject({ name: 'DatabaseProviderError', operation: 'query' });
+                await expect(db.members.count()).resolves.toBe(4);
+            });
+        }
     });
 }
 
