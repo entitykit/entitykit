@@ -1,6 +1,6 @@
 {
   "name": "@entitykit/mysql",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "The MySQL provider for EntityKit, backed by the mysql2 driver.",
   "keywords": [
     "orm",
@@ -44,7 +44,7 @@
     "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
   },
   "peerDependencies": {
-    "@entitykit/core": "0.1.0-alpha.2",
+    "@entitykit/core": "0.1.0-alpha.3",
     "mysql2": "^3.23.2"
   },
   "engines": {

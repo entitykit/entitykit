@@ -26,9 +26,9 @@ describe('EntityKit CLI', () => {
         expect(result).toMatchObject({
             exitCode: 0,
             command: 'version',
-            data: { version: '0.1.0-alpha.2' },
+            data: { version: '0.1.0-alpha.3' },
         });
-        expect(result.stdout).toBe('0.1.0-alpha.2');
+        expect(result.stdout).toBe('0.1.0-alpha.3');
     });
 
     it('returns exactly one versioned JSON envelope', async () => {

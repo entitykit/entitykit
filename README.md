@@ -35,10 +35,10 @@
 
 > [!IMPORTANT]
 > EntityKit is prerelease software; APIs may change before 1.0. This branch is
-> the coordinated `0.1.0-alpha.2` family. The previous `alpha.1` release lacks
-> both `@entitykit/nestjs` and the source-backed `DbContext` constructor shown
-> below; if `@alpha` still resolves there, select a shared source explicitly
-> with `options.useDataSource(source)` in `configure()`.
+> preparing the coordinated `0.1.0-alpha.3` family. The published `alpha.2`
+> includes `@entitykit/nestjs` and the source-backed `DbContext` constructor.
+> Applications upgrading from `alpha.1` must select a shared source explicitly
+> with `options.useDataSource(source)` in `configure()` until they upgrade.
 
 With a configured context, application code looks like this:
 
@@ -275,7 +275,7 @@ deployment scripts, database-first projects, and provider-specific DDL rules.
 - [Framework guide](./docs/frameworks.md) — NestJS 12 and the Node-runtime
   Next.js 16 integration pattern.
 - [Next.js + Postgres demo](./examples/nextjs-postgres/) — a production-shaped
-  App Router example pinned to the exact `alpha.2` workspace family.
+  App Router example pinned to the exact `alpha.3` workspace family.
 - [Compatibility](./docs/compatibility.md) — Node support, provider parity, and
   current alpha boundaries.
 - [Architecture](./docs/architecture.md) — package ownership, provider seams,
@@ -285,8 +285,9 @@ deployment scripts, database-first projects, and provider-specific DDL rules.
 
 EntityKit is deliberately honest about its current boundary. The
 `0.1.0-alpha.1` release was the original six-package family; the coordinated
-`0.1.0-alpha.2` source adds the NestJS package and the refined data-source
-lifecycle API.
+`0.1.0-alpha.2` release added the NestJS package and the refined data-source
+lifecycle API. This branch prepares `0.1.0-alpha.3`, with aggregate correctness,
+nested-savepoint cleanup, performance repairs and both published upgrade baselines.
 
 - Every package in a coordinated release moves on one exact prerelease version.
 - The public API may change before 1.0; `/experimental` has no compatibility

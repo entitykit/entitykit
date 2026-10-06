@@ -22,11 +22,11 @@ not separate release lanes during the alpha.
 
 ## Modules and TypeScript
 
-The six packages published as `0.1.0-alpha.1` are CommonJS. Node can consume
-them from either module system, and the package gate installs the packed
-tarballs into an otherwise empty application before testing them.
-`@entitykit/nestjs` on `main` is a native-ESM package intended for the next
-coordinated alpha; it is not part of this published qualification.
+The published `0.1.0-alpha.2` family has six CommonJS packages and the
+native-ESM `@entitykit/nestjs` integration. Node can consume the CommonJS
+packages from either module system. The package gate installs all seven packed
+tarballs into an otherwise empty application before testing them. The original
+`alpha.1` family contains only the six CommonJS packages.
 
 | Consumer | Qualified | What is proved |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ coordinated alpha; it is not part of this published qualification.
 | ESM `import` | Yes | Node's ESM-to-CommonJS interoperability against the same installed artifacts. |
 | TypeScript `module: Node16` | Yes | Strict typechecking with `skipLibCheck: false`. |
 | TypeScript `module: NodeNext` | Yes | Strict ESM typechecking from an `.mts` consumer with `skipLibCheck: false`. |
-| Native ESM output | No for the published `alpha.1` family | The six published packages do not include a second ESM build. The unreleased NestJS package on `main` emits ESM. |
+| Native ESM output | NestJS integration only | `@entitykit/nestjs` emits native ESM and is consumed from an ESM application. The six other packages expose CommonJS with Node ESM interoperability, without a second native-ESM build. |
 | Bundler-specific resolution | Not qualified | Deep imports and undeclared entry points are unsupported. |
 
 The build target is ES2022. The public entry points are:
@@ -46,9 +46,8 @@ The build target is ES2022. The public entry points are:
 - `@entitykit/core/experimental`
 - the root entry of each provider, CLI, and testing package
 
-The `@entitykit/nestjs` root entry is public in the development workspace but
-does not become part of the registry contract until its coordinated alpha is
-published and accepted through the package gate.
+The `@entitykit/nestjs` root entry is public in the published `alpha.2` family
+and the `alpha.3` source candidate.
 
 Only paths declared in a package's `exports` map are public. The package smoke
 test covers every declared entry from the actual tarballs; repository-relative
@@ -58,7 +57,7 @@ or `dist/` deep imports are not compatibility contracts.
 
 | Integration | Status | Boundary |
 | --- | --- | --- |
-| NestJS 12 | `alpha.2` release candidate; registry qualification pending | `@entitykit/nestjs` provides native-ESM `forRoot`, `forRootAsync`, `forFeature`, and context-runner lifecycle APIs. It did not exist in `0.1.0-alpha.1`. |
+| NestJS 12 | Published since `alpha.2` | `@entitykit/nestjs` provides native-ESM `forRoot`, `forRootAsync`, `forFeature`, and context-runner lifecycle APIs. It did not exist in `0.1.0-alpha.1`. |
 | Next.js 16 App Router, Node runtime | Repository example; not generally qualified | The [Postgres demo](../examples/nextjs-postgres/) shows the intended Node-only lifecycle and external-package configuration. It is not yet a compatibility claim for arbitrary Next.js applications or bundlers. |
 | Next.js Edge, browser, or Client Component data access | Unsupported | EntityKit requires Node database drivers and server-only APIs. |
 
@@ -127,7 +126,7 @@ silently updating the wrong row.
 | --- | --- |
 | Public APIs | May change between alpha releases. Test an upgrade against the application's real schema, queries, and migrations. |
 | Experimental entry | `@entitykit/core/experimental` has no compatibility guarantee during the alpha. |
-| Package family | The published `alpha.1` family has six packages at one exact version. Future coordinated releases must move every included package together; mixed EntityKit versions are unsupported. `@entitykit/nestjs` on `main` is not retroactively part of `alpha.1`. |
+| Package family | The published `alpha.2` and candidate `alpha.3` families have seven packages at one exact version. Coordinated releases move every included package together; mixed EntityKit versions are unsupported. The historical `alpha.1` family has six packages. |
 | Context lifecycle | Create one provider data source per application, then one short-lived `DbContext` per request, job, or unit of work. Dispose the context first and the source at application shutdown. Overlapping operations on one context are rejected. |
 | Tenant scope | Typed queries and writes enforce configured scope. `ignoreTenantScope()`, cross-tenant contexts, raw SQL, and direct connection access are explicit bypasses, not authorization. |
 | Migration generation | Generated migrations require review. Renames need explicit hints; destructive forward plans require `--allow-data-loss`; rollback plans can also lose data without that gate. Use `db migrate --dry-run` before applying either direction. |
@@ -135,7 +134,7 @@ silently updating the wrong row.
 | SQLite migrations | Table rebuilds reproduce modeled schema only. Keep a backup and account for hand-authored triggers or other out-of-model objects. |
 | MySQL migrations | A failure after DDL begins can leave part of a migration applied because MySQL commits DDL implicitly. |
 | MySQL schema bootstrap | `ensureCreated()` and `createScript()` may include unguarded index DDL. Treat them as one-time creation plans, not repeatable reconciliation. |
-| Platform surface | Node.js only. The published `alpha.1` family makes no browser, Edge, alternative-runtime, native-ESM-output, or bundler support claim. The unreleased NestJS package's ESM output does not broaden that runtime boundary. |
+| Platform surface | Node.js only. Native ESM output for NestJS does not broaden the runtime boundary. Browser, Edge, alternative-runtime and general bundler support remain unqualified. |
 
 The executable sources for these claims are the [CI matrix](../.github/workflows/ci.yml),
 [package acceptance test](../scripts/check-package.js), and
@@ -145,7 +144,7 @@ documented in the [security policy](../SECURITY.md).
 ## Stable compatibility policy
 
 This policy applies when the first stable family is published. Current
-versions remain `0.1.0-alpha.2`; preparing a stable workflow does not convert an
+source versions are `0.1.0-alpha.3`; preparing a stable workflow does not convert an
 alpha into a stable release. The first stable version has not been selected.
 
 A stable compatibility line is one major version for `1.x` and later, or one

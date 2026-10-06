@@ -1,6 +1,6 @@
 {
   "name": "@entitykit/nestjs",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Lifecycle-safe EntityKit integration for NestJS applications.",
   "keywords": [
     "orm",
@@ -44,7 +44,7 @@
     "prepublishOnly": "node ../../scripts/guard-alpha-publish.js"
   },
   "peerDependencies": {
-    "@entitykit/core": "0.1.0-alpha.2",
+    "@entitykit/core": "0.1.0-alpha.3",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
     "reflect-metadata": "^0.1.13 || ^0.2.0",

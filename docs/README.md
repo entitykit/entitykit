@@ -61,9 +61,9 @@ only when the application shuts down.
 ## Alpha status
 
 The npm `0.1.0-alpha.1` release is the six-package core/provider/CLI/testing
-family. The coordinated `0.1.0-alpha.2` source adds `@entitykit/nestjs` and the
+family. The published `0.1.0-alpha.2` release added `@entitykit/nestjs` and the
 source-backed `DbContext` constructor; neither exists in the `alpha.1` registry
-set. Upgrade a released EntityKit family together and validate it against the
+set. The source now prepares `0.1.0-alpha.3`. Upgrade a released EntityKit family together and validate it against the
 application's real queries, schema, and migrations.
 
 The [compatibility matrix](compatibility.md) is the source of truth for what is

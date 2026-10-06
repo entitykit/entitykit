@@ -25,7 +25,7 @@ npm install @entitykit/core@alpha @entitykit/mysql@alpha mysql2
 ```
 
 > [!IMPORTANT]
-> This README describes `0.1.0-alpha.2`. With the previous `0.1.0-alpha.1`,
+> This README describes `0.1.0-alpha.3`. With the previous `0.1.0-alpha.1`,
 > select the shared source explicitly with `options.useDataSource(source)` in
 > `configure()`.
 

@@ -16,7 +16,8 @@ Every real working-copy publish is refused by `prepublishOnly`.
 | `alpha` | Canonical `X.Y.Z-alpha.N` | `alpha-candidate` | `alpha` | `publish-alpha` |
 | `stable` | Canonical `X.Y.Z` | `stable-candidate` | `latest` | `publish-stable` |
 
-Package versions currently remain `0.1.0-alpha.2`. Stable mechanics are tested
+The source candidate is `0.1.0-alpha.3`; `0.1.0-alpha.2` is already published.
+Stable mechanics are tested
 with synthetic versions, including real npm dry runs. A stable dispatch of
 these prerelease tarballs fails preflight. Selecting and applying the first
 stable version remains a separate release decision.

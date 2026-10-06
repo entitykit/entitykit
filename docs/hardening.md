@@ -1,9 +1,10 @@
 # Stable release hardening
 
-The authorized repository hardening is implemented on `hardening`, in small
-PGP-signed, bodyless Conventional Commits by `zsumz`. EntityKit versions remain
-`0.1.0-alpha.2`. The local qualification covers SQLite, Postgres and MySQL;
-stable version selection and publication remain separate release actions.
+The repository hardening described below was implemented on `hardening`, in
+small PGP-signed, bodyless Conventional Commits by `zsumz`, and shipped in
+`0.1.0-alpha.2`. The current corrective branch prepares
+[`0.1.0-alpha.3`](releases/0.1.0-alpha.3.md). Stable version selection and
+publication remain separate release actions.
 
 The Pagerbase adoption step is replaced by the repository-owned
 [Bookshop example](../examples/bookshop/README.md). It exercises a non-on-call,

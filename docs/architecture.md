@@ -5,7 +5,7 @@ and shared SQL contracts; providers own driver, session, and database behavior.
 Public package entries are the only seams allowed to cross that boundary.
 
 The published `0.1.0-alpha.1` family contains six packages: core, three
-providers, CLI, and testing. The coordinated `0.1.0-alpha.2` source adds
+providers, CLI, and testing. The published `0.1.0-alpha.2` family added
 `@entitykit/nestjs` as the first framework integration; it is not retroactively
 part of the `alpha.1` set.
 
@@ -222,7 +222,7 @@ checksum serialization remain independent of this execution scope.
 ## Release flow
 
 The current `main` release pipeline applies this shape to the seven-package
-`0.1.0-alpha.2` family. The published `0.1.0-alpha.1` release used the same
+`0.1.0-alpha.3` candidate family. The published `0.1.0-alpha.1` release used the same
 integrity-first design for six packages and did not contain NestJS.
 
 ```text

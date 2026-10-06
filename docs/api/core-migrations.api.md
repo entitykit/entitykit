@@ -274,7 +274,7 @@ export interface EntityKitErrorOptions {
 }
 
 // @public (undocumented)
-export const entityKitMigrationVersion = "0.1.0-alpha.2";
+export const entityKitMigrationVersion = "0.1.0-alpha.3";
 
 // @public
 export interface EntitySnapshot {

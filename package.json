@@ -1,6 +1,6 @@
 {
   "name": "entitykit",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "private": true,
   "description": "An Entity Framework-inspired ORM for TypeScript with SQLite, Postgres, and MySQL providers.",
   "keywords": [
