@@ -2,6 +2,9 @@ import {
     PostgresDatabaseConnection, createPgClient, pgPool, resetPgConnectionMocks,
 } from './support/pg-database-connection-test-support';
 import { containing } from './support/jest-asymmetric-matchers';
+import { runPostgresSavepoint } from '../packages/postgres/src/postgres-transaction';
+import type { PoolClient } from '../packages/postgres/src/postgres-driver';
+import { DatabaseTransactionCleanupError } from '../packages/core/src/adapter';
 
 describe('Postgres nested scope ownership', () => {
     beforeEach(resetPgConnectionMocks);
@@ -78,11 +81,24 @@ describe('Postgres nested scope ownership', () => {
         expect(client.query.mock.calls).toEqual([['begin'], ['commit']]);
     });
 
+    it('preserves a recovered failure when no recovery observer is supplied', async () => {
+        const client = createPgClient();
+        const primary = new Error('unobserved scope failed');
+        await expect(runPostgresSavepoint(client as unknown as PoolClient, 1, () => {
+            throw primary;
+        })).rejects.toBe(primary);
+        expect(client.query.mock.calls).toEqual([
+            ['savepoint entitykit_sp_1'], ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
+        ]);
+    });
+
     it('preserves the work error and prevents commit after caught release cleanup failure', async () => {
         const { connection, client } = open();
         const primary = new Error('item failed');
+        const releaseFailure = Object.assign(new Error('release failed'), { code: 'RELEASE_FAILED' });
         client.query.mockImplementation(async (text: string) => text.startsWith('release savepoint ')
-            ? Promise.reject(Object.assign(new Error('release failed'), { code: 'RELEASE_FAILED' }))
+            ? Promise.reject(releaseFailure)
             : Promise.resolve({ rows: [], rowCount: 0 }));
         let nestedFailure: unknown;
         const rootFailure = await connection.transaction(async () => {
@@ -93,13 +109,21 @@ describe('Postgres nested scope ownership', () => {
             } catch (error) {
                 nestedFailure = error;
             }
-            expect(nestedFailure).toMatchObject({
-                name: 'DatabaseTransactionCleanupError', operation: 'releaseSavepoint', primaryError: primary,
-                cleanupError: containing({ operation: 'releaseSavepoint', code: 'RELEASE_FAILED' }),
-            });
             return 'caught';
         }).catch((error: unknown) => error);
         expect(rootFailure).toBe(nestedFailure);
+        expect(rootFailure).toBeInstanceOf(DatabaseTransactionCleanupError);
+        // Assert after the poisoned scope has ended: its original cleanup
+        // failure must not replace an assertion failure inside the callback.
+        expect(rootFailure).toMatchObject({
+            name: 'DatabaseTransactionCleanupError', provider: 'postgres',
+            operation: 'releaseSavepoint', primaryError: primary,
+            cleanupError: containing({ provider: 'postgres', operation: 'releaseSavepoint', code: 'RELEASE_FAILED' }),
+        });
+        const cleanup = rootFailure as DatabaseTransactionCleanupError;
+        expect(cleanup.primaryError).toBe(primary);
+        expect(cleanup.cause).toBe(cleanup.cleanupError);
+        expect(cleanup.cleanupError.cause).toBe(releaseFailure);
         expect(client.query.mock.calls).toEqual([
             ['begin'], ['savepoint entitykit_sp_1'], ['rollback to savepoint entitykit_sp_1'],
             ['release savepoint entitykit_sp_1'], ['rollback'],

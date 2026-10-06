@@ -144,9 +144,11 @@ describe('PostgresDatabaseConnection savepoints', () => {
             });
         })).rejects.toMatchObject({
             name: 'DatabaseTransactionCleanupError',
+            provider: 'postgres',
             operation: 'rollbackToSavepoint',
             cleanupError: containing({
                 name: 'DatabaseProviderError',
+                provider: 'postgres',
                 operation: 'rollbackToSavepoint',
                 code: 'ROLLBACK_TO_SAVEPOINT_FAILED',
             }),
