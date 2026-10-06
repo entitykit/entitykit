@@ -3,8 +3,8 @@ import { SqliteDatabaseConnection } from '../packages/sqlite/src/sqlite-database
 
 const rows = {
     text: `with recursive numbers(n) as (
-        select 1 union all select n + 1 from numbers where n < 100000
-    ) select n from numbers`, values: [],
+        select 1 union all select n + 1 from numbers where n < ?
+    ) select n from numbers`, values: [100_000],
 };
 
 describe('SQLite stream event-loop fairness', () => {
@@ -46,6 +46,9 @@ describe('SQLite stream event-loop fairness', () => {
     });
 
     it.each([32, 1_000_000])('runs a heartbeat with bounded work for batchSize %i', async batchSize => {
+        // Fairness is a per-batch contract. Several full batches and a partial
+        // final batch prove it without turning this unit check into a CPU gate.
+        const total = 4_097;
         const connection = new SqliteDatabaseConnection(':memory:');
         let consumed = 0;
         const heartbeatRows: number[] = [];
@@ -55,10 +58,10 @@ describe('SQLite stream event-loop fairness', () => {
         };
         let heartbeat = setImmediate(tick);
         try {
-            for await (const row of connection.stream<{ n: number }>(rows, { batchSize })) {
+            for await (const row of connection.stream<{ n: number }>({ ...rows, values: [total] }, { batchSize })) {
                 expect(row.n).toBe(++consumed);
             }
-            expect(consumed).toBe(100_000);
+            expect(consumed).toBe(total);
             const bound = Math.min(batchSize, 256);
             expect(heartbeatRows[0]).toBe(bound);
             expect(heartbeatRows.length).toBeGreaterThan(1);
