@@ -6,7 +6,7 @@ release notes and [compatibility line](compatibility.md#stable-compatibility-pol
 Node runtime, provider server and driver before changing an application.
 
 The repository's [historical campaign](migration-compatibility.md) proves an
-actual published `0.1.0-alpha.1` database can be read, versioned and migrated by
+actual published `0.1.0-alpha.1` and `0.1.0-alpha.2` databases can be read, versioned and migrated by
 the candidate on SQLite, Postgres and MySQL. It covers a representative schema;
 run the same upgrade against an application's real migrations and data before
 deployment. Preserve backups and qualify restoration for that deployment.

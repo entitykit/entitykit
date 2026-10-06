@@ -6,6 +6,8 @@ async function seed() {
   const requireOld = createRequire(path.join(process.env.ENTITYKIT_LEGACY_CONSUMER, 'package.json'));
   const core = requireOld('@entitykit/core');
   const migrations = requireOld('@entitykit/core/migrations');
+  const releasedVersion = requireOld('@entitykit/core/package.json').version;
+  if (releasedVersion !== process.env.ENTITYKIT_LEGACY_VERSION) throw new Error('Historical release identity differs.');
   const provider = process.argv[2];
   const source = historicalProvider(requireOld, provider, process.env.ENTITYKIT_COMPAT_DATABASE_URL);
   const contract = historicalMigrationContract(core, migrations, source);
@@ -16,9 +18,11 @@ async function seed() {
     }
     const runner = new migrations.MigrationRunner(db.database.connection, source.migrationDialect, source.createMigrationBuilder);
     await runner.update([contract.historical]);
-    db.books.add(Object.assign(new contract.HistoricalBook(), { id: 'legacy-book', title: 'Published alpha.1 application data' }));
+    db.books.add(Object.assign(new contract.HistoricalBook(), {
+      id: 'legacy-book', title: `Published ${releasedVersion} application data`,
+    }));
     await db.saveChanges();
-    console.log('HISTORICAL_DATABASE_SEEDED alpha.1');
+    console.log(`HISTORICAL_DATABASE_SEEDED ${releasedVersion}`);
   } finally {
     await db.dispose();
     await source.dispose();
