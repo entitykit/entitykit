@@ -144,13 +144,24 @@ with development dependencies excluded; any known runtime advisory fails. A
 separate whole-workspace audit rejects unreviewed advisories, dependency paths,
 versions, and runtime reachability. Registry failures also fail the gate.
 
-The sole tooling exception is
-[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
-which has no patched `braces` release as of October 3, 2026. Repository-owned
-Jest, mutation, and Next ESLint glob patterns reach these development tools.
-Application requests and the published dependency graph do not. Tools must
-never process untrusted glob patterns. The exact reviewed paths and versions
-are in [security-tooling-review.json](docs/security-tooling-review.json). The
-exception expires on November 2, 2026, and must be removed when a compatible
-patch is available or explicitly reviewed again. This is a scoped risk
-disposition, not a claim that the whole toolchain has zero advisories.
+Two development-only advisory reviews remain as of October 5, 2026:
+
+- [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
+  has no patched `braces` release. Repository-owned Jest, mutation and Next
+  ESLint glob patterns reach these tools. Never pass untrusted patterns to
+  them. This review expires on November 2, 2026.
+- [GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)
+  has no patched `sprintf-js` release. The reviewed argparse path serves Jest
+  configuration and API Extractor CLI tooling. Formatting templates are
+  repository/tool owned; RushStack escapes percent characters in descriptions
+  and help. Never run this toolchain against untrusted formatting templates
+  or project configuration. This review expires on October 20, 2026.
+
+Application requests, published packages and example production dependencies
+do not reach either reviewed path. Each advisory has its own exact dependency
+paths and versions in [security-tooling-review.json](docs/security-tooling-review.json).
+Every ancestor in a finding must match that advisory's review; one review
+cannot authorize another finding's path. New advisories, changed paths or
+versions, and expiry fail the gate. Remove a review when a compatible patch
+is available, or explicitly review it again before expiry. These are scoped
+risk dispositions, not a claim that the whole toolchain has zero advisories.

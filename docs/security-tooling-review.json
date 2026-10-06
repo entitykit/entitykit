@@ -1,14 +1,49 @@
 {
-  "package": "braces",
-  "advisory": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
-  "reviewed": "2026-10-03",
-  "expires": "2026-11-02T00:00:00Z",
-  "reason": "No patched release exists. These development dependencies process repository-owned Jest, mutation, and Next ESLint glob patterns. They are excluded from published and example production runtime dependencies. Never pass untrusted patterns to these tools. Re-review when a patch is available or before expiry.",
-  "nodes": {
-    "node_modules/braces": "3.0.3",
-    "node_modules/micromatch": "4.0.8",
-    "node_modules/fast-glob": "3.3.1",
-    "node_modules/@next/eslint-plugin-next": "16.3.8",
-    "node_modules/eslint-config-next": "16.3.8"
-  }
+  "reviews": [
+    {
+      "package": "braces",
+      "advisory": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "reviewed": "2026-10-03",
+      "expires": "2026-11-02T00:00:00Z",
+      "reason": "No patched release exists. These development dependencies process repository-owned Jest, mutation, and Next ESLint glob patterns. They are excluded from published and example production runtime dependencies. Never pass untrusted patterns to these tools. Re-review when a patch is available or before expiry.",
+      "nodes": {
+        "node_modules/braces": "3.0.3",
+        "node_modules/micromatch": "4.0.8",
+        "node_modules/fast-glob": "3.3.1",
+        "node_modules/@next/eslint-plugin-next": "16.3.8",
+        "node_modules/eslint-config-next": "16.3.8"
+      }
+    },
+    {
+      "package": "sprintf-js",
+      "advisory": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+      "reviewed": "2026-10-05",
+      "expires": "2026-10-20T00:00:00Z",
+      "reason": "No patched release exists. The exact development-only argparse path is used by Jest configuration and API Extractor CLI tooling, not published-package or example production runtimes. Formatting templates originate in repository-owned tool configuration and argparse; RushStack escapes percent characters in descriptions and help. Do not pass untrusted formatting templates or run this toolchain against untrusted project configuration. Re-review on a patch, parent-package upgrade, path/version change, or expiry. Runtime findings remain unconditional failures.",
+      "nodes": {
+        "node_modules/@istanbuljs/load-nyc-config": "1.1.0",
+        "node_modules/@jest/core": "30.4.2",
+        "node_modules/@jest/expect": "30.4.1",
+        "node_modules/@jest/globals": "30.4.1",
+        "node_modules/@jest/reporters": "30.4.1",
+        "node_modules/@jest/transform": "30.4.1",
+        "node_modules/@microsoft/api-extractor": "7.59.3",
+        "node_modules/@rushstack/ts-command-line": "5.3.16",
+        "node_modules/argparse": "1.0.10",
+        "node_modules/babel-jest": "30.4.1",
+        "node_modules/babel-plugin-istanbul": "7.0.1",
+        "node_modules/jest": "30.4.2",
+        "node_modules/jest-circus": "30.4.2",
+        "node_modules/jest-cli": "30.4.2",
+        "node_modules/jest-config": "30.4.2",
+        "node_modules/jest-resolve-dependencies": "30.4.2",
+        "node_modules/jest-runner": "30.4.2",
+        "node_modules/jest-runtime": "30.4.2",
+        "node_modules/jest-snapshot": "30.4.1",
+        "node_modules/js-yaml": "3.15.2",
+        "node_modules/sprintf-js": "1.0.3",
+        "node_modules/ts-jest": "29.4.12"
+      }
+    }
+  ]
 }
