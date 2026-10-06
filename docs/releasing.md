@@ -74,7 +74,8 @@ PR or a nightly report from another revision does not replace this release gate.
 
 The release workflow invokes that matrix for its own dispatch SHA and waits
 for every lane before packing. Older green runs do not qualify a later commit.
-The security tooling review must still be valid in the release window.
+The dependency security gate must pass in the release window; any active
+tooling exception must remain valid then. The current candidate has none.
 
 Ensure the `NPM_TOKEN` Actions secret is authorized for all seven identities.
 Only the publish job receives OIDC write permission for npm provenance; tag

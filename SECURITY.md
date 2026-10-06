@@ -144,24 +144,20 @@ with development dependencies excluded; any known runtime advisory fails. A
 separate whole-workspace audit rejects unreviewed advisories, dependency paths,
 versions, and runtime reachability. Registry failures also fail the gate.
 
-Two development-only advisory reviews remain as of October 6, 2026:
+The October 6, 2026 lockfile removes both previously reviewed tooling paths:
+`braces` and `sprintf-js` are absent. The complete development installation
+and runtime scopes have zero known npm advisories, and
+[security-tooling-review.json](docs/security-tooling-review.json) has no active
+exceptions. New findings still fail the gate.
 
-- [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
-  has no patched `braces` release. Repository-owned Jest, mutation and Next
-  ESLint glob patterns reach these tools. Never pass untrusted patterns to
-  them. This review expires on November 2, 2026.
-- [GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)
-  has no patched `sprintf-js` release. The reviewed argparse path serves Jest
-  configuration and API Extractor CLI tooling. Formatting templates are
-  repository/tool owned; RushStack escapes percent characters in descriptions
-  and help. Never run this toolchain against untrusted formatting templates
-  or project configuration. This review expires on October 20, 2026.
+The parent tools have not yet adopted compatible replacements themselves.
+Scoped overrides use `tinyglobby` for Next's root-directory matching,
+`argparse` 2 for RushStack, and `js-yaml` 4 for Istanbul configuration. Small,
+version- and checksum-guarded install patches preserve the parent APIs; see
+[the compatibility contract](docs/tooling-dependencies.md). These changes apply
+only to repository development tools, not to published SDK dependencies.
 
-Application requests, published packages and example production dependencies
-do not reach either reviewed path. Each advisory has its own exact dependency
-paths and versions in [security-tooling-review.json](docs/security-tooling-review.json).
-Every ancestor in a finding must match that advisory's review; one review
-cannot authorize another finding's path. New advisories, changed paths or
-versions, and expiry fail the gate. Remove a review when a compatible patch
-is available, or explicitly review it again before expiry. These are scoped
-risk dispositions, not a claim that the whole toolchain has zero advisories.
+If an exception is needed in the future, every ancestor must match that
+advisory's exact reviewed development path and version. Runtime findings
+remain unconditional failures. Reviews expire at their recorded deadline;
+one review cannot authorize another advisory or an unreviewed path.

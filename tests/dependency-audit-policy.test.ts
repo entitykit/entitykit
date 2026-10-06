@@ -1,9 +1,14 @@
 import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-
-const reviews = (JSON.parse(fs.readFileSync('docs/security-tooling-review.json', 'utf8')) as {
-    reviews: Array<{ package: string; expires: string; advisory: string; nodes: Record<string, string> }>;
-}).reviews;
+// Policy behavior stays covered even when the repository has no active exceptions.
+const reviews = [{
+    package: 'braces', advisory: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
+    expires: '2026-11-02T00:00:00Z', nodes: { 'node_modules/braces': '3.0.3' },
+}, {
+    package: 'sprintf-js', advisory: 'https://github.com/advisories/GHSA-hp3w-g68c-fv3c',
+    expires: '2026-10-20T00:00:00Z', nodes: {
+        'node_modules/sprintf-js': '1.0.3', 'node_modules/argparse': '1.0.10',
+    },
+}];
 const policy = reviews[0];
 const empty = { auditReportVersion: 2, vulnerabilities: {}, metadata: { vulnerabilities: { total: 0 } } };
 const finding = {
@@ -21,15 +26,15 @@ function evaluate(overrides: object = {}): string[] {
         full: report({ braces: finding }),
         lock: { packages: { 'node_modules/braces': { version: '3.0.3', dev: true } } },
         now: '2026-10-03T12:00:00Z',
+        policy: { reviews },
         ...overrides,
     };
     const result = spawnSync(process.execPath, ['-e', `
         const fs = require('node:fs');
         const { evaluateAudits } = require('./scripts/dependency-audit-policy');
-        const policy = require('./docs/security-tooling-review.json');
         const input = JSON.parse(fs.readFileSync(0, 'utf8'));
         console.log(JSON.stringify(evaluateAudits(
-            input.runtime, input.full, input.lock, input.policy ?? policy, new Date(input.now),
+            input.runtime, input.full, input.lock, input.policy, new Date(input.now),
         )));
     `], { encoding: 'utf8', input: JSON.stringify(input) });
     expect(result.status).toBe(0);
@@ -37,6 +42,17 @@ function evaluate(overrides: object = {}): string[] {
 }
 
 describe('dependency audit policy', () => {
+    it('accepts an empty exception list only for a clean audit', () => {
+        expect(evaluate({ full: empty, policy: { reviews: [] } })).toEqual([]);
+        expect(evaluate({ policy: { reviews: [] } }))
+            .toContain(`tooling: unreviewed advisory ${policy.advisory}`);
+    });
+
+    it('keeps runtime rejection with an empty exception list', () => {
+        expect(evaluate({ full: empty, policy: { reviews: [] }, runtime: { packages: report({ braces: finding }) } }))
+            .toContain('packages: runtime advisory affects braces');
+    });
+
     it('accepts only the reviewed development path and advisory', () => {
         expect(evaluate()).toEqual([]);
     });

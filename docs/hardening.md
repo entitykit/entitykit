@@ -516,8 +516,8 @@ bytes, same-integrity retry, candidate staging, verification before promotion,
 bounded tag retries and convergence after a partially promoted family.
 Synthetic stable npm dry runs performed no registry writes.
 
-Runtime dependency scopes have zero known advisories. The sole reviewed tooling
-advisory is `braces`, documented in [the security policy](../SECURITY.md#dependency-qualification)
-and [the path review](security-tooling-review.json), expiring
-`2026-11-02T00:00:00Z`. Unreviewed findings, changed paths and an expired review
-fail the gate. Re-review it when patched or before the exception expires.
+Runtime dependency scopes and the complete development installation have zero
+known npm advisories as of October 6, 2026. The previously reviewed `braces`
+and `sprintf-js` paths have been removed through
+[guarded tooling replacements](tooling-dependencies.md). No security exceptions
+remain; new findings still fail the gate.

@@ -114,7 +114,8 @@
     "test:mutation:relationship-index": "stryker run config/stryker/stryker.relationship-index.config.cjs",
     "test:mutation:relationship-index:dry": "stryker run config/stryker/stryker.relationship-index.config.cjs --dryRunOnly",
     "test:mutation:checked-scalar": "stryker run config/stryker/stryker.checked-scalar.config.cjs",
-    "test:mutation:checked-scalar:dry": "stryker run config/stryker/stryker.checked-scalar.config.cjs --dryRunOnly"
+    "test:mutation:checked-scalar:dry": "stryker run config/stryker/stryker.checked-scalar.config.cjs --dryRunOnly",
+    "postinstall": "node scripts/prepare-tooling.js"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
@@ -146,7 +147,16 @@
     "brace-expansion": "5.0.12",
     "glob": "13.0.6",
     "minimatch": "10.2.6",
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "@next/eslint-plugin-next@16.3.8": {
+      "fast-glob": "npm:tinyglobby@0.2.17"
+    },
+    "@rushstack/ts-command-line@5.3.17": {
+      "argparse": "2.0.1"
+    },
+    "@istanbuljs/load-nyc-config@1.1.0": {
+      "js-yaml": "4.3.2"
+    }
   },
   "sideEffects": false
 }

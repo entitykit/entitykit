@@ -18,7 +18,7 @@ function evaluateAudits(runtimeReports, fullReport, lock, policy, now = new Date
   }
   const full = findings(fullReport, 'tooling');
   const reviews = policy?.reviews;
-  if (!Array.isArray(reviews) || reviews.length === 0) {
+  if (!Array.isArray(reviews)) {
     return [...errors, 'tooling: incomplete advisory review policy'];
   }
   const identities = new Set();

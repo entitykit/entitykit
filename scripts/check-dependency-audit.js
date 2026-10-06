@@ -27,4 +27,5 @@ const policy = read('docs/security-tooling-review.json');
 const errors = evaluateAudits(runtime, full, read('package-lock.json'), policy);
 if (errors.length) throw new Error(`Dependency security gate failed:\n${errors.join('\n')}`);
 console.log('SECURITY_RUNTIME_OK seven packages and all examples: zero known advisories');
+if (policy.reviews.length === 0) console.log('SECURITY_TOOLING_OK zero known advisories; no exceptions');
 for (const review of policy.reviews) console.log(`SECURITY_TOOLING_OK reviewed ${review.advisory} until ${review.expires}`);
