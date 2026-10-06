@@ -3,6 +3,7 @@ import {
 } from '../packages/core/src';
 import { sqliteProviderServices } from '../packages/sqlite/src';
 import * as collectionCopy from '../packages/core/src/tracking/navigation-collection-copy';
+import { directNavigationWriter } from '../packages/core/src/tracking/navigation-writer';
 
 class RemovalParent {
     public id = 0;
@@ -17,7 +18,7 @@ class RemovalContext extends DbContext {
     public parents = this.set(RemovalParent);
     public children = this.set(RemovalChild);
     protected get behavior(): DeleteBehavior {
-        return DeleteBehavior.Cascade; 
+        return DeleteBehavior.Cascade;
     }
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useProvider(sqliteProviderServices, ':memory:');
@@ -38,7 +39,7 @@ class RemovalContext extends DbContext {
 }
 class NullContext extends RemovalContext {
     protected override get behavior(): DeleteBehavior {
-        return DeleteBehavior.SetNull; 
+        return DeleteBehavior.SetNull;
     }
 }
 const cases = [
@@ -123,7 +124,7 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
         }
     });
 
-    it('restores staged removals after a later relationship write refuses, then permits retry', async () => {
+    it('restores immediate fallback removals after a reference setter refuses, then permits retry', async () => {
         const db = await populated(context, 8);
         try {
             const parent = await db.parents.where(row => row.id.eq(1)).include(row => row.children).single();
@@ -148,6 +149,62 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
             await expect(db.saveChanges()).resolves.toBe(9);
             expect(parent.children).toEqual([]);
             expect(children.every(child => child.parent === null)).toBe(true);
+        } finally {
+            await db.dispose();
+        }
+    });
+
+    it('restores an already-published inverse collection when a later ordinary collection refuses, then permits retry', async () => {
+        const db = await populated(context, 8);
+        try {
+            const [first, second] = await db.parents.orderBy(row => row.id).include(row => row.children).toArray();
+            const firstChildren = [...first.children];
+            const secondChildren = [...second.children];
+            const children = [...firstChildren, ...secondChildren];
+            Object.defineProperty(second, 'children', { writable: false });
+            const publications: Array<{ principal: object; value: unknown; firstCollection: RemovalChild[] }> = [];
+            const write = directNavigationWriter.write.bind(directNavigationWriter);
+            const writes = jest.spyOn(directNavigationWriter, 'write').mockImplementation((entity, property, value, name) => {
+                if (property === 'children' && (entity === first || entity === second)) {
+                    publications.push({ principal: entity, value, firstCollection: first.children });
+                }
+                return write(entity, property, value, name);
+            });
+            db.parents.remove(first);
+            db.parents.remove(second);
+            await expect(db.saveChanges()).rejects.toThrow(TypeError);
+            writes.mockRestore();
+
+            // One write per principal proves ordinary batching was selected.
+            // Observe the first publication before the refusal and restoration.
+            expect(publications.map(item => item.principal)).toEqual([first, second]);
+            expect(publications.map(item => item.value)).toEqual([[], []]);
+            expect(publications[1].firstCollection).toEqual([]);
+            expect(first.children).toEqual(firstChildren);
+            expect(second.children).toEqual(secondChildren);
+            expect(firstChildren.every(child => child.parent === first && child.parentId === 1)).toBe(true);
+            expect(secondChildren.every(child => child.parent === second && child.parentId === 2)).toBe(true);
+            expect(children.every(child => db.entry(child)?.state === EntityState.Unchanged)).toBe(true);
+            expect(db.entry(first)?.state).toBe(EntityState.Deleted);
+            expect(db.entry(second)?.state).toBe(EntityState.Deleted);
+            expect(db.changeTracker.entries()).toHaveLength(11);
+            expect(await db.parents.orderBy(row => row.id).asNoTracking().toArray()).toMatchObject([{ id: 1 }, { id: 2 }]);
+            expect((await db.children.orderBy(row => row.id).asNoTracking().toArray())
+                .map(child => ({ id: child.id, parentId: child.parentId })))
+                .toEqual(children.map(child => ({ id: child.id, parentId: child.parentId })));
+
+            Object.defineProperty(second, 'children', { writable: true });
+            await expect(db.saveChanges()).resolves.toBe(11);
+            expect(first.children).toEqual([]);
+            expect(second.children).toEqual([]);
+            expect(children.every(child => child.parent === null)).toBe(true);
+            expect(await db.parents.asNoTracking().count()).toBe(0);
+            const stored = await db.children.asNoTracking().toArray();
+            expect(stored).toHaveLength(cascade ? 0 : 9);
+            expect(stored.every(child => child.parentId === null)).toBe(true);
+            expect(children.every(child => cascade ? db.entry(child) === undefined
+                : db.entry(child)?.state === EntityState.Unchanged && child.parentId === null)).toBe(true);
+            expect(db.changeTracker.entries()).toHaveLength(cascade ? 0 : 9);
         } finally {
             await db.dispose();
         }
