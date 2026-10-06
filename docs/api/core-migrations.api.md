@@ -377,7 +377,7 @@ export interface ManyToManySnapshot {
 // @public
 export abstract class Migration {
     readonly destructiveWarnings?: readonly string[];
-    down(builder: MigrationBuilder): void;
+    down(_builder: MigrationBuilder): void;
     abstract readonly id: string;
     abstract readonly name: string;
     readonly previousSnapshot?: ModelSnapshot;

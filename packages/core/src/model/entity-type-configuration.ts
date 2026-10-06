@@ -10,8 +10,7 @@ import type { EntityBuilder } from './entity-builder-types';
 implements EntityTypeConfiguration<TEntity> {
     /** The entity. */ public abstract readonly entity: EntityConstructor<TEntity>;
 
-    /** Perform the configure operation. */ public configure(builder: EntityBuilder<TEntity>): void {
-        void builder;
+    /** Perform the configure operation. */ public configure(_builder: EntityBuilder<TEntity>): void {
         // Derived configurations may call super.configure(builder) for shared conventions.
     }
 }

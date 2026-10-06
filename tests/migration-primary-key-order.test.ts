@@ -7,14 +7,14 @@ import { joinSnapshot } from './support/join-principal-rename-support';
 describe('declared primary-key order in migrations', () => {
     it.each([
         ['sqlite', sqliteProviderServices], ['postgres', postgresProviderServices], ['mysql', mySqlProviderServices],
-    ])('preserves %s key order while retaining the configured physical column layout', async (_name, provider) => {
+    ])('preserves %s key order while retaining the configured physical column layout', async (name, provider) => {
         const snapshot = await joinSnapshot({ composite: true });
         const migration = diffModelSnapshots({ formatVersion: 1, entities: [] }, snapshot)
             .toMigration('20261004001400_CreateOrderedKeys', 'CreateOrderedKeys');
         const generator = new MigrationSqlGenerator(provider.migrationDialect, provider.createMigrationBuilder);
         const up = generator.generateUpScript(migration);
         const quote = (name: string): string => provider.dialect.quoteIdentifier(name);
-        const collation = _name === 'mysql' ? ' collate utf8mb4_bin' : '';
+        const collation = name === 'mysql' ? ' collate utf8mb4_bin' : '';
         expect(up).toContain(`primary key (${quote('tenant')}, ${quote('legacy_id')})`);
         expect(up).toContain(`${quote('join_entries')} (${quote('legacy_id')} varchar(64)${collation} not null, ${quote('tenant')} varchar(64)${collation} not null`);
         expect(up).toContain(`(${quote('entry_tenant')}, ${quote('entry_id')}) references ${quote('join_entries')} (${quote('tenant')}, ${quote('legacy_id')})`);

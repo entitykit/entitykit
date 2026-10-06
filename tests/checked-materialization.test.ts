@@ -148,8 +148,7 @@ describe('checked materialization', () => {
     it('reports throwing and asynchronous guards with their property', () => {
         const cause = new Error('domain failure');
         const guards: Array<MaterializationGuard<string>> = [
-            (value: unknown): value is string => {
-                void value;
+            (_value: unknown): _value is string => {
                 throw cause;
             },
             (async () => Promise.resolve(true)) as unknown as MaterializationGuard<string>,

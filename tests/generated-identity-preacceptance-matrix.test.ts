@@ -181,10 +181,10 @@ describe('generated identity pre-acceptance matrix', () => {
         ['foreign-key failure', new Error('foreign key failed'), undefined],
         ['concurrency failure', undefined, { rowCount: 0 }],
         ['cancellation', new OperationCanceledError('cancel save'), undefined],
-    ] as const)('captures before %s', async (_name, error, result) => {
+    ] as const)('captures before %s', async (name, error, result) => {
         const parent = new TransactionNumberPrincipal();
         const child = Object.assign(new TransactionNumberDependent(), {
-            id: `failure-${_name}`, principal: parent,
+            id: `failure-${name}`, principal: parent,
         });
         const connection = new GeneratedObservationConnection(() => {
             child.principalId = 41;

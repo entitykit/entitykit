@@ -197,9 +197,9 @@ describe('Postgres query streaming', () => {
     });
 
     it('resolves a deferred stream lease after its creating transaction ends', async () => {
-        const query = jest.fn(async (text: string) => {
+        const query = jest.fn(async (_text: string) => {
             await Promise.resolve();
-            void text;
+
             return { rows: [], rowCount: 0 };
         });
         const { connection, release } = postgresFixture(query);

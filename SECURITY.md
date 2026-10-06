@@ -144,7 +144,7 @@ with development dependencies excluded; any known runtime advisory fails. A
 separate whole-workspace audit rejects unreviewed advisories, dependency paths,
 versions, and runtime reachability. Registry failures also fail the gate.
 
-Two development-only advisory reviews remain as of October 5, 2026:
+Two development-only advisory reviews remain as of October 6, 2026:
 
 - [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
   has no patched `braces` release. Repository-owned Jest, mutation and Next

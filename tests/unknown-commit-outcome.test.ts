@@ -38,11 +38,9 @@ class UnknownCommitConnection extends RecordingDatabaseConnection {
     public stream<
         TRow extends Record<string, unknown> = Record<string, unknown>,
     >(
-        statement: SqlStatement,
-        options?: QueryStreamOptions,
+        _statement: SqlStatement,
+        _options?: QueryStreamOptions,
     ): AsyncIterable<TRow> {
-        void statement;
-        void options;
         this.streamStarted = true;
         return {
             async *[Symbol.asyncIterator]() {

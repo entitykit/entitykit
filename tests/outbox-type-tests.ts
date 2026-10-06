@@ -6,9 +6,8 @@ interface DomainPayload {
 }
 
 const domainPayload: DomainPayload = { userId: 'usr_1', count: 1 };
-const domainEvent: OutboxMessage = {
+const _domainEvent: OutboxMessage = {
     type: 'Created',
     payload: domainPayload,
     aggregateId: 9007199254740993n,
 };
-void domainEvent;

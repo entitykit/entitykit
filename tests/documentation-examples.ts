@@ -110,7 +110,7 @@ export async function readmeExample(): Promise<void> {
 }
 
 export async function queryExamples(db: AppDbContext): Promise<void> {
-    const page = await db.users
+    const _page = await db.users
         .where(user => user.email.endsWith('@example.com'))
         .orderBy(user => user.name)
         .skip(20)
@@ -118,7 +118,7 @@ export async function queryExamples(db: AppDbContext): Promise<void> {
         .asNoTracking()
         .toArray();
 
-    const cards = await db.users
+    const _cards = await db.users
         .where(user => user.email.endsWith('@example.com'))
         .select((user, project) => ({
             id: user.id,
@@ -126,7 +126,7 @@ export async function queryExamples(db: AppDbContext): Promise<void> {
         }))
         .toArray();
 
-    const totals = await db.posts
+    const _totals = await db.posts
         .groupBy(post => ({ status: post.status }))
         .select(group => ({
             status: group.key.status,
@@ -142,10 +142,6 @@ export async function queryExamples(db: AppDbContext): Promise<void> {
         .single();
     const posts = db.entryOrThrow(included).collection(candidate => candidate.posts);
     if (!posts.isLoaded) await posts.load();
-
-    void page;
-    void cards;
-    void totals;
 }
 
 export async function trackedWriteExamples(db: AppDbContext): Promise<void> {
@@ -158,11 +154,8 @@ export async function trackedWriteExamples(db: AppDbContext): Promise<void> {
 
     const loaded = await db.users.findOrThrow('usr_2');
     loaded.name = 'Grace Hopper';
-    const plan = db.getSavePlanDebugView();
-    const affected = await db.saveChanges();
-
-    void plan;
-    void affected;
+    const _plan = db.getSavePlanDebugView();
+    const _affected = await db.saveChanges();
 }
 
 export async function setBasedWriteExamples(db: AppDbContext): Promise<void> {
@@ -201,7 +194,7 @@ export async function transactionExample(db: AppDbContext): Promise<void> {
 }
 
 export async function rawSqlExamples(db: AppDbContext): Promise<void> {
-    const rows = await db.database.sql<{
+    const _rows = await db.database.sql<{
         status: string;
         total: number | string;
     }>`
@@ -210,10 +203,10 @@ export async function rawSqlExamples(db: AppDbContext): Promise<void> {
         where author_id = ${'usr_1'}
         group by status
     `;
-    const affected = await db.database.execute`
+    const _affected = await db.database.execute`
         update posts set status = ${'archived'} where id = ${'post_1'}
     `;
-    const posts = await db.posts.fromSqlUnsafe`
+    const _posts = await db.posts.fromSqlUnsafe`
         select id, author_id, title, status
         from posts
         where author_id = ${'usr_1'}
@@ -222,10 +215,6 @@ export async function rawSqlExamples(db: AppDbContext): Promise<void> {
         delete from posts where id = ${'post_1'}
     `;
     await db.database.executeStatement(statement);
-
-    void rows;
-    void affected;
-    void posts;
 }
 
 export class DiagnosticDbContext extends AppDbContext {
@@ -266,7 +255,6 @@ export async function errorExample(db: AppDbContext): Promise<void> {
             return;
         }
         if (isEntityKitError(error)) {
-            void error.code;
             void error.toJSON();
         }
         throw error;

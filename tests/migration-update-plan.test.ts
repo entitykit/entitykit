@@ -9,8 +9,8 @@ class EmptyMigration extends Migration {
         super();
     }
 
-    public override up(builder: MigrationBuilder): void {
-        void builder;
+    public override up(_builder: MigrationBuilder): void {
+        // Planning this migration requires no SQL operations.
     }
 }
 

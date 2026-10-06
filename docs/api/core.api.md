@@ -121,7 +121,7 @@ export interface AuditOptions {
 
 // @public
 export abstract class BaseEntityConfiguration<TEntity extends object> implements EntityTypeConfiguration<TEntity> {
-    configure(builder: EntityBuilder<TEntity>): void;
+    configure(_builder: EntityBuilder<TEntity>): void;
     abstract readonly entity: EntityConstructor<TEntity>;
 }
 
@@ -517,7 +517,7 @@ export abstract class DbContext extends DbContextSets {
     // @deprecated (undocumented)
     clearChanges(): void;
     clearTracking(): void;
-    protected configure(options: DbContextOptionsBuilder): unknown;
+    protected configure(_options: DbContextOptionsBuilder): unknown;
     static create<TContext extends DbContext, TArguments extends unknown[]>(this: new (...arguments_: TArguments) => TContext, ...arguments_: TArguments): TContext;
     get database(): DatabaseFacade;
     dispose(): Promise<void>;
@@ -527,7 +527,7 @@ export abstract class DbContext extends DbContextSets {
     getSavePlanDebugView(): string;
     link<TEntity extends object, TTarget extends object>(source: TEntity, navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>, target: TTarget): void;
     loadNavigation<TEntity extends object>(entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
-    protected model(model: ModelBuilder): unknown;
+    protected model(_model: ModelBuilder): unknown;
     saveChanges(options?: DatabaseOperationOptions): Promise<number>;
     transaction<TResult>(work: (context: this) => TResult | Promise<TResult>, options?: TransactionOptions): Promise<TResult>;
     unlink<TEntity extends object, TTarget extends object>(source: TEntity, navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>, target: TTarget): void;
