@@ -13,6 +13,7 @@ import type { EntityEntry } from './entity-entry';
 import type { TrackedRelationshipMetadata } from './tracked-relationship-metadata';
 import { cascadeGraphHasDynamicAccessors } from './cascade-graph-stability';
 import { detectLiveTrackedCascades } from './live-cascade-detection';
+import { relationshipDetectionInverseBatch } from './relationship-detection-inverse-batch';
 
 /** Apply configured delete behavior to dependents already tracked in memory. */
 export function detectTrackedCascades(
@@ -27,6 +28,7 @@ export function detectTrackedCascades(
         detectLiveTrackedCascades(tracker, model, captured);
         return;
     }
+    const inverseCollections = relationshipDetectionInverseBatch(tracker, model, entries);
     const graph = new TrackedCascadeGraph(tracker, model, entries, captured);
     for (const principal of pending) {
         if (principal.state !== EntityState.Deleted) continue;
@@ -44,12 +46,13 @@ export function detectTrackedCascades(
             for (const relationship of relationships) {
                 if (!relationshipConnects(tracker, model, dependent, relationship, principal, captured)) continue;
                 if (relationship.deleteBehavior === DeleteBehavior.Cascade) {
-                    cascadeDeleteDependent(tracker, dependent, relationship, principal.entity);
+                    cascadeDeleteDependent(tracker, dependent, relationship, principal.entity, inverseCollections);
                 } else if (relationship.deleteBehavior === DeleteBehavior.SetNull) {
-                    severDependent(tracker, dependent, relationship, principal.entity, captured);
+                    severDependent(tracker, dependent, relationship, principal.entity, captured, inverseCollections);
                 }
             }
             if ((dependent.state as EntityState) === EntityState.Deleted) pending.push(dependent);
         }
     }
+    inverseCollections?.publish(() => undefined);
 }
