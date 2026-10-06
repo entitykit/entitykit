@@ -70,7 +70,7 @@ function setProjectionValue(
     let current = output;
     path.forEach((key, index) => {
         if (index === path.length - 1) {
-            defineProjectionProperty(current, key, value);
+            defineResultProperty(current, key, value);
             return;
         }
         const existing = current[key];
@@ -83,12 +83,12 @@ function setProjectionValue(
             return;
         }
         const nested: Record<string, unknown> = {};
-        defineProjectionProperty(current, key, nested);
+        defineResultProperty(current, key, nested);
         current = nested;
     });
 }
 
-function defineProjectionProperty(
+export function defineResultProperty(
     target: Record<string, unknown>,
     key: string,
     value: unknown,
