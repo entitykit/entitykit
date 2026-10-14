@@ -1,5 +1,9 @@
 import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src/model/model-builder';
-import { selectPropertyName } from '../packages/core/src/model/model-property-selector';
+import {
+    isModelPropertyToken,
+    selectPropertyName,
+    selectPropertyNames,
+} from '../packages/core/src/model/model-property-selector';
 
 class User {
     public id!: string;
@@ -48,5 +52,25 @@ describe('model property selectors', () => {
         expect(() =>
             selectPropertyName<User>(() => 'email' as never),
         ).toThrow('must return a direct property access');
+    });
+
+    it('selects ordered property lists and rejects empty or invalid lists', () => {
+        expect(selectPropertyNames<User>(user => [user.email, user.id])).toEqual(['email', 'id']);
+        expect(() => selectPropertyNames<User>(() => [])).toThrow('must return at least one property');
+        expect(() => selectPropertyNames<User>(user => [user.id, 'email' as never]))
+            .toThrow('Model property list selectors must return property accesses');
+    });
+
+    it.each([null, undefined, false, 0, 1, 'id', Symbol('id')])('rejects non-object tokens: %s', value => {
+        expect(isModelPropertyToken(value)).toBe(false);
+    });
+
+    it('rejects a function carrying copied token properties', () => {
+        const forged = (): number => 1;
+        selectPropertyName<User>(user => {
+            Object.assign(forged, user.id);
+            return user.id;
+        });
+        expect(isModelPropertyToken(forged)).toBe(false);
     });
 });
