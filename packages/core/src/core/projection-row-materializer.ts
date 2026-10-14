@@ -72,7 +72,12 @@ function setProjectionValue(
     rootIsPrivate: boolean,
 ): boolean {
     let current = output;
-    path.forEach((key, index) => {
+    const length = path.length;
+    for (let index = 0; index < length; index++) {
+        if (!(index in path)) {
+            continue;
+        }
+        const key = path[index];
         if (index === path.length - 1) {
             // A private root has only writable data properties. Once an
             // ancestor lookup can expose it, every later write must define.
@@ -81,7 +86,7 @@ function setProjectionValue(
             } else {
                 defineResultProperty(current, key, value);
             }
-            return;
+            continue;
         }
         // Even an inherited getter receives the root as its receiver and can
         // change its own descriptors or prototype before another field writes.
@@ -93,12 +98,12 @@ function setProjectionValue(
             typeof existing === 'object'
         ) {
             current = existing as Record<string, unknown>;
-            return;
+            continue;
         }
         const nested: Record<string, unknown> = {};
         defineResultProperty(current, key, nested);
         current = nested;
-    });
+    }
     return rootIsPrivate;
 }
 
