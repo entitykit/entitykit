@@ -6,9 +6,13 @@ import { ModelValidationError } from '../errors/model-validation-error';
 import { copyCompiledModelMap } from './compiled-model-map';
 
 /** Own the finalized graph without freezing builders, constructors or legacy models. */
-export function copyCompiledModel(source: Model): Model {
+export function copyCompiledModel(
+    source: Model,
+    onEntityCopied?: (entity: EntityMetadata) => void,
+): Model {
     const constructors: Set<unknown> = new Set(source.entities.map(entity => entity.ctor));
     const seen: Map<object, unknown> = new Map();
+    const entities: EntityMetadata[] = [];
     const prototypes: readonly unknown[] = [
         null, Object.prototype, Array.prototype,
         Model.prototype, EntityMetadata.prototype, EntityKeyMetadata.prototype,
@@ -46,10 +50,13 @@ export function copyCompiledModel(source: Model): Model {
                 configurable: array && key !== 'length',
             });
         }
-        return Object.freeze(result);
+        Object.freeze(result);
+        if (prototype === EntityMetadata.prototype) entities.push(result as EntityMetadata);
+        return result;
     }
     const model = copy(source) as Model;
-    for (const entity of model.entities) {
+    // Validate the actual private copies, never a replaceable prototype getter.
+    for (const entity of entities) {
         if (entity.materializer || entity.checkedMaterializer || entity.complexProperties.length > 0) {
             throw unsupported('custom materializers and complex properties');
         }
@@ -61,6 +68,7 @@ export function copyCompiledModel(source: Model): Model {
             }
         }
     }
+    for (const entity of entities) onEntityCopied?.(entity);
     return model;
 }
 

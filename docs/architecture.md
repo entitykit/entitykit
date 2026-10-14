@@ -98,6 +98,10 @@ The initial supported subset and dynamic fallback are described in
 [compiled models](compiled-models.md). Eligible buffered flat projection executions own
 their SQL/decoding shape and resolve immutable fields once; plans and request
 values remain local to each execution.
+Eligible flat entity mappings also share a private field plan keyed by explicitly
+owned entity metadata. It pre-resolves paths and names without retaining readers,
+rows or request state. Capture, identity lookup, construction, verified writes and
+independent persistence-fact retention keep their existing stage order.
 
 The public `DbContext` delegates to focused runtime hosts for query filters,
 relationships, migrations, raw SQL, transaction coordination, and the unit of

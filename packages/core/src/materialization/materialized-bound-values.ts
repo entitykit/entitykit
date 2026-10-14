@@ -1,6 +1,8 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { cloneBoundEntityValues } from '../tracking/bound-entity-value-clone';
 import { cloneBoundValues } from '../tracking/bound-value-snapshot';
+import { compiledEntityPlan } from './compiled-entity-plan';
+import { cloneUnconvertedEntityValues } from './compiled-entity-values';
 
 interface MaterializedPersistenceFacts {
     readonly boundValues: Record<string, unknown>;
@@ -15,7 +17,7 @@ class CapturedPersistenceFacts<TEntity extends object> implements MaterializedPe
     ) {}
 
     public cloneValues(): Record<string, unknown> {
-        return cloneBoundEntityValues(this.metadata, this.values, this.boundValues);
+        return cloneMaterializedValues(this.metadata, this.values, this.boundValues);
     }
 }
 
@@ -38,7 +40,7 @@ export function rememberMaterializedPersistenceFacts<
     boundValues: Readonly<Record<string, unknown>>,
 ): void {
     const capturedBoundValues = cloneBoundValues(boundValues);
-    const capturedValues = cloneBoundEntityValues(
+    const capturedValues = cloneMaterializedValues(
         metadata,
         values,
         capturedBoundValues,
@@ -48,6 +50,16 @@ export function rememberMaterializedPersistenceFacts<
         capturedValues,
         capturedBoundValues,
     ));
+}
+
+function cloneMaterializedValues<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Record<string, unknown>,
+    boundValues: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+    return compiledEntityPlan(metadata)
+        ? cloneUnconvertedEntityValues(values)
+        : cloneBoundEntityValues(metadata, values, boundValues);
 }
 
 export function materializedPersistenceFacts(

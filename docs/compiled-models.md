@@ -96,9 +96,18 @@ existing mapper. The context value reader remains live for every value, includin
 its receiver, decoding order, null handling and synchronous-result checks. Output
 objects remain fresh, plain objects with safe own properties for special aliases.
 
-Plans, parameter values and result rows are not cached across executions or
-contexts. Entity materialization and general SQL compilation are not precompiled.
-No performance multiplier is promised by this API.
+Projection plans, parameter values and result rows are not cached across executions
+or contexts. Eligible flat entity mappings share a private field plan through their
+compiled metadata identity. It resolves property paths and diagnostic names once,
+and selects converter-free capture, verified writes and persistence-value cloning.
+Constructors and readers remain live. Every field is captured before construction;
+setters and proxies still receive writes followed by equivalent readback checks.
+Mutable values retain their independent snapshots, query-local identities and
+later attachment facts. Restoration scopes retain their failure-atomic path.
+
+Entity plans contain no readers, entities or request state. Frozen lookalikes and
+ordinary dynamic metadata do not qualify. General SQL compilation is not
+precompiled, and no performance multiplier is promised by this API.
 
 Measure model construction separately from warm reads, and keep context and
 connection policies equal when comparing compiled and dynamic modes. Large

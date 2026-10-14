@@ -1,6 +1,7 @@
 import { ModelBuilder } from './model-builder';
 import type { ModelBuilder as PublicModelBuilder } from './model-builder-types';
 import type { Model } from './model';
+import type { EntityMetadata } from './entity-metadata';
 import { copyCompiledModel } from './compiled-model-copy';
 import { validateIndexDatabaseNames } from './index-name-validation';
 import { ModelValidationError } from '../errors/model-validation-error';
@@ -25,6 +26,7 @@ export interface CompiledModelOptions {
 
 const models: WeakMap<CompiledModel, Model> = new WeakMap();
 const ownedModels: WeakSet<Model> = new WeakSet();
+const ownedEntities: WeakSet<object> = new WeakSet();
 
 /** Compile a callback-free, flat model once; ordinary model() remains dynamic. */
 export function compileModel(
@@ -39,12 +41,21 @@ export function compileModel(
     const builder = new ModelBuilder();
     assertSynchronousCallbackResult(configure(builder), 'compileModel()', message =>
         new ModelValidationError(message, { contractViolation: 'asyncCompiledModel' }));
-    const model = copyCompiledModel(builder.build());
-    for (const entity of model.entities) validateIndexDatabaseNames(entity, dialect);
+    const entities: EntityMetadata[] = [];
+    const model = copyCompiledModel(builder.build(), entity => {
+        entities.push(entity);
+    });
+    for (const entity of entities) validateIndexDatabaseNames(entity, dialect);
     const handle = Object.freeze({ provider, dialect }) as CompiledModel;
     models.set(handle, model);
     ownedModels.add(model);
+    for (const entity of entities) ownedEntities.add(entity);
     return handle;
+}
+
+/** Internal proof for read plans; constructors and frozen lookalikes do not qualify. */
+export function isCompiledEntityMetadata(metadata: object): boolean {
+    return ownedEntities.has(metadata);
 }
 
 /** Internal eligibility proof; freezing caller-owned metadata is insufficient. */
