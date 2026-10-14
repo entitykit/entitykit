@@ -11,10 +11,11 @@ const fieldKeys: Set<PropertyKey> = new Set(['kind', 'alias', 'propertyName', 's
 export function ownFlatProjectionQuery<TEntity extends object>(
     model: QueryModel<TEntity>,
 ): OwnedProjectionQuery<TEntity> | undefined {
-    const descriptors = plainDataDescriptors(model);
-    if (!descriptors?.entityType || !descriptors.projection || !descriptors.joins) return undefined;
-    const source: unknown = descriptors.projection.value;
-    const joins: unknown = descriptors.joins.value;
+    const ordinary = inspectPlainData(model);
+    if (ordinary === undefined || !Object.hasOwn(model, 'entityType') ||
+        !Object.hasOwn(model, 'projection') || !Object.hasOwn(model, 'joins')) return undefined;
+    const source: unknown = model.projection;
+    const joins: unknown = model.joins;
     if (!isDenseArray(source) || source.length === 0 || !isDenseArray(joins) || joins.length !== 0) return undefined;
     const projection: ProjectionFieldExpression[] = [];
     for (const value of source) {
@@ -22,28 +23,37 @@ export function ownFlatProjectionQuery<TEntity extends object>(
         if (!item) return undefined;
         projection.push(item);
     }
-    descriptors.projection = {
+    const descriptor: PropertyDescriptor = {
         value: Object.freeze(projection), enumerable: true, writable: false, configurable: false,
     };
     // Preserve other query descriptors and references. Only projection ownership
     // changes; parameter values and unrelated query state remain execution-local.
     const prototype = Object.getPrototypeOf(model) as object | null;
-    return Object.create(prototype, descriptors as PropertyDescriptorMap) as OwnedProjectionQuery<TEntity>;
+    if (!ordinary) {
+        const descriptors: PropertyDescriptorMap = Object.getOwnPropertyDescriptors(model);
+        descriptors.projection = descriptor;
+        return Object.create(prototype, descriptors) as OwnedProjectionQuery<TEntity>;
+    }
+    // Validation above rules out getters/proxies. Spread creates own data fields
+    // without invoking inherited setters or allocating a second descriptor graph.
+    const owned = { ...model };
+    if (prototype === null) Object.setPrototypeOf(owned, null);
+    Object.defineProperty(owned, 'projection', descriptor);
+    return owned as OwnedProjectionQuery<TEntity>;
 }
 
 function ownField(value: unknown): ProjectionFieldExpression | undefined {
-    const descriptors = plainDataDescriptors(value);
-    if (!descriptors || Reflect.ownKeys(descriptors).some(key => !fieldKeys.has(key))) return undefined;
-    const kind: unknown = descriptors.kind?.value;
-    const alias: unknown = descriptors.alias?.value;
-    const propertyName: unknown = descriptors.propertyName?.value;
+    if (inspectPlainData(value, fieldKeys) === undefined) return undefined;
+    const record = value as Record<string, unknown>;
+    if (!Object.hasOwn(record, 'kind') || !Object.hasOwn(record, 'alias') ||
+        !Object.hasOwn(record, 'propertyName')) return undefined;
+    const { kind, alias, propertyName } = record;
     if (kind !== 'field' || typeof alias !== 'string' || typeof propertyName !== 'string') return undefined;
     // Do not silently discard inherited optional fields or invoke their getters.
     for (const key of ['path', 'sourceAlias']) {
-        if (!descriptors[key] && Object.getPrototypeOf(value) !== null && Object.hasOwn(Object.prototype, key)) return undefined;
+        if (!Object.hasOwn(record, key) && Object.getPrototypeOf(record) !== null && Object.hasOwn(Object.prototype, key)) return undefined;
     }
-    const sourceAlias: unknown = descriptors.sourceAlias?.value;
-    const path: unknown = descriptors.path?.value;
+    const { sourceAlias, path } = record;
     if (sourceAlias !== undefined && sourceAlias !== 'root') return undefined;
     if (path !== undefined && (!isDenseArray(path) || path.length !== 1 || path[0] !== alias)) return undefined;
     return Object.freeze({
@@ -52,17 +62,20 @@ function ownField(value: unknown): ProjectionFieldExpression | undefined {
     });
 }
 
-function plainDataDescriptors(value: unknown): Partial<PropertyDescriptorMap> | undefined {
+/** Undefined declines the shape; false requires an exact-descriptor query copy. */
+function inspectPlainData(value: unknown, allowedKeys?: ReadonlySet<PropertyKey>): boolean | undefined {
     if (typeof value !== 'object' || value === null || types.isProxy(value)) return undefined;
     const prototype: unknown = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) return undefined;
-    const descriptors: Partial<PropertyDescriptorMap> = Object.getOwnPropertyDescriptors(value);
-    Object.setPrototypeOf(descriptors, null);
-    for (const key of Reflect.ownKeys(descriptors)) {
-        const descriptor = descriptors[key];
+    let ordinary = true;
+    for (const key of Reflect.ownKeys(value)) {
+        if (allowedKeys && !allowedKeys.has(key)) return undefined;
+        const descriptor = Object.getOwnPropertyDescriptor(value, key);
         if (!descriptor || !Object.hasOwn(descriptor, 'value')) return undefined;
+        ordinary = ordinary && descriptor.enumerable === true &&
+            descriptor.configurable === true && descriptor.writable === true;
     }
-    return descriptors;
+    return ordinary;
 }
 
 function isDenseArray(value: unknown): value is readonly unknown[] {
