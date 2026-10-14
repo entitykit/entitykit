@@ -24,6 +24,7 @@ export interface CompiledModelOptions {
 }
 
 const models: WeakMap<CompiledModel, Model> = new WeakMap();
+const ownedModels: WeakSet<Model> = new WeakSet();
 
 /** Compile a callback-free, flat model once; ordinary model() remains dynamic. */
 export function compileModel(
@@ -42,7 +43,13 @@ export function compileModel(
     for (const entity of model.entities) validateIndexDatabaseNames(entity, dialect);
     const handle = Object.freeze({ provider, dialect }) as CompiledModel;
     models.set(handle, model);
+    ownedModels.add(model);
     return handle;
+}
+
+/** Internal eligibility proof; freezing caller-owned metadata is insufficient. */
+export function isCompiledModelMetadata(model: Model): boolean {
+    return ownedModels.has(model);
 }
 
 /** Internal bootstrap seam; forged handles never select a shared mapping. */

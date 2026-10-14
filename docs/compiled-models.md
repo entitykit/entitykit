@@ -82,10 +82,23 @@ own context. Disposal and transaction rollback retain their existing ownership.
 
 ## Performance scope
 
-This API reuses finalized mapping metadata. It does not yet compile SQL or row
-materialization/projection plans. A model handle alone does not make a query
-shape immutable: future compiled projections must separately own the shape used
-for SQL and decoding. No performance multiplier is promised by this API.
+This API reuses finalized mapping metadata. For eligible buffered flat root-field
+projections, each execution also owns a copy of its projection instructions before
+SQL compilation and resolves each mapped field once for all returned rows. SQL
+and decoding use the same frozen instructions; changing a retained item while a
+query is pending cannot change that execution. A later execution captures the
+then-current shape. Caller-owned query objects are not frozen.
+
+The first projection plan accepts ordinary dense arrays and plain data-only field
+items, with no joins and no nested output paths. Computed/literal fields, nested
+results, proxies/accessors, unsupported shapes and dynamic models retain the
+existing mapper. The context value reader remains live for every value, including
+its receiver, decoding order, null handling and synchronous-result checks. Output
+objects remain fresh, plain objects with safe own properties for special aliases.
+
+Plans, parameter values and result rows are not cached across executions or
+contexts. Entity materialization and general SQL compilation are not precompiled.
+No performance multiplier is promised by this API.
 
 Measure model construction separately from warm reads, and keep context and
 connection policies equal when comparing compiled and dynamic modes. Large

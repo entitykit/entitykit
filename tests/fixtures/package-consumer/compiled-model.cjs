@@ -42,6 +42,13 @@ module.exports = async function checkCompiledModel({ compileModel, DbContext }) 
     a.label = 'updated';
     assert.equal(await first.saveChanges(), 1);
     assert.equal((await second.rows.asNoTracking().single()).label, 'second');
+    const projected = await first.rows.select(row => ({ key: row.id, ['__proto__']: row.label })).toArray();
+    assert.deepEqual(projected, [{ key: 1, ['__proto__']: 'updated' }]);
+    assert.equal(Object.getPrototypeOf(projected[0]), Object.prototype);
+    assert.deepEqual(Object.getOwnPropertyDescriptor(projected[0], '__proto__'), {
+      value: 'updated', enumerable: true, configurable: true, writable: true,
+    });
+    assert.deepEqual(await second.rows.select(row => ({ key: row.id, value: row.label })).toArray(), [{ key: 1, value: 'second' }]);
     assert.equal(builds, 1);
     assert.equal(configurations, 2);
     assert.equal(Object.isFrozen(compiled), true);

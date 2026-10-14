@@ -97,11 +97,14 @@ are rejected explicitly and remain available through dynamic configuration.
 Constructors retain their identity and execute normally; no application function
 or prototype is frozen. Freezing a function cannot freeze its closed-over state.
 
-This is the ownership prerequisite for compiled read plans, not a completed
-materialization optimization. Query snapshots currently retain projection item
-references; a compiled projection must own its query shape separately and use it
-consistently for SQL and decoding. Metadata reuse alone cannot remove per-row
-verified writes, identity handling or retained persistence facts.
+Eligible buffered flat projections now copy and freeze their field instructions
+before SQL compilation, then resolve each mapped property once per execution.
+SQL and decoding consume that same owned shape. Dynamic mappings and unsupported
+projection shapes keep the existing mapper; streaming projections are unchanged.
+Plans never retain query parameters, rows or application readers across executions.
+Live readers and safe output writes remain in the per-value path. Entity reads
+still perform verified writes, identity handling and retained persistence facts;
+this projection prototype does not remove that materialization work.
 
 [The compiled-model contract](compiled-models.md) describes the API and limits.
 Tests cover retained builders, nested ownership, hidden lookup mutators, forged

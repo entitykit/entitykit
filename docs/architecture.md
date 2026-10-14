@@ -95,7 +95,9 @@ freezes their mapping graph with private read-only lookup storage. Context optio
 select one handle and validate provider/dialect compatibility before connection
 allocation. Each context still owns tenant callbacks, options, trackers and leases.
 The initial supported subset and dynamic fallback are described in
-[compiled models](compiled-models.md); query shapes and read plans are not yet shared.
+[compiled models](compiled-models.md). Eligible buffered flat projection executions own
+their SQL/decoding shape and resolve immutable fields once; plans and request
+values remain local to each execution.
 
 The public `DbContext` delegates to focused runtime hosts for query filters,
 relationships, migrations, raw SQL, transaction coordination, and the unit of
