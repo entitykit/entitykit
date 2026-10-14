@@ -1,4 +1,7 @@
 export function cloneSnapshotValue(value: unknown): unknown {
+    if (typeof value !== 'object' || value === null) {
+        return value;
+    }
     return cloneValue(value, new WeakMap<object, unknown>());
 }
 

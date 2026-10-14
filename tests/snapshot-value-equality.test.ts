@@ -3,6 +3,39 @@ import { snapshotValuesEqual } from '../packages/core/src/tracking/snapshot-valu
 import { cloneSnapshotValue } from '../packages/core/src/tracking/snapshot-value-clone';
 
 describe('snapshot value equality', () => {
+    it('preserves scalar and callable identity when cloning a root value', () => {
+        const values: unknown[] = [
+            undefined, null, false, true, 0, -0, Number.NaN, 1n,
+            'value', Symbol('value'), () => 42,
+        ];
+        for (const value of values) {
+            expect(Object.is(cloneSnapshotValue(value), value)).toBe(true);
+        }
+    });
+
+    it('shares cycle state across arrays, maps and sets without retaining live values', () => {
+        const shared = { name: 'before' };
+        const value = {
+            list: [] as unknown[],
+            map: new Map<unknown, unknown>(),
+            set: new Set<unknown>(),
+        };
+        value.list.push(shared, value);
+        value.map.set(shared, value);
+        value.set.add(shared).add(value);
+
+        const copy = cloneSnapshotValue(value) as typeof value;
+        expect(copy.list[0]).not.toBe(shared);
+        expect(copy.list[1]).toBe(copy);
+        expect(copy.map.get(copy.list[0])).toBe(copy);
+        expect(copy.set.has(copy.list[0])).toBe(true);
+        expect(copy.set.has(copy)).toBe(true);
+        expect(snapshotValuesEqual(value, copy)).toBe(true);
+        shared.name = 'after';
+        expect(copy.list[0]).toEqual({ name: 'before' });
+        expect(snapshotValuesEqual(value, copy)).toBe(false);
+    });
+
     it('uses Object.is semantics for primitives', () => {
         expect(snapshotValuesEqual(Number.NaN, Number.NaN)).toBe(true);
         expect(snapshotValuesEqual(0, -0)).toBe(false);
@@ -58,6 +91,15 @@ describe('snapshot value equality', () => {
             new DataView(Uint8Array.from([2]).buffer),
         )).toBe(false);
         expect(snapshotValuesEqual(new Uint8Array([1]), {})).toBe(false);
+    });
+
+    it('distinguishes native containers from records with the same prototype', () => {
+        for (const value of [[], new Uint8Array(0)]) {
+            const prototype = Object.getPrototypeOf(value) as object;
+            const record: unknown = Object.create(prototype);
+            expect(snapshotValuesEqual(value, record)).toBe(false);
+            expect(snapshotValuesEqual(record, value)).toBe(false);
+        }
     });
 
     it('compares arrays, maps, and sets in deterministic iteration order', () => {

@@ -145,3 +145,11 @@ frame. Repeated context construction then increases the cost of later async
 operations. The resource regression checks the number of distinct async-local
 stores across 256 guards, alongside nested ownership and detached-continuation
 coverage. Per-context model construction and connection ownership are unchanged.
+
+## Snapshot allocation
+
+Scalar snapshot cloning returns the original immutable value before allocating
+cycle-tracking state. Snapshot equality likewise allocates that state only when
+comparing structured graphs, after primitive, date, regular-expression and binary
+comparisons. Recursive comparisons share one visited-pair map; structured clones
+retain their existing cycle, aliasing and isolation behavior.
