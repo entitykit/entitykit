@@ -7,6 +7,18 @@ interface MaterializedPersistenceFacts {
     readonly cloneValues: () => Record<string, unknown>;
 }
 
+class CapturedPersistenceFacts<TEntity extends object> implements MaterializedPersistenceFacts {
+    constructor(
+        private readonly metadata: EntityMetadata<TEntity>,
+        private readonly values: Record<string, unknown>,
+        public readonly boundValues: Record<string, unknown>,
+    ) {}
+
+    public cloneValues(): Record<string, unknown> {
+        return cloneBoundEntityValues(this.metadata, this.values, this.boundValues);
+    }
+}
+
 // Presence reserves an instance even before persistence facts are complete.
 // Failed materialization must keep that reservation for the entity's lifetime.
 const facts: WeakMap<object, MaterializedPersistenceFacts | undefined> = new WeakMap();
@@ -31,14 +43,11 @@ export function rememberMaterializedPersistenceFacts<
         values,
         capturedBoundValues,
     );
-    facts.set(entity, {
-        boundValues: capturedBoundValues,
-        cloneValues: () => cloneBoundEntityValues(
-            metadata,
-            capturedValues,
-            capturedBoundValues,
-        ),
-    });
+    facts.set(entity, new CapturedPersistenceFacts(
+        metadata,
+        capturedValues,
+        capturedBoundValues,
+    ));
 }
 
 export function materializedPersistenceFacts(
