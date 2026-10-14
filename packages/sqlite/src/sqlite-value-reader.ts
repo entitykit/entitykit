@@ -35,6 +35,12 @@ function isArrayType(columnType: string): boolean {
 }
 
 function toBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'bigint') {
+        return value !== 0n;
+    }
     if (typeof value === 'number') {
         return value !== 0;
     }
@@ -80,16 +86,6 @@ function toJson(value: unknown): unknown {
 
 /** Built-in sqlite value reader. */ export const sqliteValueReader: StoreValueReader = Object.freeze({
     readValue(value: unknown, columnType: string): unknown {
-        // Exact ordinary storage types need no read-side conversion.
-        switch (columnType) {
-            case 'integer':
-            case 'text':
-            case 'real':
-            case 'blob':
-                return value;
-            default:
-                break;
-        }
         const normalized = columnType.trim().toLowerCase();
 
         if (isBooleanType(normalized)) {
