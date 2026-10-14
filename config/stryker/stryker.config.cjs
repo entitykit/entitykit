@@ -3,7 +3,7 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
-    'packages/core/src/materialization/complex-value-materializer.ts:117-132',
+    'packages/core/src/materialization/complex-value-materializer.ts:119-134',
     'packages/sqlite/src/sqlite-statement.ts:29-83',
     'packages/core/src/core/db-set-context-adapter.ts',
     'packages/core/src/tracking/save-mutation-guard.ts',
@@ -57,7 +57,7 @@ module.exports = {
     'packages/core/src/tracking/entity-entry-version-sync.ts:33-46',
     'packages/core/src/tracking/concurrency-restoration-journal.ts:17-70',
     'packages/core/src/materialization/complex-value-materializer.ts:35-41',
-    'packages/core/src/materialization/complex-value-materializer.ts:52-58',
+    'packages/core/src/materialization/complex-value-materializer.ts:46-67',
     'packages/core/src/materialization/complex-property-path-write.ts',
     'packages/core/src/materialization/query-identity-resolution.ts',
     'packages/core/src/materialization/materializer.ts:68-87',
@@ -125,7 +125,7 @@ module.exports = {
     'packages/core/src/query/include-loader-key-batch.ts',
     'packages/core/src/query/include-many-to-many-stitch.ts',
     'packages/core/src/tracking/tracked-acceptance-journal.ts:53-71',
-    'packages/core/src/materialization/complex-value-materializer.ts:66-78',
+    'packages/core/src/materialization/complex-value-materializer.ts:68-80',
     'packages/core/src/core/policy-property-path.ts:21-36',
     'packages/core/src/core/save-plan-inspection.ts',
     'packages/core/src/core/save-plan-builder.ts:43-58',

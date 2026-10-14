@@ -48,18 +48,20 @@ export function applyMaterializedValues<TEntity extends object>(
         if (hasNullComplexAncestor(metadata, entity, property.propertyPath)) {
             continue;
         }
-        const context = `${metadata.entityName}.${property.propertyName}`;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-template-expression -- Preserve live metadata name coercion before other getters.
+        const entityName = `${metadata.entityName}`;
+        const propertyName = `${property.propertyName}`;
         if (restoration) {
             writeFailureAtomicProperty({
                 entity,
                 property,
                 value: values[property.propertyName],
                 scope: restoration,
-                context,
+                context: `${entityName}.${propertyName}`,
             });
         } else {
             writeVerifiedProperty(
-                entity, property, values[property.propertyName], context,
+                entity, property, values[property.propertyName], entityName, propertyName,
             );
         }
     }

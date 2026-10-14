@@ -211,3 +211,11 @@ reads the current metadata array, captures its initial length, skips absent
 indices and stops at the first matching null ancestor. Inherited indices and
 mutations to existing indices remain visible; no metadata is cached across
 properties or queries.
+
+## Materialized write diagnostics
+
+Successful mapped writes defer joining the entity and property names until a
+provider comparison or a refused assignment needs the diagnostic context. The
+names are still read and coerced before the live value lookup, preserving getter
+order and the original names when a value getter or setter changes metadata.
+Restoration writes retain their eagerly composed context and journal behavior.
