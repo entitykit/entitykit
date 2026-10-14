@@ -202,3 +202,12 @@ Each DbSet retains its own service adapter and captured method references.
 Accessor implementations are shared on a private class prototype; options,
 database and model callbacks remain live and lazy. This avoids five accessor
 closures per set without sharing a context, tracker, model or tenant state.
+
+## Materialized ancestor checks
+
+Mapped-property writes inspect complex ancestors with an indexed loop instead
+of allocating a callback for every property, including flat models. Each check
+reads the current metadata array, captures its initial length, skips absent
+indices and stops at the first matching null ancestor. Inherited indices and
+mutations to existing indices remain visible; no metadata is cached across
+properties or queries.

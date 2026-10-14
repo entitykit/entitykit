@@ -119,10 +119,16 @@ function hasNullComplexAncestor<TEntity extends object>(
     entity: TEntity,
     propertyPath: readonly string[],
 ): boolean {
-    return metadata.complexProperties.some(complex =>
-        complex.propertyPath.length < propertyPath.length &&
-        isPrefix(complex.propertyPath, propertyPath) &&
-        readPropertyPath(entity, complex.propertyPath) === null);
+    const complexes = metadata.complexProperties;
+    const length = complexes.length;
+    for (let index = 0; index < length; index++) {
+        if (!(index in complexes)) continue;
+        const complex = complexes[index];
+        if (complex.propertyPath.length < propertyPath.length &&
+            isPrefix(complex.propertyPath, propertyPath) &&
+            readPropertyPath(entity, complex.propertyPath) === null) return true;
+    }
+    return false;
 }
 
 function isPrefix(
