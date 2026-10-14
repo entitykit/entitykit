@@ -3,6 +3,9 @@ const base = require('./jest.config.cjs');
 module.exports = {
   ...base,
   testMatch: [
+    '<rootDir>/tests/lazy-save-reservations.test.ts',
+    '<rootDir>/tests/save-mutation-guard-upsert.test.ts',
+    '<rootDir>/tests/bulk-upsert-input-reservation.test.ts',
     '<rootDir>/tests/lazy-tracker-registry.test.ts',
     '<rootDir>/tests/mapped-special-key-snapshots.test.ts',
     '<rootDir>/tests/mapped-special-key-sqlite.test.ts',

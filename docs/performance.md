@@ -184,3 +184,10 @@ Each tracker owns its registry once initialized. Clearing tracked entities
 retains that registry for acceptance and relationship journals, and observer
 callbacks continue to use the tracker's current observer slots. Read-only query
 trackers can remain uninitialized throughout their lifetime.
+
+Save mutation guards also defer reservation maps. Deferred save acceptance
+initializes its entity and identity maps; upsert input reservation initializes
+its separate entity map. Read-only guards need neither. Once initialized, maps
+remain owned by that guard and are reused across releases. Nested reservation
+counts, idempotent release, usability checks and save-execution checks retain
+the same behavior.
