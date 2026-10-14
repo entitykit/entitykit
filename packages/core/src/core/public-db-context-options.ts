@@ -18,6 +18,7 @@ import type {
     UseConnectionOptions,
 } from './context-options/db-context-option-types';
 import type { OutboxOptions } from './outbox-options';
+import type { CompiledModel } from '../model/compiled-model';
 
 /** Application-facing context configuration. */
 export interface DbContextOptionsBuilder {
@@ -38,6 +39,8 @@ export interface DbContextOptionsBuilder {
     ): this;
     /** Reuse provider resources owned by an application-scoped data source. */
     useDataSource(dataSource: DatabaseDataSource): this;
+    /** Share explicitly compiled mapping; skips this context's model() hook. */
+    useCompiledModel(model: CompiledModel): this;
     /** Use one provider-neutral connection, optionally transferring ownership. */
     useConnection(
         connection: DatabaseConnection,

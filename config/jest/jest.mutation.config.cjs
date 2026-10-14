@@ -3,6 +3,10 @@ const base = require('./jest.config.cjs');
 module.exports = {
   ...base,
   testMatch: [
+    '<rootDir>/tests/compiled-model-boundaries.test.ts',
+    '<rootDir>/tests/compiled-model-ownership.test.ts',
+    '<rootDir>/tests/compiled-model-context.test.ts',
+    '<rootDir>/tests/compiled-model-reads.test.ts',
     '<rootDir>/tests/identity-cycle-scope.test.ts',
     '<rootDir>/tests/identity-scalar-encoding.test.ts',
     '<rootDir>/tests/identity-value-boundaries.test.ts',

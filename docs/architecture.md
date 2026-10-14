@@ -66,7 +66,7 @@ unit of work
   -> dataSource.createContext(ContextType, ...arguments)
   -> DbContext.create(dataSource, ...arguments)
   -> synchronous configure(options)
-  -> synchronous model(builder)
+  -> synchronous model(builder), or an explicitly selected compiled-model handle
   -> validate provider, model, and tenant-scope contracts
   -> lease connection, initialize dialect, model, and tracker
   -> expose DbSet gateways and optional lazy-navigation coordination
@@ -89,6 +89,13 @@ A second provider, source, or connection selection fails before acquiring a
 connection. Provider factories expose
 `dataSource.createContext()` as the application-facing
 entry, which forwards any remaining constructor arguments.
+
+Compiled models are explicit caller-owned handles. The model layer copies and
+freezes their mapping graph with private read-only lookup storage. Context options
+select one handle and validate provider/dialect compatibility before connection
+allocation. Each context still owns tenant callbacks, options, trackers and leases.
+The initial supported subset and dynamic fallback are described in
+[compiled models](compiled-models.md); query shapes and read plans are not yet shared.
 
 The public `DbContext` delegates to focused runtime hosts for query filters,
 relationships, migrations, raw SQL, transaction coordination, and the unit of

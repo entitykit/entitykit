@@ -169,6 +169,27 @@ export type ComparablePropertyKey<TEntity extends object> = {
 }[keyof TEntity] & string;
 
 // @public
+export interface CompiledModel {
+    // (undocumented)
+    readonly [compiledModelBrand]: true;
+    readonly dialect: string;
+    readonly provider: string;
+}
+
+// @public (undocumented)
+const compiledModelBrand: unique symbol;
+
+// @public (undocumented)
+export interface CompiledModelOptions {
+    readonly dialect?: string;
+    // (undocumented)
+    readonly provider: string;
+}
+
+// @public
+export function compileModel(configure: (model: ModelBuilder) => unknown, options: CompiledModelOptions): CompiledModel;
+
+// @public
 export interface ComplexPropertyBuilder<TEntity extends object, TComplex extends object> {
     complexProperty<TNested extends object | null | undefined>(selector: PropertySelector<TComplex, TNested>, configure?: (nested: ComplexPropertyBuilder<TEntity, NonNullable<TNested>>) => void): ComplexPropertyBuilder<TEntity, NonNullable<TNested>>;
     complexProperty<TNested extends object | null | undefined>(selector: PropertySelector<TComplex, TNested>, options: ComplexPropertyOptions<NonNullable<TNested>>, configure?: (nested: ComplexPropertyBuilder<TEntity, NonNullable<TNested>>) => void): ComplexPropertyBuilder<TEntity, NonNullable<TNested>>;
@@ -542,6 +563,7 @@ export interface DbContextConstructor<TContext extends EntityKitCliContext = Ent
 export interface DbContextOptionsBuilder {
     allowCrossTenantAccess(): this;
     useAuditing(options?: AuditOptions): this;
+    useCompiledModel(model: CompiledModel): this;
     // Warning: (ae-forgotten-export) The symbol "UseConnectionOptions" needs to be exported by the entry point index.d.ts
     useConnection(connection: DatabaseConnection, options?: UseConnectionOptions): this;
     useDataSource(dataSource: DatabaseDataSource): this;

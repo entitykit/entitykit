@@ -81,7 +81,7 @@ export class ProviderSelection {
         this.ownsConnection = ownsConnection;
     }
 
-    public build(validateDialect?: (dialect: SqlDialect) => void): ConfiguredProvider {
+    public build(validateDialect?: (dialect: SqlDialect, provider: string) => void): ConfiguredProvider {
         if (
             !this.provider
       || !this.dialect
@@ -90,7 +90,7 @@ export class ProviderSelection {
         ) {
             throw new Error('DbContextOptionsBuilder must configure a database provider.');
         }
-        validateDialect?.(this.dialect);
+        validateDialect?.(this.dialect, this.provider.provider);
         let connection = this.connection;
         if (!connection && this.connectionFactory) {
             const created: unknown = this.connectionFactory();

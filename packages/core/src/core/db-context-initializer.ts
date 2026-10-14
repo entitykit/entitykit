@@ -12,6 +12,8 @@ import type { DbContextState } from './db-context-state';
 import { configureChangeTrackerModel } from '../tracking/change-tracker-model';
 import { assertSynchronousCallbackResult } from '../synchronous-callback';
 import { ModelValidationError } from '../errors/model-validation-error';
+import { selectedCompiledModel } from './context-options/compiled-model-selection';
+import { compiledModelMetadata } from '../model/compiled-model';
 
 /**
  * The one-time construction of a `DbContext`'s configuration: run the derived
@@ -39,19 +41,19 @@ export function bootstrapDbContext(
         message => new Error(message),
     );
 
-    const modelBuilder = new ModelBuilder();
-    assertSynchronousCallbackResult(
-        buildModel(modelBuilder),
-        'DbContext.model()',
-        message => new ModelValidationError(message, {
-            contractViolation: 'asyncContextModel',
-        }),
-    );
-    const model = modelBuilder.build();
+    const compiled = selectedCompiledModel(optionsBuilder);
+    const model = compiled ? compiledModelMetadata(compiled) : buildDynamicContextModel(buildModel);
 
     assertTenantScopeConfigured(hasConfiguredTenantScope(optionsBuilder), model);
     const options = optionsBuilder.build(model);
     return { options, model };
+}
+
+function buildDynamicContextModel(buildModel: (builder: ModelBuilder) => unknown): Model {
+    const builder = new ModelBuilder();
+    assertSynchronousCallbackResult(buildModel(builder), 'DbContext.model()', message =>
+        new ModelValidationError(message, { contractViolation: 'asyncContextModel' }));
+    return builder.build();
 }
 
 export function initializeDbContext(

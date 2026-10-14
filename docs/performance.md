@@ -82,41 +82,33 @@ Normal builds derive expected outputs from each TypeScript configuration and
 invalidate that package's incremental state when runtime or declaration files
 are missing. This includes internal modules and the CLI entry point.
 
-## Model-reuse decision
+## Explicit model ownership
 
-Keep per-context model construction in this pass. Introduce model reuse in a
-separate prerelease API change through an **explicit compiled-model handle**,
-with caller-owned model identity and provider compatibility. Constructor-only
-caching is unsuitable: `model()` may use instance configuration, schemas,
-converters or callbacks that capture application state. A shared data source
-currently shares provider resources, not a finalized model.
+An application can now create an explicit `compileModel()` handle and select it
+with `options.useCompiledModel(handle)`. Compilation owns and freezes copied
+metadata and hides mutable lookup storage. Every context still runs configure(),
+validates tenant/provider compatibility before leasing, and owns its tracker,
+callbacks, guards, transactions and connections. Without opt-in, model() remains
+instance-dependent and runs per context. No constructor cache is introduced.
 
-The current metadata's TypeScript `readonly` members do not establish deep
-runtime immutability. `EntityMetadata` retains supplied property, relationship
-and index arrays, and converters/materializers can retain mutable closures.
-Reusing these objects silently would change existing ownership semantics.
-A model snapshot alone cannot reconstruct constructor and callback identities.
+The initial handle supports flat mappings without custom materializers, value
+converters, complex properties or object/function defaults. Unsupported shapes
+are rejected explicitly and remain available through dynamic configuration.
+Constructors retain their identity and execute normally; no application function
+or prototype is frozen. Freezing a function cannot freeze its closed-over state.
 
-A future opt-in contract must establish all of these before it skips `model()`:
+This is the ownership prerequisite for compiled read plans, not a completed
+materialization optimization. Query snapshots currently retain projection item
+references; a compiled projection must own its query shape separately and use it
+consistently for SQL and decoding. Metadata reuse alone cannot remove per-row
+verified writes, identity handling or retained persistence facts.
 
-- Finalization copies and owns metadata, nested arrays and mutable default
-  values; lookup maps expose no mutators. Builder changes cannot affect a handle.
-- Separate mapping variants get separate explicit handles. Provider-specific
-  column/index validation, including physical identifier rules, runs before SQL.
-- Shared converters and factories are explicitly safe to reuse; freezing a
-  function object cannot freeze its captured state. Factories still create fresh
-  entities and preserve converted identity and attachment behavior.
-- Every context still configures fresh tenant callbacks, clocks, interceptors,
-  trackers, operation guards and connection ownership. A model handle carries
-  no request state and does not bypass tenant-scope validation.
-- Tests exercise two contexts with distinct instance mappings, independent
-  options/tenants, retained builders, mutable defaults, failed initialization,
-  incompatible providers and context disposal. Benchmarks report model setup
-  separately from warm queries and prove the hook is skipped only by opt-in.
-
-This is a design direction, not an API available in the current release. The
-four setup workloads quantify the current cost without introducing a hidden
-cache or a constructor identity rule.
+[The compiled-model contract](compiled-models.md) describes the API and limits.
+Tests cover retained builders, nested ownership, hidden lookup mutators, forged
+handles, explicit variants, dynamic mappings, provider refusal before leases,
+tenant isolation, initialization retry, attachment and transaction rollback.
+Benchmark modes must label compiled ownership explicitly, retain fresh contexts
+and equal connection policy, and measure setup separately from warm reads.
 
 ## Provider follow-ups
 

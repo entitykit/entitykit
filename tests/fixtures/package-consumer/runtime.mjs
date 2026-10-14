@@ -4,6 +4,7 @@
 // hand rather than core's lazy built-in loader.
 import { DbContext, EntityState } from '@entitykit/core';
 import * as legacyHelpers from '@entitykit/core';
+import checkCompiledModel from './compiled-model.cjs';
 import { assertSynchronousCallbackResult, selectPropertyName } from '@entitykit/core/adapter';
 import { readSynchronousDate } from '@entitykit/core/tooling';
 import {
@@ -69,6 +70,7 @@ if (
 }
 
 const sharedSource = createSqliteDataSource(':memory:');
+await checkCompiledModel(legacyHelpers);
 const nestModule = await Test.createTestingModule({
   imports: [
     EntityKitModule.forRoot({ dataSource: sharedSource }),

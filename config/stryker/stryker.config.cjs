@@ -3,6 +3,10 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
+    'packages/core/src/model/compiled-model.ts',
+    'packages/core/src/model/compiled-model-copy.ts',
+    'packages/core/src/model/compiled-model-map.ts',
+    'packages/core/src/core/context-options/compiled-model-selection.ts',
     'packages/core/src/model/identity-value.ts',
     'packages/core/src/core/db-context-unit-of-work.ts',
     'packages/core/src/materialization/materialized-value-capture.ts',
