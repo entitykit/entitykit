@@ -148,4 +148,4 @@ MIT
 
 ## Explicit compiled models
 
-`compileModel(configure, { provider: 'sqlite' })` creates an owned mapping handle. Select it with `options.useCompiledModel(handle)` to skip the per-context `model()` hook while retaining fresh request state. The initial flat, callback-free subset and ownership limits are documented in [compiled models](../../docs/compiled-models.md). This API does not yet compile row read plans.
+`compileModel(configure, { provider: 'sqlite' })` creates an owned mapping handle. Select it with `options.useCompiledModel(handle)` to skip the per-context `model()` hook while retaining fresh request state. The initial flat, callback-free subset and ownership limits are documented in [compiled models](../../docs/compiled-models.md). Eligible flat entity mappings share a private field plan; eligible buffered root-field projections prepare their read instructions once per execution. This API does not precompile general SQL or cache query plans across contexts.
