@@ -235,3 +235,12 @@ hydration allocation did not decrease and HTTP read differences stayed small
 with overlapping ranges. Capture retains eager context formatting. Regression
 coverage for metadata/coercion order, converter diagnostics, null bypass and
 bound JSON round trips remains.
+
+## Save executor allocation
+
+A context creates its save executor only after a nonempty save plan and the
+cancellation/disposal checks. Reads, plan previews and empty saves do not allocate
+the executor or its lifecycle/tracked-state helpers. Once created, the same
+executor stays owned by that context across successful and failed saves and
+tracking clears. Transaction ownership and live option/interceptor reads remain
+per context; there is no shared executor cache.
