@@ -170,3 +170,17 @@ cycle-tracking state. Snapshot equality likewise allocates that state only when
 comparing structured graphs, after primitive, date, regular-expression and binary
 comparisons. Recursive comparisons share one visited-pair map; structured clones
 retain their existing cycle, aliasing and isolation behavior.
+
+## Empty tracker allocation
+
+Trackers defer their registry until tracking, identity lookup, acceptance or
+relationship detection requires it. Empty entry checks, enumeration, detach and
+clear avoid allocating registry maps and callbacks. Mutation guards still run
+before detach and clear; identity lookups still normalize and validate keys.
+Configured relationship detection initializes registry ownership even when its
+entry list is empty, so restoration journals retain their normal guarantees.
+
+Each tracker owns its registry once initialized. Clearing tracked entities
+retains that registry for acceptance and relationship journals, and observer
+callbacks continue to use the tracker's current observer slots. Read-only query
+trackers can remain uninitialized throughout their lifetime.

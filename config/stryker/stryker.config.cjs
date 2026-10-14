@@ -3,6 +3,13 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
+    'packages/core/src/tracking/change-tracker-registry-factory.ts',
+    'packages/core/src/tracking/change-tracker.ts:21-23',
+    'packages/core/src/tracking/change-tracker.ts:55-57',
+    'packages/core/src/tracking/change-tracker.ts:76-84',
+    'packages/core/src/tracking/change-tracker.ts:97-102',
+    'packages/core/src/tracking/change-tracker.ts:120-125',
+
     'packages/core/src/tracking/write-snapshot-value.ts',
     'packages/core/src/core/db-set-result-mapper.ts:65-114',
     'packages/core/src/core/query-count-result.ts',
@@ -86,7 +93,7 @@ module.exports = {
     'packages/core/src/tracking/tracked-entry-factory.ts',
     'packages/core/src/tracking/change-tracker-registry.ts:105-123',
     'packages/core/src/tracking/change-tracker-acceptance-factory.ts',
-    'packages/core/src/tracking/change-tracker.ts:106-121',
+    'packages/core/src/tracking/change-tracker.ts:104-119',
     'packages/core/src/tracking/temporary-principal-detachment.ts:12-13',
     'packages/core/src/tracking/tracked-cascade-graph.ts',
     'packages/core/src/tracking/cascade-graph-stability.ts',

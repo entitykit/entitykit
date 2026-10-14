@@ -3,6 +3,7 @@ const base = require('./jest.config.cjs');
 module.exports = {
   ...base,
   testMatch: [
+    '<rootDir>/tests/lazy-tracker-registry.test.ts',
     '<rootDir>/tests/mapped-special-key-snapshots.test.ts',
     '<rootDir>/tests/mapped-special-key-sqlite.test.ts',
     '<rootDir>/tests/aggregate-result-aliases-sqlite.test.ts',

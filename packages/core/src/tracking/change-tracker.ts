@@ -5,7 +5,8 @@ import type { EntityState } from './entity-state';
 import type { PersistedEntrySnapshot } from './persisted-entry-snapshot';
 import { SaveMutationGuard } from './save-mutation-guard';
 import type { TrackedAcceptance } from './tracked-acceptance-journal';
-import { ChangeTrackerRegistry } from './change-tracker-registry';
+import type { ChangeTrackerRegistry } from './change-tracker-registry';
+import { createChangeTrackerRegistry } from './change-tracker-registry-factory';
 import { detectTrackedChanges, detectTrackedRelationships } from './change-tracker-detection';
 import { createChangeTrackerAcceptance } from './change-tracker-acceptance-factory';
 import type { RelationshipDetectionValues } from './relationship-detection-values';
@@ -16,14 +17,10 @@ import { ChangeTrackerObservers } from './change-tracker-observers';
 export class ChangeTracker {
     private readonly saveGuard = new SaveMutationGuard();
     private readonly observers = new ChangeTrackerObservers();
-    private readonly registry = new ChangeTrackerRegistry(
-        this,
-        (operation, entity, identityKey) => {
-            this.saveGuard.assertMutation(operation, entity, identityKey);
-        },
-        entity => this.observers.notifyTracked(entity),
-        entity => this.observers.notifyDetached(entity),
-    );
+    private registryInstance?: ChangeTrackerRegistry;
+    private getRegistry(): ChangeTrackerRegistry {
+        return this.registryInstance ??= createChangeTrackerRegistry(this, this.saveGuard, this.observers);
+    }
     private acceptance?: ReturnType<typeof createChangeTrackerAcceptance>;
     constructor(
         assertUsable: (operation: string) => void = () => undefined,
@@ -53,10 +50,10 @@ export class ChangeTracker {
         originalValues?: Record<string, unknown>,
         originalBoundValues?: Record<string, unknown>,
     ): EntityEntry<TEntity> {
-        return this.registry.track(entity, metadata, state, originalValues, originalBoundValues);
+        return this.getRegistry().track(entity, metadata, state, originalValues, originalBoundValues);
     }
     public entry<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
-        return this.registry.entry(entity);
+        return this.registryInstance?.entry(entity);
     }
     public tryGetByIdentity<TEntity extends object>(
         metadata: EntityMetadata<TEntity>, keyValue: unknown,
@@ -68,27 +65,27 @@ export class ChangeTracker {
         keyValues: readonly unknown[],
         tenantValue?: unknown,
     ): EntityEntry<TEntity> | undefined {
-        return trackedByIdentity(this.registry, metadata, keyValues, tenantValue);
+        return trackedByIdentity(this.getRegistry(), metadata, keyValues, tenantValue);
     }
     public tryGetByBoundIdentityValues<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         boundValues: Readonly<Record<string, unknown>>,
     ): EntityEntry<TEntity> | undefined {
-        return trackedByBoundIdentity(this.registry, metadata, boundValues);
+        return trackedByBoundIdentity(this.getRegistry(), metadata, boundValues);
     }
     public entries(): ReadonlyArray<EntityEntry<object>> {
-        return this.registry.entries();
+        return this.registryInstance?.entries() ?? [];
     }
     public detach<TEntity extends object>(entity: TEntity): EntityEntry<TEntity> | undefined {
         this.saveGuard.assertMutation('Detaching an entity', entity);
-        const entry = this.registry.detach(entity);
+        const entry = this.registryInstance?.detach(entity);
         if (entry) this.observers.notifyDetached(entity);
         return entry;
     }
     public detectChanges(): void {
         this.saveGuard.assertNoExecution('detectChanges()');
         this.runRestorable(restoration => {
-            detectTrackedChanges(this, this.registry.entries(), restoration);
+            detectTrackedChanges(this, this.getRegistry().entries(), restoration);
         });
     }
     public detectSaveRelationships(
@@ -98,6 +95,7 @@ export class ChangeTracker {
         beforeCommit?: () => void,
     ): void {
         this.saveGuard.assertNoExecution('detectSaveRelationships()');
+        this.getRegistry(); // Empty configured trackers still need detection-journal ownership.
         this.runRestorable(scope => {
             detectTrackedRelationships(
                 this, entries, values, refreshBaselines, scope, beforeCommit);
@@ -107,28 +105,28 @@ export class ChangeTracker {
         this.saveGuard.assertMutation('acceptAllChanges()');
         const entries = this.entries();
         this.runRestorable(restoration => {
-            (this.acceptance ??= createChangeTrackerAcceptance(this.registry, this.saveGuard)).acceptAll(restoration);
+            (this.acceptance ??= createChangeTrackerAcceptance(this.getRegistry(), this.saveGuard)).acceptAll(restoration);
         });
         for (const entry of entries)
-            if (!this.registry.has(entry)) this.observers.notifyDetached(entry.entity);
+            if (!this.getRegistry().has(entry)) this.observers.notifyDetached(entry.entity);
         this.observers.notifyAcceptedAll();
     }
     public acceptPersistedChanges(
         snapshots: readonly PersistedEntrySnapshot[],
         restoration: RestorationScope,
     ): TrackedAcceptance {
-        return (this.acceptance ??= createChangeTrackerAcceptance(this.registry, this.saveGuard)).acceptPersisted(snapshots, true, restoration);
+        return (this.acceptance ??= createChangeTrackerAcceptance(this.getRegistry(), this.saveGuard)).acceptPersisted(snapshots, true, restoration);
     }
     public clear(): void {
         this.saveGuard.assertMutation('Clearing tracked entities');
         const entities = this.entries().map(entry => entry.entity);
-        this.registry.clear();
+        this.registryInstance?.clear();
         for (const entity of entities) this.observers.notifyDetached(entity);
     }
     public debugView(): string {
         this.saveGuard.assertNoExecution('debugView()');
         this.runRestorable(restoration => {
-            detectTrackedChanges(this, this.registry.entries(), restoration);
+            detectTrackedChanges(this, this.getRegistry().entries(), restoration);
         });
         return formatChangeTracker(this.entries());
     }
