@@ -65,15 +65,15 @@ function cloneValue(value: unknown, seen: WeakMap<object, unknown>): unknown {
     const clone = Object.create(prototype) as Record<PropertyKey, unknown>;
     seen.set(value, clone);
     for (const key of enumerableOwnKeys(value)) {
-        Object.defineProperty(clone, key, {
-            configurable: true,
-            enumerable: true,
-            value: cloneValue(
-                (value as Record<PropertyKey, unknown>)[key],
-                seen,
-            ),
-            writable: true,
-        });
+        const copied = cloneValue((value as Record<PropertyKey, unknown>)[key], seen);
+        // Source getters can install an inherited setter during recursive copying.
+        if (prototype === null || prototype === Object.prototype && !Object.hasOwn(prototype, key)) {
+            clone[key] = copied;
+        } else {
+            Object.defineProperty(clone, key, {
+                configurable: true, enumerable: true, writable: true, value: copied,
+            });
+        }
     }
     return clone;
 }

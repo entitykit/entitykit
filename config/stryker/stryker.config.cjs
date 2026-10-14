@@ -48,6 +48,7 @@ module.exports = {
     'packages/core/src/storage/exclusive-operation-guard.ts',
     'packages/cli/src/cli-rename-hints.ts',
     'packages/core/src/tracking/snapshot-value-equality.ts',
+    'packages/core/src/tracking/snapshot-value-clone.ts',
     'packages/core/src/tracking/bound-value-snapshot.ts:74-92',
     'packages/core/src/model/model-property-selector.ts',
     'packages/core/src/model/property-value-access.ts',
