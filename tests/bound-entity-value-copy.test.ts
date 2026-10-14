@@ -15,6 +15,77 @@ function metadata(converters: Record<string, ValueConverter> = {}): EntityMetada
 }
 
 describe('bound model-value copying', () => {
+    it('observes unconverted metadata before cloning nested values', () => {
+        const events: string[] = [];
+        const model = metadata();
+        Object.defineProperty(model.getProperty('first'), 'converter', {
+            get() {
+                events.push('converter');
+                return undefined;
+            },
+        });
+        Object.defineProperty(model, 'entityName', {
+            get() {
+                events.push('name');
+                return 'CopyRow';
+            },
+        });
+        const graph = {
+            get nested() {
+                events.push('clone');
+                return { value: 'original' };
+            },
+        };
+        const copy = cloneBoundEntityValues(model, { first: graph }, {});
+        expect(copy).toEqual({ first: { nested: { value: 'original' } } });
+        expect(copy.first).not.toBe(graph);
+        expect(events).toEqual(['converter', 'converter', 'name', 'clone']);
+    });
+
+    it.each([true, false])('uses the live fallback converter when enabled=%p', enabled => {
+        const events: string[] = [];
+        const model = metadata();
+        const converter: ValueConverter = {
+            toProvider: value => {
+                events.push('to');
+                return value;
+            },
+            fromProvider: () => {
+                events.push('from');
+                return 'converted';
+            },
+        };
+        let reads = 0;
+        Object.defineProperty(model.getProperty('first'), 'converter', {
+            get() {
+                events.push('converter');
+                return (reads++ === 0 ? !enabled : enabled) ? converter : undefined;
+            },
+        });
+        Object.defineProperty(model, 'entityName', {
+            get() {
+                events.push('name');
+                return 'CopyRow';
+            },
+        });
+
+        expect(cloneBoundEntityValues(model, { first: 'value' }, {}))
+            .toEqual({ first: enabled ? 'converted' : 'value' });
+        expect(events).toEqual(enabled
+            ? ['converter', 'converter', 'name', 'to', 'from']
+            : ['converter', 'converter', 'name']);
+    });
+
+    it('keeps property context when a fallback converter returns a thenable', () => {
+        const model = metadata({ first: {
+            toProvider: () => ({ then: (): void => undefined }),
+            fromProvider: value => value,
+        } });
+
+        expect(() => cloneBoundEntityValues(model, { first: 'value' }, {}))
+            .toThrow('Value converter for \'CopyRow.first\' toProvider() must be synchronous');
+    });
+
     it('captures root getters before conversion and ignores a replaced model graph', () => {
         const events: string[] = [];
         let later = 'before';
