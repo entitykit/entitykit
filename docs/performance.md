@@ -153,6 +153,16 @@ operations. The resource regression checks the number of distinct async-local
 stores across 256 guards, alongside nested ownership and detached-continuation
 coverage. Per-context model construction and connection ownership are unchanged.
 
+## Required-column ordering
+
+Single-table ordering uses the mapped column's nullability. Required columns
+map to `NOT NULL` and need no extra provider terms to place nulls first or last;
+removing those terms can let a composite index satisfy the complete ordering.
+Nullable columns retain portable null placement. Joined and aggregate values
+keep their existing null handling because joins and expressions can introduce
+nulls even when the source column is required. Compiled SQL cache keys include
+ordered-column nullability so different mappings cannot share the wrong text.
+
 ## Snapshot allocation
 
 Scalar snapshot cloning returns the original immutable value before allocating

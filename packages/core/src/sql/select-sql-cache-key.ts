@@ -38,6 +38,9 @@ export function buildSelectSqlCacheKey<TEntity extends object>(
             sourceAlias: ordering.sourceAlias,
             propertyName: ordering.propertyName,
             direction: ordering.direction,
+            isRequired: query.joins.length === 0
+                ? metadata.getProperty(ordering.propertyName).isRequired
+                : undefined,
         })),
         joins: query.joins.map(join => ({
             alias: join.alias,

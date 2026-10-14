@@ -13,6 +13,7 @@ module.exports = {
     '<rootDir>/tests/projection-materialization-boundaries.test.ts',
     '<rootDir>/tests/projection.test.ts',
     '<rootDir>/tests/store-value-reader-metadata.test.ts',
+    '<rootDir>/tests/required-column-ordering.test.ts',
     '<rootDir>/tests/store-value-reader-synchronous-contract.test.ts',
     '<rootDir>/tests/sqlite-value-mapping.test.ts',
     '<rootDir>/tests/sqlite-value-reader-boundaries.test.ts',

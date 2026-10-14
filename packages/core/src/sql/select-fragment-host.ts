@@ -13,7 +13,8 @@ import type { SqlParameterBag } from './sql-statement';
  */
 export interface SelectFragmentHost {
     columnSql(columnName: string, tableAlias?: string): string;
-    orderTerm(columnExpr: string, direction: string): string;
+    /** Joined and computed values remain nullable unless the caller proves otherwise. */
+    orderTerm(columnExpr: string, direction: string, nullable?: boolean): string;
     pushLimitAndOffset(
         parts: string[],
         query: { readonly limit?: number; readonly offset?: number },
