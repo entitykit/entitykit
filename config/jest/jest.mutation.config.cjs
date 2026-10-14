@@ -164,6 +164,7 @@ module.exports = {
     '<rootDir>/tests/model-property-path-lifetime.test.ts',
     '<rootDir>/tests/complex-property-model.test.ts',
     '<rootDir>/tests/no-tracking-identity-scope.test.ts',
+    '<rootDir>/tests/empty-include-work.test.ts',
     '<rootDir>/tests/no-tracking.test.ts',
     '<rootDir>/tests/materializer-bound-row-identity.test.ts',
     '<rootDir>/tests/materializer-identity.test.ts',

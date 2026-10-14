@@ -25,6 +25,7 @@ class FailureContext extends DbContext {
     public createdRoots: FailureRoot[] = [];
     public createdChildren: FailureChild[] = [];
     public refuse = true;
+    public refuseRestoration = false;
     protected override configure(options: DbContextOptionsBuilder): void {
         options.useProvider(sqliteProviderServices, ':memory:');
     }
@@ -35,6 +36,17 @@ class FailureContext extends DbContext {
             entity.materialize(values => {
                 const row = new FailureRoot();
                 this.createdRoots.push(row);
+                if (values.id === 1 && this.refuseRestoration) {
+                    let stored: FailureChild[] = [];
+                    let writes = 0;
+                    Object.defineProperty(row, 'children', {
+                        get: () => stored,
+                        set: (value: FailureChild[]) => {
+                            if (++writes > 1) throw new Error('cannot restore untracked root');
+                            stored = value;
+                        },
+                    });
+                }
                 if (values.id === 2 && this.refuse) {
                     let stored: FailureChild[] = [];
                     Object.defineProperty(row, 'children', {
@@ -186,6 +198,35 @@ describe('buffered no-tracking identity scope', () => {
                 expect(root.children).toHaveLength(1);
                 expect(root.children[0].root).toBe(root);
             }
+            expect(db.changeTracker.entries().map(entry => entry.entity)).toEqual([sentinel]);
+        } finally {
+            await db.dispose();
+        }
+    });
+
+    it('does not poison the context when an untracked graph cannot restore its own navigation', async () => {
+        const db = FailureContext.create();
+        try {
+            await db.database.ensureCreated();
+            for (const text of ['insert into scope_roots values (1), (2)',
+                'insert into scope_children (id, rootId) values (1, 1), (2, 2)']) {
+                await db.database.connection.query({ text, values: [] });
+            }
+            const sentinel = Object.assign(new FailureRoot(), { id: 3 });
+            db.roots.attach(sentinel);
+            db.refuseRestoration = true;
+            const query = async (): ReturnType<typeof db.roots.toArray> => db.roots.asNoTracking()
+                .include(row => row.children).orderBy(row => row.id).toArray();
+            await expect(query()).rejects.toThrow('refused its assigned value');
+            expect(db.createdRoots[0].children).toHaveLength(1);
+            await expect(db.roots.count()).resolves.toBe(2);
+            expect(db.changeTracker.entries().map(entry => entry.entity)).toEqual([sentinel]);
+            db.refuse = false;
+            db.refuseRestoration = false;
+            const roots = await query();
+            expect(roots).toHaveLength(2);
+            expect(roots.every(root => root.children.length === 1)).toBe(true);
+            expect(roots[0]).not.toBe(db.createdRoots[0]);
             expect(db.changeTracker.entries().map(entry => entry.entity)).toEqual([sentinel]);
         } finally {
             await db.dispose();

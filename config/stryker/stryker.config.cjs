@@ -50,6 +50,7 @@ module.exports = {
     'packages/core/src/materialization/materialized-bound-values.ts',
     'packages/core/src/core/db-set-query-runner.ts:50-55',
     'packages/core/src/core/db-set-query-runner.ts:84-86',
+    'packages/core/src/core/db-set-include-loader.ts',
     'packages/core/src/core/created-ancestor-restoration.ts',
     // Keep stateful modules focused on their release-critical write/rollback seams.
     'packages/core/src/core/save-time-mutations.ts:63-86',
