@@ -4,6 +4,7 @@ import { ModelBuilder as ModelBuilderImplementation } from '../packages/core/src
 import type { EntityMetadata } from '../packages/core/src/model/entity-metadata';
 import type { StoreValueReader } from '../packages/core/src/storage/store-value-reader';
 import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
+import { materializedPersistenceFacts } from '../packages/core/src/materialization/materialized-bound-values';
 
 class FactoryRow {
     public id = '';
@@ -86,6 +87,10 @@ describe('materializer fresh-instance contract', () => {
         expect(tracker.entry(singleton)?.originalValues)
             .toMatchObject({ id: 'one', name: 'first' });
         expect(tracker.entries()).toHaveLength(1);
+        expect(materializedPersistenceFacts(first)).toEqual({
+            values: { id: 'one', name: 'first' },
+            boundValues: { id: 'one', name: 'first' },
+        });
     });
 
     it('does not overwrite an already tracked Added instance', () => {
@@ -204,10 +209,12 @@ describe('materializer fresh-instance contract', () => {
         expect(() => new Materializer().materializeUntracked(
             metadata, { id: 'one', name: 'first' },
         )).toThrow('materialized setter failed');
+        expect(materializedPersistenceFacts(failingSingleton)).toBeUndefined();
 
         expect(() => new Materializer().materializeUntracked(
             metadata, { id: 'two', name: 'second' },
         )).toThrow('A materializer must return a fresh instance.');
         expect(failingSingleton.id).toBe('one');
+        expect(materializedPersistenceFacts(failingSingleton)).toBeUndefined();
     });
 });

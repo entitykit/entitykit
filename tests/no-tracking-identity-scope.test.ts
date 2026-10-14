@@ -127,6 +127,14 @@ describe('buffered no-tracking identity scope', () => {
         const facts = materializedPersistenceFacts(first.entity);
         expect(facts?.boundValues).toEqual({ id: 'same', tenant: '{"region":"north"}', label: 'first' });
         expect(facts?.values.id).toEqual({ value: 'same' });
+        if (!facts) throw new Error('Expected persisted materialization facts.');
+        (facts.values.id as { value: string }).value = 'changed returned copy';
+        facts.boundValues.id = 'changed returned bound copy';
+        const nextFacts = materializedPersistenceFacts(first.entity);
+        expect(nextFacts?.values.id).toEqual({ value: 'same' });
+        expect(nextFacts?.boundValues.id).toBe('same');
+        expect(nextFacts).not.toBe(facts);
+        expect(materializedPersistenceFacts(new IdentityRow())).toBeUndefined();
         expect(tracker.entries()).toEqual([]);
         identities.clear();
         expect(identities.get(metadata, first.boundValues)).toBeUndefined();

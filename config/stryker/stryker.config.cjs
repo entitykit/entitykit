@@ -45,7 +45,7 @@ module.exports = {
     'packages/core/src/materialization/query-identity-resolution.ts',
     'packages/core/src/materialization/materializer.ts:68-87',
     'packages/core/src/materialization/materializer.ts:129-143',
-    'packages/core/src/materialization/materialized-bound-values.ts:13-17',
+    'packages/core/src/materialization/materialized-bound-values.ts',
     'packages/core/src/core/db-set-query-runner.ts:50-55',
     'packages/core/src/core/db-set-query-runner.ts:84-86',
     'packages/core/src/core/created-ancestor-restoration.ts',

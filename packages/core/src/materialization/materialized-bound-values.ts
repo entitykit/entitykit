@@ -7,12 +7,13 @@ interface MaterializedPersistenceFacts {
     readonly cloneValues: () => Record<string, unknown>;
 }
 
-const facts: WeakMap<object, MaterializedPersistenceFacts> = new WeakMap();
-const reservations: WeakSet<object> = new WeakSet();
+// Presence reserves an instance even before persistence facts are complete.
+// Failed materialization must keep that reservation for the entity's lifetime.
+const facts: WeakMap<object, MaterializedPersistenceFacts | undefined> = new WeakMap();
 
 export function reserveMaterializedEntity(entity: object): boolean {
-    if (reservations.has(entity)) return false;
-    reservations.add(entity);
+    if (facts.has(entity)) return false;
+    facts.set(entity, undefined);
     return true;
 }
 
