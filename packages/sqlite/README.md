@@ -67,6 +67,31 @@ test needs multiple contexts to observe the same SQLite database.
 Typed configuration also supports read-only access, foreign-key enforcement,
 busy timeout, and journal mode.
 
+For a server using a filesystem database, opt into bounded idle connection reuse:
+
+```ts
+const dataSource = createSqliteDataSource(
+  { filename: "./app.db", journalMode: "WAL", foreignKeys: true },
+  { maxIdleConnections: 16 },
+);
+```
+
+`SqliteDataSourceOptions.maxIdleConnections` defaults to zero. Each context still
+owns an exclusive connection lease and fresh model/tracking state. After a lease
+ends, the source retains at most the configured number of idle native handles;
+overlapping contexts get distinct handles. This limit bounds idle retention,
+not active contexts, and the source closes retained handles at shutdown.
+
+Reuse owns a copy of its connection configuration and requires a filesystem
+path; `:memory:` and `file:` URIs are refused. Successful ordinary queries,
+writes and transactions may reuse a handle. PRAGMAs, DDL, raw transaction
+control, multi-statement scripts, unclassified SQL and failed provider operations
+retire that handle when its lease ends, preserving isolation from temporary
+tables, attached databases and altered settings. Leading-comment statements are
+conservatively retired too. SQLite's connection-local counters such as
+`last_insert_rowid()` and `changes()` can reflect an earlier lease: consume them
+only alongside the operation they describe, or keep reuse disabled.
+
 For a short-lived script, migration context, or isolated test, direct context
 configuration is also available. That context owns and closes its connection:
 

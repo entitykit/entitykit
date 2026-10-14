@@ -72,7 +72,7 @@ import { TransactionOptions } from '@entitykit/core/adapter';
 export { AlterColumnChange }
 
 // @public
-export function createSqliteDataSource(config: string | SqliteConnectionConfig, options?: EntityKitDataSourceOptions): EntityKitDataSource<SqliteConnectionConfig>;
+export function createSqliteDataSource(config: string | SqliteConnectionConfig, options?: SqliteDataSourceOptions): EntityKitDataSource<SqliteConnectionConfig>;
 
 export { DatabaseCheckConstraint }
 
@@ -203,6 +203,11 @@ export class SqliteDatabaseConnection implements DatabaseConnection {
     session<TResult>(work: () => TResult | Promise<TResult>, options?: DatabaseOperationOptions): Promise<TResult>;
     stream<TRow extends Record<string, unknown> = Record<string, unknown>>(statement: SqlStatement, options?: QueryStreamOptions): AsyncGenerator<TRow>;
     transaction<TResult>(work: () => TResult | Promise<TResult>, options?: TransactionOptions): Promise<TResult>;
+}
+
+// @public
+export interface SqliteDataSourceOptions extends EntityKitDataSourceOptions {
+    readonly maxIdleConnections?: number;
 }
 
 // @public

@@ -2,6 +2,7 @@ import './db-set-for-types.js';
 import './operation-types.js';
 import './checked-materialization-types.js';
 import './context-creation-types.js';
+import './sqlite-data-source-types.js';
 import './factory-creation-types.js';
 import './creation-types.js';
 import './mixed-index-types.js';

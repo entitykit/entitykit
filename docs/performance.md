@@ -120,6 +120,13 @@ cache or a constructor identity rule.
 
 ## Provider follow-ups
 
+SQLite data sources can explicitly retain a bounded number of idle native handles
+with `maxIdleConnections`. Reuse removes repeated file opens and connection
+configuration while each context retains its own exclusive lease and ORM state.
+The default remains zero. Only filesystem paths are supported; session-changing
+SQL and failed provider operations retire the leased handle instead of attempting
+to reset unknown session state. This is separate from prepared-statement caching.
+
 Keep SQLite statement reuse as a measured follow-up: a connection-owned cache
 needs a strict bound, active-iterator ownership, schema-change invalidation and
 disposal coverage. Its microsecond-scale benefit should be assessed after graph

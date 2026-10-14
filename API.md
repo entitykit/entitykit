@@ -76,6 +76,15 @@ never retries an unknown transaction outcome. A data source rejects new work
 after disposal and rejects disposal while connection leases or retry operations
 are active.
 
+SQLite additionally accepts `SqliteDataSourceOptions` from `@entitykit/sqlite`,
+with `maxIdleConnections?: number` (default `0`). A positive safe integer opts
+into bounded native-handle retention for filesystem paths. Live contexts always
+hold distinct leases; the limit applies to idle handles, not active contexts.
+The source captures its configuration and closes idle handles at shutdown.
+Session-changing or unclassified SQL and failed provider work retire the handle
+on return. See the [SQLite package](packages/sqlite/README.md#application-data-source)
+for in-memory/URI restrictions and connection-local counter semantics.
+
 Operation options accept an `AbortSignal`. Postgres and MySQL cancel queued pool
 acquisition promptly, including queries, streams, transactions, and pinned
 sessions. A connection that arrives after cancellation is released without

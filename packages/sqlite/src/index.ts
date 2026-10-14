@@ -21,6 +21,7 @@ export function rawSql(
 
 export { sqliteProviderServices } from './sqlite-provider-services';
 export { createSqliteDataSource } from './sqlite-data-source';
+export type { SqliteDataSourceOptions } from './sqlite-data-source';
 export { SqliteDatabaseConnection } from './sqlite-database-connection';
 export type { SqliteConnectionConfig } from '@entitykit/core';
 export type { DatabaseOperationOptions, TransactionOptions } from '@entitykit/core/adapter';
