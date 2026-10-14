@@ -21,6 +21,7 @@ module.exports = {
     '<rootDir>/tests/resource-acquisition-cancellation.test.ts',
     '<rootDir>/tests/pooled-acquisition-cancellation.test.ts',
     '<rootDir>/tests/exclusive-operation-lifetime.test.ts',
+    '<rootDir>/tests/exclusive-operation-scope-isolation.test.ts',
     '<rootDir>/tests/exclusive-operation-stream-lifetime.test.ts',
     '<rootDir>/tests/context-concurrency.test.ts',
     '<rootDir>/tests/query-streaming.test.ts',

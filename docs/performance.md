@@ -128,3 +128,20 @@ and snapshot costs on a controlled host.
 The stream matrix records PostgreSQL's real cursor commands at batch sizes 32
 and 256. Use representative network latency and payloads before changing the
 default or cursor design. SQL text caching remains bounded and unchanged.
+
+## Operation-scope lifetime
+
+Exclusive connection guards share one async-local store and retain separate
+tokens for each owning operation. A linked scope chain preserves access to
+outer transactions through nested guards, while overlapping queries, unrelated
+async chains and expired operation tokens remain rejected. Ending one guard
+does not disable another guard's store or the application's async context.
+Detached continuations skip expired parent scopes when starting new work.
+
+This bounds Node 22's enabled async-hook registrations and Node 24's copied
+async-context frame keys. A store per short-lived guard can leave keys in the
+caller's restored Node 24 frame even after the guard disables its own current
+frame. Repeated context construction then increases the cost of later async
+operations. The resource regression checks the number of distinct async-local
+stores across 256 guards, alongside nested ownership and detached-continuation
+coverage. Per-context model construction and connection ownership are unchanged.
