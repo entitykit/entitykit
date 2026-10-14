@@ -103,6 +103,8 @@ module.exports = {
     '<rootDir>/tests/concurrency-atomic-write-primitives.test.ts',
     '<rootDir>/tests/complex-properties.test.ts',
     '<rootDir>/tests/materializer-fresh-instance.test.ts',
+    '<rootDir>/tests/materializer-cross-runner-freshness-sqlite.test.ts',
+    '<rootDir>/tests/materializer.test.ts',
     '<rootDir>/tests/complex-ancestor-restoration-failure.test.ts',
     '<rootDir>/tests/tenant-accessor-restoration-failure.test.ts',
     '<rootDir>/tests/context-restoration-failure.test.ts',
