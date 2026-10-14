@@ -3,6 +3,7 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
+    'packages/core/src/core/db-set-context-adapter.ts',
     'packages/core/src/tracking/save-mutation-guard.ts',
     'packages/core/src/tracking/change-tracker-registry-factory.ts',
     'packages/core/src/tracking/change-tracker.ts:21-23',

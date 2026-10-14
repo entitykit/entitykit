@@ -191,3 +191,10 @@ its separate entity map. Read-only guards need neither. Once initialized, maps
 remain owned by that guard and are reused across releases. Nested reservation
 counts, idempotent release, usability checks and save-execution checks retain
 the same behavior.
+
+## DbSet service adapters
+
+Each DbSet retains its own service adapter and captured method references.
+Accessor implementations are shared on a private class prototype; options,
+database and model callbacks remain live and lazy. This avoids five accessor
+closures per set without sharing a context, tracker, model or tenant state.

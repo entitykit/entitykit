@@ -33,33 +33,53 @@ interface DbSetContextAdapterOptions {
     ) => Promise<unknown>;
 }
 
+class RuntimeDbSetContext implements DbSetContext {
+    public readonly changeTracker: DbSetContextAdapterOptions['changeTracker'];
+    public readonly assertCanQuery: DbSetContextAdapterOptions['assertCanQuery'];
+    public readonly assertStateUsable: DbSetContextAdapterOptions['assertStateUsable'];
+    public readonly applyQueryFilters: DbSetContextAdapterOptions['applyQueryFilters'];
+    public readonly beginQueryOperation: DbSetContextAdapterOptions['beginQueryOperation'];
+    public readonly currentTenantIdForWrites: DbSetContextAdapterOptions['currentTenantIdForWrites'];
+    public readonly allowsCrossTenantAccess: DbSetContextAdapterOptions['allowsCrossTenantAccess'];
+    public readonly registerTransactionState: DbSetContextAdapterOptions['registerTransactionState'];
+    public readonly markStateRestorationFailure: DbSetContextAdapterOptions['markStateRestorationFailure'];
+    public readonly loadNavigation: DbSetContextAdapterOptions['loadNavigation'];
+
+    constructor(private readonly services: DbSetContextAdapterOptions) {
+        this.changeTracker = services.changeTracker;
+        this.assertCanQuery = services.assertCanQuery;
+        this.assertStateUsable = services.assertStateUsable;
+        this.applyQueryFilters = services.applyQueryFilters;
+        this.beginQueryOperation = services.beginQueryOperation;
+        this.currentTenantIdForWrites = services.currentTenantIdForWrites;
+        this.allowsCrossTenantAccess = services.allowsCrossTenantAccess;
+        this.registerTransactionState = services.registerTransactionState;
+        this.markStateRestorationFailure = services.markStateRestorationFailure;
+        this.loadNavigation = services.loadNavigation;
+    }
+
+    public get options(): DbSetContext['options'] {
+        return this.services.options();
+    }
+
+    public get database(): DbSetContext['database'] {
+        return this.services.database();
+    }
+
+    public get dialect(): DbSetContext['dialect'] {
+        return this.services.options().dialect;
+    }
+
+    public get valueReader(): DbSetContext['valueReader'] {
+        return this.services.options().valueReader;
+    }
+
+    public get modelMetadata(): DbSetContext['modelMetadata'] {
+        return this.services.model();
+    }
+}
+
 /** Adapt context-owned runtime services to the narrow contract consumed by DbSet. */
 export function createDbSetContextAdapter(options: DbSetContextAdapterOptions): DbSetContext {
-    return {
-        get options() {
-            return options.options();
-        },
-        get database() {
-            return options.database();
-        },
-        get dialect() {
-            return options.options().dialect;
-        },
-        get valueReader() {
-            return options.options().valueReader;
-        },
-        get modelMetadata() {
-            return options.model();
-        },
-        changeTracker: options.changeTracker,
-        assertCanQuery: options.assertCanQuery,
-        assertStateUsable: options.assertStateUsable,
-        applyQueryFilters: options.applyQueryFilters,
-        beginQueryOperation: options.beginQueryOperation,
-        currentTenantIdForWrites: options.currentTenantIdForWrites,
-        allowsCrossTenantAccess: options.allowsCrossTenantAccess,
-        registerTransactionState: options.registerTransactionState,
-        markStateRestorationFailure: options.markStateRestorationFailure,
-        loadNavigation: options.loadNavigation,
-    };
+    return new RuntimeDbSetContext(options);
 }
