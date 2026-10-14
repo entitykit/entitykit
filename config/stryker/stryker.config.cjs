@@ -22,6 +22,7 @@ module.exports = {
     'packages/core/src/tracking/snapshot-value-equality.ts',
     'packages/core/src/tracking/bound-value-snapshot.ts:73-91',
     'packages/core/src/model/model-property-selector.ts',
+    'packages/core/src/model/property-value-access.ts',
     'packages/core/src/migrations/model-diff-operation-description.ts',
     'packages/core/src/migrations/migration-column-builder.ts',
     'packages/core/src/restoration-actions.ts',

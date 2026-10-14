@@ -50,6 +50,9 @@ export function propertyValueTarget(
         throw new Error('Mapped property paths must contain at least one segment.');
     }
     let current = entity as Record<string, unknown>;
+    if (path.length === 1) {
+        return { target: current, propertyName };
+    }
     for (const segment of path.slice(0, -1)) {
         const nested = current[segment];
         if (nested === null || nested === undefined) {

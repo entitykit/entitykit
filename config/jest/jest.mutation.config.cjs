@@ -44,6 +44,8 @@ module.exports = {
     '<rootDir>/tests/restoration-failure-inspection.test.ts',
     '<rootDir>/tests/failure-atomic-property-write.test.ts',
     '<rootDir>/tests/verified-property-write.test.ts',
+    '<rootDir>/tests/verified-primitive-write.test.ts',
+    '<rootDir>/tests/property-value-access.test.ts',
     '<rootDir>/tests/verified-property-write-converters.test.ts',
     '<rootDir>/tests/converter-journal-restoration-sqlite.test.ts',
     '<rootDir>/tests/converter-fact-assignment-sqlite.test.ts',
