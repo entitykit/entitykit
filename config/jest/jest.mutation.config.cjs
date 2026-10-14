@@ -12,6 +12,8 @@ module.exports = {
     '<rootDir>/tests/projection-root-exposure.test.ts',
     '<rootDir>/tests/projection-materialization-boundaries.test.ts',
     '<rootDir>/tests/projection.test.ts',
+    '<rootDir>/tests/store-value-reader-metadata.test.ts',
+    '<rootDir>/tests/store-value-reader-synchronous-contract.test.ts',
     '<rootDir>/tests/projection-expressions-sqlite.test.ts',
     '<rootDir>/tests/queryable-projection-and-includes.test.ts',
     '<rootDir>/tests/postgres-savepoint-ownership.test.ts',

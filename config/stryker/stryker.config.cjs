@@ -6,6 +6,7 @@ module.exports = {
     'packages/core/src/core/db-set-result-mapper.ts:65-114',
     'packages/core/src/core/query-count-result.ts',
     'packages/core/src/core/projection-row-materializer.ts',
+    'packages/core/src/storage/store-value-reader.ts',
     'packages/postgres/src/postgres-transaction.ts:80-137',
     'packages/mysql/src/mysql-value-reader.ts',
     'packages/postgres/src/postgres-client-lease.ts',
