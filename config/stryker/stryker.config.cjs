@@ -20,6 +20,7 @@ module.exports = {
     'packages/core/src/storage/exclusive-operation-guard.ts',
     'packages/cli/src/cli-rename-hints.ts',
     'packages/core/src/tracking/snapshot-value-equality.ts',
+    'packages/core/src/tracking/bound-value-snapshot.ts:73-91',
     'packages/core/src/migrations/model-diff-operation-description.ts',
     'packages/core/src/migrations/migration-column-builder.ts',
     'packages/core/src/restoration-actions.ts',

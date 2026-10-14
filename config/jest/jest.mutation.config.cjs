@@ -140,6 +140,7 @@ module.exports = {
     '<rootDir>/tests/audit-relationship-reconciliation-sqlite.test.ts',
     '<rootDir>/tests/identity-map.test.ts',
     '<rootDir>/tests/tracked-snapshot-work.test.ts',
+    '<rootDir>/tests/bound-snapshot-capture.test.ts',
     '<rootDir>/tests/no-tracking-identity-scope.test.ts',
     '<rootDir>/tests/no-tracking.test.ts',
     '<rootDir>/tests/materializer-bound-row-identity.test.ts',
