@@ -17,13 +17,16 @@ export function materializeProjectionRows<
     const projection = model.projection ?? [];
     return rows.map(row => {
         const output: Record<string, unknown> = {};
+        let rootIsPrivate = true;
         for (const item of projection) {
             const value = materializeProjectionValue(
                 item,
                 row[item.alias],
                 readField,
             );
-            setProjectionValue(output, item.path ?? [item.alias], value);
+            rootIsPrivate = setProjectionValue(
+                output, item.path ?? [item.alias], value, rootIsPrivate,
+            );
         }
         return output as TProjection;
     });
@@ -66,19 +69,23 @@ function setProjectionValue(
     output: Record<string, unknown>,
     path: readonly string[],
     value: unknown,
-): void {
+    rootIsPrivate: boolean,
+): boolean {
     let current = output;
     path.forEach((key, index) => {
         if (index === path.length - 1) {
-            // The root is owned and has only writable data properties. Guard
-            // inherited keys so accessors and __proto__ retain define semantics.
-            if (current === output && !Object.hasOwn(Object.prototype, key)) {
+            // A private root has only writable data properties. Once an
+            // ancestor lookup can expose it, every later write must define.
+            if (rootIsPrivate && current === output && !Object.hasOwn(Object.prototype, key)) {
                 current[key] = value;
             } else {
                 defineResultProperty(current, key, value);
             }
             return;
         }
+        // Even an inherited getter receives the root as its receiver and can
+        // change its own descriptors or prototype before another field writes.
+        rootIsPrivate = false;
         const existing = current[key];
         if (
             Object.prototype.hasOwnProperty.call(current, key) &&
@@ -92,6 +99,7 @@ function setProjectionValue(
         defineResultProperty(current, key, nested);
         current = nested;
     });
+    return rootIsPrivate;
 }
 
 export function defineResultProperty(

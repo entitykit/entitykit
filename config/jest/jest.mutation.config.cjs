@@ -8,6 +8,8 @@ module.exports = {
     '<rootDir>/tests/aggregate-query-model/*.test.ts',
     '<rootDir>/tests/joined-projection/*.test.ts',
     '<rootDir>/tests/projection-result-ownership.test.ts',
+    '<rootDir>/tests/projection-path-iteration.test.ts',
+    '<rootDir>/tests/projection-root-exposure.test.ts',
     '<rootDir>/tests/projection-materialization-boundaries.test.ts',
     '<rootDir>/tests/projection.test.ts',
     '<rootDir>/tests/projection-expressions-sqlite.test.ts',
