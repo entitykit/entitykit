@@ -3,6 +3,15 @@ const base = require('./jest.config.cjs');
 module.exports = {
   ...base,
   testMatch: [
+    '<rootDir>/tests/identity-cycle-scope.test.ts',
+    '<rootDir>/tests/identity-scalar-encoding.test.ts',
+    '<rootDir>/tests/identity-value-boundaries.test.ts',
+    '<rootDir>/tests/identity-tuple-codec.test.ts',
+    '<rootDir>/tests/query-identity-table-lifetime.test.ts',
+    '<rootDir>/tests/converted-key-identity.test.ts',
+    '<rootDir>/tests/converted-class-key-identity.test.ts',
+    '<rootDir>/tests/tenant-identity-resolution.test.ts',
+    '<rootDir>/tests/tracked-provider-identity-sqlite.test.ts',
     '<rootDir>/tests/context-lifecycle.test.ts',
     '<rootDir>/tests/bulk-upsert-transaction-state-sqlite.test.ts',
     '<rootDir>/tests/bulk-upsert.test.ts',

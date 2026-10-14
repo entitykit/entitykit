@@ -244,3 +244,12 @@ the executor or its lifecycle/tracked-state helpers. Once created, the same
 executor stays owned by that context across successful and failed saves and
 tracking clears. Transaction ownership and live option/interceptor reads remain
 per context; there is no shared executor cache.
+
+## Identity cycle detection
+
+Identity tuple encoding creates an ancestry set only when it reaches a structured
+object or array. Scalars, valid dates and binary values do not need this state.
+Each top-level value starts independently, and structured branches release their
+ancestry in a finally block, including after a getter throws. Reentrant tuple
+encoding owns a separate ancestry set. The typed key format, array mapping and
+JSON hooks remain unchanged.

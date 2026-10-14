@@ -6,7 +6,7 @@ type EncodedIdentityValue =
 export function encodeIdentityTuple(values: readonly unknown[]): string {
     return JSON.stringify([
         'entitykit:identity:v1',
-        ...values.map(value => encodeIdentityValue(value, new Set())),
+        ...values.map(value => encodeIdentityValue(value)),
     ]);
 }
 
@@ -43,7 +43,7 @@ export function formatIdentityValue(value: unknown): string {
 
 function encodeIdentityValue(
     value: unknown,
-    ancestors: Set<object>,
+    ancestors?: Set<object>,
 ): EncodedIdentityValue {
     if (value === null) {
         return ['null'];
@@ -78,16 +78,17 @@ function encodeIdentityValue(
     if (typeof value !== 'object') {
         throw new TypeError(`Unsupported identity value (${typeof value}).`);
     }
-    if (ancestors.has(value)) {
+    const visited = ancestors ?? new Set<object>();
+    if (visited.has(value)) {
         throw new TypeError('Identity values cannot contain cyclic references.');
     }
 
-    ancestors.add(value);
+    visited.add(value);
     try {
         if (Array.isArray(value)) {
             return [
                 'array',
-                ...value.map(item => encodeIdentityValue(item, ancestors)),
+                ...value.map(item => encodeIdentityValue(item, visited)),
             ];
         }
         const prototype: object | null = Object.getPrototypeOf(value) as object | null;
@@ -102,12 +103,12 @@ function encodeIdentityValue(
                 key,
                 encodeIdentityValue(
                     (value as Record<string, unknown>)[key],
-                    ancestors,
+                    visited,
                 ),
             ]),
         ];
     } finally {
-        ancestors.delete(value);
+        visited.delete(value);
     }
 }
 
