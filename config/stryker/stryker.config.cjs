@@ -3,6 +3,7 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
+    'packages/sqlite/src/sqlite-statement.ts:29-83',
     'packages/core/src/core/db-set-context-adapter.ts',
     'packages/core/src/tracking/save-mutation-guard.ts',
     'packages/core/src/tracking/change-tracker-registry-factory.ts',

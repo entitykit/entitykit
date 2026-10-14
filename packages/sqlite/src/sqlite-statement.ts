@@ -27,6 +27,7 @@ const HAS_RETURNING = /\breturning\b/i;
  * a separator.
  */
 export function hasMultipleStatements(sql: string): boolean {
+    if (!sql.includes(';')) return false;
     let inSingleQuote = false;
     let inDoubleQuote = false;
     let inLineComment = false;

@@ -3,6 +3,7 @@ const base = require('./jest.config.cjs');
 module.exports = {
   ...base,
   testMatch: [
+    '<rootDir>/tests/sqlite-statement-classification.test.ts',
     '<rootDir>/tests/db-set-context-adapter.test.ts',
     '<rootDir>/tests/lazy-save-reservations.test.ts',
     '<rootDir>/tests/save-mutation-guard-upsert.test.ts',
