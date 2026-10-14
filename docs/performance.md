@@ -219,3 +219,11 @@ provider comparison or a refused assignment needs the diagnostic context. The
 names are still read and coerced before the live value lookup, preserving getter
 order and the original names when a value getter or setter changes metadata.
 Restoration writes retain their eagerly composed context and journal behavior.
+
+## Property write targets
+
+Mapped writes traverse directly to the target object without constructing a
+short-lived target/name pair. Callers that request a target/name pair still get
+one. Both paths capture and validate the leaf first, then call the path's slice
+method and traverse its iterator before assigning the value. Custom path methods,
+inherited setters and created-but-replaced ancestor objects retain their behavior.

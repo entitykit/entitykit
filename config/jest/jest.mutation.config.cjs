@@ -71,6 +71,7 @@ module.exports = {
     '<rootDir>/tests/materialized-write-context.test.ts',
     '<rootDir>/tests/verified-property-write.test.ts',
     '<rootDir>/tests/verified-primitive-write.test.ts',
+    '<rootDir>/tests/property-path-target-observation.test.ts',
     '<rootDir>/tests/property-value-access.test.ts',
     '<rootDir>/tests/verified-property-write-converters.test.ts',
     '<rootDir>/tests/converter-journal-restoration-sqlite.test.ts',

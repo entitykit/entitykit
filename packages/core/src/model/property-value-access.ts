@@ -37,18 +37,30 @@ export function writePropertyPath(
     path: readonly string[],
     value: unknown,
 ): void {
-    const { target, propertyName } = propertyValueTarget(entity, path);
-    setValue(target, propertyName, value);
+    const propertyName = propertyPathLeaf(path);
+    setValue(propertyPathTarget(entity, path), propertyName, value);
 }
 
 export function propertyValueTarget(
     entity: object,
     path: readonly string[],
 ): { target: Record<string, unknown>; propertyName: string } {
+    const propertyName = propertyPathLeaf(path);
+    return { target: propertyPathTarget(entity, path), propertyName };
+}
+
+function propertyPathLeaf(path: readonly string[]): string {
     const propertyName = path.at(-1);
     if (!propertyName) {
         throw new Error('Mapped property paths must contain at least one segment.');
     }
+    return propertyName;
+}
+
+function propertyPathTarget(
+    entity: object,
+    path: readonly string[],
+): Record<string, unknown> {
     let current = entity as Record<string, unknown>;
     for (const segment of path.slice(0, -1)) {
         const nested = current[segment];
@@ -65,7 +77,7 @@ export function propertyValueTarget(
         }
         current = nested as Record<string, unknown>;
     }
-    return { target: current, propertyName };
+    return current;
 }
 
 export function hasPropertyPath(
