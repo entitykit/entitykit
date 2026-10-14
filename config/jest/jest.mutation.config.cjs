@@ -68,6 +68,7 @@ module.exports = {
     '<rootDir>/tests/restoration-scope.test.ts',
     '<rootDir>/tests/restoration-failure-inspection.test.ts',
     '<rootDir>/tests/failure-atomic-property-write.test.ts',
+    '<rootDir>/tests/materialized-capture-context.test.ts',
     '<rootDir>/tests/materialized-write-context.test.ts',
     '<rootDir>/tests/verified-property-write.test.ts',
     '<rootDir>/tests/verified-primitive-write.test.ts',

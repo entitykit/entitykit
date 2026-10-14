@@ -36,17 +36,18 @@ export function toBoundProviderValue(
     providerValue: unknown,
     columnType: string,
     context = 'mapped property',
+    propertyName?: string,
 ): unknown {
     if (providerValue === null || providerValue === undefined) {
         return providerValue;
     }
     if (providerValue instanceof Date && Number.isNaN(providerValue.getTime())) {
-        throw new TypeError(`Invalid Date at '${context}'. Mapped Date values must be valid.`);
+        throw new TypeError(`Invalid Date at '${diagnosticContext(context, propertyName)}'. Mapped Date values must be valid.`);
     }
 
     const normalized = columnType.trim().toLowerCase();
     if (normalized === 'json' || normalized === 'jsonb') {
-        return serializeJsonValue(providerValue, context);
+        return serializeJsonValue(providerValue, diagnosticContext(context, propertyName));
     }
 
     return providerValue;
@@ -71,6 +72,7 @@ export function fromProviderValue<TProperty>(
     value: unknown,
     converter?: ValueConverter<TProperty>,
     context?: string,
+    propertyName?: string,
 ): unknown {
     if (value === null || value === undefined || !converter) {
         return value;
@@ -79,7 +81,7 @@ export function fromProviderValue<TProperty>(
     const converted = converter.fromProvider(value);
     assertSynchronousCallbackResult(
         converted,
-        converterOperation('fromProvider', context),
+        converterOperation('fromProvider', context, propertyName),
         message => new TypeError(message),
     );
     return converted;
@@ -115,8 +117,14 @@ export function providerValueFromBoundProperty(
 function converterOperation(
     direction: 'toProvider' | 'fromProvider',
     context?: string,
+    propertyName?: string,
 ): string {
-    return context
-        ? `Value converter for '${context}' ${direction}()`
+    const qualified = propertyName === undefined ? context : `${String(context)}.${propertyName}`;
+    return qualified
+        ? `Value converter for '${qualified}' ${direction}()`
         : `ValueConverter.${direction}()`;
+}
+
+function diagnosticContext(context: string, propertyName?: string): string {
+    return propertyName === undefined ? context : `${context}.${propertyName}`;
 }

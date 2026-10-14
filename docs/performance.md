@@ -227,3 +227,11 @@ short-lived target/name pair. Callers that request a target/name pair still get
 one. Both paths capture and validate the leaf first, then call the path's slice
 method and traverse its iterator before assigning the value. Custom path methods,
 inherited setters and created-but-replaced ancestor objects retain their behavior.
+
+## Provider capture diagnostics
+
+Provider capture reads and coerces diagnostic name parts before observing the
+row and its normalization callbacks. It joins those parts only for converter
+labels, invalid dates or JSON serialization. Ordinary scalar and nullish provider
+facts avoid the unused joined string while live output keys, converter receivers,
+model/bound snapshot isolation and existing complete-context calls stay intact.

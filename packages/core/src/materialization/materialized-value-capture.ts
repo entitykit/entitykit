@@ -24,18 +24,20 @@ export function captureMaterializedValues<TEntity extends object>(
     const values: Record<string, unknown> = {};
     const boundValues: Record<string, unknown> = {};
     for (const property of metadata.properties) {
-        const context = `${metadata.entityName}.${property.propertyName}`;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-template-expression -- Preserve live metadata name coercion before provider reads.
+        const entityName = `${metadata.entityName}`;
+        const propertyName = `${property.propertyName}`;
         const providerValue = readStoreProviderValue(
             row[property.columnName], property, reader,
         );
         writeSnapshotValue(values, property.propertyName, fromProviderValue(
-            cloneSnapshotValue(providerValue), property.converter, context,
+            cloneSnapshotValue(providerValue), property.converter, entityName, propertyName,
         ));
         writeSnapshotValue(boundValues, property.propertyName, cloneSnapshotValue(
             toBoundProviderValue(
                 cloneSnapshotValue(providerValue),
                 property.columnType,
-                context,
+                entityName, propertyName,
             ),
         ));
     }

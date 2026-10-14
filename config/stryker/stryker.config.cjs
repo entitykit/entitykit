@@ -3,6 +3,8 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
+    'packages/core/src/materialization/materialized-value-capture.ts',
+    'packages/core/src/model/value-converter/store-value.ts',
     'packages/core/src/materialization/complex-value-materializer.ts:119-134',
     'packages/sqlite/src/sqlite-statement.ts:29-83',
     'packages/core/src/core/db-set-context-adapter.ts',
