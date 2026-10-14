@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from './write-snapshot-value';
 import type { EntityEntry } from './entity-entry';
 import {
     captureCurrentNavigationSnapshotValues,
@@ -117,14 +118,14 @@ export function refreshPersistedEntryRelationships(
             property.converter,
             context,
         );
-        snapshot.values[propertyName] = copies.persistedValue;
-        snapshot.boundValues[propertyName] = cloneSnapshotValue(
+        writeSnapshotValue(snapshot.values, propertyName, copies.persistedValue);
+        writeSnapshotValue(snapshot.boundValues, propertyName, cloneSnapshotValue(
             toBoundProviderValue(
                 copies.providerValue,
                 property.columnType,
                 context,
             ),
-        );
+        ));
     }
     return {
         ...snapshot,

@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from './write-snapshot-value';
 import type { EntityMetadata } from '../model/entity-metadata';
 import { fromBoundPropertyValue } from '../model/value-converter/store-value';
 import {
@@ -14,7 +15,7 @@ export function cloneBoundEntityValues<TEntity extends object>(
     const cloned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(values)) {
         const property = metadata.tryGetProperty(key);
-        cloned[key] = property?.converter && Object.prototype.hasOwnProperty.call(
+        writeSnapshotValue(cloned, key, property?.converter && Object.prototype.hasOwnProperty.call(
             boundValues,
             key,
         )
@@ -27,7 +28,7 @@ export function cloneBoundEntityValues<TEntity extends object>(
                 value,
                 property?.converter,
                 `${metadata.entityName}.${key}`,
-            );
+            ));
     }
     return cloned;
 }

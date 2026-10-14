@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from '../tracking/write-snapshot-value';
 import { snapshotPropertyValueCopies } from '../tracking/snapshot-value';
 import { toBoundProviderValue } from '../model/value-converter/store-value';
 import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
@@ -48,8 +49,8 @@ export function writeSaveTimeProperty(
             );
         },
     });
-    snapshot.values[propertyName] = persistedValue;
-    snapshot.boundValues[propertyName] = cloneSnapshotValue(
+    writeSnapshotValue(snapshot.values, propertyName, persistedValue);
+    writeSnapshotValue(snapshot.boundValues, propertyName, cloneSnapshotValue(
         toBoundProviderValue(providerValue, property.columnType, context),
-    );
+    ));
 }

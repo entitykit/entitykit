@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from '../../tracking/write-snapshot-value';
 import type { EntityMetadata } from '../../model/entity-metadata';
 import type { EntityEntry } from '../../tracking/entity-entry';
 import type { GeneratedIdentityRollbackSource } from '../../tracking/generated-identity-rollback-source';
@@ -15,9 +16,9 @@ export function generatedRollbackSource<TEntity extends object>(
 ): GeneratedIdentityRollbackSource {
     const boundValues = cloneBoundValues(sourceBoundValues);
     for (const value of generated) {
-        boundValues[value.propertyName] = cloneSnapshotValue(
+        writeSnapshotValue(boundValues, value.propertyName, cloneSnapshotValue(
             value.boundValue,
-        );
+        ));
     }
     return {
         entity,

@@ -3,6 +3,7 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 module.exports = {
   mutate: [
+    'packages/core/src/tracking/write-snapshot-value.ts',
     'packages/core/src/core/db-set-result-mapper.ts:65-114',
     'packages/core/src/core/query-count-result.ts',
     'packages/core/src/core/projection-row-materializer.ts',
@@ -25,7 +26,7 @@ module.exports = {
     'packages/core/src/storage/exclusive-operation-guard.ts',
     'packages/cli/src/cli-rename-hints.ts',
     'packages/core/src/tracking/snapshot-value-equality.ts',
-    'packages/core/src/tracking/bound-value-snapshot.ts:73-91',
+    'packages/core/src/tracking/bound-value-snapshot.ts:74-92',
     'packages/core/src/model/model-property-selector.ts',
     'packages/core/src/model/property-value-access.ts',
     'packages/core/src/migrations/model-diff-operation-description.ts',
@@ -64,8 +65,8 @@ module.exports = {
     'packages/core/src/core/bulk-write-tenant.ts:80-83',
     'packages/core/src/core/unit-of-work/generated-value-writer.ts:82-98',
     'packages/core/src/core/unit-of-work/generated-value-recorder.ts',
-    'packages/core/src/core/unit-of-work/tracked-save-state.ts:63-85',
-    'packages/core/src/core/unit-of-work/tracked-version-acceptance.ts:37-75',
+    'packages/core/src/core/unit-of-work/tracked-save-state.ts:64-85',
+    'packages/core/src/core/unit-of-work/tracked-version-acceptance.ts:38-76',
     'packages/core/src/tracking/change-tracker-detection.ts:85-92',
     'packages/core/src/tracking/relationship-detection-restore.ts:18-32',
     'packages/core/src/tracking/relationship-detection-restore.ts:36-40',

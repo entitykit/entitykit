@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from './write-snapshot-value';
 import { types } from 'node:util';
 import type { EntityMetadata } from '../model/entity-metadata';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
@@ -60,13 +61,13 @@ export function captureMissingBoundEntityValues<TEntity extends object>(
         )) {
             continue;
         }
-        boundValues[property.propertyName] = cloneSnapshotValue(
+        writeSnapshotValue(boundValues, property.propertyName, cloneSnapshotValue(
             toBoundPropertyValue(
                 values[property.propertyName],
                 property,
                 metadata.entityName,
             ),
-        );
+        ));
     }
 }
 

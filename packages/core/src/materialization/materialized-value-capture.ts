@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from '../tracking/write-snapshot-value';
 import type { EntityMetadata } from '../model/entity-metadata';
 import {
     fromProviderValue,
@@ -27,16 +28,16 @@ export function captureMaterializedValues<TEntity extends object>(
         const providerValue = readStoreProviderValue(
             row[property.columnName], property, reader,
         );
-        values[property.propertyName] = fromProviderValue(
+        writeSnapshotValue(values, property.propertyName, fromProviderValue(
             cloneSnapshotValue(providerValue), property.converter, context,
-        );
-        boundValues[property.propertyName] = cloneSnapshotValue(
+        ));
+        writeSnapshotValue(boundValues, property.propertyName, cloneSnapshotValue(
             toBoundProviderValue(
                 cloneSnapshotValue(providerValue),
                 property.columnType,
                 context,
             ),
-        );
+        ));
     }
     return { values, boundValues };
 }

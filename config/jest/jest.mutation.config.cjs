@@ -3,6 +3,8 @@ const base = require('./jest.config.cjs');
 module.exports = {
   ...base,
   testMatch: [
+    '<rootDir>/tests/mapped-special-key-snapshots.test.ts',
+    '<rootDir>/tests/mapped-special-key-sqlite.test.ts',
     '<rootDir>/tests/aggregate-result-aliases-sqlite.test.ts',
     '<rootDir>/tests/aggregate-count-boundaries.test.ts',
     '<rootDir>/tests/aggregate-query-model/*.test.ts',
