@@ -24,7 +24,7 @@ export class ChangeTracker {
         entity => this.observers.notifyTracked(entity),
         entity => this.observers.notifyDetached(entity),
     );
-    private readonly acceptance = createChangeTrackerAcceptance(this.registry, this.saveGuard);
+    private acceptance?: ReturnType<typeof createChangeTrackerAcceptance>;
     constructor(
         assertUsable: (operation: string) => void = () => undefined,
         private readonly markRestorationFailure: (error: unknown) => void = () => undefined,
@@ -107,7 +107,7 @@ export class ChangeTracker {
         this.saveGuard.assertMutation('acceptAllChanges()');
         const entries = this.entries();
         this.runRestorable(restoration => {
-            this.acceptance.acceptAll(restoration);
+            (this.acceptance ??= createChangeTrackerAcceptance(this.registry, this.saveGuard)).acceptAll(restoration);
         });
         for (const entry of entries)
             if (!this.registry.has(entry)) this.observers.notifyDetached(entry.entity);
@@ -117,7 +117,7 @@ export class ChangeTracker {
         snapshots: readonly PersistedEntrySnapshot[],
         restoration: RestorationScope,
     ): TrackedAcceptance {
-        return this.acceptance.acceptPersisted(snapshots, true, restoration);
+        return (this.acceptance ??= createChangeTrackerAcceptance(this.registry, this.saveGuard)).acceptPersisted(snapshots, true, restoration);
     }
     public clear(): void {
         this.saveGuard.assertMutation('Clearing tracked entities');

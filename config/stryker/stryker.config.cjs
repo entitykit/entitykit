@@ -82,6 +82,7 @@ module.exports = {
     'packages/core/src/tracking/tracked-entry-factory.ts',
     'packages/core/src/tracking/change-tracker-registry.ts:105-123',
     'packages/core/src/tracking/change-tracker-acceptance-factory.ts',
+    'packages/core/src/tracking/change-tracker.ts:106-121',
     'packages/core/src/tracking/temporary-principal-detachment.ts:12-13',
     'packages/core/src/tracking/tracked-cascade-graph.ts',
     'packages/core/src/tracking/cascade-graph-stability.ts',
