@@ -29,16 +29,21 @@ export function copyCompiledModel(source: Model): Model {
             });
         }
         if (!prototypes.includes(prototype)) throw unsupported('custom metadata prototypes');
-        const result: object = Array.isArray(value)
+        const array = Array.isArray(value);
+        const result: object = array
             ? []
             : Object.create(prototype as object | null) as object;
         seen.set(value, result);
         for (const key of Reflect.ownKeys(value)) {
             const descriptor = Object.getOwnPropertyDescriptor(value, key);
             if (!descriptor || !('value' in descriptor)) throw unsupported('metadata accessors');
+            // These nodes remain private until the copy finishes. Populate ordinary
+            // array elements before freezing; frozen indices force V8 dictionary storage.
             Object.defineProperty(result, key, {
                 value: copy(descriptor.value),
                 enumerable: descriptor.enumerable,
+                writable: array,
+                configurable: array && key !== 'length',
             });
         }
         return Object.freeze(result);

@@ -36,7 +36,16 @@ describe('compiled model ownership', () => {
         expect(Object.isFrozen(model)).toBe(true);
         expect(Object.isFrozen(metadata)).toBe(true);
         expect(Object.isFrozen(metadata.properties)).toBe(true);
+        expect(Array.isArray(metadata.properties)).toBe(true);
+        expect(Array.isArray(metadata.keyProperties)).toBe(true);
         expect(Object.isFrozen(metadata.getProperty('name').propertyPath)).toBe(true);
+        const path = metadata.getProperty('name').propertyPath;
+        expect(Array.isArray(path)).toBe(true);
+        expect(Object.getOwnPropertyDescriptor(path, '0')).toEqual({
+            value: 'name', enumerable: true, writable: false, configurable: false,
+        });
+        expect(Reflect.set(path, 'length', 0)).toBe(false);
+        expect(() => Object.defineProperty(path, '0', { value: 'other' })).toThrow(TypeError);
         expect(() => Object.assign(metadata, { tableName: 'other' })).toThrow(TypeError);
         expect(() => Object.assign(metadata.getProperty('name').propertyPath, { 0: 'other' })).toThrow(TypeError);
         expect(Object.isFrozen(Row)).toBe(false);
