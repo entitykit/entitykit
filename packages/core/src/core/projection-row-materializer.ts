@@ -70,7 +70,13 @@ function setProjectionValue(
     let current = output;
     path.forEach((key, index) => {
         if (index === path.length - 1) {
-            defineResultProperty(current, key, value);
+            // The root is owned and has only writable data properties. Guard
+            // inherited keys so accessors and __proto__ retain define semantics.
+            if (current === output && !Object.hasOwn(Object.prototype, key)) {
+                current[key] = value;
+            } else {
+                defineResultProperty(current, key, value);
+            }
             return;
         }
         const existing = current[key];
