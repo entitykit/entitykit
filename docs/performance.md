@@ -245,11 +245,11 @@ executor stays owned by that context across successful and failed saves and
 tracking clears. Transaction ownership and live option/interceptor reads remain
 per context; there is no shared executor cache.
 
-## Identity cycle detection
+## Identity cycle allocation experiment
 
-Identity tuple encoding creates an ancestry set only when it reaches a structured
-object or array. Scalars, valid dates and binary values do not need this state.
-Each top-level value starts independently, and structured branches release their
-ancestry in a finally block, including after a getter throws. Reentrant tuple
-encoding owns a separate ancestry set. The typed key format, array mapping and
-JSON hooks remain unchanged.
+Deferring identity ancestry sets reduced sampled temporary hydration allocation,
+but was reverted after projection HTTP p95 was worse in all five initial pairs
+and all five follow-up pairs, with separated follow-up p95 ranges. Identity tuple
+encoding retains its existing eager per-value ancestry state. Regression tests
+for failed-getter retry and independent reentrant encoding remain, along with
+whole-module mutation qualification.
