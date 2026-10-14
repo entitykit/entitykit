@@ -16,6 +16,7 @@ module.exports = {
     'packages/sqlite/src/sqlite-reusable-connection-source.ts',
     'packages/sqlite/src/sqlite-reused-connection.ts',
     'packages/sqlite/src/sqlite-row-stream.ts',
+    'packages/sqlite/src/sqlite-value-reader.ts',
     'packages/core/src/storage/operation-cancellation.ts',
     'packages/core/src/storage/resource-acquisition-cancellation.ts',
     'packages/core/src/storage/exclusive-operation-guard.ts',

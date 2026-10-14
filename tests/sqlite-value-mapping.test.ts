@@ -66,6 +66,18 @@ describe('sqliteValueReader', () => {
         expect(sqliteValueReader.readValue(1, '  BOOLEAN  ')).toBe(true);
         expect(sqliteValueReader.readValue('{"a":1}', 'JSONB')).toEqual({ a: 1 });
     });
+
+    it('preserves native values for ordinary types and still decodes their array forms', () => {
+        const values: unknown[] = [null, undefined, false, 42, 3.5, 7n, '[1]', new Uint8Array([1, 2])];
+        for (const type of ['integer', 'text', 'real', 'blob']) {
+            for (const spelling of [type, ` ${type.toUpperCase()} `]) {
+                for (const value of values) {
+                    expect(sqliteValueReader.readValue(value, spelling)).toBe(value);
+                }
+                expect(sqliteValueReader.readValue('[1,null]', `${spelling.trim()}[]`)).toEqual([1, null]);
+            }
+        }
+    });
 });
 
 class Reading {
