@@ -8,6 +8,7 @@ module.exports = {
     '<rootDir>/tests/compiled-model-context.test.ts',
     '<rootDir>/tests/compiled-model-reads.test.ts',
     '<rootDir>/tests/compiled-entity-writes.test.ts',
+    '<rootDir>/tests/compiled-record-assignment.test.ts',
     '<rootDir>/tests/compiled-entity-capture.test.ts',
     '<rootDir>/tests/compiled-json-capture-observations.test.ts',
     '<rootDir>/tests/compiled-retention-observations.test.ts',
