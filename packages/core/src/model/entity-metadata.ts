@@ -105,22 +105,28 @@ export class EntityMetadata<TEntity extends object = object> {
     ): unknown[] {
         return this.key().getKeyValuesFromRow(row, valueReader);
     }
+
     /** Convert a raw database key value into its model form. */
     public readKeyValue(value: unknown, valueReader?: StoreValueReader): unknown {
         return this.key().readKeyValue(value, valueReader);
     }
+
     public getKeyValueFromRow(row: Record<string, unknown>, valueReader?: StoreValueReader): unknown {
         return this.key().getKeyValueFromRow(row, valueReader);
     }
+
     public createIdentityKey(entity: TEntity): string {
         return this.key().createIdentityKey(entity);
     }
+
     public createIdentityKeyFromValue(keyValue: unknown): string {
         return this.key().createIdentityKeyFromValue(keyValue);
     }
+
     public createIdentityKeyFromValues(keyValues: readonly unknown[]): string {
         return this.key().createIdentityKeyFromValues(keyValues);
     }
+
     public createIdentityKeyFromProviderValues(
         providerValues: readonly unknown[],
     ): string {
@@ -141,9 +147,3 @@ export class EntityMetadata<TEntity extends object = object> {
         return this.keyMetadata;
     }
 }
-
-/** Capture defaults before an importing application can replace prototype methods. */
-export const originalEntityIdentityMethods = Object.freeze({
-    encode: Object.getOwnPropertyDescriptor(EntityMetadata.prototype, 'createIdentityKeyFromProviderValues')?.value as unknown,
-    key: Object.getOwnPropertyDescriptor(EntityMetadata.prototype, 'key')?.value as unknown,
-});

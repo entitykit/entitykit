@@ -3,7 +3,7 @@ import { trackingIdentityKeyForBoundValues } from '../tracking/tracking-identity
 
 /** Identities belong to one buffered result graph, without change snapshots. */
 export class QueryIdentityResolution {
-    protected readonly entities: Map<object, Map<string, object>> = new Map();
+    private readonly entities: Map<object, Map<string, object>> = new Map();
 
     public get<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,

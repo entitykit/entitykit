@@ -19,7 +19,7 @@ import { queryIdentityResolutionFor } from './query-identity-resolution';
 export class Materializer {
     /** `onFreshEntityTracked` fires only for entries this instance registered. */
     constructor(
-        protected readonly valueReader?: StoreValueReader,
+        private readonly valueReader?: StoreValueReader,
         private readonly onFreshEntityTracked?: (
             entry: EntityEntry<object>,
         ) => void,
@@ -126,7 +126,7 @@ export class Materializer {
         return rows.map(row => this.materializeUntracked(metadata, row));
     }
 
-    protected createFreshEntity<TEntity extends object>(
+    private createFreshEntity<TEntity extends object>(
         metadata: EntityMetadata<TEntity>,
         values: Record<string, unknown>,
         changeTracker?: ChangeTracker,
