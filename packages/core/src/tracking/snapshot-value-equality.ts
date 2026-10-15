@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer';
+
 export function snapshotValuesEqual(
     left: unknown,
     right: unknown,
@@ -128,7 +130,9 @@ function sameBinaryValue(left: object, right: object): boolean {
     const leftBytes = bytesOf(left);
     const rightBytes = bytesOf(right);
     return leftBytes.length === rightBytes.length
-    && leftBytes.every((value, index) => value === rightBytes[index]);
+    && (leftBytes.length === 0
+        ? leftBytes.every((value, index) => value === rightBytes[index])
+        : Buffer.compare(leftBytes, rightBytes) === 0);
 }
 
 function bytesOf(value: ArrayBuffer | ArrayBufferView): Uint8Array {
