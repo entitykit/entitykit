@@ -34,7 +34,9 @@ describe('materialized facts across reentrant copies and replacement', () => {
             class Bytes extends Uint8Array {
                 constructor(buffer: ArrayBuffer) {
                     super(buffer);
-                    if (retaining) { retaining = false; replace(); }
+                    if (retaining) {
+                        retaining = false; replace();
+                    }
                 }
             }
             const metadata = entityReadMetadata(compiled, Row);
@@ -78,9 +80,13 @@ describe('materialized facts across reentrant copies and replacement', () => {
         rememberMaterializedPersistenceFacts(entity, metadata,
             { id: 1, value: 'model', tail: 2 }, { id: 1, value: 'bound', tail: 2 });
         const invalid = Object.defineProperty({}, 'value', {
-            enumerable: true, get: () => { throw new Error('replacement copy failed'); },
+            enumerable: true, get: () => {
+                throw new Error('replacement copy failed');
+            },
         });
-        expect(() => rememberMaterializedPersistenceFacts(entity, metadata, invalid, {}))
+        expect(() => {
+            rememberMaterializedPersistenceFacts(entity, metadata, invalid, {});
+        })
             .toThrow('replacement copy failed');
         expect(materializedPersistenceFacts(entity)).toEqual({
             values: { id: 1, value: 'model', tail: 2 },
@@ -99,7 +105,9 @@ describe('materialized facts across reentrant copies and replacement', () => {
                 let tail = 0;
                 Object.defineProperty(this, 'tail', {
                     get: () => tail,
-                    set: (value: number) => { tail = value; retaining = true; },
+                    set: (value: number) => {
+                        tail = value; retaining = true;
+                    },
                 });
             }
         }
