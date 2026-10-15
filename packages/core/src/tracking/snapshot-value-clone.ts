@@ -1,3 +1,5 @@
+import { types } from 'node:util';
+
 export function cloneSnapshotValue(value: unknown): unknown {
     if (typeof value !== 'object' || value === null) {
         return value;
@@ -92,6 +94,9 @@ function cloneArrayBufferView(value: ArrayBufferView): ArrayBufferView {
 }
 
 function enumerableOwnKeys(value: object): PropertyKey[] {
+    if (!types.isProxy(value) && Object.getOwnPropertySymbols(value).length === 0) {
+        return Object.keys(value);
+    }
     return Reflect.ownKeys(value).filter(key =>
         Object.prototype.propertyIsEnumerable.call(value, key),
     );

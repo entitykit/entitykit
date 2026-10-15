@@ -113,3 +113,35 @@ describe('snapshot enumeration observations', () => {
         });
     });
 });
+
+function copyAndCount(value: object): { copy: unknown; checks: number } {
+    const enumerable = jest.spyOn(Object.prototype, 'propertyIsEnumerable');
+    try {
+        const copy = cloneSnapshotValue(value);
+        return { copy, checks: enumerable.mock.calls.length };
+    } finally {
+        enumerable.mockRestore();
+    }
+}
+
+describe('snapshot enumeration work', () => {
+    it('copies ordinary nested data without per-key JavaScript enumerability calls', () => {
+        const source = { id: 1, nested: { value: 2 }, list: [{ value: 3 }], bytes: new Uint8Array([1, 2]) };
+        const { copy, checks } = copyAndCount(source);
+        expect(checks).toBe(0);
+        expect(copy).toEqual(source);
+        expect((copy as typeof source).nested).not.toBe(source.nested);
+        expect((copy as typeof source).bytes).not.toBe(source.bytes);
+    });
+
+    it('keeps per-key enumeration for symbol-bearing records and proxies', () => {
+        const symbol = Symbol('snapshot');
+        const source = { first: 1, [symbol]: 2 };
+        Object.defineProperty(source, 'hidden', { value: 'omitted' });
+        for (const input of [source, new Proxy(source, {})]) {
+            const { copy, checks } = copyAndCount(input);
+            expect(checks).toBe(3);
+            expect(copy).toEqual({ first: 1, [symbol]: 2 });
+        }
+    });
+});
