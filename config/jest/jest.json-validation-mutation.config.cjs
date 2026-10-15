@@ -8,6 +8,7 @@ module.exports = {
         '<rootDir>/tests/outbox-json-contract.test.ts',
         '<rootDir>/tests/json-object-inspection.test.ts',
         '<rootDir>/tests/json-normalization-contract.test.ts',
+        '<rootDir>/tests/json-normalization-property-writes.test.ts',
         '<rootDir>/tests/json-diagnostics-sqlite.test.ts',
     ],
 };
