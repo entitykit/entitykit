@@ -73,12 +73,13 @@ describe.each([false, true])('primitive persistence record boundaries, compiled=
         expect(facts.boundValues.graph).toBe('original');
     });
 
-    it.each(['setter', 'readonly', 'drop', 'reverse', 'duplicate', 'change'])(
+    it.each(['setter', 'readonly', 'priorSetter', 'priorReadonly', 'drop', 'reverse', 'duplicate', 'change'])(
         'preserves a model-entry iterator that introduces %s behavior', kind => {
             const metadata = entityReadMetadata(compiled), entity = {};
             const source = { scalarFirst: 1, scalarTail: 2 };
             const iterator = Array.prototype[Symbol.iterator];
             const iteratorDescriptor = requireDefined(Object.getOwnPropertyDescriptor(Array.prototype, Symbol.iterator));
+            const firstDescriptor = Object.getOwnPropertyDescriptor(Object.prototype, 'scalarFirst');
             const tailDescriptor = Object.getOwnPropertyDescriptor(Object.prototype, 'scalarTail');
             let intercepted = false, failure: unknown;
             const observed: Array<{ keys: string[]; value: unknown }> = [];
@@ -102,8 +103,15 @@ describe.each([false, true])('primitive persistence record boundaries, compiled=
                             },
                         });
                         if (kind === 'readonly') Object.defineProperty(Object.prototype, 'scalarTail', { configurable: true, value: 0, writable: false });
+                        if (kind === 'priorSetter') Object.defineProperty(Object.prototype, 'scalarFirst', {
+                            configurable: true,
+                            set(this: object, value: unknown) {
+                                observed.push({ keys: Object.keys(this), value });
+                            },
+                        });
+                        if (kind === 'priorReadonly') Object.defineProperty(Object.prototype, 'scalarFirst', { configurable: true, value: 0, writable: false });
                         if (kind === 'duplicate') yield ['scalarFirst', 3];
-                        yield kind === 'change' ? ['scalarTail', 7] : tail;
+                        yield kind === 'change' || kind.startsWith('prior') ? ['scalarTail', 7] : tail;
                         return;
                     }
                     yield* Reflect.apply(iterator, this, []) as Iterable<unknown>;
@@ -115,6 +123,8 @@ describe.each([false, true])('primitive persistence record boundaries, compiled=
                 failure = error;
             } finally {
                 Object.defineProperty(Array.prototype, Symbol.iterator, iteratorDescriptor);
+                if (firstDescriptor) Object.defineProperty(Object.prototype, 'scalarFirst', firstDescriptor);
+                else Reflect.deleteProperty(Object.prototype, 'scalarFirst');
                 if (tailDescriptor) Object.defineProperty(Object.prototype, 'scalarTail', tailDescriptor);
                 else Reflect.deleteProperty(Object.prototype, 'scalarTail');
             }
@@ -131,7 +141,7 @@ describe.each([false, true])('primitive persistence record boundaries, compiled=
             expect(facts.boundValues).toEqual(source);
             expect(facts.values).toEqual(kind === 'drop' ? { scalarFirst: 1 } : {
                 scalarFirst: kind === 'duplicate' ? 3 : 1,
-                scalarTail: kind === 'setter' ? 8 : kind === 'change' ? 7 : 2,
+                scalarTail: kind === 'setter' ? 8 : kind === 'change' || kind.startsWith('prior') ? 7 : 2,
             });
             expect(Object.keys(facts.values)).toEqual(kind === 'drop' ? ['scalarFirst'] : kind === 'reverse' ? ['scalarTail', 'scalarFirst'] : ['scalarFirst', 'scalarTail']);
             expect(observed).toEqual(kind === 'setter' ? [{ keys: ['scalarFirst'], value: 2 }] : []);
