@@ -97,3 +97,32 @@ describe('snapshot equality enumeration boundaries', () => {
         expect(snapshotValuesEqual(left, right)).toBe(false);
     });
 });
+
+function compareAndCount(left: object, right: object): { equal: boolean; checks: number } {
+    const enumerable = jest.spyOn(Object.prototype, 'propertyIsEnumerable');
+    try {
+        const equal = snapshotValuesEqual(left, right);
+        return { equal, checks: enumerable.mock.calls.length };
+    } finally {
+        enumerable.mockRestore();
+    }
+}
+
+describe('snapshot equality enumeration work', () => {
+    it('compares ordinary nested records without per-key JavaScript enumerability calls', () => {
+        const fixture = (): object => ({ id: 1, nested: { value: 2 }, list: [{ value: 3 }], bytes: new Uint8Array([1, 2]) });
+        expect(compareAndCount(fixture(), fixture())).toEqual({ equal: true, checks: 0 });
+    });
+
+    it('keeps descriptor checks for symbol-bearing records and proxies', () => {
+        const symbol = Symbol('snapshot');
+        const fixture = (): object => {
+            const value = { first: 1, [symbol]: 2 };
+            Object.defineProperty(value, 'hidden', { value: 'omitted' });
+            return value;
+        };
+        expect(compareAndCount(fixture(), fixture())).toEqual({ equal: true, checks: 6 });
+        expect(compareAndCount(new Proxy(fixture(), {}), new Proxy(fixture(), {})))
+            .toEqual({ equal: true, checks: 6 });
+    });
+});

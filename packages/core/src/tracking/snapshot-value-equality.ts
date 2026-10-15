@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer';
+import { types } from 'node:util';
 
 export function snapshotValuesEqual(
     left: unknown,
@@ -52,7 +53,6 @@ export function snapshotValuesEqual(
       && right instanceof Set
       && orderedValuesEqual(left, right, comparisons);
     }
-
     const leftKeys = enumerableOwnKeys(left);
     const rightKeys = enumerableOwnKeys(right);
     return leftKeys.length === rightKeys.length
@@ -142,6 +142,7 @@ function bytesOf(value: ArrayBuffer | ArrayBufferView): Uint8Array {
 }
 
 function enumerableOwnKeys(value: object): PropertyKey[] {
+    if (!types.isProxy(value) && Object.getOwnPropertySymbols(value).length === 0) return Object.keys(value);
     return Reflect.ownKeys(value).filter(key =>
         Object.prototype.propertyIsEnumerable.call(value, key),
     );
