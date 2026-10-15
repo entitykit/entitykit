@@ -68,6 +68,21 @@ describe('binary snapshot comparison boundaries', () => {
         expect(observeRight).not.toHaveBeenCalled();
     });
 
+    it.each(['detach', 'resize'] as const)('rejects a left byte view invalidated by a right getter: %s', mutation => {
+        for (const rightLength of [0, 1]) {
+            const backing = Reflect.construct(ArrayBuffer, [4, { maxByteLength: 8 }]) as ArrayBuffer;
+            const left = new Uint8Array(backing, 2, 2);
+            const right = new Uint8Array(rightLength), rightBuffer = right.buffer;
+            Object.defineProperty(right, 'buffer', { get: (): ArrayBufferLike => {
+                if (mutation === 'detach') structuredClone(backing, { transfer: [backing] });
+                else Reflect.apply(Reflect.get(backing, 'resize') as (size: number) => void, backing, [1]);
+                return rightBuffer;
+            } });
+            if (rightLength === 0) expect(() => snapshotValuesEqual(left, right)).toThrow(/detached ArrayBuffer/);
+            else expect(snapshotValuesEqual(left, right)).toBe(false);
+        }
+    });
+
     it('compares shared backing storage through the same visible-byte contract', () => {
         const shared = new SharedArrayBuffer(8);
         const first = new Uint8Array(shared, 2, 4);
