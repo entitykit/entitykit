@@ -49,7 +49,7 @@ describe('binary snapshot allocation boundaries', () => {
             } },
         });
 
-        expect(() => cloneSnapshotValue(source)).toThrow(RangeError);
+        expect(() => cloneSnapshotValue(source)).toThrow('offset is out of bounds');
         expect(lengths).toBe(2);
         expect(constructors).toBe(0);
     });
