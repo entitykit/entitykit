@@ -135,6 +135,24 @@ describe('snapshot comparison pair boundaries', () => {
         expect(events).toEqual(['get', 'set', 'get', 'get', 'set']);
     });
 
+    it('does not inspect the prototype of a supplied cache proxy', () => {
+        const cache: WeakMap<object, WeakSet<object>> = new WeakMap();
+        const seen = new Proxy(cache, {
+            get(target, key): unknown {
+                if (key === 'get') return target.get.bind(target);
+                if (key === 'set') return target.set.bind(target);
+                throw new Error('unexpected cache property');
+            },
+            getPrototypeOf: () => {
+                throw new Error('cache prototype observed');
+            },
+        });
+        const left = cyclic(1);
+        const right = cyclic(1);
+        expect(snapshotValuesEqual(left, right, seen)).toBe(true);
+        expect(cache.get(left)?.has(right)).toBe(true);
+    });
+
     it('keeps native leaf comparisons ahead of supplied pair-cache lookup', () => {
         const seen: WeakMap<object, WeakSet<object>> = new WeakMap();
         seen.get = () => {
