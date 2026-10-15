@@ -102,9 +102,10 @@ before SQL compilation, then resolve each mapped property once per execution.
 SQL and decoding consume that same owned shape. Dynamic mappings and unsupported
 projection shapes keep the existing mapper; streaming projections are unchanged.
 Plans never retain query parameters, rows or application readers across executions.
-Live readers and safe output writes remain in the per-value path. Entity reads
-still perform verified writes, identity handling and retained persistence facts;
-this projection prototype does not remove that materialization work.
+Live readers and safe output writes remain in the per-value path. Eligible flat
+entity mappings also share a private field plan through their compiled metadata.
+Entity reads still perform verified writes, identity handling and retained
+persistence facts; field plans preserve those ownership boundaries.
 
 [The compiled-model contract](compiled-models.md) describes the API and limits.
 Tests cover retained builders, nested ownership, hidden lookup mutators, forged
