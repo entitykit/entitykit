@@ -4,6 +4,38 @@ import { createJsonNormalizationState } from '../packages/core/src/json/json-nor
 import { observedJsonRejection } from './support/observed-json-rejection';
 
 describe('JSON descriptor snapshot observations', () => {
+    it.each([
+        { then: true }, { then: 1 }, { then: 'label' }, { then: { value: 1 } }, { then: [1] },
+    ])('accepts non-callable own then value %p', ({ then }) => {
+        const source = { then, value: 2 };
+        expect(normalizeJsonValue(source)).toEqual(source);
+        expect(serializeJsonValue(source)).toBe(JSON.stringify(source));
+    });
+
+    it('does not inspect inherited array entries past the captured key list', () => {
+        const original = Object.getOwnPropertyDescriptor(Array.prototype, '1');
+        const state = createJsonNormalizationState();
+        let reads = 0, inspected: ReturnType<typeof inspectJsonObject>;
+        try {
+            Object.defineProperty(Array.prototype, '1', {
+                configurable: true,
+                get: (): never => {
+                    reads++;
+                    throw new Error('Inspection read past its own keys.');
+                },
+            });
+            inspected = inspectJsonObject({ value: 1 }, 'Document.data', state);
+        } finally {
+            if (original) Object.defineProperty(Array.prototype, '1', original);
+            else Reflect.deleteProperty(Array.prototype, '1');
+        }
+        expect(reads).toBe(0);
+        expect(state.firstError).toBeUndefined();
+        expect(inspected?.descriptors.value).toEqual({
+            value: 1, enumerable: true, configurable: true, writable: true,
+        });
+    });
+
     it.each(['object', 'array', 'null prototype'])('does not invoke array iterators while inspecting %s', kind => {
         const value: object = kind === 'array' ? [1, 2] : kind === 'null prototype'
             ? Object.assign(Object.create(null) as object, { value: 1 }) : { value: 1 };
