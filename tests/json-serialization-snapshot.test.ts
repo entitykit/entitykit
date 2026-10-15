@@ -122,6 +122,65 @@ describe('JSON serialization snapshot boundaries', () => {
         expect(rejected.observed()).toBe(true);
     });
 
+    it('keeps object snapshot values private from array species constructors', () => {
+        const descriptor = Object.getOwnPropertyDescriptor(Array, Symbol.species);
+        if (!descriptor) throw new Error('Missing native array species descriptor.');
+        const captured: unknown[][] = [];
+        function ObservedArray(length: number): unknown[] {
+            const array: unknown[] = new Array(length);
+            captured.push(array);
+            return array;
+        }
+        const stringify = JSON.stringify;
+        const spy = jest.spyOn(JSON, 'stringify').mockImplementation((value: unknown) => {
+            for (const array of captured) {
+                for (let index = 0; index < array.length; index++) {
+                    if (typeof array[index] === 'number') array[index] = 99;
+                }
+            }
+            return stringify(value);
+        });
+        let result: string;
+        try {
+            Object.defineProperty(Array, Symbol.species, { configurable: true, value: ObservedArray });
+            result = serializeJsonValue({ b: { value: 2 }, a: { value: 1 } });
+        } finally {
+            Object.defineProperty(Array, Symbol.species, descriptor);
+            spy.mockRestore();
+        }
+        expect(result).toBe('{"a":{"value":1},"b":{"value":2}}');
+        expect(captured.length).toBeGreaterThan(0);
+    });
+
+    it('preserves captured field names when an exposed key list changes during inspection', () => {
+        const descriptor = Object.getOwnPropertyDescriptor(Array, Symbol.species);
+        if (!descriptor) throw new Error('Missing native array species descriptor.');
+        const captured: unknown[][] = [];
+        function ObservedArray(length: number): unknown[] {
+            const array: unknown[] = new Array(length);
+            captured.push(array);
+            return array;
+        }
+        const child = new Proxy({ value: 1 }, {
+            getPrototypeOf(target): object | null {
+                const names = captured.find(array => array[0] === 'a' && array[1] === 'b');
+                if (!names) throw new Error('Expected the root key list.');
+                names[0] = 'b';
+                names[1] = 'a';
+                names.push('b');
+                return Reflect.getPrototypeOf(target);
+            },
+        });
+        let result: string;
+        try {
+            Object.defineProperty(Array, Symbol.species, { configurable: true, value: ObservedArray });
+            result = serializeJsonValue({ b: 2, a: child });
+        } finally {
+            Object.defineProperty(Array, Symbol.species, descriptor);
+        }
+        expect(result).toBe('{"a":{"value":1},"b":2}');
+    });
+
     it.each(['0', '1'])('does not expose object snapshots through inherited array index %s', index => {
         let observations = 0;
         const child = new Proxy({ value: 1 }, {
