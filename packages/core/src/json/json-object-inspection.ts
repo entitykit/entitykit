@@ -1,3 +1,4 @@
+import { types } from 'node:util';
 import {
     rejectJson,
     type JsonNormalizationState,
@@ -17,12 +18,27 @@ export function inspectJsonObject(
         const prototype: object | null = Object.getPrototypeOf(value) as object | null;
         return {
             prototype,
-            descriptors: Object.getOwnPropertyDescriptors(value),
+            descriptors: snapshotJsonDescriptors(value),
         };
     } catch {
         rejectJson(state, path, 'property inspection failed');
         return undefined;
     }
+}
+
+/** Capture every descriptor before any recursive normalization can invoke user code. */
+function snapshotJsonDescriptors(value: object): PropertyDescriptorMap {
+    if (types.isProxy(value)) return Object.getOwnPropertyDescriptors(value);
+    const descriptors = Object.create(null) as PropertyDescriptorMap;
+    const keys = Reflect.ownKeys(value);
+    // Descriptor collection itself must not invoke an array iterator or species hook.
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of -- Preserve descriptor collection without iterator observations.
+    for (let index = 0; index < keys.length; index++) {
+        const key = keys[index];
+        const descriptor = Object.getOwnPropertyDescriptor(value, key);
+        if (descriptor !== undefined) descriptors[key] = descriptor;
+    }
+    return descriptors;
 }
 
 export function ownThenFunction(
