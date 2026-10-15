@@ -102,6 +102,10 @@ Eligible flat entity mappings also share a private field plan keyed by explicitl
 owned entity metadata. It pre-resolves paths and names without retaining readers,
 rows or request state. Capture, identity lookup, construction, verified writes and
 independent persistence-fact retention keep their existing stage order.
+Buffered no-tracking execution selects its identity scope once per query and
+resolves compiled key plans once per batch. Lookup receipts remain query-owned;
+method and captured-key checks guard reuse after construction and verified writes.
+The generic materializer and identity-map row methods remain the dynamic path.
 
 The public `DbContext` delegates to focused runtime hosts for query filters,
 relationships, migrations, raw SQL, transaction coordination, and the unit of

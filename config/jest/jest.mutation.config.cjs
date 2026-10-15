@@ -10,6 +10,7 @@ module.exports = {
     '<rootDir>/tests/compiled-entity-writes.test.ts',
     '<rootDir>/tests/compiled-entity-capture.test.ts',
     '<rootDir>/tests/compiled-entity-plan-boundaries.test.ts',
+    '<rootDir>/tests/buffered-identity-*.test.ts',
     '<rootDir>/tests/compiled-projection-plan.test.ts',
     '<rootDir>/tests/compiled-projection-execution.test.ts',
     '<rootDir>/tests/identity-cycle-scope.test.ts',

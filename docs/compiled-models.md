@@ -105,6 +105,14 @@ setters and proxies still receive writes followed by equivalent readback checks.
 Mutable values retain their independent snapshots, query-local identities and
 later attachment facts. Restoration scopes retain their failure-atomic path.
 
+Buffered no-tracking queries also resolve eligible identity-key plans once per
+batch. A query-owned receipt can reuse the lookup encoding for insertion after
+checking that identity methods and captured primitive keys are unchanged.
+Constructors and writes remain observable; changed methods, accessors and mutable
+keys fall back to ordinary encoding. Root and include batches share only that
+query's identity scope, which is cleared on success or failure. Dynamic models,
+tracked reads and direct materializer calls keep their existing execution path.
+
 Entity plans contain no readers, entities or request state. Frozen lookalikes and
 ordinary dynamic metadata do not qualify. General SQL compilation is not
 precompiled, and no performance multiplier is promised by this API.

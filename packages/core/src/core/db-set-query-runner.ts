@@ -11,7 +11,8 @@ import type { DatabaseOperationOptions } from '../storage/database-connection';
 import { DbSetCountRunner } from './db-set-count-runner';
 import type { QueryFilterOperation } from './query-filter-operation';
 import { loadDbSetIncludes } from './db-set-include-loader';
-import { QueryIdentityResolution, useQueryIdentityResolution } from '../materialization/query-identity-resolution';
+import { createBufferedQueryIdentities } from '../materialization/buffered-query-identities';
+import { createBufferedQueryMaterializer } from '../materialization/buffered-query-materializer';
 import { tryCompileProjectionPlan } from './compiled-projection-plan';
 /** Runs full-entity, scalar, projection, and aggregate reads for a `DbSet`. */
 export class DbSetQueryRunner<TEntity extends object> {
@@ -49,10 +50,10 @@ export class DbSetQueryRunner<TEntity extends object> {
             ? new ChangeTracker()
             : this.context.changeTracker;
         const identities = tracker !== this.context.changeTracker
-            ? new QueryIdentityResolution()
+            ? createBufferedQueryIdentities(this.context.modelMetadata)
             : undefined;
         const materializer = identities
-            ? useQueryIdentityResolution(new Materializer(this.context.valueReader), identities)
+            ? createBufferedQueryMaterializer(this.context.valueReader, identities)
             : this.materializer;
         try {
             const materialized = await this.pipeline.execute(

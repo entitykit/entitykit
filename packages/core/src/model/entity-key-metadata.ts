@@ -3,7 +3,6 @@ import { encodeIdentityTuple } from './identity-value';
 import { readStoreValue, type StoreValueReader } from '../storage/store-value-reader';
 import type { PropertyMetadata } from './property-metadata';
 import { toProviderValue } from './value-converter/store-value';
-
 export class EntityKeyMetadata<TEntity extends object> {
     constructor(
         private readonly entityName: string,
@@ -13,7 +12,6 @@ export class EntityKeyMetadata<TEntity extends object> {
             PropertyMetadata<TEntity>
         >,
     ) {}
-
     public get hasCompositeKey(): boolean {
         return this.keyProperties.length > 1;
     }
@@ -146,3 +144,6 @@ export class EntityKeyMetadata<TEntity extends object> {
         return property;
     }
 }
+
+/** Internal identity-reuse guard; captured in the defining module. */
+export const originalEntityKeyIdentityMethod: unknown = Object.getOwnPropertyDescriptor(EntityKeyMetadata.prototype, 'createIdentityKeyFromProviderValues')?.value;

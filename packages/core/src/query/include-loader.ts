@@ -6,7 +6,7 @@ import type { Model } from '../model/model';
 import type { IncludeExpression } from './query-model';
 import { postgresDialect, type SqlDialect } from '../sql/sql-dialect';
 import { SelectSqlBuilder } from '../sql/select-sql-builder';
-import { Materializer } from '../materialization/materializer';
+import { createBufferedQueryMaterializer } from '../materialization/buffered-query-materializer';
 import type { IncludeDiagnosticEvent } from '../diagnostics/runtime/events';
 import type { IncludeLoadRoot, QueryFilterApplier } from './include-loader-context';
 import { IncludeStrategyRunner } from './include-loader-strategies';
@@ -16,7 +16,7 @@ import type { SuppliedIncludeValues } from './include-load-root';
 import { directNavigationWriter } from '../tracking/navigation-writer';
 import type { NavigationLoadScope } from '../tracking/navigation-load-scope';
 import { inertNavigationLoadTrackerJournal } from '../tracking/navigation-load-tracker-journal';
-import { queryIdentityResolutionFor, useQueryIdentityResolution } from '../materialization/query-identity-resolution';
+import { queryIdentityResolutionFor } from '../materialization/query-identity-resolution';
 
 /**
  * Eager relationship/navigation loading for `include(...)`.
@@ -65,9 +65,9 @@ export class IncludeLoader {
             diagnostics,
             valueReader,
             selectSql: new SelectSqlBuilder(dialect),
-            materializer: useQueryIdentityResolution(new Materializer(valueReader, (entry): void => {
+            materializer: createBufferedQueryMaterializer(valueReader, scope ? queryIdentityResolutionFor(scope) : undefined, (entry): void => {
                 trackerJournal.own(entry);
-            }), scope ? queryIdentityResolutionFor(scope) : undefined),
+            }),
         });
     }
 
