@@ -9,7 +9,7 @@ import {
     rememberMaterializedPersistenceFacts,
     reserveMaterializedEntity,
 } from './materialized-bound-values';
-import { captureMaterializedValues } from './materialized-value-capture';
+import { captureMaterializedValues, type MaterializedValueCapture } from './materialized-value-capture';
 import {
     constructMaterializedEntity,
     reusedMaterializedEntityError,
@@ -20,9 +20,7 @@ export class Materializer {
     /** `onFreshEntityTracked` fires only for entries this instance registered. */
     constructor(
         private readonly valueReader?: StoreValueReader,
-        private readonly onFreshEntityTracked?: (
-            entry: EntityEntry<object>,
-        ) => void,
+        private readonly onFreshEntityTracked?: (entry: EntityEntry<object>) => void,
     ) {}
 
     /** Materialize one entity without identity resolution or tracker retention. */
@@ -45,7 +43,8 @@ export class Materializer {
         row: Record<string, unknown>,
         changeTracker: ChangeTracker,
     ): TEntity {
-        return this.materializeWithValues(metadata, row, changeTracker).entity;
+        return this.materializeCaptured(metadata,
+            captureMaterializedValues(metadata, row, this.valueReader), changeTracker);
     }
 
     public materializeWithValues<TEntity extends object>(
@@ -53,9 +52,16 @@ export class Materializer {
         row: Record<string, unknown>,
         changeTracker: ChangeTracker,
     ): MaterializedRow<TEntity> {
-        const { values, boundValues } = captureMaterializedValues(
-            metadata, row, this.valueReader,
-        );
+        const captured = captureMaterializedValues(metadata, row, this.valueReader);
+        const entity = this.materializeCaptured(metadata, captured, changeTracker);
+        return { entity, values: captured.values, boundValues: captured.boundValues };
+    }
+
+    private materializeCaptured<TEntity extends object>(
+        metadata: EntityMetadata<TEntity>,
+        { values, boundValues }: MaterializedValueCapture,
+        changeTracker: ChangeTracker,
+    ): TEntity {
         if (metadata.isKeyless) {
             const entity = this.createFreshEntity(
                 metadata, values, changeTracker,
@@ -63,18 +69,16 @@ export class Materializer {
             rememberMaterializedPersistenceFacts(
                 entity, metadata, values, boundValues,
             );
-            return { entity, values, boundValues };
+            return entity;
         }
         const identities = queryIdentityResolutionFor(this);
         const queryEntity = identities?.get(metadata, boundValues);
-        if (queryEntity) return { entity: queryEntity, values, boundValues };
+        if (queryEntity) return queryEntity;
         const existing = identities ? undefined : changeTracker.tryGetByBoundIdentityValues(
             metadata,
             boundValues,
         );
-        if (existing) {
-            return { entity: existing.entity, values, boundValues };
-        }
+        if (existing) return existing.entity;
 
         const entity = this.createFreshEntity(metadata, values, changeTracker);
         rememberMaterializedPersistenceFacts(
@@ -83,7 +87,7 @@ export class Materializer {
 
         if (identities) {
             identities.add(metadata, boundValues, entity);
-            return { entity, values, boundValues };
+            return entity;
         }
 
         // Initial tracking is strict. Identity resolution must happen against the
@@ -99,7 +103,7 @@ export class Materializer {
         // This entry is our registration receipt; a later entry for the same
         // entity belongs to whoever established it.
         this.onFreshEntityTracked?.(entry as unknown as EntityEntry<object>);
-        return { entity: entry.entity, values, boundValues };
+        return entry.entity;
     }
 
     public materializeMany<TEntity extends object>(

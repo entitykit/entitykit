@@ -13,6 +13,7 @@ import type { QueryFilterOperation } from './query-filter-operation';
 import { loadDbSetIncludes } from './db-set-include-loader';
 import { QueryIdentityResolution, useQueryIdentityResolution } from '../materialization/query-identity-resolution';
 import { tryCompileProjectionPlan } from './compiled-projection-plan';
+import { materializeEntityQueryResult } from './entity-query-result';
 /** Runs full-entity, scalar, projection, and aggregate reads for a `DbSet`. */
 export class DbSetQueryRunner<TEntity extends object> {
     private materializerInstance?: Materializer;
@@ -59,13 +60,13 @@ export class DbSetQueryRunner<TEntity extends object> {
                 shape,
                 async () => {
                     const result = await this.context.database.query(statement, options);
-                    const roots = materializer.materializeManyWithValues(
-                        this.metadata, result.rows, tracker,
+                    const roots = materializeEntityQueryResult(
+                        materializer, this.metadata, result.rows, tracker, filteredModel.includes.length > 0,
                     );
                     return {
                         value: roots,
                         rowCount: result.rowCount,
-                        resultCount: roots.length,
+                        resultCount: roots.rows.length,
                     };
                 },
                 async roots =>
@@ -73,7 +74,7 @@ export class DbSetQueryRunner<TEntity extends object> {
                         this.context,
                         this.diagnostics,
                         this.metadata,
-                        roots,
+                        roots.kind === 'roots' ? roots.rows : [],
                         filteredModel,
                         tracker,
                         (metadata, query) => operation.apply(metadata, query),
@@ -81,7 +82,7 @@ export class DbSetQueryRunner<TEntity extends object> {
                         identities,
                     ),
             );
-            return materialized.map(root => root.entity);
+            return materialized.kind === 'entities' ? materialized.rows : materialized.rows.map(root => root.entity);
         } finally {
             identities?.clear();
         }

@@ -135,6 +135,11 @@ run through explicit loading strategies after the root query. Streaming holds
 any pooled provider lease only for iteration and performs cancellation checks
 at the provider boundary.
 
+Buffered entity queries without includes return the entity array directly.
+Only include graphs retain per-row result wrappers with captured values. Both
+paths share capture, identity resolution, verified entity writes and independent
+persistence facts, and keep the post-query context check after execute diagnostics.
+
 `fromSqlUnsafe` deliberately takes a shorter route: caller-owned SQL executes
 without ORM filters and materializes untracked entities by default. The
 template values are still parameterized, but the SQL text, result shape, and
