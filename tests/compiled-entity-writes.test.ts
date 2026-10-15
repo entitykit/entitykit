@@ -1,5 +1,6 @@
 import { applyMaterializedValues } from '../packages/core/src/materialization/complex-value-materializer';
 import { compiledEntityPlan } from '../packages/core/src/materialization/compiled-entity-plan';
+import { cloneUnconvertedEntityValues } from '../packages/core/src/materialization/compiled-entity-values';
 import { Materializer } from '../packages/core/src/materialization/materializer';
 import { materializedPersistenceFacts } from '../packages/core/src/materialization/materialized-bound-values';
 import { EntityMetadata } from '../packages/core/src/model/entity-metadata';
@@ -12,6 +13,35 @@ import { requireDefined } from './support/require-defined';
 
 describe('compiled entity field writes', () => {
     afterEach(() => jest.restoreAllMocks());
+
+    it('captures every arbitrary root getter before nested clone hooks', () => {
+        const events: string[] = [];
+        let later = { value: 1 };
+        let armed = false;
+        class Bytes extends Uint8Array {
+            constructor(buffer: ArrayBuffer) {
+                super(buffer);
+                if (armed) {
+                    events.push('clone first');later = { value: 9 };
+                }
+            }
+        }
+        const first = new Bytes(new ArrayBuffer(2));
+        const source: Record<string, unknown> = Object.defineProperties({}, {
+            first: { enumerable: true, get: () => {
+                events.push('get first');return first;
+            } },
+            later: { enumerable: true, get: () => {
+                events.push('get later');return later;
+            } },
+        });
+        armed = true;
+        const copy = cloneUnconvertedEntityValues(source);
+        expect(events).toEqual(['get first', 'get later', 'clone first']);
+        expect(copy.later).toEqual({ value: 1 });
+        expect(later).toEqual({ value: 9 });
+        expect(copy.first).not.toBe(first);
+    });
 
     it('owns reusable mapping decisions without caching by constructor or frozen shape', () => {
         const first = entityReadMetadata(), second = entityReadMetadata();
