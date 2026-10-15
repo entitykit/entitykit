@@ -15,9 +15,19 @@ function expectOwnedGraph(copy: Record<string, unknown>, source: Record<string, 
     expect(copy.first).not.toBe(source.first);
     expect(copy.first).toBe(copy.second);
     expect(copy.self).toBe(copy);
-    expect(copy.list).toEqual([copy, copy.first]);
-    expect(copy.map).toEqual(new Map([[copy.first, copy]]));
-    expect(copy.set).toEqual(new Set([copy.first, copy]));
+    const list = copy.list as unknown[];
+    const map = copy.map as Map<unknown, unknown>, set = copy.set as Set<unknown>;
+    expect(list).not.toBe(source.list);
+    expect(list).toHaveLength(2);
+    expect(list[0]).toBe(copy);
+    expect(list[1]).toBe(copy.first);
+    expect(map).not.toBe(source.map);
+    expect(map.size).toBe(1);
+    expect(map.get(copy.first)).toBe(copy);
+    expect(set).not.toBe(source.set);
+    expect(set.size).toBe(2);
+    expect(set.has(copy.first)).toBe(true);
+    expect(set.has(copy)).toBe(true);
 }
 
 describe('snapshot native leaf observations', () => {
