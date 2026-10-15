@@ -101,6 +101,7 @@ module.exports = {
     '<rootDir>/tests/snapshot-native-values.test.ts',
     '<rootDir>/tests/snapshot-leaf-observations.test.ts',
     '<rootDir>/tests/snapshot-enumeration-observations.test.ts',
+    '<rootDir>/tests/snapshot-equality-enumeration.test.ts',
     '<rootDir>/tests/snapshot-binary-comparison.test.ts',
     '<rootDir>/tests/snapshot-sparse-arrays.test.ts',
     '<rootDir>/tests/restorable-value-snapshot.test.ts',
