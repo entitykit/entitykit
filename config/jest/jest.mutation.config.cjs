@@ -170,6 +170,7 @@ module.exports = {
     '<rootDir>/tests/materializer-fresh-instance.test.ts',
     '<rootDir>/tests/materializer-cross-runner-freshness-sqlite.test.ts',
     '<rootDir>/tests/materializer.test.ts',
+    '<rootDir>/tests/materializer-retained-facts.test.ts',
     '<rootDir>/tests/complex-ancestor-restoration-failure.test.ts',
     '<rootDir>/tests/tenant-accessor-restoration-failure.test.ts',
     '<rootDir>/tests/context-restoration-failure.test.ts',
