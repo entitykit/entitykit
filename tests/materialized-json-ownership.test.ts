@@ -24,58 +24,26 @@ function metadata(compiled: boolean): EntityMetadata<JsonRow> {
     return builder.build().getEntity(JsonRow);
 }
 
-function defineFirst(target: unknown[], value: unknown): void {
-    Object.defineProperty(target, '0', {
-        configurable: true, enumerable: true, writable: true, value,
-    });
-}
-
-function restoreFirst(descriptor: PropertyDescriptor | undefined): void {
-    if (descriptor) Object.defineProperty(Array.prototype, '0', descriptor);
-    else Reflect.deleteProperty(Array.prototype, '0');
-}
-
 describe('JSON ownership observations during materialization', () => {
-    it.each([false, true])('validates a copy changed by a later source getter, compiled %s', compiled => {
+    it.each([false, true])('validates the second source observation after both traversals, compiled %s', compiled => {
         const model = metadata(compiled);
-        const prior = Object.getOwnPropertyDescriptor(Array.prototype, '0');
-        expect(prior).toBeUndefined();
-        let reads = 0, copies = 0, failure: unknown;
-        let exposed: Array<Record<string, unknown>> | undefined;
+        const events: string[] = [];
+        let reads = 0, tails = 0, failure: unknown;
         const source = {
-            list: [{ proofMarker: 1 }],
-            get trigger() {
-                reads++;
-                if (reads === 2) {
-                    requireDefined(requireDefined(exposed)[0]).poison = (): undefined => undefined;
-                }
-                return 'after';
+            list: [{ get poison(): unknown {
+                events.push(`poison ${String(++reads)}`);
+                return reads === 2 ? (): undefined => undefined : 0;
+            } }],
+            get tail() {
+                events.push(`tail ${String(++tails)}`);return 'after';
             },
         };
         try {
-            Object.defineProperty(Array.prototype, '0', {
-                configurable: true,
-                set(this: unknown[], value: unknown) {
-                    defineFirst(this, value);
-                    if (value !== null && typeof value === 'object' && Object.hasOwn(value, 'proofMarker')) {
-                        copies++;
-                        if (copies === 2) exposed = this as Array<Record<string, unknown>>;
-                    }
-                },
-            });
-            try {
-                new Materializer().materializeUntracked(model, { id: 1, document: source });
-            } catch (error) {
-                failure = error;
-            }
-        } finally {
-            restoreFirst(prior);
+            new Materializer().materializeUntracked(model, { id: 1, document: source });
+        } catch (error) {
+            failure = error;
         }
-        expect(reads).toBe(2);
-        expect(copies).toBeGreaterThanOrEqual(2);
-        expect(exposed).not.toBe(source.list);
-        expect(requireDefined(exposed)[0]).not.toBe(source.list[0]);
-        expect(source.list).toEqual([{ proofMarker: 1 }]);
+        expect(events).toEqual(['poison 1', 'tail 1', 'poison 2', 'tail 2']);
         expect(failure).toBeInstanceOf(TypeError);
         expect((failure as Error).message).toContain('\'JsonRow.document.list[0].poison\' (function)');
     });
