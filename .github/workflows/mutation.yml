@@ -54,7 +54,9 @@ jobs:
     needs: [plan]
     if: needs.plan.outputs.has-work == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ needs.plan.outputs.mode == 'full' && 240 || 30 }}
+    # A cold provider-validation run exceeded 30 minutes while still progressing.
+    # Give that campaign room to finish without changing its score/report gates.
+    timeout-minutes: ${{ needs.plan.outputs.mode == 'full' && 240 || matrix.id == 'provider-validation' && 60 || 30 }}
     strategy:
       fail-fast: false
       max-parallel: 8
