@@ -1,11 +1,14 @@
 # Stable behavior and qualification
 
-The alpha.3 corrective pass has a finite scope: safe aggregate result fields,
-validated counts, PostgreSQL savepoint ownership, ordinary cascade inverse
-removals, and both released upgrade baselines. After its release, stabilization
-keeps the public behavior below fixed while qualifying combinations and repeated
-operations. Model reuse, statement caching, cursor redesign and wider platform
-support remain separate proposals.
+The alpha.3 candidate combines safe aggregate result fields, validated counts,
+PostgreSQL savepoint ownership, ordinary cascade inverse removals, both released
+upgrade baselines, and retained performance work. This includes explicit compiled
+models, eligible buffered read plans and opt-in SQLite connection reuse. See the
+[candidate notes](releases/0.1.0-alpha.3.md) for their supported scope.
+Preparation for stable `0.1.0` keeps the public behavior below fixed while
+qualifying combinations and repeated operations. Broader compiled-model support,
+statement caching, cursor redesign and wider platform support remain separate
+proposals.
 
 ## Numeric results and aliases
 
@@ -83,5 +86,6 @@ coverage, every mutation campaign, live PostgreSQL/MySQL, historical alpha.1/alp
 upgrades, browser flow, operational/performance checks and seven accepted
 tarballs. The existing [release workflow](../.github/workflows/release.yml) runs
 that matrix again on the final `main` revision before publishing its accepted
-artifacts. Stable version selection and any expanded support claim need their
-own explicit decision.
+artifacts. The [0.1.0 preparation checklist](releases/0.1.0-preparation.md) tracks
+the remaining release work. Any expanded support claim needs its own explicit
+decision and qualification.

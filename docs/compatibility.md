@@ -145,7 +145,9 @@ documented in the [security policy](../SECURITY.md).
 
 This policy applies when the first stable family is published. Current
 source versions are `0.1.0-alpha.3`; preparing a stable workflow does not convert an
-alpha into a stable release. The first stable version has not been selected.
+alpha into a stable release. The target for the first stable family is `0.1.0`;
+the [preparation checklist](releases/0.1.0-preparation.md) records what remains
+before that release.
 
 A stable compatibility line is one major version for `1.x` and later, or one
 minor version for `0.x`. Within that line, preserve public exports, declaration

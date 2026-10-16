@@ -19,8 +19,9 @@ Every real working-copy publish is refused by `prepublishOnly`.
 The source candidate is `0.1.0-alpha.3`; `0.1.0-alpha.2` is already published.
 Stable mechanics are tested
 with synthetic versions, including real npm dry runs. A stable dispatch of
-these prerelease tarballs fails preflight. Selecting and applying the first
-stable version remains a separate release decision.
+these prerelease tarballs fails preflight. The target for the first stable family
+is `0.1.0`; applying its metadata and qualifying the final candidate remain
+pending. See the [preparation checklist](releases/0.1.0-preparation.md).
 
 ## Prepare the family
 
