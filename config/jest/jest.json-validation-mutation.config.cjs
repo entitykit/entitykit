@@ -12,6 +12,7 @@ module.exports = {
         '<rootDir>/tests/json-traversal-state.test.ts',
         '<rootDir>/tests/json-normalization-property-writes.test.ts',
         '<rootDir>/tests/json-serialization-snapshot.test.ts',
+        '<rootDir>/tests/json-key-escaping-observations.test.ts',
         '<rootDir>/tests/json-diagnostics-sqlite.test.ts',
     ],
 };
