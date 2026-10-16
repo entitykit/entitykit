@@ -105,6 +105,14 @@ setters and proxies still receive writes followed by equivalent readback checks.
 Mutable values retain their independent snapshots, query-local identities and
 later attachment facts. Restoration scopes retain their failure-atomic path.
 
+Private field instructions may use arrays, slots or generated functions. Their
+representation and unexported helper modules are implementation details. The
+supported customization points remain the exported model and provider APIs,
+context configuration, readers, constructors and setters. Specializing private
+instructions must preserve mapped field order, live application callbacks,
+independent mutable values, validation, identity and persistence behavior.
+
+
 Query-local identity lookup and insertion retain separate encoding calls across
 entity construction and writes. Immutable mapping metadata and primitive key
 values alone do not make the encoding immutable: constructors can change
