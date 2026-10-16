@@ -19,6 +19,8 @@ describe('SQLite retained connection retirement', () => {
         const filename = join(createManagedTempDirectory('entitykit-retire-'), 'app.db');
         const setup = new DatabaseSync(filename);
         setup.exec('create table rows (id integer primary key)');
+        setup.exec('create table parents (id integer primary key)');
+        setup.exec('create table children (id integer primary key, parent_id integer references parents(id))');
         setup.close();
         source = createSqliteDataSource({ filename, foreignKeys: true }, { maxIdleConnections: 2 });
         query = jest.spyOn(SqliteDatabaseConnection.prototype, 'query');
@@ -60,6 +62,35 @@ describe('SQLite retained connection retirement', () => {
         expect((await second.query({ text: 'pragma foreign_keys', values: [] })).rows).toEqual([{ foreign_keys: 1 }]);
         expect((await second.query({ text: 'select count(*) as n from sqlite_temp_schema', values: [] })).rows).toEqual([{ n: 0 }]);
         expect((await second.query({ text: 'pragma database_list', values: [] })).rows.map(row => row.name)).not.toContain('extra');
+    });
+
+    it.each([
+        ['query', 'EXPLAIN'],
+        ['query', 'EXPLAIN QUERY PLAN'],
+        ['stream', 'EXPLAIN'],
+        ['stream', 'EXPLAIN QUERY PLAN'],
+    ] as const)('preserves the next lease foreign keys after %s executes %s PRAGMA', async (mode, prefix) => {
+        const first = lease();
+        const before = await native(first);
+        const statement = { text: `${prefix} PRAGMA foreign_keys = OFF`, values: [] };
+        if (mode === 'query') await first.query(statement);
+        else {
+            const stream = first.stream?.(statement);
+            if (!stream) throw new Error('SQLite stream missing');
+            for await (const row of stream) expect(row).toBeDefined();
+        }
+        await first.dispose?.();
+
+        const second = lease();
+        await expect(second.query({ text: 'insert into children values (1, 999)', values: [] }))
+            .rejects.toThrow('FOREIGN KEY constraint failed');
+        expect((await second.query({ text: 'select * from children', values: [] })).rows).toEqual([]);
+        await second.query({ text: 'insert into parents values (999)', values: [] });
+        await second.query({ text: 'insert into children values (1, 999)', values: [] });
+        expect((await second.query({ text: 'select * from children', values: [] })).rows)
+            .toEqual([{ id: 1, parent_id: 999 }]);
+        expect(close.mock.contexts).toEqual([before]);
+        expect(await native(second)).not.toBe(before);
     });
 
     it('closes and rolls back a raw transaction before the next borrower', async () => {

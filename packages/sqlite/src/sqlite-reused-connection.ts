@@ -87,9 +87,11 @@ export class SqliteReusedConnection implements DatabaseConnection {
         };
         // PRAGMAs, DDL, raw transaction control and scripts can change connection
         // state. Do not attempt to infer or undo those effects across leases.
+        // EXPLAIN also retires: some PRAGMAs take effect during preparation,
+        // even with EXPLAIN or EXPLAIN QUERY PLAN prefixed to the statement.
         // Execute the same captured text that was classified, including when
         // the caller supplied a getter or proxy rather than an ordinary record.
-        if (!/^\s*(select|insert|update|delete|replace|with|values|explain)\b/i.test(captured.text)
+        if (!/^\s*(select|insert|update|delete|replace|with|values)\b/i.test(captured.text)
             || hasMultipleStatements(captured.text)) {
             this.reusable = false;
         }
