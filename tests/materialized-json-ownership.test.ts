@@ -80,43 +80,22 @@ describe('JSON ownership observations during materialization', () => {
         expect((failure as Error).message).toContain('\'JsonRow.document.list[0].poison\' (function)');
     });
 
-    it.each([false, true])('preserves a later source getter affecting bound normalization, compiled %s', compiled => {
+    it.each([false, true])('owns earlier values when a later source getter mutates its input, compiled %s', compiled => {
         const model = metadata(compiled);
-        const prior = Object.getOwnPropertyDescriptor(Array.prototype, '0');
-        expect(prior).toBeUndefined();
-        let reads = 0, setterCalls = 0;
-        let entity: JsonRow | undefined, bound: unknown;
+        let reads = 0;
         const source = {
             list: [{ proofMarker: 1 }],
             get trigger() {
                 reads++;
-                if (reads === 2) {
-                    Object.defineProperty(Array.prototype, '0', {
-                        configurable: true,
-                        set(this: unknown[], value: unknown) {
-                            if (value !== null && typeof value === 'object' && Object.hasOwn(value, 'proofMarker')) {
-                                setterCalls++;
-                                defineFirst(this, { proofMarker: 99 });
-                                // Isolate normalization; subsequent entity verification
-                                // and retention still use the ordinary array prototype.
-                                restoreFirst(prior);
-                            } else defineFirst(this, value);
-                        },
-                    });
-                }
+                if (reads === 2) requireDefined(source.list[0]).proofMarker = 99;
                 return 'after';
             },
         };
-        try {
-            entity = new Materializer().materializeUntracked(model, { id: 2, document: source });
-            bound = requireDefined(materializedPersistenceFacts(entity)).boundValues.document;
-        } finally {
-            restoreFirst(prior);
-        }
+        const entity = new Materializer().materializeUntracked(model, { id: 2, document: source });
+        const bound = requireDefined(materializedPersistenceFacts(entity)).boundValues.document;
         expect(reads).toBe(2);
-        expect(setterCalls).toBe(1);
-        expect(source.list).toEqual([{ proofMarker: 1 }]);
-        expect(requireDefined(entity).document).toEqual({ list: [{ proofMarker: 1 }], trigger: 'after' });
-        expect(bound).toBe('{"list":[{"proofMarker":99}],"trigger":"after"}');
+        expect(source.list).toEqual([{ proofMarker: 99 }]);
+        expect(entity.document).toEqual({ list: [{ proofMarker: 1 }], trigger: 'after' });
+        expect(bound).toBe('{"list":[{"proofMarker":1}],"trigger":"after"}');
     });
 });

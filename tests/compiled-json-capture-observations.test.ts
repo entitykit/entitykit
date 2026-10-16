@@ -53,25 +53,15 @@ describe.each([false, true])('JSON capture observations, compiled=%s', compiled 
         expect(captured.boundValues.value).toBe('{"value":1}');
     });
 
-    it('isolates model values when emission replaces a later array mapping method', () => {
+    it('isolates captured values from source mutation during encoding', () => {
         const source = { items: [1] };
         const stringify = JSON.stringify;
-        const map = Array.prototype.map;
-        const descriptor = Object.getOwnPropertyDescriptor(Array.prototype, 'map');
-        if (!descriptor) throw new Error('Expected the native array map descriptor.');
-        let observedArrays = 0;
+        let observations = 0;
         const spy = jest.spyOn(JSON, 'stringify').mockImplementation((value: unknown) => {
             if (value === 'items') {
-                Object.defineProperty(Array.prototype, 'map', {
-                    ...descriptor,
-                    value: function (this: unknown[], callback: unknown, receiver: unknown): unknown {
-                        if (this.length === 1 && this[0] === 1) {
-                            observedArrays++;
-                            this[0] = 99;
-                        }
-                        return Reflect.apply(map, this, [callback, receiver]);
-                    },
-                });
+                observations++;
+                source.items[0] = 99;
+                source.items.push(100);
             }
             return stringify(value);
         });
@@ -79,13 +69,12 @@ describe.each([false, true])('JSON capture observations, compiled=%s', compiled 
         try {
             captured = capture(source);
         } finally {
-            Object.defineProperty(Array.prototype, 'map', descriptor);
             spy.mockRestore();
         }
-        expect(observedArrays).toBe(1);
-        expect(captured.boundValues.value).toBe('{"items":[99]}');
+        expect(observations).toBe(1);
+        expect(captured.boundValues.value).toBe('{"items":[1]}');
         expect(captured.values.value).toEqual({ items: [1] });
-        expect(source).toEqual({ items: [1] });
+        expect(source).toEqual({ items: [99, 100] });
     });
 
     it('completes source cloning before validating invalid JSON values', () => {
