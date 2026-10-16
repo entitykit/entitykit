@@ -12,6 +12,7 @@ module.exports = {
     '<rootDir>/tests/compiled-entity-capture.test.ts',
     '<rootDir>/tests/compiled-capture-instructions.test.ts',
     '<rootDir>/tests/compiled-capture-observation.test.ts',
+    '<rootDir>/tests/compiled-capture-iterator-order.test.ts',
     '<rootDir>/tests/materialized-fact-replacement.test.ts',
     '<rootDir>/tests/snapshot-binary-allocation.test.ts',
     '<rootDir>/tests/compiled-json-capture-observations.test.ts',
