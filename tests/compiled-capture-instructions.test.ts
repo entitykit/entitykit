@@ -46,13 +46,14 @@ describe('compiled field capture instructions', () => {
         const metadata = entityReadMetadata();
         const original = snapshots.cloneSnapshotValue;
         let calls = 0, restore: (() => void) | undefined;
+        const receivers: unknown[] = [];
         let result: ReturnType<typeof captureMaterializedValues>;
         try {
             result = captureMaterializedValues(metadata, { id: 1, stored_value: 'value', tail: 2 }, {
                 readValue(value, type): unknown {
                     if (type === 'text') {
-                        const spy = jest.spyOn(snapshots, 'cloneSnapshotValue').mockImplementation(input => {
-                            calls++; return original(input);
+                        const spy = jest.spyOn(snapshots, 'cloneSnapshotValue').mockImplementation(function (this: unknown, input) {
+                            receivers.push(this);calls++; return original(input);
                         });
                         restore = () => {
                             spy.mockRestore();
@@ -65,6 +66,7 @@ describe('compiled field capture instructions', () => {
             restore?.();
         }
         expect(calls).toBe(6);
+        expect(receivers).toEqual([undefined, undefined, undefined, undefined, undefined, undefined]);
         expect(result).toEqual({ values: { id: 1, value: 'value', tail: 2 }, boundValues: { id: 1, value: 'value', tail: 2 } });
     });
 
