@@ -2,6 +2,50 @@ import { normalizeJsonValue } from '../packages/core/src/json-value';
 import { observedJsonRejection } from './support/observed-json-rejection';
 
 describe('JSON traversal state boundaries', () => {
+    it('memoizes a completed container even when a child produced a diagnostic', () => {
+        let inspections = 0, consumed = 0;
+        const thenable = {
+            then(_resolve: (value: unknown) => void, reject: (reason: unknown) => void): void {
+                consumed++;
+                reject(new Error('nested rejection'));
+            },
+        };
+        const shared = new Proxy({ bad: NaN, tail: thenable }, {
+            ownKeys(target): Array<string | symbol> {
+                inspections++;
+                return Reflect.ownKeys(target);
+            },
+        });
+        class Foreign {
+            public nested = shared;
+        }
+        expect(() => normalizeJsonValue({ a: shared, b: shared, c: new Foreign() }, 'Row.data'))
+            .toThrow('Unsupported JSON value at \'Row.data.a.bad\' (NaN).');
+        expect(inspections).toBe(1);
+        expect(consumed).toBe(1);
+    });
+
+    it('retries a later alias after an earlier property inspection failed', () => {
+        let attempts = 0, inspections = 0;
+        const rejected = observedJsonRejection(new Error('later alias rejection'));
+        const shared = new Proxy({ tail: rejected.promise }, {
+            getPrototypeOf(target): object | null {
+                attempts++;
+                if (attempts === 1) throw new Error('first inspection failed');
+                return Reflect.getPrototypeOf(target);
+            },
+            ownKeys(target): Array<string | symbol> {
+                inspections++;
+                return Reflect.ownKeys(target);
+            },
+        });
+        expect(() => normalizeJsonValue({ a: shared, b: shared }, 'Row.data'))
+            .toThrow('Unsupported JSON value at \'Row.data.a\' (property inspection failed).');
+        expect(attempts).toBe(2);
+        expect(inspections).toBe(1);
+        expect(rejected.observed()).toBe(true);
+    });
+
     it('distinguishes completed aliases from a later active cycle and drains rejections', () => {
         let inspections = 0;
         const shared = new Proxy({ value: 1 }, {
