@@ -116,6 +116,7 @@ module.exports = {
     'packages/core/src/tracking/navigation-property-stability.ts',
     'packages/core/src/tracking/live-cascade-detection.ts',
     'packages/core/src/tracking/relationship-delete-detector.ts',
+    'packages/core/src/tracking/cascade-inverse-collection-eligibility.ts',
     'packages/core/src/tracking/relationship-fixup.ts:120-140',
     'packages/core/src/tracking/relationship-detection-inverse-batch.ts',
     'packages/core/src/tracking/relationship-change-detector.ts',

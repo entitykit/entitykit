@@ -62,7 +62,11 @@ It rechecks live relationship intent before applying each edge and preserves
 the dependent-state boundary between principals. The linear work gate covers
 relationship resolution for disjoint pairs and reverse-tracked chains. Ordinary
 Cascade and SetNull paths also accumulate inverse removals by principal and
-navigation, then publish each completed collection once. Their public tests
+navigation, then publish each completed collection once. Cascades with sparse
+inverse arrays or optional SetNull foreign-key converters instead publish each
+removal immediately, preserving skipped holes and the graph observed by converter
+callbacks. The converter exclusion covers the whole cascade pass, including
+relationships without inverse navigations. Their public tests
 bound collection work as child counts increase and verify failure restoration
 and caller rollback. Loaded-removal benchmarks exercise both behaviors on all
 three providers. No constant-cost claim applies to dynamic application hooks.

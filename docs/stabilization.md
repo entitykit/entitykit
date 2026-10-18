@@ -44,7 +44,10 @@ Ordinary relationship graphs can batch inverse collection edits. Accessors,
 proxies, custom collections and Added ownership paths retain immediate behavior
 where application code or detachment can invalidate a staged graph. Failed
 planning and caller rollback must restore the tracked graph as well as database
-state, while preserving the documented pending user intent.
+state, while preserving the documented pending user intent. Cascade removal also
+retains immediate publication for sparse inverse arrays and graphs with optional
+SetNull foreign-key converters: holes must be skipped, explicit `undefined`
+elements retained, and converter callbacks must observe earlier removals.
 
 Set-based `executeUpdate()` and `executeDelete()` retain their documented
 tenant and soft-delete filters and bypass tracked-save interceptors, audit and

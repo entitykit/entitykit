@@ -80,7 +80,7 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
             expect(childCollections.reduce((sum, value) => sum + value.length, 0)).toBeLessThanOrEqual(4 * count);
             expect(copyInputs.reduce<number>((sum, value) => sum + (Array.isArray(value) ? value.length : 0), 0))
                 .toBeLessThanOrEqual(16 * (count + 1));
-            expect(parent.children).toEqual([]);
+            expect(parent.children).toStrictEqual([]);
             expect(children.every(child => child.parent === null)).toBe(true);
             expect(children.every(child => cascade ? db.entry(child) === undefined
                 : child.parentId === null && db.entry(child)?.state === EntityState.Unchanged)).toBe(true);
@@ -105,7 +105,7 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
             db.parents.remove(parent);
             await expect(db.transaction(async transaction => {
                 await expect(transaction.saveChanges()).resolves.toBe(33);
-                expect(parent.children).toEqual([]);
+                expect(parent.children).toStrictEqual([]);
                 expect(children.every(child => child.parent === null)).toBe(true);
                 throw new Error('roll back accepted removal');
             })).rejects.toThrow('roll back accepted removal');
@@ -118,7 +118,7 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
             expect(await db.parents.asNoTracking().count()).toBe(2);
             expect(await db.children.asNoTracking().count()).toBe(33);
             await expect(db.saveChanges()).resolves.toBe(33);
-            expect(parent.children).toEqual([]);
+            expect(parent.children).toStrictEqual([]);
         } finally {
             await db.dispose();
         }
@@ -147,7 +147,7 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
             expect(await db.children.asNoTracking().count()).toBe(9);
             refuse = false;
             await expect(db.saveChanges()).resolves.toBe(9);
-            expect(parent.children).toEqual([]);
+            expect(parent.children).toStrictEqual([]);
             expect(children.every(child => child.parent === null)).toBe(true);
         } finally {
             await db.dispose();
@@ -178,8 +178,8 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
             // One write per principal proves ordinary batching was selected.
             // Observe the first publication before the refusal and restoration.
             expect(publications.map(item => item.principal)).toEqual([first, second]);
-            expect(publications.map(item => item.value)).toEqual([[], []]);
-            expect(publications[1].firstCollection).toEqual([]);
+            expect(publications.map(item => item.value)).toStrictEqual([[], []]);
+            expect(publications[1].firstCollection).toStrictEqual([]);
             expect(first.children).toEqual(firstChildren);
             expect(second.children).toEqual(secondChildren);
             expect(firstChildren.every(child => child.parent === first && child.parentId === 1)).toBe(true);
@@ -195,8 +195,8 @@ describe.each(cases)('$name loaded inverse removal', ({ context, cascade }) => {
 
             Object.defineProperty(second, 'children', { writable: true });
             await expect(db.saveChanges()).resolves.toBe(11);
-            expect(first.children).toEqual([]);
-            expect(second.children).toEqual([]);
+            expect(first.children).toStrictEqual([]);
+            expect(second.children).toStrictEqual([]);
             expect(children.every(child => child.parent === null)).toBe(true);
             expect(await db.parents.asNoTracking().count()).toBe(0);
             const stored = await db.children.asNoTracking().toArray();
