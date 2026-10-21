@@ -42,8 +42,8 @@ class EmptyContext extends DbContext {
         options.useConnection(EmptyContext.connection);
     }
 
-    protected override model(model: ModelBuilder): void {
-        void model;
+    protected override model(_model: ModelBuilder): void {
+        // These migration tests do not map application entities.
     }
 }
 

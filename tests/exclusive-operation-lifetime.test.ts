@@ -6,42 +6,37 @@ describe('exclusive operation scope lifetime', () => {
         jest.restoreAllMocks();
     });
 
-    it('unregisters an idle guard after success and can run another operation', async () => {
-        const disable = jest.spyOn(AsyncLocalStorage.prototype, 'disable');
+    it('releases an idle guard after success and can run another operation', async () => {
         const guard = new ExclusiveOperationGuard();
         await expect(guard.runQuery('first', async () => await Promise.resolve(42))).resolves.toBe(42);
-        expect(disable).toHaveBeenCalledTimes(1);
         expect(guard.isOperationInProgress).toBe(false);
         await expect(guard.runQuery('second', async () => await Promise.resolve(43))).resolves.toBe(43);
-        expect(disable).toHaveBeenCalledTimes(2);
+        expect(guard.isOperationInProgress).toBe(false);
     });
 
-    it('unregisters after failure without preventing a subsequent operation', async () => {
-        const disable = jest.spyOn(AsyncLocalStorage.prototype, 'disable');
+    it('releases after failure without preventing a subsequent operation', async () => {
         const guard = new ExclusiveOperationGuard();
         await expect(guard.runQuery('failure', async () => {
             await Promise.resolve();
             throw new Error('driver failed');
         })).rejects.toThrow('driver failed');
-        expect(disable).toHaveBeenCalledTimes(1);
+        expect(guard.isOperationInProgress).toBe(false);
         await expect(guard.runQuery('recovery', async () => await Promise.resolve(42))).resolves.toBe(42);
-        expect(disable).toHaveBeenCalledTimes(2);
+        expect(guard.isOperationInProgress).toBe(false);
     });
 
     it('retains a nested transaction chain until the root finishes', async () => {
-        const disable = jest.spyOn(AsyncLocalStorage.prototype, 'disable');
         const guard = new ExclusiveOperationGuard();
         await guard.run('transaction', async () => {
             await guard.runQuery('nested query', async () => {
                 await Promise.resolve();
             });
-            expect(disable).not.toHaveBeenCalled();
             expect(guard.isOperationInProgress).toBe(true);
             await guard.runQuery('another nested query', async () => {
                 await Promise.resolve();
             });
         });
-        expect(disable).toHaveBeenCalledTimes(1);
+        expect(guard.isOperationInProgress).toBe(false);
     });
 
     it('preserves the application async scope while releasing its own scope', async () => {
@@ -60,13 +55,14 @@ describe('exclusive operation scope lifetime', () => {
         }
     });
 
-    it('does not leave enabled guards registered as short-lived contexts accumulate', async () => {
-        const disable = jest.spyOn(AsyncLocalStorage.prototype, 'disable');
+    it('bounds async-local stores as short-lived contexts accumulate', async () => {
+        const run = jest.spyOn(AsyncLocalStorage.prototype, 'run');
         for (let index = 0; index < 256; index += 1) {
             await new ExclusiveOperationGuard().runQuery('request', async () => {
                 await Promise.resolve();
             });
         }
-        expect(disable).toHaveBeenCalledTimes(256);
+        expect(run).toHaveBeenCalledTimes(256);
+        expect(new Set(run.mock.contexts).size).toBe(1);
     });
 });

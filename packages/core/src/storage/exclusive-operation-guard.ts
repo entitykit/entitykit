@@ -1,14 +1,22 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { ContextConcurrentOperationError } from '../errors/runtime-errors';
 
-interface OperationScope {
-    readonly token: symbol;
+interface QueryScope {
     queryInProgress: boolean;
 }
 
+interface OperationScope extends QueryScope {
+    readonly token: symbol;
+    readonly parent?: OperationScope;
+    active: boolean;
+}
+
+// One store bounds both Node 22's async-hook registrations and Node 24's
+// copied context-frame keys. Tokens still belong to individual guard operations.
+const operationScopes: AsyncLocalStorage<OperationScope> = new AsyncLocalStorage();
+
 /** Serializes work that shares one context connection and transaction chain. */
 export class ExclusiveOperationGuard {
-    private readonly scope: AsyncLocalStorage<OperationScope> = new AsyncLocalStorage();
     private activeToken?: symbol;
 
     public get isOperationInProgress(): boolean {
@@ -19,8 +27,8 @@ export class ExclusiveOperationGuard {
         operation: string,
         work: () => Promise<TResult>,
     ): Promise<TResult> {
-        const current = this.scope.getStore();
-        if (current && current.token === this.activeToken) {
+        const current = this.currentScope();
+        if (current) {
             return work();
         }
         if (this.activeToken) {
@@ -29,18 +37,16 @@ export class ExclusiveOperationGuard {
 
         const operationScope: OperationScope = {
             token: Symbol('entitykit-context-operation'),
+            parent: activeParentScope(),
+            active: true,
             queryInProgress: false,
         };
         this.activeToken = operationScope.token;
         try {
-            return await this.scope.run(operationScope, work);
+            return await operationScopes.run(operationScope, work);
         } finally {
-            if (this.activeToken === operationScope.token) {
-                this.activeToken = undefined;
-                // Node 22 retains enabled scopes in its global async hook list.
-                // An idle guard owns no async chain; run() re-enables it later.
-                this.scope.disable();
-            }
+            operationScope.active = false;
+            this.activeToken = undefined;
         }
     }
 
@@ -65,27 +71,23 @@ export class ExclusiveOperationGuard {
     public async *stream<TRow>(
         createRows: () => AsyncIterable<TRow>,
     ): AsyncGenerator<TRow> {
-        const current = this.scope.getStore();
-        let operationScope: OperationScope;
+        const current = this.currentScope();
+        let operationScope: QueryScope;
         let ownsToken = false;
-        if (current && current.token === this.activeToken) {
+        if (current) {
             operationScope = current;
         } else {
             if (this.activeToken) {
                 throw concurrentOperationError('a streaming query');
             }
             operationScope = {
-                token: Symbol('entitykit-context-stream'),
                 queryInProgress: false,
             };
-            this.activeToken = operationScope.token;
+            this.activeToken = Symbol('entitykit-context-stream');
             ownsToken = true;
         }
 
         if (operationScope.queryInProgress) {
-            if (ownsToken) {
-                this.activeToken = undefined;
-            }
             throw concurrentOperationError('a streaming query');
         }
 
@@ -96,19 +98,37 @@ export class ExclusiveOperationGuard {
             }
         } finally {
             operationScope.queryInProgress = false;
-            if (ownsToken && this.activeToken === operationScope.token) {
+            if (ownsToken) {
                 this.activeToken = undefined;
             }
         }
     }
 
     private requireScope(): OperationScope {
-        const operationScope = this.scope.getStore();
+        const operationScope = this.currentScope();
         if (!operationScope) {
             throw new Error('EntityKit operation scope was not initialized.');
         }
         return operationScope;
     }
+
+    private currentScope(): OperationScope | undefined {
+        if (!this.activeToken) return undefined;
+        let current = operationScopes.getStore();
+        while (current) {
+            if (current.token === this.activeToken) return current;
+            current = current.parent;
+        }
+        return undefined;
+    }
+}
+
+function activeParentScope(): OperationScope | undefined {
+    let parent = operationScopes.getStore();
+    // A detached continuation can outlive its owner. Do not extend a chain of
+    // expired scopes each time that continuation starts another operation.
+    while (parent && !parent.active) parent = parent.parent;
+    return parent;
 }
 
 function concurrentOperationError(operation: string): ContextConcurrentOperationError {

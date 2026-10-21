@@ -144,13 +144,20 @@ with development dependencies excluded; any known runtime advisory fails. A
 separate whole-workspace audit rejects unreviewed advisories, dependency paths,
 versions, and runtime reachability. Registry failures also fail the gate.
 
-The sole tooling exception is
-[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
-which has no patched `braces` release as of October 3, 2026. Repository-owned
-Jest, mutation, and Next ESLint glob patterns reach these development tools.
-Application requests and the published dependency graph do not. Tools must
-never process untrusted glob patterns. The exact reviewed paths and versions
-are in [security-tooling-review.json](docs/security-tooling-review.json). The
-exception expires on November 2, 2026, and must be removed when a compatible
-patch is available or explicitly reviewed again. This is a scoped risk
-disposition, not a claim that the whole toolchain has zero advisories.
+The October 6, 2026 lockfile removes both previously reviewed tooling paths:
+`braces` and `sprintf-js` are absent. The complete development installation
+and runtime scopes have zero known npm advisories, and
+[security-tooling-review.json](docs/security-tooling-review.json) has no active
+exceptions. New findings still fail the gate.
+
+The parent tools have not yet adopted compatible replacements themselves.
+Scoped overrides use `tinyglobby` for Next's root-directory matching,
+`argparse` 2 for RushStack, and `js-yaml` 4 for Istanbul configuration. Small,
+version- and checksum-guarded install patches preserve the parent APIs; see
+[the compatibility contract](docs/tooling-dependencies.md). These changes apply
+only to repository development tools, not to published SDK dependencies.
+
+If an exception is needed in the future, every ancestor must match that
+advisory's exact reviewed development path and version. Runtime findings
+remain unconditional failures. Reviews expire at their recorded deadline;
+one review cannot authorize another advisory or an unreviewed path.

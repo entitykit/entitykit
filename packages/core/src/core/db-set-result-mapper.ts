@@ -3,7 +3,8 @@ import type { DbSetContext } from './db-set-context';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { QueryModel } from '../query/query-model';
 import { readStoreValue } from '../storage/store-value-reader';
-import { materializeProjectionRows } from './projection-row-materializer';
+import { defineResultProperty, materializeProjectionRows } from './projection-row-materializer';
+import { queryCountNumber, type QueryCountValue } from './query-count-result';
 
 /**
  * Turns raw projection and aggregate result rows into typed values.
@@ -66,26 +67,27 @@ export class DbSetResultMapper<TEntity extends object> {
         const output: Record<string, unknown> = {};
         for (const item of model.groupKeyProjection ?? []) {
             if (item.kind === 'dateBucket') {
-                output[item.alias] = materializeDateBucket(row[item.alias]);
+                defineResultProperty(output, item.alias, materializeDateBucket(row[item.alias]));
                 continue;
             }
 
             const source = this.projectionMetadataFor(model, item.sourceAlias);
             const property = source.getProperty(item.propertyName);
-            output[item.alias] = readStoreValue(
+            defineResultProperty(output, item.alias, readStoreValue(
                 row[item.alias], property, this.context.valueReader, source.entityName,
-            );
+            ));
         }
 
         for (const item of model.aggregateProjection ?? []) {
             const value = row[item.alias];
             if (item.function === 'count') {
-                output[item.alias] = value === null || value === undefined ? 0 : Number(value);
+                defineResultProperty(output, item.alias, value === null || value === undefined
+                    ? 0 : queryCountNumber(value as QueryCountValue));
                 continue;
             }
 
             if (value === null || value === undefined) {
-                output[item.alias] = null;
+                defineResultProperty(output, item.alias, null);
                 continue;
             }
 
@@ -94,20 +96,20 @@ export class DbSetResultMapper<TEntity extends object> {
                 // as exact text, so the total is normalized to a number. That rounds
                 // values beyond double precision, which is why exact-numeric columns
                 // are totalled through raw SQL rather than here.
-                output[item.alias] = Number(value);
+                defineResultProperty(output, item.alias, Number(value));
                 continue;
             }
 
             if (!item.propertyName) {
-                output[item.alias] = value;
+                defineResultProperty(output, item.alias, value);
                 continue;
             }
 
             const source = this.projectionMetadataFor(model, item.sourceAlias);
             const property = source.getProperty(item.propertyName);
-            output[item.alias] = readStoreValue(
+            defineResultProperty(output, item.alias, readStoreValue(
                 value, property, this.context.valueReader, source.entityName,
-            );
+            ));
         }
         return output;
     }

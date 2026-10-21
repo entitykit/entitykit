@@ -14,6 +14,8 @@ export type { CheckedEntityMaterializer, EntityMaterializationRow, Materializati
 export { BaseEntityConfiguration } from './model/entity-type-configuration';
 export type { EntityTypeConfiguration } from './model/entity-type-configuration';
 export type { ModelBuilder } from './model/model-builder-types';
+export { compileModel } from './model/compiled-model';
+export type { CompiledModel, CompiledModelOptions } from './model/compiled-model';
 export type { PropertyBuilder } from './model/property-builder-types';
 export type {
     ComplexPropertyBuilder,

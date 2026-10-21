@@ -15,7 +15,7 @@ cover no-tracking reads, tracked optimistic updates, 64-row saves and upserts,
 32 simultaneous reads through a four-connection pool, no-tracking streams with
 32-row batches, and atomic Bookshop checkout plus durable delivery.
 
-The expanded gate runs 34 SQL workloads and four context-setup measurements:
+The expanded gate runs 38 SQL workloads and four context-setup measurements:
 
 | Added area | Populated workload and checked behavior |
 | --- | --- |
@@ -26,6 +26,7 @@ The expanded gate runs 34 SQL workloads and four context-setup measurements:
 | Converted reads | 1,000 nested JSON values, tracked no-op detect/save and buffered no-tracking; correct values and tracker ownership |
 | Generated saves and deletes | 100 and 400 generated-key entities per complete add/save/remove/save cycle; unique persisted identities and empty final tracker |
 | Cascades | Reverse-tracked 400-node chain deleted inside a rolled-back caller transaction; graph fixup, affected rows and restored database contents |
+| Loaded inverse removals | Cascade and SetNull with 250 and 1,000 children; accepted deletes/updates, empty inverse collections and full graph/database restoration on caller rollback |
 | Fast streams | 512 and 4,000 rows at batch sizes 32 and 256, zero consumer yields, zero tracked entries, bounded sampled heap/RSS |
 | Context setup | 1, 10, 50 and 100 mapped types with 20 scalar fields each; 40 samples after five warmups, disposal included, no SQL |
 

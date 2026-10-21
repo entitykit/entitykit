@@ -9,8 +9,8 @@ import {
 } from '../packages/core/src';
 import { createProjectionProxy, createQueryProxy } from '../packages/core/src/experimental';
 // @ts-expect-error repository examples are not exported from the root package
-import { AppDbContext as RootExampleContext } from '../packages/core/src';
-import { AppDbContext as ExampleContext } from '../packages/core/src/examples';
+import { AppDbContext as _RootExampleContext } from '../packages/core/src';
+import { AppDbContext as _ExampleContext } from '../packages/core/src/examples';
 
 class User {
     public id!: string;
@@ -43,8 +43,6 @@ type HasMember<TValue, TKey extends PropertyKey> =
     TKey extends keyof TValue ? true : false;
 
 const model = new ModelBuilderImplementation();
-void RootExampleContext;
-void ExampleContext;
 
 model.entity(User, entity => {
     entity.toTable('users');
@@ -52,10 +50,8 @@ model.entity(User, entity => {
     entity.hasKey(user => user.id);
     entity.property('email').hasColumnName('email').hasColumnType('text').isRequired();
 
-    const emailProperty: PropertyBuilder<string> = entity.property(user => user.email);
-    const dateProperty: PropertyBuilder<Date> = entity.property(user => user.createdAt);
-    void emailProperty;
-    void dateProperty;
+    const _emailProperty: PropertyBuilder<string> = entity.property(user => user.email);
+    const _dateProperty: PropertyBuilder<Date> = entity.property(user => user.createdAt);
 
     // @ts-expect-error property name must be a key of User
     entity.property('doesNotExist');
@@ -63,11 +59,10 @@ model.entity(User, entity => {
     // @ts-expect-error key must be a key of User
     entity.hasKey('doesNotExist');
 
-    const selectorHasUnknownProperty: HasMember<
+    const _selectorHasUnknownProperty: HasMember<
         ModelPropertySelector<User>,
         'doesNotExist'
     > = false;
-    void selectorHasUnknownProperty;
 
     // @ts-expect-error selector must return a property token
     entity.property(() => 'email');
@@ -87,22 +82,19 @@ queryUser.email.eq(123);
 queryUser.email.gt('z');
 queryUser.id.lt('usr_9');
 
-const unsupportedQueryOperators: [
+const _unsupportedQueryOperators: [
     HasMember<typeof queryUser.createdAt, 'like'>,
     HasMember<typeof queryUser.posts, 'gt'>,
 ] = [false, false];
-void unsupportedQueryOperators;
 
 // @ts-expect-error in values must match the field type
 queryUser.id.in([123]);
 
 const projectionUser = createProjectionProxy<User>();
 const projection = { id: projectionUser.id, email: projectionUser.email, createdAt: projectionUser.createdAt };
-const projectedEmail: string | undefined = projection.email.__type;
-void projectedEmail;
+const _projectedEmail: string | undefined = projection.email.__type;
 
-const projectionHasUnknownProperty: HasMember<typeof projectionUser, 'doesNotExist'> = false;
-void projectionHasUnknownProperty;
+const _projectionHasUnknownProperty: HasMember<typeof projectionUser, 'doesNotExist'> = false;
 
 declare const posts: Queryable<Post>;
 declare const users: Queryable<User>;
@@ -119,26 +111,20 @@ const operationOptions = {
 void posts.toArray(operationOptions);
 void posts.count(operationOptions);
 void posts.executeDelete(operationOptions);
-const entityStream: AsyncIterable<Post> = posts.stream(streamOptions);
-const projectionStream: AsyncIterable<{ title: string }> = posts
+const _entityStream: AsyncIterable<Post> = posts.stream(streamOptions);
+const _projectionStream: AsyncIterable<{ title: string }> = posts
     .select(post => ({ title: post.title }))
     .stream(streamOptions);
-const joinedStream: AsyncIterable<{ authorEmail: string }> = posts
+const _joinedStream: AsyncIterable<{ authorEmail: string }> = posts
     .join('author', authors, ({ root, author }) => root.authorId.eq(author.id))
     .select(({ author }) => ({ authorEmail: author.email }))
     .stream(streamOptions);
-const aggregateStream: AsyncIterable<{ orderCount: number }> = orders
+const _aggregateStream: AsyncIterable<{ orderCount: number }> = orders
     .aggregate(aggregate => ({ orderCount: aggregate.count() }))
     .stream(streamOptions);
-void entityStream;
-void projectionStream;
-void joinedStream;
-void aggregateStream;
 
-const includedUsers = users.include(user => user.posts);
-const includedUsersHaveNoStream: HasMember<typeof includedUsers, 'stream'> = false;
-void includedUsers;
-void includedUsersHaveNoStream;
+const _includedUsers = users.include(user => user.posts);
+const _includedUsersHaveNoStream: HasMember<typeof _includedUsers, 'stream'> = false;
 
 users
     .whereHas(user => user.posts, post => post.title.contains('launch'))
@@ -150,8 +136,7 @@ void posts
     .select(({ author }) => ({ authorEmail: author.email }))
     .toArray()
     .then(rows => {
-        const authorEmail: string = rows[0].authorEmail;
-        void authorEmail;
+        const _authorEmail: string = rows[0].authorEmail;
     });
 void posts
     .select((post, project) => ({
@@ -162,14 +147,10 @@ void posts
     }))
     .toArray()
     .then(rows => {
-        const rowKind: 'post' = rows[0].rowKind;
-        const priority: 1 = rows[0].priority;
-        const visible: true = rows[0].visible;
-        const title: string = rows[0].title;
-        void rowKind;
-        void priority;
-        void visible;
-        void title;
+        const _rowKind: 'post' = rows[0].rowKind;
+        const _priority: 1 = rows[0].priority;
+        const _visible: true = rows[0].visible;
+        const _title: string = rows[0].title;
     });
 
 void posts
@@ -180,10 +161,8 @@ void posts
     }))
     .toArray()
     .then(rows => {
-        const rowKind: 'post-author' = rows[0].rowKind;
-        const authorEmail: string = rows[0].authorEmail;
-        void rowKind;
-        void authorEmail;
+        const _rowKind: 'post-author' = rows[0].rowKind;
+        const _authorEmail: string = rows[0].authorEmail;
     });
 
 orders
@@ -197,7 +176,7 @@ orders
     }))
     .toPlan();
 
-const aggregateProjection = orders
+const _aggregateProjection = orders
     .aggregate(agg => ({
         orderCount: agg.count(),
         totalCents: agg.sum(order => order.totalCents),
@@ -205,30 +184,24 @@ const aggregateProjection = orders
         latestOrderAt: agg.max(order => order.createdAt),
     }))
     .toPlan();
-void aggregateProjection;
 
-const aggregateResult = orders.aggregate(agg => ({
+const _aggregateResult = orders.aggregate(agg => ({
     orderCount: agg.count(),
     totalCents: agg.sum(order => order.totalCents),
     firstCustomerEmail: agg.min(order => order.customerEmail),
     latestOrderAt: agg.max(order => order.createdAt),
 }));
-void aggregateResult;
 
 orders.aggregate(agg => {
-    const orderCount: number | undefined = agg.count().__type;
-    const totalCents: number | null | undefined = agg.sum(order => order.totalCents).__type;
-    const firstCustomerEmail: string | null | undefined = agg.min(order => order.customerEmail).__type;
-    const latestOrderAt: Date | null | undefined = agg.max(order => order.createdAt).__type;
-    void orderCount;
-    void totalCents;
-    void firstCustomerEmail;
-    void latestOrderAt;
+    const _orderCount: number | undefined = agg.count().__type;
+    const _totalCents: number | null | undefined = agg.sum(order => order.totalCents).__type;
+    const _firstCustomerEmail: string | null | undefined = agg.min(order => order.customerEmail).__type;
+    const _latestOrderAt: Date | null | undefined = agg.max(order => order.createdAt).__type;
 
     return { orderCount: agg.count() };
 });
 
-const groupedAggregateResult = orders
+const _groupedAggregateResult = orders
     .groupBy(order => ({
         customerEmail: order.customerEmail,
         paidAt: order.paidAt,
@@ -239,19 +212,15 @@ const groupedAggregateResult = orders
         orderCount: group.count(),
         totalCents: group.sum(order => order.totalCents),
     }));
-void groupedAggregateResult;
 
 orders
     .groupBy(order => ({ customerEmail: order.customerEmail }))
     .having(group => group.count().gte(2).and(group.key.customerEmail.contains('@example.com')))
     .select(group => {
-        const customerEmail: string | undefined = group.key.customerEmail.__type;
-        const totalCents: number | null | undefined = group.sum(order => order.totalCents).__type;
-        void customerEmail;
-        void totalCents;
+        const _customerEmail: string | undefined = group.key.customerEmail.__type;
+        const _totalCents: number | null | undefined = group.sum(order => order.totalCents).__type;
 
-        const groupHasUnselectedKey: HasMember<typeof group.key, 'paidAt'> = false;
-        void groupHasUnselectedKey;
+        const _groupHasUnselectedKey: HasMember<typeof group.key, 'paidAt'> = false;
 
         return {
             customerEmail: group.key.customerEmail,
@@ -274,17 +243,15 @@ orders
 orders
     .groupBy(order => ({ customerEmail: order.customerEmail }))
     .having(group => {
-        const unsupportedGroupOperators: [
+        const _unsupportedGroupOperators: [
             HasMember<ReturnType<typeof group.count>, 'contains'>,
             HasMember<typeof group.key.customerEmail, 'gte'>,
         ] = [false, false];
-        void unsupportedGroupOperators;
 
         return group.count().gte(1);
     })
 // @ts-expect-error grouped orderBy selectors must return group keys or aggregate expressions
-    .orderBy(group => {
-        void group;
+    .orderBy(_group => {
         return 'customerEmail';
     });
 
@@ -303,12 +270,10 @@ void posts
     .select(({ author }) => ({ authorEmail: author.email }))
     .toArray()
     .then(rows => {
-        const authorEmail: string | null = rows[0].authorEmail;
-        void authorEmail;
+        const _authorEmail: string | null = rows[0].authorEmail;
 
         // @ts-expect-error left-joined projection fields are nullable
-        const nonNullableAuthorEmail: string = rows[0].authorEmail;
-        void nonNullableAuthorEmail;
+        const _nonNullableAuthorEmail: string = rows[0].authorEmail;
     });
 
 void posts
@@ -320,12 +285,9 @@ void posts
     }))
     .toArray()
     .then(rows => {
-        const postCount: number = rows[0].postCount;
-        const authorCount: number = rows[0].authorCount;
-        const totalViews: number | null = rows[0].totalViews;
-        void postCount;
-        void authorCount;
-        void totalViews;
+        const _postCount: number = rows[0].postCount;
+        const _authorCount: number = rows[0].authorCount;
+        const _totalViews: number | null = rows[0].totalViews;
     });
 
 void posts
@@ -340,10 +302,7 @@ void posts
     }))
     .toArray()
     .then(rows => {
-        const authorEmail: string | null = rows[0].authorEmail;
-        const postCount: number = rows[0].postCount;
-        const totalViews: number | null = rows[0].totalViews;
-        void authorEmail;
-        void postCount;
-        void totalViews;
+        const _authorEmail: string | null = rows[0].authorEmail;
+        const _postCount: number = rows[0].postCount;
+        const _totalViews: number | null = rows[0].totalViews;
     });

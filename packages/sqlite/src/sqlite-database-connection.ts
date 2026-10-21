@@ -32,8 +32,8 @@ export { defaultSqliteBusyTimeoutMs } from './sqlite-connection-config';
 /**
  * `DatabaseConnection` over Node's built-in `node:sqlite` (`DatabaseSync`).
  *
- * SQLite uses a single synchronous connection, so there is no pool. This class
- * is the composition root: statement execution (`SqliteStatement`),
+ * This class owns one synchronous native handle. Data sources may explicitly
+ * retain idle handles between exclusive leases. Statement execution (`SqliteStatement`),
  * transaction/savepoint handling (`SqliteTransactionRunner`), value binding
  * (`SqliteBinding`) and error mapping (`SqliteError`) each live in a focused
  * module, and the connection wires them onto the one open handle.

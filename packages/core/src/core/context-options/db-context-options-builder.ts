@@ -21,7 +21,8 @@ import { registerConnection } from './connection-registration';
 import { createContextOptions } from './context-options-factory';
 import { createRuntimeDiagnosticsHandler, validateLazyLoadingOptions } from './context-option-validation';
 import type { Model } from '../../model/model';
-import { validateIndexDatabaseNames } from '../../model/index-name-validation';
+import type { CompiledModel } from '../../model/compiled-model';
+import { selectCompiledModel, validateContextModel } from './compiled-model-selection';
 
 const tenantScopedBuilders: WeakSet<DbContextOptionsBuilder> = new WeakSet();
 export class DbContextOptionsBuilder {
@@ -58,6 +59,11 @@ export class DbContextOptionsBuilder {
 
     public useDataSource(dataSource: DatabaseDataSource): this {
         this.providerSelection.useDataSource(dataSource);
+        return this;
+    }
+
+    public useCompiledModel(model: CompiledModel): this {
+        selectCompiledModel(this, model);
         return this;
     }
 
@@ -123,8 +129,8 @@ export class DbContextOptionsBuilder {
     }
 
     public build(model?: Model): DbContextOptions {
-        return createContextOptions(this.providerSelection.build(dialect => {
-            for (const entity of model?.entities ?? []) validateIndexDatabaseNames(entity, dialect.name);
+        return createContextOptions(this.providerSelection.build((dialect, provider) => {
+            validateContextModel(this, model, provider, dialect.name);
         }), {
             saveInterceptors: this.saveInterceptors,
             diagnostics: this.diagnostics,

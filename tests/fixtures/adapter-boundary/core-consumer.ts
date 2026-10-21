@@ -34,8 +34,8 @@ class AdapterBoundaryContext extends DbContext {
                 connectionString: 'adapter-boundary://core',
                 connection: new RecordingDatabaseConnection(),
             })
-            .useDiagnostics((event: RuntimeDiagnosticEvent) => {
-                void event;
+            .useDiagnostics((_event: RuntimeDiagnosticEvent) => {
+                // This consumer only checks the callback's public type.
             });
     }
 

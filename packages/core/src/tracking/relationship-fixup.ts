@@ -122,6 +122,7 @@ export function cascadeDeleteDependent(
     dependent: EntityEntry<object>,
     relationship: TrackedRelationshipMetadata,
     principal: object,
+    inverseCollections?: LoadedInverseCollectionBatch,
 ): void {
     if (dependent.state === EntityState.Added) {
         detachRelationshipEntry(tracker, dependent.entity);
@@ -134,5 +135,6 @@ export function cascadeDeleteDependent(
         relationship,
         principal,
         dependent.entity,
+        directNavigationWriter, inverseCollections,
     );
 }

@@ -12,7 +12,7 @@ import { validateMigrationIndexNames } from './migration-index-validation';
 
 export const migrationHistoryTableName = '__entitykit_migrations';
 export const migrationLockKey = 'entitykit:migrations';
-export const entityKitMigrationVersion = '0.1.0-alpha.2';
+export const entityKitMigrationVersion = '0.1.0-alpha.3';
 
 /** Perform the migration checksum operation. */ export function migrationChecksum(
     migration: Migration,

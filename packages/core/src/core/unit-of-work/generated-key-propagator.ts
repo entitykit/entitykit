@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from '../../tracking/write-snapshot-value';
 import type { SavePlanEntry } from '../save-plan';
 import type { SaveTimeMutationLog } from '../save-time-mutations';
 import type { GeneratedKeyPropagation } from '../save-plan-execution';
@@ -133,8 +134,8 @@ export function propagateGeneratedKeys(
                     },
                 );
             }
-            persistedValues[property.foreignKeyProperty] = persistedValue;
-            persistedBoundValues[property.foreignKeyProperty] = boundValue;
+            writeSnapshotValue(persistedValues, property.foreignKeyProperty, persistedValue);
+            writeSnapshotValue(persistedBoundValues, property.foreignKeyProperty, boundValue);
             applied.push(prepared);
         }
     }

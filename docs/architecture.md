@@ -5,7 +5,7 @@ and shared SQL contracts; providers own driver, session, and database behavior.
 Public package entries are the only seams allowed to cross that boundary.
 
 The published `0.1.0-alpha.1` family contains six packages: core, three
-providers, CLI, and testing. The coordinated `0.1.0-alpha.2` source adds
+providers, CLI, and testing. The published `0.1.0-alpha.2` family added
 `@entitykit/nestjs` as the first framework integration; it is not retroactively
 part of the `alpha.1` set.
 
@@ -66,7 +66,7 @@ unit of work
   -> dataSource.createContext(ContextType, ...arguments)
   -> DbContext.create(dataSource, ...arguments)
   -> synchronous configure(options)
-  -> synchronous model(builder)
+  -> synchronous model(builder), or an explicitly selected compiled-model handle
   -> validate provider, model, and tenant-scope contracts
   -> lease connection, initialize dialect, model, and tracker
   -> expose DbSet gateways and optional lazy-navigation coordination
@@ -89,6 +89,19 @@ A second provider, source, or connection selection fails before acquiring a
 connection. Provider factories expose
 `dataSource.createContext()` as the application-facing
 entry, which forwards any remaining constructor arguments.
+
+Compiled models are explicit caller-owned handles. The model layer copies and
+freezes their mapping graph with private read-only lookup storage. Context options
+select one handle and validate provider/dialect compatibility before connection
+allocation. Each context still owns tenant callbacks, options, trackers and leases.
+The initial supported subset and dynamic fallback are described in
+[compiled models](compiled-models.md). Eligible buffered flat projection executions own
+their SQL/decoding shape and resolve immutable fields once; plans and request
+values remain local to each execution.
+Eligible flat entity mappings also share a private field plan keyed by explicitly
+owned entity metadata. It pre-resolves paths and names without retaining readers,
+rows or request state. Capture, identity lookup, construction, verified writes and
+independent persistence-fact retention keep their existing stage order.
 
 The public `DbContext` delegates to focused runtime hosts for query filters,
 relationships, migrations, raw SQL, transaction coordination, and the unit of
@@ -222,7 +235,7 @@ checksum serialization remain independent of this execution scope.
 ## Release flow
 
 The current `main` release pipeline applies this shape to the seven-package
-`0.1.0-alpha.2` family. The published `0.1.0-alpha.1` release used the same
+`0.1.0-alpha.3` candidate family. The published `0.1.0-alpha.1` release used the same
 integrity-first design for six packages and did not contain NestJS.
 
 ```text

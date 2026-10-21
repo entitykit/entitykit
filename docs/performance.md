@@ -60,8 +60,16 @@ principal/dependent adjacency through the existing captured key, tenant and
 pending-intent rules, then processes a queue.
 It rechecks live relationship intent before applying each edge and preserves
 the dependent-state boundary between principals. The linear work gate covers
-relationship resolution for disjoint pairs and reverse-tracked chains; it does
-not claim every accessor or inverse-collection mutation has constant cost.
+relationship resolution for disjoint pairs and reverse-tracked chains. Ordinary
+Cascade and SetNull paths also accumulate inverse removals by principal and
+navigation, then publish each completed collection once. Cascades with sparse
+inverse arrays or optional SetNull foreign-key converters instead publish each
+removal immediately, preserving skipped holes and the graph observed by converter
+callbacks. The converter exclusion covers the whole cascade pass, including
+relationships without inverse navigations. Their public tests
+bound collection work as child counts increase and verify failure restoration
+and caller rollback. Loaded-removal benchmarks exercise both behaviors on all
+three providers. No constant-cost claim applies to dynamic application hooks.
 Graphs with relationship/FK accessors, entity/prototype proxies, proxied inverse
 arrays or custom collection descriptors retain ordered
 live discovery: arbitrary user code can redirect another dependent during a
@@ -78,43 +86,50 @@ Normal builds derive expected outputs from each TypeScript configuration and
 invalidate that package's incremental state when runtime or declaration files
 are missing. This includes internal modules and the CLI entry point.
 
-## Model-reuse decision
+## Explicit model ownership
 
-Keep per-context model construction in this pass. Introduce model reuse in a
-separate prerelease API change through an **explicit compiled-model handle**,
-with caller-owned model identity and provider compatibility. Constructor-only
-caching is unsuitable: `model()` may use instance configuration, schemas,
-converters or callbacks that capture application state. A shared data source
-currently shares provider resources, not a finalized model.
+An application can now create an explicit `compileModel()` handle and select it
+with `options.useCompiledModel(handle)`. Compilation owns and freezes copied
+metadata and hides mutable lookup storage. Every context still runs configure(),
+validates tenant/provider compatibility before leasing, and owns its tracker,
+callbacks, guards, transactions and connections. Without opt-in, model() remains
+instance-dependent and runs per context. No constructor cache is introduced.
 
-The current metadata's TypeScript `readonly` members do not establish deep
-runtime immutability. `EntityMetadata` retains supplied property, relationship
-and index arrays, and converters/materializers can retain mutable closures.
-Reusing these objects silently would change existing ownership semantics.
-A model snapshot alone cannot reconstruct constructor and callback identities.
+The initial handle supports flat mappings without custom materializers, value
+converters, complex properties or object/function defaults. Unsupported shapes
+are rejected explicitly and remain available through dynamic configuration.
+Constructors retain their identity and execute normally; no application function
+or prototype is frozen. Freezing a function cannot freeze its closed-over state.
 
-A future opt-in contract must establish all of these before it skips `model()`:
+Eligible buffered flat projections now copy and freeze their field instructions
+before SQL compilation, then resolve each mapped property once per execution.
+SQL and decoding consume that same owned shape. Dynamic mappings and unsupported
+projection shapes keep the existing mapper; streaming projections are unchanged.
+Plans never retain query parameters, rows or application readers across executions.
+Live readers and safe output writes remain in the per-value path. Eligible flat
+entity mappings also share a private field plan through their compiled metadata.
+Entity reads still perform verified writes, identity handling and retained
+persistence facts; field plans preserve those ownership boundaries.
 
-- Finalization copies and owns metadata, nested arrays and mutable default
-  values; lookup maps expose no mutators. Builder changes cannot affect a handle.
-- Separate mapping variants get separate explicit handles. Provider-specific
-  column/index validation, including physical identifier rules, runs before SQL.
-- Shared converters and factories are explicitly safe to reuse; freezing a
-  function object cannot freeze its captured state. Factories still create fresh
-  entities and preserve converted identity and attachment behavior.
-- Every context still configures fresh tenant callbacks, clocks, interceptors,
-  trackers, operation guards and connection ownership. A model handle carries
-  no request state and does not bypass tenant-scope validation.
-- Tests exercise two contexts with distinct instance mappings, independent
-  options/tenants, retained builders, mutable defaults, failed initialization,
-  incompatible providers and context disposal. Benchmarks report model setup
-  separately from warm queries and prove the hook is skipped only by opt-in.
-
-This is a design direction, not an API available in the current release. The
-four setup workloads quantify the current cost without introducing a hidden
-cache or a constructor identity rule.
+[The compiled-model contract](compiled-models.md) describes the API and limits.
+Tests cover retained builders, nested ownership, hidden lookup mutators, forged
+handles, explicit variants, dynamic mappings, provider refusal before leases,
+tenant isolation, initialization retry, attachment and transaction rollback.
+Benchmark modes must label compiled ownership explicitly, retain fresh contexts
+and equal connection policy, and measure setup separately from warm reads.
 
 ## Provider follow-ups
+
+SQLite data sources can explicitly retain a bounded number of idle native handles
+with `maxIdleConnections`. Reuse removes repeated file opens and connection
+configuration while each context retains its own exclusive lease and ORM state.
+The default remains zero. Only filesystem paths are supported; session-changing
+SQL and failed provider operations retire the leased handle instead of attempting
+to reset unknown session state. This is separate from prepared-statement caching.
+
+SQLite statement classification first checks for a semicolon. SQL without one
+requires no quote/comment scan; statements containing one use the existing
+scanner and script/parameter rules. No statement is cached by this shortcut.
 
 Keep SQLite statement reuse as a measured follow-up: a connection-owned cache
 needs a strict bound, active-iterator ownership, schema-change invalidation and
@@ -124,3 +139,117 @@ and snapshot costs on a controlled host.
 The stream matrix records PostgreSQL's real cursor commands at batch sizes 32
 and 256. Use representative network latency and payloads before changing the
 default or cursor design. SQL text caching remains bounded and unchanged.
+
+## Operation-scope lifetime
+
+Exclusive connection guards share one async-local store and retain separate
+tokens for each owning operation. A linked scope chain preserves access to
+outer transactions through nested guards, while overlapping queries, unrelated
+async chains and expired operation tokens remain rejected. Ending one guard
+does not disable another guard's store or the application's async context.
+Detached continuations skip expired parent scopes when starting new work.
+
+This bounds Node 22's enabled async-hook registrations and Node 24's copied
+async-context frame keys. A store per short-lived guard can leave keys in the
+caller's restored Node 24 frame even after the guard disables its own current
+frame. Repeated context construction then increases the cost of later async
+operations. The resource regression checks the number of distinct async-local
+stores across 256 guards, alongside nested ownership and detached-continuation
+coverage. Per-context model construction and connection ownership are unchanged.
+
+## Required-column ordering
+
+Single-table ordering uses the mapped column's nullability. Required columns
+map to `NOT NULL` and need no extra provider terms to place nulls first or last;
+removing those terms can let a composite index satisfy the complete ordering.
+Nullable columns retain portable null placement. Joined and aggregate values
+keep their existing null handling because joins and expressions can introduce
+nulls even when the source column is required. Compiled SQL cache keys include
+ordered-column nullability so different mappings cannot share the wrong text.
+
+## Snapshot allocation
+
+Scalar snapshot cloning returns the original immutable value before allocating
+cycle-tracking state. Snapshot equality likewise allocates that state only when
+comparing structured graphs, after primitive, date, regular-expression and binary
+comparisons. Recursive comparisons share one visited-pair map; structured clones
+retain their existing cycle, aliasing and isolation behavior.
+
+## Empty tracker allocation
+
+Trackers defer their registry until tracking, identity lookup, acceptance or
+relationship detection requires it. Empty entry checks, enumeration, detach and
+clear avoid allocating registry maps and callbacks. Mutation guards still run
+before detach and clear; identity lookups still normalize and validate keys.
+Configured relationship detection initializes registry ownership even when its
+entry list is empty, so restoration journals retain their normal guarantees.
+
+Each tracker owns its registry once initialized. Clearing tracked entities
+retains that registry for acceptance and relationship journals, and observer
+callbacks continue to use the tracker's current observer slots. Read-only query
+trackers can remain uninitialized throughout their lifetime.
+
+Save mutation guards also defer reservation maps. Deferred save acceptance
+initializes its entity and identity maps; upsert input reservation initializes
+its separate entity map. Read-only guards need neither. Once initialized, maps
+remain owned by that guard and are reused across releases. Nested reservation
+counts, idempotent release, usability checks and save-execution checks retain
+the same behavior.
+
+## DbSet service adapters
+
+Each DbSet retains its own service adapter and captured method references.
+Accessor implementations are shared on a private class prototype; options,
+database and model callbacks remain live and lazy. This avoids five accessor
+closures per set without sharing a context, tracker, model or tenant state.
+
+## Materialized ancestor checks
+
+Mapped-property writes inspect complex ancestors with an indexed loop instead
+of allocating a callback for every property, including flat models. Each check
+reads the current metadata array, captures its initial length, skips absent
+indices and stops at the first matching null ancestor. Inherited indices and
+mutations to existing indices remain visible; no metadata is cached across
+properties or queries.
+
+## Materialized write diagnostics
+
+Successful mapped writes defer joining the entity and property names until a
+provider comparison or a refused assignment needs the diagnostic context. The
+names are still read and coerced before the live value lookup, preserving getter
+order and the original names when a value getter or setter changes metadata.
+Restoration writes retain their eagerly composed context and journal behavior.
+
+## Property write targets
+
+Mapped writes traverse directly to the target object without constructing a
+short-lived target/name pair. Callers that request a target/name pair still get
+one. Both paths capture and validate the leaf first, then call the path's slice
+method and traverse its iterator before assigning the value. Custom path methods,
+inherited setters and created-but-replaced ancestor objects retain their behavior.
+
+## Provider capture diagnostic experiment
+
+The capture diagnostic-string shortcut was reverted after qualification: temporary
+hydration allocation did not decrease and HTTP read differences stayed small
+with overlapping ranges. Capture retains eager context formatting. Regression
+coverage for metadata/coercion order, converter diagnostics, null bypass and
+bound JSON round trips remains.
+
+## Save executor allocation
+
+A context creates its save executor only after a nonempty save plan and the
+cancellation/disposal checks. Reads, plan previews and empty saves do not allocate
+the executor or its lifecycle/tracked-state helpers. Once created, the same
+executor stays owned by that context across successful and failed saves and
+tracking clears. Transaction ownership and live option/interceptor reads remain
+per context; there is no shared executor cache.
+
+## Identity cycle allocation experiment
+
+Deferring identity ancestry sets reduced sampled temporary hydration allocation,
+but was reverted after projection HTTP p95 was worse in all five initial pairs
+and all five follow-up pairs, with separated follow-up p95 ranges. Identity tuple
+encoding retains its existing eager per-value ancestry state. Regression tests
+for failed-getter retry and independent reentrant encoding remain, along with
+whole-module mutation qualification.

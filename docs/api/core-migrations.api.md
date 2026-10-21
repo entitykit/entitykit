@@ -274,7 +274,7 @@ export interface EntityKitErrorOptions {
 }
 
 // @public (undocumented)
-export const entityKitMigrationVersion = "0.1.0-alpha.2";
+export const entityKitMigrationVersion = "0.1.0-alpha.3";
 
 // @public
 export interface EntitySnapshot {
@@ -377,7 +377,7 @@ export interface ManyToManySnapshot {
 // @public
 export abstract class Migration {
     readonly destructiveWarnings?: readonly string[];
-    down(builder: MigrationBuilder): void;
+    down(_builder: MigrationBuilder): void;
     abstract readonly id: string;
     abstract readonly name: string;
     readonly previousSnapshot?: ModelSnapshot;

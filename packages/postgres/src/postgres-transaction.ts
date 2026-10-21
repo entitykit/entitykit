@@ -91,9 +91,8 @@ export async function runPostgresSavepoint<TResult>(
     } catch (error) {
         throw createPostgresProviderError('savepoint', error);
     }
-    throwIfOperationAborted(options?.signal);
-
     try {
+        throwIfOperationAborted(options?.signal);
         const result = await work();
         throwIfOperationAborted(options?.signal);
         try {
@@ -106,7 +105,6 @@ export async function runPostgresSavepoint<TResult>(
     } catch (error) {
         try {
             await client.query(`rollback to savepoint ${savepointName}`);
-            onRollbackToSavepoint?.(error);
         } catch (rollbackError) {
             throw new DatabaseTransactionCleanupError(
                 'postgres',
@@ -117,6 +115,15 @@ export async function runPostgresSavepoint<TResult>(
                 ),
             );
         }
+
+        try {
+            await client.query(`release savepoint ${savepointName}`);
+        } catch (releaseError) {
+            throw new DatabaseTransactionCleanupError(
+                'postgres', error, createPostgresProviderError('releaseSavepoint', releaseError),
+            );
+        }
+        onRollbackToSavepoint?.(error);
 
         throw error;
     }

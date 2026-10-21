@@ -4,10 +4,10 @@ import type { EntityEntry } from './entity-entry';
 export class SaveMutationGuard {
     private executionDepth = 0;
     private pendingCount = 0;
-    private readonly pendingByEntity: WeakMap<object, number> = new WeakMap();
-    private readonly pendingByIdentity: Map<string, number> = new Map();
+    private pendingByEntity?: WeakMap<object, number>;
+    private pendingByIdentity?: Map<string, number>;
     private upsertReservationCount = 0;
-    private readonly upsertReservations: WeakMap<object, number> = new WeakMap();
+    private upsertReservations?: WeakMap<object, number>;
 
     constructor(
         private assertUsable: (operation: string) => void = () => undefined,
@@ -37,17 +37,19 @@ export class SaveMutationGuard {
     ): () => void {
         const entities = new Set(entries.map(entry => entry.entity));
         const identities = new Set(identityKeys);
+        const byEntity = this.pendingByEntity ??= new WeakMap<object, number>();
+        const byIdentity = this.pendingByIdentity ??= new Map<string, number>();
         for (const entity of entities) {
-            this.pendingByEntity.set(
+            byEntity.set(
                 entity,
-                (this.pendingByEntity.get(entity) ?? 0) + 1,
+                (byEntity.get(entity) ?? 0) + 1,
             );
             this.pendingCount += 1;
         }
         for (const identity of identities) {
-            this.pendingByIdentity.set(
+            byIdentity.set(
                 identity,
-                (this.pendingByIdentity.get(identity) ?? 0) + 1,
+                (byIdentity.get(identity) ?? 0) + 1,
             );
         }
         let pending = true;
@@ -55,15 +57,15 @@ export class SaveMutationGuard {
             if (!pending) return;
             pending = false;
             for (const entity of entities) {
-                const count = this.pendingByEntity.get(entity) ?? 0;
-                if (count <= 1) this.pendingByEntity.delete(entity);
-                else this.pendingByEntity.set(entity, count - 1);
+                const count = byEntity.get(entity) ?? 0;
+                if (count <= 1) byEntity.delete(entity);
+                else byEntity.set(entity, count - 1);
                 this.pendingCount -= 1;
             }
             for (const identity of identities) {
-                const count = this.pendingByIdentity.get(identity) ?? 0;
-                if (count <= 1) this.pendingByIdentity.delete(identity);
-                else this.pendingByIdentity.set(identity, count - 1);
+                const count = byIdentity.get(identity) ?? 0;
+                if (count <= 1) byIdentity.delete(identity);
+                else byIdentity.set(identity, count - 1);
             }
         };
     }
@@ -71,13 +73,14 @@ export class SaveMutationGuard {
     public reserveUpsertInputs(entities: readonly object[]): () => void {
         this.assertUsable('upsert()');
         const reserved: Set<object> = new Set(entities);
+        const reservations = this.upsertReservations ??= new WeakMap<object, number>();
         for (const entity of reserved) {
-            if (this.upsertReservations.has(entity)) {
+            if (reservations.has(entity)) {
                 this.throwUpsertReservation('upsert()');
             }
         }
         for (const entity of reserved) {
-            this.upsertReservations.set(entity, 1);
+            reservations.set(entity, 1);
             this.upsertReservationCount += 1;
         }
         let active = true;
@@ -85,7 +88,7 @@ export class SaveMutationGuard {
             if (!active) return;
             active = false;
             for (const entity of reserved) {
-                this.upsertReservations.delete(entity);
+                reservations.delete(entity);
                 this.upsertReservationCount -= 1;
             }
         };
@@ -101,14 +104,14 @@ export class SaveMutationGuard {
             'change tracked structure',
         );
         if (
-            entity && this.upsertReservations.has(entity) ||
+            entity && this.upsertReservations?.has(entity) ||
             entity === undefined && this.upsertReservationCount > 0
         ) {
             this.throwUpsertReservation(operation);
         }
         if (
-            entity && this.pendingByEntity.has(entity) ||
-            identityKey !== undefined && this.pendingByIdentity.has(identityKey) ||
+            entity && this.pendingByEntity?.has(entity) ||
+            identityKey !== undefined && this.pendingByIdentity?.has(identityKey) ||
             entity === undefined && this.pendingCount > 0
         ) {
             throw new ContextConcurrentOperationError(

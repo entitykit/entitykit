@@ -12,6 +12,7 @@ import { DbSetCountRunner } from './db-set-count-runner';
 import type { QueryFilterOperation } from './query-filter-operation';
 import { loadDbSetIncludes } from './db-set-include-loader';
 import { QueryIdentityResolution, useQueryIdentityResolution } from '../materialization/query-identity-resolution';
+import { tryCompileProjectionPlan } from './compiled-projection-plan';
 /** Runs full-entity, scalar, projection, and aggregate reads for a `DbSet`. */
 export class DbSetQueryRunner<TEntity extends object> {
     private materializerInstance?: Materializer;
@@ -114,19 +115,15 @@ export class DbSetQueryRunner<TEntity extends object> {
 
     public async executeProjectionToArray<TProjection extends Record<string, unknown>>(model: QueryModel<TEntity>, options?: DatabaseOperationOptions): Promise<TProjection[]> {
         const filteredModel = this.context.applyQueryFilters(this.metadata, model);
-        const shape = this.diagnostics.queryShape('projection', filteredModel);
-        const statement = this.pipeline.compile('select', filteredModel, shape);
+        const plan = tryCompileProjectionPlan(this.context, this.entityType, filteredModel);
+        const projectionModel = plan?.model ?? filteredModel;
+        const shape = this.diagnostics.queryShape('projection', projectionModel);
+        const statement = this.pipeline.compile('select', projectionModel, shape);
         return this.pipeline.execute(shape, async () => {
             const result = await this.context.database.query(statement, options);
-            const rows = this.resultMapper.materializeProjectionRows<TProjection>(
-                filteredModel,
-                result.rows,
-            );
-            return {
-                value: rows,
-                rowCount: result.rowCount,
-                resultCount: rows.length,
-            };
+            const rows = plan ? plan.materializeRows<TProjection>(result.rows)
+                : this.resultMapper.materializeProjectionRows<TProjection>(projectionModel, result.rows);
+            return { value: rows, rowCount: result.rowCount, resultCount: rows.length };
         });
     }
 

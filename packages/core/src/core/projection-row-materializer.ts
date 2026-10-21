@@ -17,13 +17,16 @@ export function materializeProjectionRows<
     const projection = model.projection ?? [];
     return rows.map(row => {
         const output: Record<string, unknown> = {};
+        let rootIsPrivate = true;
         for (const item of projection) {
             const value = materializeProjectionValue(
                 item,
                 row[item.alias],
                 readField,
             );
-            setProjectionValue(output, item.path ?? [item.alias], value);
+            rootIsPrivate = setProjectionValue(
+                output, item.path ?? [item.alias], value, rootIsPrivate,
+            );
         }
         return output as TProjection;
     });
@@ -66,13 +69,28 @@ function setProjectionValue(
     output: Record<string, unknown>,
     path: readonly string[],
     value: unknown,
-): void {
+    rootIsPrivate: boolean,
+): boolean {
     let current = output;
-    path.forEach((key, index) => {
-        if (index === path.length - 1) {
-            defineProjectionProperty(current, key, value);
-            return;
+    const length = path.length;
+    for (let index = 0; index < length; index++) {
+        if (!(index in path)) {
+            continue;
         }
+        const key = path[index];
+        if (index === path.length - 1) {
+            // A private root has only writable data properties. Once an
+            // ancestor lookup can expose it, every later write must define.
+            if (rootIsPrivate && current === output && !Object.hasOwn(Object.prototype, key)) {
+                current[key] = value;
+            } else {
+                defineResultProperty(current, key, value);
+            }
+            continue;
+        }
+        // Even an inherited getter receives the root as its receiver and can
+        // change its own descriptors or prototype before another field writes.
+        rootIsPrivate = false;
         const existing = current[key];
         if (
             Object.prototype.hasOwnProperty.call(current, key) &&
@@ -80,15 +98,16 @@ function setProjectionValue(
             typeof existing === 'object'
         ) {
             current = existing as Record<string, unknown>;
-            return;
+            continue;
         }
         const nested: Record<string, unknown> = {};
-        defineProjectionProperty(current, key, nested);
+        defineResultProperty(current, key, nested);
         current = nested;
-    });
+    }
+    return rootIsPrivate;
 }
 
-function defineProjectionProperty(
+export function defineResultProperty(
     target: Record<string, unknown>,
     key: string,
     value: unknown,

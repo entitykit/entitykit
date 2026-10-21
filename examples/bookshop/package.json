@@ -13,10 +13,10 @@
     "qualify:mysql": "node --unhandled-rejections=strict dist/qualify.js mysql"
   },
   "dependencies": {
-    "@entitykit/core": "0.1.0-alpha.2",
-    "@entitykit/sqlite": "0.1.0-alpha.2",
-    "@entitykit/postgres": "0.1.0-alpha.2",
-    "@entitykit/mysql": "0.1.0-alpha.2"
+    "@entitykit/core": "0.1.0-alpha.3",
+    "@entitykit/sqlite": "0.1.0-alpha.3",
+    "@entitykit/postgres": "0.1.0-alpha.3",
+    "@entitykit/mysql": "0.1.0-alpha.3"
   },
   "engines": { "node": ">=22.13" }
 }

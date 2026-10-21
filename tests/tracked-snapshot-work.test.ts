@@ -3,6 +3,7 @@ import { DbContext, EntityState } from '../packages/core/src';
 import { sqliteProviderServices } from '../packages/sqlite/src';
 import * as initialSnapshot from '../packages/core/src/tracking/initial-tracked-entry-snapshot';
 import { ChangeTracker } from '../packages/core/src/tracking/change-tracker';
+import { cloneBoundValues } from '../packages/core/src/tracking/bound-value-snapshot';
 
 class SnapshotRow {
     public id = 0;
@@ -97,5 +98,61 @@ describe('initial tracked snapshot work', () => {
         } finally {
             await db.dispose();
         }
+    });
+});
+
+describe('bound snapshot copies', () => {
+    it('owns a separate cyclic graph for each bound property', () => {
+        const value: { label: string; self?: unknown } = { label: 'before' };
+        value.self = value;
+        const original = { first: value, second: value };
+        const copy = cloneBoundValues(original) as typeof original;
+        expect(copy.first).not.toBe(value);
+        expect(copy.second).not.toBe(copy.first);
+        expect(copy.first.self).toBe(copy.first);
+        expect(copy.second.self).toBe(copy.second);
+        copy.first.label = 'after';
+        expect(value.label).toBe('before');
+        expect(copy.second.label).toBe('before');
+    });
+
+    it('captures root getters before cloning any nested value', () => {
+        const events: string[] = [];
+        let later = 'before';
+        const nested = {
+            get value(): number {
+                events.push('nested');
+                later = 'after';
+                return 42;
+            },
+        };
+        const values = {
+            get first(): object {
+                events.push('first');
+                return nested;
+            },
+            get second(): string {
+                events.push('second');
+                return later;
+            },
+        };
+        expect(cloneBoundValues(values)).toEqual({ first: { value: 42 }, second: 'before' });
+        expect(events).toEqual(['first', 'second', 'nested']);
+        expect(later).toBe('after');
+    });
+
+    it('copies special own keys without changing the output prototype', () => {
+        const values = Object.create({ inherited: true }) as Record<PropertyKey, unknown>;
+        Object.defineProperty(values, '__proto__', { enumerable: true, value: { owned: true } });
+        Object.defineProperty(values, 'hidden', { value: true });
+        Object.defineProperty(values, 'constructor', { enumerable: true, value: 'own constructor' });
+        values[Symbol('symbol')] = true;
+        const copy = cloneBoundValues(values);
+        expect(Object.getPrototypeOf(copy)).toBe(Object.prototype);
+        expect(Object.keys(copy)).toEqual(['__proto__', 'constructor']);
+        expect(Object.prototype.hasOwnProperty.call(copy, '__proto__')).toBe(true);
+        expect(copy.__proto__).toEqual({ owned: true });
+        expect(copy.__proto__).not.toBe(values.__proto__);
+        expect(copy.constructor).toBe('own constructor');
     });
 });

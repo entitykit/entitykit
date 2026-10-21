@@ -48,6 +48,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_1'],
             ['select nested', []],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['select outer', []],
             ['commit'],
         ]);
@@ -122,6 +123,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_1'],
             ['release savepoint entitykit_sp_1'],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['rollback'],
         ]);
         expect(pgClient.release).toHaveBeenCalledTimes(1);
@@ -142,9 +144,11 @@ describe('PostgresDatabaseConnection savepoints', () => {
             });
         })).rejects.toMatchObject({
             name: 'DatabaseTransactionCleanupError',
+            provider: 'postgres',
             operation: 'rollbackToSavepoint',
             cleanupError: containing({
                 name: 'DatabaseProviderError',
+                provider: 'postgres',
                 operation: 'rollbackToSavepoint',
                 code: 'ROLLBACK_TO_SAVEPOINT_FAILED',
             }),
@@ -249,6 +253,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_1'],
             ['savepoint entitykit_sp_1'],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['rollback'],
         ]);
     });
@@ -261,6 +266,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             .mockResolvedValueOnce(undefined)
             .mockResolvedValueOnce(undefined)
             .mockRejectedValueOnce({ code: 'DEEP_ROLLBACK_FAILED' })
+            .mockResolvedValueOnce(undefined)
             .mockResolvedValueOnce(undefined)
             .mockResolvedValueOnce({ rows: [], rowCount: 0 })
             .mockResolvedValueOnce(undefined);
@@ -284,6 +290,7 @@ describe('PostgresDatabaseConnection savepoints', () => {
             ['savepoint entitykit_sp_2'],
             ['rollback to savepoint entitykit_sp_2'],
             ['rollback to savepoint entitykit_sp_1'],
+            ['release savepoint entitykit_sp_1'],
             ['select recovered', []],
             ['commit'],
         ]);

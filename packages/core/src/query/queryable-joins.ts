@@ -7,6 +7,10 @@ import type {
 import { JoinedQueryable } from './joined-query/queryable';
 import { QueryableTerminals } from './queryable-terminals';
 
+// The initial join scope deliberately has no aliases; the first join adds one.
+// eslint-disable-next-line @typescript-eslint/no-generated-empty-object-type -- Empty keys are intentional here.
+type EmptyJoinedSources = Record<never, object>;
+
 /**
  * Shape-changing joins available from an entity query.
  */
@@ -18,8 +22,8 @@ export abstract class QueryableJoins<TEntity extends object> extends QueryableTe
     ): JoinedQueryable<TEntity, Record<TAlias, TJoined>, Record<TAlias, TJoined>> {
         return new JoinedQueryable<
             TEntity,
-            Record<never, object>,
-            Record<never, object>
+            EmptyJoinedSources,
+            EmptyJoinedSources
         >(this.metadata, this.executor, this.toQueryModel())
             .join(alias, target, selector);
     }
@@ -31,8 +35,8 @@ export abstract class QueryableJoins<TEntity extends object> extends QueryableTe
     ): JoinedQueryable<TEntity, Record<TAlias, TJoined>, Record<TAlias, NullableProjectionEntity<TJoined>>> {
         return new JoinedQueryable<
             TEntity,
-            Record<never, object>,
-            Record<never, object>
+            EmptyJoinedSources,
+            EmptyJoinedSources
         >(this.metadata, this.executor, this.toQueryModel())
             .leftJoin(alias, target, selector);
     }

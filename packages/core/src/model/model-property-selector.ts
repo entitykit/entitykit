@@ -113,17 +113,18 @@ export function selectPropertyNames<TEntity extends object>(
 }
 
 function createModelPropertyPathProxy<TEntity extends object>(
-    path: readonly string[] = [],
+    path?: readonly string[],
 ): ModelPropertyPathSelector<TEntity> {
     const proxy = new Proxy({}, {
         get(_target, property): unknown {
             if (typeof property !== 'string') {
                 return undefined;
             }
-            return createModelPropertyPathProxy<TEntity>([...path, property]);
+            return createModelPropertyPathProxy<TEntity>(path ? [...path, property] : [property]);
         },
     }) as ModelPropertyPathSelector<TEntity>;
-    modelPropertyPaths.set(proxy, path);
+    // A root selector is not a valid property token and needs no path entry.
+    if (path) modelPropertyPaths.set(proxy, path);
     return proxy;
 }
 

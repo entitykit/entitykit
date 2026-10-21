@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from './write-snapshot-value';
 import { readPropertyValue } from '../model/property-value-access';
 import type { RelationshipKeyMetadata } from '../model/relationship-key-codec';
 import type { EntityEntry } from './entity-entry';
@@ -21,8 +22,8 @@ export function captureReferenceForeignKeyFacts(
         const live = readPropertyValue(entry.entity, property);
         const original = entry.originalValues[propertyName];
         if (Object.is(live, original)) {
-            modelValues[propertyName] = original;
-            boundValues[propertyName] = entry.originalBoundValues[propertyName];
+            writeSnapshotValue(modelValues, propertyName, original);
+            writeSnapshotValue(boundValues, propertyName, entry.originalBoundValues[propertyName]);
             continue;
         }
         const captured = capturePropertyPersistenceFact(
@@ -31,12 +32,12 @@ export function captureReferenceForeignKeyFacts(
         const unchanged = snapshotValuesEqual(
             captured.boundValue, entry.originalBoundValues[propertyName],
         );
-        modelValues[propertyName] = unchanged
+        writeSnapshotValue(modelValues, propertyName, unchanged
             ? original
-            : captured.modelValue;
-        boundValues[propertyName] = unchanged
+            : captured.modelValue);
+        writeSnapshotValue(boundValues, propertyName, unchanged
             ? entry.originalBoundValues[propertyName]
-            : captured.boundValue;
+            : captured.boundValue);
     }
     return { modelValues, boundValues };
 }

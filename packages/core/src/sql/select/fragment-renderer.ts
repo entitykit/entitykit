@@ -24,10 +24,10 @@ export class SelectFragmentRenderer implements SelectFragmentHost {
         }
     }
 
-    public orderTerm(columnExpr: string, direction: string): string {
+    public orderTerm(columnExpr: string, direction: string, nullable = true): string {
         const normalized = direction === 'desc' ? 'desc' : 'asc';
-        const prefix = this.dialect.nullOrderingPrefix?.(columnExpr, normalized) ?? '';
-        const suffix = this.dialect.nullOrderingClause?.(normalized) ?? '';
+        const prefix = nullable ? this.dialect.nullOrderingPrefix?.(columnExpr, normalized) ?? '' : '';
+        const suffix = nullable ? this.dialect.nullOrderingClause?.(normalized) ?? '' : '';
         return `${prefix}${columnExpr} ${direction}${suffix}`;
     }
 

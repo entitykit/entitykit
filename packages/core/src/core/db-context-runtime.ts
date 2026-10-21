@@ -73,7 +73,7 @@ export abstract class DbContextRuntime {
                 assertCanQuery: operation => {
                     this.assertContextUsable(operation);
                     this.ensureInitialized();
-                    void this.state.database;
+                    const _database = this.state.database;
                 },
                 assertStateUsable: this.assertStateUsable.bind(this),
                 applyQueryFilters: (metadata, query) => this.applyQueryFilters(metadata, query),

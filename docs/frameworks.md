@@ -40,7 +40,8 @@ intermediate base class, such as auditing, tenant scope, or diagnostics.
 Selecting a second provider or source is an error.
 
 > [!IMPORTANT]
-> This guide targets `0.1.0-alpha.2`. Previous `0.1.0-alpha.1` contexts must
+> This guide targets `0.1.0-alpha.3` and the published `0.1.0-alpha.2` lifecycle.
+> Previous `0.1.0-alpha.1` contexts must
 > select a shared source explicitly with `options.useDataSource(source)` in
 > `configure()`.
 
@@ -48,8 +49,8 @@ Selecting a second provider or source is an error.
 
 > [!IMPORTANT]
 > `@entitykit/nestjs` begins with the coordinated `0.1.0-alpha.2` family. It was
-> not part of the `0.1.0-alpha.1` six-package release. Use the workspace build
-> until `alpha.2` is promoted on npm.
+> not part of the `0.1.0-alpha.1` six-package release. Alpha.2 is published on npm;
+> alpha.3 remains a source candidate until its release qualification and publication.
 
 The integration emits native ESM and targets NestJS 12. Configure the consuming
 application as ESM—typically with `"type": "module"` and TypeScript
@@ -67,7 +68,7 @@ metadata:
 }
 ```
 
-After the coordinated release is available, the install shape is:
+Install the published coordinated family:
 
 ```sh
 npm install @entitykit/core@alpha @entitykit/postgres@alpha @entitykit/nestjs@alpha pg \
@@ -216,7 +217,7 @@ package reference.
 
 The [Next.js + Postgres demo](../examples/nextjs-postgres/) is a
 production-shaped App Router example whose manifest pins the exact
-`0.1.0-alpha.2` workspace family. The app shows Server Components, a Server
+`0.1.0-alpha.3` workspace family. The app shows Server Components, a Server
 Action, a Route Handler, source-controlled migrations, and a real Postgres data
 path.
 

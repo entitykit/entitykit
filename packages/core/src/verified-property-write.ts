@@ -24,13 +24,14 @@ export function writeVerifiedProperty(
     property: PropertyMetadata,
     value: unknown,
     context: string,
+    propertyName?: string,
 ): unknown {
-    const expected = captureWriteExpectation(value, property, context);
+    const expected = captureWriteExpectation(value, property, context, propertyName);
     writePropertyValue(entity, property, value);
-    assertPathAncestorsAccepted(entity, property.propertyPath, context);
+    assertPathAncestorsAccepted(entity, property.propertyPath, context, propertyName);
     const actual = readPropertyValue(entity, property);
-    if (!assignedValueAccepted(actual, expected, property, context)) {
-        throw refusedAssignment(context);
+    if (!assignedValueAccepted(actual, expected, property, context, propertyName)) {
+        throw refusedAssignment(context, propertyName);
     }
     return actual;
 }
@@ -56,6 +57,7 @@ function captureWriteExpectation(
     value: unknown,
     property: PropertyMetadata,
     context: string,
+    propertyName?: string,
 ): WriteExpectation {
     if (!property.converter) {
         return { kind: 'structural', snapshot: cloneSnapshotValue(value) };
@@ -65,7 +67,7 @@ function captureWriteExpectation(
     }
     return {
         kind: 'provider',
-        providerValue: capturedProviderValue(value, property, context),
+        providerValue: capturedProviderValue(value, property, context, propertyName),
     };
 }
 
@@ -75,19 +77,20 @@ function assignedValueAccepted(
     expected: WriteExpectation,
     property: PropertyMetadata,
     context: string,
+    propertyName?: string,
 ): boolean {
     if (expected.kind === 'structural') {
         return snapshotValuesEqual(actual, expected.snapshot);
     }
     if (expected.kind === 'primitive') {
         return Object.is(actual, expected.value) || snapshotValuesEqual(
-            capturedProviderValue(expected.value, property, context),
-            capturedProviderValue(actual, property, context),
+            capturedProviderValue(expected.value, property, context, propertyName),
+            capturedProviderValue(actual, property, context, propertyName),
         );
     }
     return snapshotValuesEqual(
         expected.providerValue,
-        capturedProviderValue(actual, property, context),
+        capturedProviderValue(actual, property, context, propertyName),
     );
 }
 
@@ -96,9 +99,10 @@ function capturedProviderValue(
     value: unknown,
     property: PropertyMetadata,
     context: string,
+    propertyName?: string,
 ): unknown {
     return cloneSnapshotValue(
-        toProviderValue(value, property.converter, context),
+        toProviderValue(value, property.converter, diagnosticContext(context, propertyName)),
     );
 }
 
@@ -106,11 +110,12 @@ function assertPathAncestorsAccepted(
     entity: object,
     path: readonly string[],
     context: string,
+    propertyName?: string,
 ): void {
     for (let index = 1; index < path.length; index++) {
         const ancestor = readPropertyPath(entity, path.slice(0, index));
         if (ancestor === null || typeof ancestor !== 'object') {
-            throw refusedAssignment(context);
+            throw refusedAssignment(context, propertyName);
         }
     }
 }
@@ -122,6 +127,11 @@ function pathValueAccepted(actual: unknown, value: unknown): boolean {
     return Object.is(actual, value);
 }
 
-function refusedAssignment(context: string): Error {
-    return new Error(`Property '${context}' refused its assigned value.`);
+function refusedAssignment(context: string, propertyName?: string): Error {
+    return new Error(`Property '${diagnosticContext(context, propertyName)}' refused its assigned value.`);
+}
+
+/** Compose optional captured name parts only when comparison or failure needs them. */
+function diagnosticContext(context: string, propertyName?: string): string {
+    return propertyName === undefined ? context : `${context}.${propertyName}`;
 }

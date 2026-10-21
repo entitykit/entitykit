@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from '../../tracking/write-snapshot-value';
 import type { ChangeTracker } from '../../tracking/change-tracker';
 import { EntityState } from '../../tracking/entity-state';
 import type { ManyToManyChangeSet } from '../many-to-many-change-set';
@@ -76,9 +77,8 @@ export class TrackedSaveState {
         for (const generated of generatedValues) {
             const snapshot = byEntry.get(generated.entry);
             if (snapshot) {
-                snapshot.values[generated.propertyName] = generated.persistedValue;
-                snapshot.boundValues[generated.propertyName] =
-                    generated.boundValue;
+                writeSnapshotValue(snapshot.values, generated.propertyName, generated.persistedValue);
+                writeSnapshotValue(snapshot.boundValues, generated.propertyName, generated.boundValue);
             }
         }
     }

@@ -73,3 +73,16 @@ export function defineJsonProperty(
         configurable: true, enumerable: true, value, writable: true,
     });
 }
+
+/** Write into a fresh ordinary object, after all child inspection has finished. */
+export function writeNormalizedJsonProperty(
+    target: Record<string, JsonValue>,
+    key: string,
+    value: JsonValue,
+): void {
+    if (Object.hasOwn(Object.prototype, key)) {
+        defineJsonProperty(target, key, value);
+    } else {
+        target[key] = value;
+    }
+}

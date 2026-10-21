@@ -9,23 +9,23 @@ const { installHistoricalPackages, validateHistoricalPackages } = require('./ins
 const { preserveHistoricalMigrationSql } = require('./preserve-historical-migration-sql');
 
 const root = path.resolve(__dirname, '..');
-const fixture = require('../tests/fixtures/migration-compatibility/alpha-1.json');
+const fixtures = ['alpha-1', 'alpha-2'].map(name => require(`../tests/fixtures/migration-compatibility/${name}.json`));
 const requireCandidate = createRequire(path.join(root, 'package.json'));
 const core = requireCandidate('@entitykit/core');
 const migrations = requireCandidate('@entitykit/core/migrations');
 
-async function verifyMetadata() {
+async function verifyMetadata(fixture) {
   for (const provider of ['sqlite', 'postgres', 'mysql']) {
     const target = provider === 'sqlite' ? ':memory:' : `${provider === 'mysql' ? 'mysql' : 'postgres'}://entitykit@127.0.0.1:1/entitykit_legacy_test`;
     const source = historicalProvider(requireCandidate, provider, target);
     const contract = historicalMigrationContract(core, migrations, source);
-    const reviewed = preserveHistoricalMigrationSql(migrations, provider, contract.historical);
+    const reviewed = preserveHistoricalMigrationSql(migrations, provider, contract.historical, fixture);
     const db = contract.HistoricalContext.create();
     try {
       const expected = fixture.providers[provider];
       assert.equal(migrations.migrationChecksum(reviewed, source.dialect, source.createMigrationBuilder), expected.checksum);
       const authoredChecksum = migrations.migrationChecksum(contract.historical, source.dialect, source.createMigrationBuilder);
-      if (provider === 'sqlite') assert.notEqual(authoredChecksum, expected.checksum);
+      if (provider === 'sqlite' && fixture.releasedVersion === '0.1.0-alpha.1') assert.notEqual(authoredChecksum, expected.checksum);
       else assert.equal(authoredChecksum, expected.checksum);
       const generator = new migrations.MigrationSqlGenerator(source.migrationDialect, source.createMigrationBuilder);
       const domain = statements => statements.filter(statement => !statement.text.includes('__entitykit_migrations'));
@@ -38,7 +38,7 @@ async function verifyMetadata() {
       assert.deepEqual(domain(generator.buildDownStatements(contract.historical)), domain(expected.down));
       const current = migrations.contextMigrations(db).createModelSnapshot();
       assert.deepEqual(migrations.diffModelSnapshots(expected.snapshot, current).operations, []);
-      console.log(`MIGRATION_HISTORICAL_FORMAT_OK ${provider} alpha.1`);
+      console.log(`MIGRATION_HISTORICAL_FORMAT_OK ${provider} ${fixture.releasedVersion}`);
     } finally {
       await db.dispose();
       await source.dispose();
@@ -46,17 +46,18 @@ async function verifyMetadata() {
   }
 }
 
-async function verifyUpgrade(provider, target, consumer) {
+async function verifyUpgrade(provider, target, consumer, fixture) {
   const seeded = spawnSync(process.execPath, [
     '--unhandled-rejections=strict', path.join(__dirname, 'seed-historical-database.js'), provider,
   ], { encoding: 'utf8', timeout: 30_000, env: {
     ...process.env, ENTITYKIT_LEGACY_CONSUMER: consumer, ENTITYKIT_COMPAT_DATABASE_URL: target,
+    ENTITYKIT_LEGACY_VERSION: fixture.releasedVersion,
   } });
-  if (seeded.status !== 0) throw new Error(`Historical ${provider} application failed to seed its database.`);
+  if (seeded.status !== 0) throw new Error(`Historical ${provider} ${fixture.releasedVersion} application failed to seed its database: ${seeded.stderr}`);
   const source = historicalProvider(requireCandidate, provider, target);
   const contract = historicalMigrationContract(core, migrations, source);
   const originalHistorical = contract.historical;
-  contract.historical = preserveHistoricalMigrationSql(migrations, provider, originalHistorical);
+  contract.historical = preserveHistoricalMigrationSql(migrations, provider, originalHistorical, fixture);
   const db = contract.HistoricalContext.create();
   try {
     const runner = new migrations.MigrationRunner(db.database.connection, source.migrationDialect, source.createMigrationBuilder);
@@ -64,14 +65,14 @@ async function verifyUpgrade(provider, target, consumer) {
     assert.equal(historical.length, 1);
     assert.equal(historical[0].checksum, fixture.providers[provider].checksum);
     assert.equal(historical[0].entityKitVersion, fixture.releasedVersion);
-    if (provider === 'sqlite') {
+    if (provider === 'sqlite' && fixture.releasedVersion === '0.1.0-alpha.1') {
       await assert.rejects(runner.update([originalHistorical]), migrations.MigrationChecksumError);
       assert.deepEqual(await runner.getAppliedMigrations({ initializeHistory: false }), historical);
       console.log('MIGRATION_CHANGED_SQL_REFUSED_ORIGINAL_HISTORY_OK sqlite');
     }
     assert.deepEqual((await runner.update([contract.historical])).appliedMigrations, []);
     const legacyBook = await db.books.findOrThrow('legacy-book');
-    assert.equal(legacyBook.title, 'Published alpha.1 application data');
+    assert.equal(legacyBook.title, `Published ${fixture.releasedVersion} application data`);
     assert.equal(legacyBook.version, 1);
     legacyBook.title = 'Read and saved after upgrading';
     await db.saveChanges();
@@ -110,11 +111,17 @@ async function main() {
     if (!target || provider !== 'sqlite' && !/test|qualification|hardening/u.test(new URL(target).pathname)) {
       throw new Error('Compatibility qualification requires an isolated test, qualification, or hardening database.');
     }
-    await verifyMetadata();
-    const consumer = process.env.ENTITYKIT_LEGACY_CONSUMER ?? path.join(temporary, 'historical-consumer');
-    if (process.env.ENTITYKIT_LEGACY_CONSUMER) validateHistoricalPackages(consumer, fixture);
-    else installHistoricalPackages(consumer, fixture, root, process.env.npm_execpath);
-    await verifyUpgrade(provider, target, consumer);
+    const requested = process.argv[3];
+    const selected = requested ? fixtures.filter(fixture => fixture.releasedVersion === requested) : fixtures;
+    if (selected.length === 0) throw new Error('Unknown historical release; choose 0.1.0-alpha.1 or 0.1.0-alpha.2.');
+    if (process.env.ENTITYKIT_LEGACY_CONSUMER && !requested) throw new Error('Select one historical release when reusing a consumer.');
+    for (const fixture of selected) {
+      await verifyMetadata(fixture);
+      const consumer = process.env.ENTITYKIT_LEGACY_CONSUMER ?? path.join(temporary, fixture.releasedVersion);
+      if (process.env.ENTITYKIT_LEGACY_CONSUMER) validateHistoricalPackages(consumer, fixture);
+      else installHistoricalPackages(consumer, fixture, root, process.env.npm_execpath);
+      await verifyUpgrade(provider, target, consumer, fixture);
+    }
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }

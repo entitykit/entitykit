@@ -1,8 +1,7 @@
 import { DbContext, type DbSetFor, type EntityCreationConstructor, type EntityCreationFactory } from '../packages/core/src';
 
 class User {
-    constructor(public id: string, public name = 'Default', ...flags: boolean[]) {
-        void flags;
+    constructor(public id: string, public name = 'Default', ..._flags: boolean[]) {
     }
 }
 const makeUser = (id: number): User => new User(String(id));
@@ -13,7 +12,7 @@ class Context extends DbContext {
 }
 declare const db: Context;
 const users: Context['users'] = db.users;
-const created: User = users.create('one', 'Ada', true);
+const _created: User = users.create('one', 'Ada', true);
 users.create('two');
 void users.find('one');
 db.factory.create(1);
@@ -52,4 +51,3 @@ declare const overloaded: DbSetFor<OverloadedConstructor>;
 overloaded.create(1);
 // @ts-expect-error helper follows the same effective overload as set()
 overloaded.create('one', true);
-void created;

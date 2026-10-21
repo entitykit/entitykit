@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from './write-snapshot-value';
 import type { EntityMetadata } from '../model/entity-metadata';
 import type { PropertyMetadata } from '../model/property-metadata';
 import {
@@ -6,7 +7,6 @@ import {
 } from './snapshot-value';
 import { isGeneratedOnUpdate } from '../model/value-generated';
 import { readPropertyValue } from '../model/property-value-access';
-
 export { cloneSnapshotValue } from './snapshot-value';
 
 /**
@@ -31,11 +31,11 @@ export function readEntityValues<TEntity extends object>(
 ): Record<string, unknown> {
     const values: Record<string, unknown> = {};
     for (const property of metadata.properties) {
-        values[property.propertyName] = snapshotPropertyValue(
+        writeSnapshotValue(values, property.propertyName, snapshotPropertyValue(
             readPropertyValue(entity, property),
             property.converter,
             `${metadata.entityName}.${property.propertyName}`,
-        );
+        ));
     }
     return values;
 }
@@ -46,11 +46,11 @@ export function cloneEntityValues<TEntity extends object>(
 ): Record<string, unknown> {
     const cloned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(values)) {
-        cloned[key] = snapshotPropertyValue(
+        writeSnapshotValue(cloned, key, snapshotPropertyValue(
             value,
             metadata.tryGetProperty(key)?.converter,
             `${metadata.entityName}.${key}`,
-        );
+        ));
     }
     return cloned;
 }

@@ -1,0 +1,85 @@
+{
+  "patches": [
+    {
+      "package": "@rushstack/ts-command-line",
+      "version": "5.3.17",
+      "file": "lib-commonjs/providers/CommandLineParser.js",
+      "before": "e3d6266f49cfda4b9121dde3dfb4a90f4362b7ef370f122201b9d51da4803d2a",
+      "after": "ba18130ea681890ab45e7958a53f65f5ca0280cb146d6c2d6d0fcf3e1dab074c",
+      "replacements": [
+        {
+          "from": "argumentParser.formatUsage",
+          "to": "argumentParser.format_usage",
+          "count": 2
+        },
+        {
+          "from": "description: (0, escapeSprintf_1.escapeSprintf)(toolDescription)",
+          "to": "description: toolDescription",
+          "count": 1
+        },
+        {
+          "from": "Colorize.bold((0, escapeSprintf_1.escapeSprintf)(toolEpilog ??",
+          "to": "Colorize.bold(toolEpilog ??",
+          "count": 1
+        },
+        {
+          "from": " <command> -h`))",
+          "to": " <command> -h`)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "package": "@rushstack/ts-command-line",
+      "version": "5.3.17",
+      "file": "lib-commonjs/providers/CommandLineAction.js",
+      "before": "64b4ebb2acfea3bbcbb44517a07a6ac509202ce3d72692b0c84bb316148a5a1b",
+      "after": "31e5f97762bdb5e907d874afbea6fc1e187510b9f8ffba16a6b100fa40b39f3e",
+      "replacements": [
+        {
+          "from": "description: (0, escapeSprintf_1.escapeSprintf)(this.documentation)",
+          "to": "description: this.documentation",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "package": "@rushstack/ts-command-line",
+      "version": "5.3.17",
+      "file": "lib-commonjs/providers/CommandLineParameterProvider.js",
+      "before": "88a5bba496ade2450be56cda29f018d26c70690cdef78c10be5fd0d6f57da5e5",
+      "after": "bdfeb5dbf598ee0a656a6d1ee5171dca7180d4f098e3d05c8e95656884e41838",
+      "replacements": [
+        {
+          "from": "const argparseOptions = {\n            help:",
+          "to": "const argparseOptions = Object.fromEntries(Object.entries({\n            help:",
+          "count": 1
+        },
+        {
+          "from": "            type\n        };",
+          "to": "            type\n        }).filter(([, value]) => value !== undefined));",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "package": "@next/eslint-plugin-next",
+      "version": "16.3.8",
+      "file": "dist/utils/get-root-dirs.js",
+      "before": "886677432990a735e5ebdfb345ff1cbd40e264f9947a8432eeeb254b3a926bde",
+      "after": "4b5986bb5c62c441d2441b0dc8bd1fc7850d39037e1645d69780a2687fc1d39b",
+      "replacements": [
+        {
+          "from": "var _fastglob = require(\"fast-glob\");",
+          "to": "var _fastglob = require(\"fast-glob\");\nvar _path = require(\"node:path\");",
+          "count": 1
+        },
+        {
+          "from": "        onlyDirectories: true\n    });",
+          "to": "        onlyDirectories: true,\n        expandDirectories: false,\n        absolute: _path.isAbsolute(rootDir.replace(/\\\\/g, '/'))\n    }).map(function(dir) {\n        return dir.endsWith('/') && dir !== _path.parse(dir).root ? dir.slice(0, -1) : dir;\n    });",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

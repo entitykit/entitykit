@@ -121,7 +121,7 @@ export interface AuditOptions {
 
 // @public
 export abstract class BaseEntityConfiguration<TEntity extends object> implements EntityTypeConfiguration<TEntity> {
-    configure(builder: EntityBuilder<TEntity>): void;
+    configure(_builder: EntityBuilder<TEntity>): void;
     abstract readonly entity: EntityConstructor<TEntity>;
 }
 
@@ -167,6 +167,27 @@ export interface CollectionNavigationEntry<TElement> {
 export type ComparablePropertyKey<TEntity extends object> = {
     [K in keyof TEntity]-?: NonNullable<TEntity[K]> extends number | string | Date ? K : never;
 }[keyof TEntity] & string;
+
+// @public
+export interface CompiledModel {
+    // (undocumented)
+    readonly [compiledModelBrand]: true;
+    readonly dialect: string;
+    readonly provider: string;
+}
+
+// @public (undocumented)
+const compiledModelBrand: unique symbol;
+
+// @public (undocumented)
+export interface CompiledModelOptions {
+    readonly dialect?: string;
+    // (undocumented)
+    readonly provider: string;
+}
+
+// @public
+export function compileModel(configure: (model: ModelBuilder) => unknown, options: CompiledModelOptions): CompiledModel;
 
 // @public
 export interface ComplexPropertyBuilder<TEntity extends object, TComplex extends object> {
@@ -517,7 +538,7 @@ export abstract class DbContext extends DbContextSets {
     // @deprecated (undocumented)
     clearChanges(): void;
     clearTracking(): void;
-    protected configure(options: DbContextOptionsBuilder): unknown;
+    protected configure(_options: DbContextOptionsBuilder): unknown;
     static create<TContext extends DbContext, TArguments extends unknown[]>(this: new (...arguments_: TArguments) => TContext, ...arguments_: TArguments): TContext;
     get database(): DatabaseFacade;
     dispose(): Promise<void>;
@@ -527,7 +548,7 @@ export abstract class DbContext extends DbContextSets {
     getSavePlanDebugView(): string;
     link<TEntity extends object, TTarget extends object>(source: TEntity, navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>, target: TTarget): void;
     loadNavigation<TEntity extends object>(entry: EntityEntry<TEntity>, navigationProperty: string): Promise<unknown>;
-    protected model(model: ModelBuilder): unknown;
+    protected model(_model: ModelBuilder): unknown;
     saveChanges(options?: DatabaseOperationOptions): Promise<number>;
     transaction<TResult>(work: (context: this) => TResult | Promise<TResult>, options?: TransactionOptions): Promise<TResult>;
     unlink<TEntity extends object, TTarget extends object>(source: TEntity, navigationSelector: PropertySelector<TEntity, readonly TTarget[] | TTarget[]>, target: TTarget): void;
@@ -542,6 +563,7 @@ export interface DbContextConstructor<TContext extends EntityKitCliContext = Ent
 export interface DbContextOptionsBuilder {
     allowCrossTenantAccess(): this;
     useAuditing(options?: AuditOptions): this;
+    useCompiledModel(model: CompiledModel): this;
     // Warning: (ae-forgotten-export) The symbol "UseConnectionOptions" needs to be exported by the entry point index.d.ts
     useConnection(connection: DatabaseConnection, options?: UseConnectionOptions): this;
     useDataSource(dataSource: DatabaseDataSource): this;

@@ -39,7 +39,7 @@ export function createJoinedQueryProxy<
 >(aliases: readonly string[]): JoinedQueryProxy<TRoot, TJoined> {
     const allowedAliases = new Set(['root', ...aliases]);
     return new Proxy({}, {
-        get(_target, propertyKey): QueryProxy<object> {
+        get(_target, propertyKey): object {
             if (typeof propertyKey !== 'string') {
                 throw new Error(
                     'Joined query selectors must access string-named sources.',
@@ -63,7 +63,7 @@ export function createJoinedProjectionProxy<
 >(aliases: readonly string[]): JoinedProjectionProxy<TRoot, TJoined> {
     const allowedAliases = new Set(['root', ...aliases]);
     return new Proxy({}, {
-        get(_target, propertyKey): ProjectionProxy<object> {
+        get(_target, propertyKey): object {
             if (typeof propertyKey !== 'string') {
                 throw new Error(
                     'Joined projection selectors must access string-named sources.',

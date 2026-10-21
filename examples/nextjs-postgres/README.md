@@ -5,7 +5,7 @@ public editorial site with a small studio, a Server Action mutation path, a JSON
 Route Handler, source-controlled migrations, and a real Postgres provider.
 
 This is an application demo, not another EntityKit package. Its manifest pins
-the exact `0.1.0-alpha.2` family, and npm links those versions to the matching
+the exact `0.1.0-alpha.3` family, and npm links those versions to the matching
 workspace packages so the release candidate is qualified as one unit.
 
 ## What it demonstrates
@@ -192,7 +192,7 @@ Neither a live context nor a tracked entity crosses the server-render boundary.
 
 ## Package versions
 
-All EntityKit packages are pinned to exactly `0.1.0-alpha.2`. EntityKit provider
+All EntityKit packages are pinned to exactly `0.1.0-alpha.3`. EntityKit provider
 and CLI packages require the same exact core version; mixed family versions are
 unsupported. Upgrade the family together, review the generated SQL, and rerun
 the full static and live gates.

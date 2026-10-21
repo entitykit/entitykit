@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from '../tracking/write-snapshot-value';
 import type { EntityMetadata } from '../model/entity-metadata';
 import {
     fromProviderValue,
@@ -8,6 +9,8 @@ import {
     type StoreValueReader,
 } from '../storage/store-value-reader';
 import { cloneSnapshotValue } from '../tracking/snapshot-value-clone';
+import { compiledEntityPlan } from './compiled-entity-plan';
+import { captureCompiledEntityValues } from './compiled-entity-values';
 
 export interface MaterializedValueCapture {
     readonly values: Record<string, unknown>;
@@ -20,6 +23,8 @@ export function captureMaterializedValues<TEntity extends object>(
     row: Readonly<Record<string, unknown>>,
     reader?: StoreValueReader,
 ): MaterializedValueCapture {
+    const plan = compiledEntityPlan(metadata);
+    if (plan) return captureCompiledEntityValues(plan, row, reader);
     const values: Record<string, unknown> = {};
     const boundValues: Record<string, unknown> = {};
     for (const property of metadata.properties) {
@@ -27,16 +32,16 @@ export function captureMaterializedValues<TEntity extends object>(
         const providerValue = readStoreProviderValue(
             row[property.columnName], property, reader,
         );
-        values[property.propertyName] = fromProviderValue(
+        writeSnapshotValue(values, property.propertyName, fromProviderValue(
             cloneSnapshotValue(providerValue), property.converter, context,
-        );
-        boundValues[property.propertyName] = cloneSnapshotValue(
+        ));
+        writeSnapshotValue(boundValues, property.propertyName, cloneSnapshotValue(
             toBoundProviderValue(
                 cloneSnapshotValue(providerValue),
                 property.columnType,
                 context,
             ),
-        );
+        ));
     }
     return { values, boundValues };
 }

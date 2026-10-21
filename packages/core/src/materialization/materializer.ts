@@ -17,8 +17,6 @@ import {
 import { queryIdentityResolutionFor } from './query-identity-resolution';
 
 export class Materializer {
-    private readonly materializedEntities: WeakSet<object> = new WeakSet();
-
     /** `onFreshEntityTracked` fires only for entries this instance registered. */
     constructor(
         private readonly valueReader?: StoreValueReader,
@@ -135,13 +133,11 @@ export class Materializer {
     ): TEntity {
         const entity = constructMaterializedEntity(metadata, values);
         if (
-            this.materializedEntities.has(entity) ||
             !reserveMaterializedEntity(entity) ||
             changeTracker?.entry(entity)
         ) {
             throw reusedMaterializedEntityError(metadata.entityName);
         }
-        this.materializedEntities.add(entity);
         applyMaterializedValues(metadata, entity, values);
         return entity;
     }

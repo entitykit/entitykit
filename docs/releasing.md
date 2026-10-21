@@ -16,10 +16,12 @@ Every real working-copy publish is refused by `prepublishOnly`.
 | `alpha` | Canonical `X.Y.Z-alpha.N` | `alpha-candidate` | `alpha` | `publish-alpha` |
 | `stable` | Canonical `X.Y.Z` | `stable-candidate` | `latest` | `publish-stable` |
 
-Package versions currently remain `0.1.0-alpha.2`. Stable mechanics are tested
+The source candidate is `0.1.0-alpha.3`; `0.1.0-alpha.2` is already published.
+Stable mechanics are tested
 with synthetic versions, including real npm dry runs. A stable dispatch of
-these prerelease tarballs fails preflight. Selecting and applying the first
-stable version remains a separate release decision.
+these prerelease tarballs fails preflight. The target for the first stable family
+is `0.1.0`; applying its metadata and qualifying the final candidate remain
+pending. See the [preparation checklist](releases/0.1.0-preparation.md).
 
 ## Prepare the family
 
@@ -73,7 +75,8 @@ PR or a nightly report from another revision does not replace this release gate.
 
 The release workflow invokes that matrix for its own dispatch SHA and waits
 for every lane before packing. Older green runs do not qualify a later commit.
-The security tooling review must still be valid in the release window.
+The dependency security gate must pass in the release window; any active
+tooling exception must remain valid then. The current candidate has none.
 
 Ensure the `NPM_TOKEN` Actions secret is authorized for all seven identities.
 Only the publish job receives OIDC write permission for npm provenance; tag

@@ -34,14 +34,19 @@ export async function loadDbSetIncludes<TEntity extends object>(
     identities?: QueryIdentityResolution,
 ): Promise<void> {
     const tracked = changeTracker === context.changeTracker;
+    const runtimeModel = context.modelMetadata;
+    // Keep the post-query usability check even when no graph needs loading.
+    const database = context.database;
+    const includes = model.includes;
+    if (roots.length === 0 || includes.length === 0) return;
     return runNavigationLoadOperation(
         changeTracker,
         error => {
             if (tracked) context.markStateRestorationFailure(error);
         },
         async scope => new IncludeLoader(
-            context.modelMetadata,
-            context.database,
+            runtimeModel,
+            database,
             changeTracker,
             applyQueryFilters,
             context.dialect,
@@ -53,6 +58,6 @@ export async function loadDbSetIncludes<TEntity extends object>(
             tracked,
             tracked,
             useQueryIdentityResolution(scope, identities),
-        ).loadRoots(metadata, roots, model.includes),
+        ).loadRoots(metadata, roots, includes),
     );
 }

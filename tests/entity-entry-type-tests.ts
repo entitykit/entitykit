@@ -4,14 +4,14 @@ class TypeTestEntity {
     public id = '';
 }
 
-function assertEntryStateIsReadonly(
+function _assertEntryStateIsReadonly(
     entry: EntityEntry<TypeTestEntity>,
 ): void {
     // @ts-expect-error entity lifecycle transitions use DbSet/ChangeTracker APIs
     entry.state = EntityState.Deleted;
 }
 
-const internalEntityEntryMembers: ReadonlyArray<keyof EntityEntry<TypeTestEntity>> = [
+const _internalEntityEntryMembers: ReadonlyArray<keyof EntityEntry<TypeTestEntity>> = [
     // @ts-expect-error internal state transitions are not application APIs
     'transitionToState',
     // @ts-expect-error deletion is coordinated through DbSet.remove()
@@ -19,6 +19,3 @@ const internalEntityEntryMembers: ReadonlyArray<keyof EntityEntry<TypeTestEntity
     // @ts-expect-error acceptance is coordinated by ChangeTracker
     'acceptChanges',
 ];
-
-void assertEntryStateIsReadonly;
-void internalEntityEntryMembers;

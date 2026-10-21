@@ -1,13 +1,13 @@
 import type { JsonValue } from '../json-value';
 import { compareJsonKeys } from './canonical-json';
 import {
-    defineJsonProperty,
     jsonChildPath,
     jsonChildPropertyPath,
     isJsonArrayIndex,
     jsonArrayLength,
     rejectJson,
     withJsonAncestor,
+    writeNormalizedJsonProperty,
     type JsonNormalizationState,
 } from './json-normalization-state';
 
@@ -67,7 +67,7 @@ export function normalizeJsonObject(
                 typeof key === 'string' && descriptors[key].enumerable === true)
             .sort(compareJsonKeys);
         for (const key of propertyNames) {
-            defineJsonProperty(normalized, key, normalizeDescriptor(
+            writeNormalizedJsonProperty(normalized, key, normalizeDescriptor(
                 descriptors[key], jsonChildPath(path, key), state, normalize,
             ));
         }

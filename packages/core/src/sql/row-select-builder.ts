@@ -106,7 +106,11 @@ export class RowSelectBuilder {
             const orderings = query.orderings
                 .map(ordering => {
                     const property = metadata.getProperty(ordering.propertyName);
-                    return this.host.orderTerm(this.host.columnSql(property.columnName, rootAlias), ordering.direction);
+                    return this.host.orderTerm(
+                        this.host.columnSql(property.columnName, rootAlias),
+                        ordering.direction,
+                        !property.isRequired,
+                    );
                 })
                 .join(', ');
             parts.push(`order by ${orderings}`);

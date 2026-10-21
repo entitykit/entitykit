@@ -1,9 +1,10 @@
 # Published-release migration compatibility
 
-The compatibility gate installs the actual published `0.1.0-alpha.1` core,
-SQLite, Postgres and MySQL packages into a separate consumer. Their registry
+The compatibility gate installs the actual published `0.1.0-alpha.1` and
+`0.1.0-alpha.2` core, SQLite, Postgres and MySQL packages into separate consumers. Their registry
 SHA-512 integrities are pinned in
-[the historical fixture](../tests/fixtures/migration-compatibility/alpha-1.json).
+[the alpha.1 fixture](../tests/fixtures/migration-compatibility/alpha-1.json) and
+[the alpha.2 fixture](../tests/fixtures/migration-compatibility/alpha-2.json).
 The old SDK creates a real application schema, applies its migration and
 persists data before the candidate opens that database.
 
@@ -21,8 +22,9 @@ keys. The original alpha.1 callback consequently renders different SQL and is
 refused for its changed checksum; the campaign verifies that history stays
 intact. A separate reviewed migration pins the published SQL, parameters and
 transaction options, preserving the recorded digest for upgrade and rollback.
-The original authored source and published fixture are unchanged. PostgreSQL
-and MySQL retain their original callback digests. This qualifies a reviewed
+The original authored source and published fixtures are unchanged. Alpha.2
+already includes the required-key repair, so its callback retains its digest
+on all three providers. PostgreSQL and MySQL also retain their alpha.1 callback digests. This qualifies a reviewed
 preservation procedure, rather than automatic compatibility for changed
 callbacks; see [the migration guide](migrations.md).
 
@@ -47,8 +49,10 @@ SQLite uses a disposable file. Keep temporary consumers outside the checkout;
 the default operating-system temporary directory satisfies that boundary.
 
 The default run installs a fresh legacy consumer from the pinned registry
-artifacts. For repeated local campaigns, `ENTITYKIT_LEGACY_CONSUMER` can point
-to a previously installed consumer; its exact package versions and lockfile
+artifacts for both baselines. To select one, pass its full version, for example
+`npm run check:migration-compatibility -- 0.1.0-alpha.2`. For repeated local campaigns,
+`ENTITYKIT_LEGACY_CONSUMER` can point to a previously installed consumer when
+one release is selected; its exact package versions and lockfile
 integrities are checked against the fixture before use. That optimization
 does not replace preserving the historical artifact identities in release
 evidence.

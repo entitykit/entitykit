@@ -1,7 +1,10 @@
+import { Buffer } from 'node:buffer';
+import { types } from 'node:util';
+
 export function snapshotValuesEqual(
     left: unknown,
     right: unknown,
-    seen: WeakMap<object, WeakSet<object>> = new WeakMap(),
+    seen?: WeakMap<object, WeakSet<object>>,
 ): boolean {
     if (Object.is(left, right)) {
         return true;
@@ -27,7 +30,8 @@ export function snapshotValuesEqual(
     if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) {
         return false;
     }
-    if (alreadyCompared(left, right, seen)) {
+    const comparisons = seen ?? new WeakMap<object, WeakSet<object>>();
+    if (alreadyCompared(left, right, comparisons)) {
         return true;
     }
 
@@ -36,20 +40,19 @@ export function snapshotValuesEqual(
       && Array.isArray(right)
       && left.length === right.length
       && Array.from(left).every((item, index) =>
-          snapshotValuesEqual(item, right[index], seen),
+          snapshotValuesEqual(item, right[index], comparisons),
       );
     }
     if (left instanceof Map || right instanceof Map) {
         return left instanceof Map
       && right instanceof Map
-      && orderedEntriesEqual(left, right, seen);
+      && orderedEntriesEqual(left, right, comparisons);
     }
     if (left instanceof Set || right instanceof Set) {
         return left instanceof Set
       && right instanceof Set
-      && orderedValuesEqual(left, right, seen);
+      && orderedValuesEqual(left, right, comparisons);
     }
-
     const leftKeys = enumerableOwnKeys(left);
     const rightKeys = enumerableOwnKeys(right);
     return leftKeys.length === rightKeys.length
@@ -58,7 +61,7 @@ export function snapshotValuesEqual(
       && snapshotValuesEqual(
           (left as Record<PropertyKey, unknown>)[key],
           (right as Record<PropertyKey, unknown>)[key],
-          seen,
+          comparisons,
       ),
     );
 }
@@ -127,7 +130,9 @@ function sameBinaryValue(left: object, right: object): boolean {
     const leftBytes = bytesOf(left);
     const rightBytes = bytesOf(right);
     return leftBytes.length === rightBytes.length
-    && leftBytes.every((value, index) => value === rightBytes[index]);
+    && (leftBytes.length === 0
+        ? leftBytes.every((value, index) => value === rightBytes[index])
+        : Buffer.compare(leftBytes, rightBytes) === 0);
 }
 
 function bytesOf(value: ArrayBuffer | ArrayBufferView): Uint8Array {
@@ -137,6 +142,7 @@ function bytesOf(value: ArrayBuffer | ArrayBufferView): Uint8Array {
 }
 
 function enumerableOwnKeys(value: object): PropertyKey[] {
+    if (!types.isProxy(value) && Object.getOwnPropertySymbols(value).length === 0) return Object.keys(value);
     return Reflect.ownKeys(value).filter(key =>
         Object.prototype.propertyIsEnumerable.call(value, key),
     );

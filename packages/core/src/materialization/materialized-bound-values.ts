@@ -1,18 +1,33 @@
 import type { EntityMetadata } from '../model/entity-metadata';
 import { cloneBoundEntityValues } from '../tracking/bound-entity-value-clone';
 import { cloneBoundValues } from '../tracking/bound-value-snapshot';
+import { compiledEntityPlan } from './compiled-entity-plan';
+import { cloneUnconvertedEntityValues } from './compiled-entity-values';
 
 interface MaterializedPersistenceFacts {
     readonly boundValues: Record<string, unknown>;
     readonly cloneValues: () => Record<string, unknown>;
 }
 
-const facts: WeakMap<object, MaterializedPersistenceFacts> = new WeakMap();
-const reservations: WeakSet<object> = new WeakSet();
+class CapturedPersistenceFacts<TEntity extends object> implements MaterializedPersistenceFacts {
+    constructor(
+        private readonly metadata: EntityMetadata<TEntity>,
+        private readonly values: Record<string, unknown>,
+        public readonly boundValues: Record<string, unknown>,
+    ) {}
+
+    public cloneValues(): Record<string, unknown> {
+        return cloneMaterializedValues(this.metadata, this.values, this.boundValues);
+    }
+}
+
+// Presence reserves an instance even before persistence facts are complete.
+// Failed materialization must keep that reservation for the entity's lifetime.
+const facts: WeakMap<object, MaterializedPersistenceFacts | undefined> = new WeakMap();
 
 export function reserveMaterializedEntity(entity: object): boolean {
-    if (reservations.has(entity)) return false;
-    reservations.add(entity);
+    if (facts.has(entity)) return false;
+    facts.set(entity, undefined);
     return true;
 }
 
@@ -25,19 +40,26 @@ export function rememberMaterializedPersistenceFacts<
     boundValues: Readonly<Record<string, unknown>>,
 ): void {
     const capturedBoundValues = cloneBoundValues(boundValues);
-    const capturedValues = cloneBoundEntityValues(
+    const capturedValues = cloneMaterializedValues(
         metadata,
         values,
         capturedBoundValues,
     );
-    facts.set(entity, {
-        boundValues: capturedBoundValues,
-        cloneValues: () => cloneBoundEntityValues(
-            metadata,
-            capturedValues,
-            capturedBoundValues,
-        ),
-    });
+    facts.set(entity, new CapturedPersistenceFacts(
+        metadata,
+        capturedValues,
+        capturedBoundValues,
+    ));
+}
+
+function cloneMaterializedValues<TEntity extends object>(
+    metadata: EntityMetadata<TEntity>,
+    values: Record<string, unknown>,
+    boundValues: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+    return compiledEntityPlan(metadata)
+        ? cloneUnconvertedEntityValues(values)
+        : cloneBoundEntityValues(metadata, values, boundValues);
 }
 
 export function materializedPersistenceFacts(

@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from './write-snapshot-value';
 import type { EntityMetadata } from '../model/entity-metadata';
 import { readPropertyValue } from '../model/property-value-access';
 import { toBoundProviderValue } from '../model/value-converter/store-value';
@@ -47,8 +48,8 @@ export function captureEntityPersistenceFacts<TEntity extends object>(
         const captured = capturePropertyPersistenceFact(
             metadata, property, readPropertyValue(entity, property),
         );
-        modelValues[property.propertyName] = captured.modelValue;
-        boundValues[property.propertyName] = captured.boundValue;
+        writeSnapshotValue(modelValues, property.propertyName, captured.modelValue);
+        writeSnapshotValue(boundValues, property.propertyName, captured.boundValue);
     }
     return { modelValues, boundValues };
 }

@@ -36,16 +36,19 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         getOptions: () => this.options,
         currentAuditTimestamp: () => this.currentAuditTimestamp(),
     });
-    private readonly saver = new UnitOfWorkSaver({
-        changeTracker: this.changeTracker,
-        saveTimeWrites: this.saveTimeWrites,
-        manyToMany: this.manyToMany,
-        outboxEvents: this.outboxEvents,
-        transactionCoordinator: this.transactionCoordinator,
-        navigationLoader: this,
-        getDatabase: () => this.databaseConnection,
-        getOptions: () => this.options,
-    });
+    private saverInstance?: UnitOfWorkSaver;
+    private get saver(): UnitOfWorkSaver {
+        return this.saverInstance ??= new UnitOfWorkSaver({
+            changeTracker: this.changeTracker,
+            saveTimeWrites: this.saveTimeWrites,
+            manyToMany: this.manyToMany,
+            outboxEvents: this.outboxEvents,
+            transactionCoordinator: this.transactionCoordinator,
+            navigationLoader: this,
+            getDatabase: () => this.databaseConnection,
+            getOptions: () => this.options,
+        });
+    }
     protected get transactionDepth(): number {
         return this.transactionCoordinator.depth;
     }
@@ -66,9 +69,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         this.assertContextUsable('getSavePlan()');
         this.assertSaveNotInProgress('getSavePlan()');
         return inspectSavePlan(
-            this.state.markStateRestorationFailure.bind(
-                this.state, 'rollback',
-            ),
+            this.state.markStateRestorationFailure.bind(this.state, 'rollback'),
             this.saveTimeWrites,
             restoration => this.savePlanBuilder.build(restoration),
         );
@@ -77,9 +78,7 @@ export abstract class DbContextUnitOfWork extends DbContextRelationships {
         this.assertContextUsable('getSavePlanDebugView()');
         this.assertSaveNotInProgress('getSavePlanDebugView()');
         return inspectSavePlan(
-            this.state.markStateRestorationFailure.bind(
-                this.state, 'rollback',
-            ),
+            this.state.markStateRestorationFailure.bind(this.state, 'rollback'),
             this.saveTimeWrites,
             restoration => this.savePlanBuilder.debugView(restoration),
         );

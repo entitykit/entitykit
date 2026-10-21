@@ -30,8 +30,7 @@ export abstract class Migration {
     /**
    * Add SQL operations required to revert the migration.
    */
-    public down(builder: MigrationBuilder): void {
-        void builder;
+    public down(_builder: MigrationBuilder): void {
         // Migrations may override this when rollback SQL is available.
     }
 }

@@ -1,8 +1,6 @@
-const fixture = require('../tests/fixtures/migration-compatibility/alpha-1.json');
-
 // Pin the reviewed, published SQL rather than re-rendering an applied callback
 // with a newer DDL policy. The original authored source and receipt stay fixed.
-function preserveHistoricalMigrationSql(migrations, provider, historical) {
+function preserveHistoricalMigrationSql(migrations, provider, historical, fixture) {
   const recorded = fixture.providers[provider];
   const domain = direction => recorded[direction].filter(statement =>
     !statement.text.includes('__entitykit_migrations'));

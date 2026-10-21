@@ -50,16 +50,19 @@ export function readStoreValue(
 ): unknown {
     const stored = readStoreProviderValue(value, property, reader);
 
-    const context = property.propertyName === undefined
+    // Preserve metadata getter order even when no converter needs a diagnostic.
+    const hasName = property.propertyName !== undefined;
+    const name = hasName ? property.propertyName : undefined;
+    const converter = property.converter as ValueConverter | undefined;
+    if (!converter) {
+        return stored;
+    }
+    const context = !hasName
         ? undefined
         : entityName
-            ? `${entityName}.${property.propertyName}`
-            : property.propertyName;
-    return fromProviderValue(
-        stored,
-        property.converter as ValueConverter | undefined,
-        context,
-    );
+            ? `${entityName}.${String(name)}`
+            : name;
+    return fromProviderValue(stored, converter, context);
 }
 
 /** Apply provider read normalization without invoking a model converter. */

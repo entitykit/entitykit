@@ -1,15 +1,11 @@
 import type { EntityMetadata } from '../model/entity-metadata';
-import {
-    propertyValueTarget,
-    readPropertyPath,
-} from '../model/property-value-access';
+import { propertyValueTarget, readPropertyPath } from '../model/property-value-access';
 import type { ComplexPropertyMetadata } from '../model/complex-property-metadata';
 import type { RestorationScope } from '../restoration-scope';
-import {
-    writeFailureAtomicPath,
-    writeFailureAtomicProperty,
-} from '../failure-atomic-property-write';
+import { writeFailureAtomicPath, writeFailureAtomicProperty } from '../failure-atomic-property-write';
 import { writeVerifiedPath, writeVerifiedProperty } from '../verified-property-write';
+import { compiledEntityPlan } from './compiled-entity-plan';
+import { applyCompiledEntityValues } from './compiled-entity-values';
 
 export function applyMaterializedValues<TEntity extends object>(
     metadata: EntityMetadata<TEntity>,
@@ -17,6 +13,11 @@ export function applyMaterializedValues<TEntity extends object>(
     values: Readonly<Record<string, unknown>>,
     restoration?: RestorationScope,
 ): void {
+    const plan = !restoration && typeof entity === 'object' ? compiledEntityPlan(metadata) : undefined;
+    if (plan) {
+        applyCompiledEntityValues(plan, entity, values);
+        return;
+    }
     for (const complex of metadata.complexProperties) {
         const parent = complex.propertyPath.slice(0, -1);
         if (parent.length > 0 && readPropertyPath(entity, parent) === null) {
@@ -48,18 +49,20 @@ export function applyMaterializedValues<TEntity extends object>(
         if (hasNullComplexAncestor(metadata, entity, property.propertyPath)) {
             continue;
         }
-        const context = `${metadata.entityName}.${property.propertyName}`;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-template-expression -- Preserve live metadata name coercion before other getters.
+        const entityName = `${metadata.entityName}`;
+        const propertyName = `${property.propertyName}`;
         if (restoration) {
             writeFailureAtomicProperty({
                 entity,
                 property,
                 value: values[property.propertyName],
                 scope: restoration,
-                context,
+                context: `${entityName}.${propertyName}`,
             });
         } else {
             writeVerifiedProperty(
-                entity, property, values[property.propertyName], context,
+                entity, property, values[property.propertyName], entityName, propertyName,
             );
         }
     }
@@ -119,12 +122,17 @@ function hasNullComplexAncestor<TEntity extends object>(
     entity: TEntity,
     propertyPath: readonly string[],
 ): boolean {
-    return metadata.complexProperties.some(complex =>
-        complex.propertyPath.length < propertyPath.length &&
-        isPrefix(complex.propertyPath, propertyPath) &&
-        readPropertyPath(entity, complex.propertyPath) === null);
+    const complexes = metadata.complexProperties;
+    const length = complexes.length;
+    for (let index = 0; index < length; index++) {
+        if (!(index in complexes)) continue;
+        const complex = complexes[index];
+        if (complex.propertyPath.length < propertyPath.length &&
+            isPrefix(complex.propertyPath, propertyPath) &&
+            readPropertyPath(entity, complex.propertyPath) === null) return true;
+    }
+    return false;
 }
-
 function isPrefix(
     prefix: readonly string[],
     path: readonly string[],

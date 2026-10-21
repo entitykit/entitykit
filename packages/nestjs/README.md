@@ -39,15 +39,15 @@ application with `"type": "module"` and TypeScript `module` and
 
 ## Install
 
-Install the coordinated family after `alpha.2` is promoted:
+Install the published coordinated family (`alpha.2` includes this integration):
 
 ```sh
 npm install @entitykit/core@alpha @entitykit/postgres@alpha @entitykit/nestjs@alpha \
   pg @nestjs/common@^12 @nestjs/core@^12 reflect-metadata rxjs
 ```
 
-Before promotion, consume the workspace build; the `alpha.1` registry family
-does not contain `@entitykit/nestjs`.
+The `alpha.3` source candidate uses the workspace build until publication. The
+historical `alpha.1` registry family does not contain `@entitykit/nestjs`.
 
 ## Define a context
 

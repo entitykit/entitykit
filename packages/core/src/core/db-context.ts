@@ -46,13 +46,11 @@ export abstract class DbContext extends DbContextSets {
      * No call to DbContext.configure() is needed for source selection.
      * Call super.configure(options) to retain an intermediate base class's configuration.
      */
-    protected configure(options: DbContextOptionsBuilder): unknown {
-        void options;
+    protected configure(_options: DbContextOptionsBuilder): unknown {
         return undefined;
     }
     /** Configure mapped entity types for this context. */
-    protected model(model: ModelBuilder): unknown {
-        void model;
+    protected model(_model: ModelBuilder): unknown {
         return undefined;
     }
     /** Inspect and manage entities tracked by this context. */

@@ -1,3 +1,5 @@
+import { writeSnapshotValue } from './write-snapshot-value';
+import { types } from 'node:util';
 import type { EntityMetadata } from '../model/entity-metadata';
 import { toBoundPropertyValue } from '../model/value-converter/store-value';
 import { cloneSnapshotValue } from './snapshot-value-clone';
@@ -59,21 +61,32 @@ export function captureMissingBoundEntityValues<TEntity extends object>(
         )) {
             continue;
         }
-        boundValues[property.propertyName] = cloneSnapshotValue(
+        writeSnapshotValue(boundValues, property.propertyName, cloneSnapshotValue(
             toBoundPropertyValue(
                 values[property.propertyName],
                 property,
                 metadata.entityName,
             ),
-        );
+        ));
     }
 }
 
 export function cloneBoundValues(
     values: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(values).map(([key, value]) => [
-        key,
-        cloneSnapshotValue(value),
-    ]));
+    // Preserve the single enumeration and string-only accessor behavior for
+    // proxies and symbol-bearing records. Ordinary records need no entry pairs.
+    if (types.isProxy(values) || Object.getOwnPropertySymbols(values).length !== 0) {
+        return Object.fromEntries(Object.entries(values).map(([key, value]) => [
+            key,
+            cloneSnapshotValue(value),
+        ]));
+    }
+    // Capture every root getter before cloning nested values. Spread creates
+    // owned data properties, so assignment also preserves special own keys.
+    const cloned = { ...values };
+    for (const key of Object.keys(cloned)) {
+        cloned[key] = cloneSnapshotValue(cloned[key]);
+    }
+    return cloned;
 }

@@ -52,8 +52,8 @@ export { formatBenchmarkResults, runBenchmarkCase, runBenchmarkSuite } from '../
 export type { BenchmarkCase, BenchmarkResult } from '../benchmarks/benchmark-runner';
 
 // Builder working state. These are the mutable shapes the model builders fill
-// in before `build()` freezes them, so nothing outside `src/model` has reason
-// to name one. Kept reachable here rather than deleted, because a consumer
+// in before `build()` finalizes them; dynamic metadata is not deeply frozen.
+// Kept reachable here rather than deleted, because a consumer
 // writing their own configuration helper may still want them.
 export type { MutableIndexMetadata } from '../model/index-metadata';
 export type { MutableRelationshipMetadata } from '../model/relationship-metadata';

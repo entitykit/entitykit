@@ -29,7 +29,7 @@ npm install @entitykit/core@alpha @entitykit/sqlite@alpha
 Choose `@entitykit/postgres` or `@entitykit/mysql` instead when appropriate.
 
 > [!IMPORTANT]
-> This README describes `0.1.0-alpha.2`. With the previous `0.1.0-alpha.1`,
+> This README describes `0.1.0-alpha.3`. With the previous `0.1.0-alpha.1`,
 > select the shared source explicitly with `options.useDataSource(source)` in
 > `configure()`.
 
@@ -145,3 +145,7 @@ public operations and types.
 ## License
 
 MIT
+
+## Explicit compiled models
+
+`compileModel(configure, { provider: 'sqlite' })` creates an owned mapping handle. Select it with `options.useCompiledModel(handle)` to skip the per-context `model()` hook while retaining fresh request state. The initial flat, callback-free subset and ownership limits are documented in [compiled models](../../docs/compiled-models.md). Eligible flat entity mappings share a private field plan; eligible buffered root-field projections prepare their read instructions once per execution. This API does not precompile general SQL or cache query plans across contexts.

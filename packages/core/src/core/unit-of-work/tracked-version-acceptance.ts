@@ -1,3 +1,4 @@
+import { writeSnapshotValue } from '../../tracking/write-snapshot-value';
 import { writeFailureAtomicProperty } from '../../failure-atomic-property-write';
 import { readPropertyValue } from '../../model/property-value-access';
 import { toBoundPropertyValue } from '../../model/value-converter/store-value';
@@ -36,13 +37,13 @@ export function acceptVersionIncrements(
                     );
                     const previousBound = persisted.boundValues[name];
                     rollback.push(() => {
-                        persisted.values[name] = captured;
-                        persisted.boundValues[name] = previousBound;
+                        writeSnapshotValue(persisted.values, name, captured);
+                        writeSnapshotValue(persisted.boundValues, name, previousBound);
                     });
-                    persisted.values[name] = incremented;
-                    persisted.boundValues[name] = toBoundPropertyValue(
+                    writeSnapshotValue(persisted.values, name, incremented);
+                    writeSnapshotValue(persisted.boundValues, name, toBoundPropertyValue(
                         incremented, property,
-                    );
+                    ));
                     if (!Object.is(current, captured)) continue;
                     writeFailureAtomicProperty({
                         entity: persisted.entry.entity,

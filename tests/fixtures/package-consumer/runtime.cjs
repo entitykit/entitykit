@@ -50,6 +50,7 @@ class ConsumerContext extends DbContext {
 }
 
 async function main() {
+  await require('./compiled-model.cjs')(legacyHelpers);
   for (const [name, helper] of Object.entries({
     assertSynchronousCallbackResult, selectPropertyName, readSynchronousDate,
   })) {
